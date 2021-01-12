@@ -1,10 +1,10 @@
 <?php
 declare (strict_types=1);
 
-namespace Captainbi\Exception\Handle;
+namespace Captainbi\Hyperf\Exception\Handle;
 
-use Captainbi\Exception\BusinessException;
-use Captainbi\Util\Result;
+use Captainbi\Hyperf\Exception\BusinessException;
+use Captainbi\Hyperf\Util\Result;
 use think\exception\Handle;
 use think\exception\HttpException;
 use think\exception\ValidateException;

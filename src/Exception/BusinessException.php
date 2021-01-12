@@ -1,7 +1,7 @@
 <?php
 declare (strict_types=1);
 
-namespace Captainbi\Exception;
+namespace Captainbi\Hyperf\Exception;
 
 use Throwable;
 

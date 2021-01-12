@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Captainbi\Base;
+namespace Captainbi\Hyperf\Base;
 
 
-use Captainbi\Exception\BusinessException;
+use Captainbi\Hyperf\Exception\BusinessException;
 
 abstract class Logic
 {

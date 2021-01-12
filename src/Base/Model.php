@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Captainbi\Base;
+namespace Captainbi\Hyperf\Base;
 
 
 class Model extends \think\Model

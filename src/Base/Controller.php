@@ -1,6 +1,6 @@
 <?php
 
-namespace Captainbi\Base;
+namespace Captainbi\Hyperf\Base;
 
 use think\App;
 

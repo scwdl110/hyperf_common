@@ -12,7 +12,7 @@
  * @param <T>
  */
 
-namespace Captainbi\Util;
+namespace Captainbi\Hyperf\Util;
 
 class Result
 {
