@@ -8,7 +8,7 @@
     },
     "autoload":{
         "psr-4":{
-            "Captainbi\\hyperf\\":"src/"
+            "Captainbi\\Hyperf\\":"src/"
         }
     },
     "description": "",
