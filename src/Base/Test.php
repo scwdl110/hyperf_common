@@ -15,7 +15,7 @@ class Test
     }
 
 
-    protected function test()
+    public function test()
     {
         return "hello";
     }
