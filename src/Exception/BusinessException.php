@@ -3,12 +3,13 @@ declare (strict_types=1);
 
 namespace Captainbi\Hyperf\Exception;
 
+use Hyperf\Server\Exception\ServerException;
 use Throwable;
 
 /**
  * HTTP异常
  */
-class BusinessException extends \RuntimeException
+class BusinessException extends ServerException implements Throwable
 {
     public function __construct($code = 10001, $message = '', Throwable $previous = null)
     {

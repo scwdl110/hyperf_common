@@ -5,25 +5,42 @@ namespace Captainbi\Hyperf\Exception\Handle;
 
 use Captainbi\Hyperf\Exception\BusinessException;
 use Captainbi\Hyperf\Util\Result;
-use think\exception\Handle;
-use think\exception\HttpException;
-use think\exception\ValidateException;
-use think\Response;
+use Hyperf\ExceptionHandler\ExceptionHandler;
+use Hyperf\HttpMessage\Stream\SwooleStream;
+use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
 /**
- * HTTP异常
+ * HTTP异常处理
  */
-class BusinessExceptionHandle extends Handle
+class BusinessExceptionHandle extends ExceptionHandler
 {
-    public function render($request, Throwable $e): Response
+    public function handle(Throwable $throwable, ResponseInterface $response)
     {
-        // 参数验证错误
-        if ($e instanceof BusinessException) {
-            return Result::fail($e->getCode(),$e->getMessage());
-        }
-        // 其他错误交给系统处理
-        return parent::render($request, $e);
+//        // 判断被捕获到的异常是希望被捕获的异常
+//        if ($throwable instanceof BusinessException) {
+//            // 格式化输出
+//            $data = Result::fail([], $throwable->getCode(),$throwable->getMessage());
+//            // 阻止异常冒泡
+//            $this->stopPropagation();
+//            return $response->withStatus(500)->withBody(new SwooleStream($data));
+//        }
+
+//        // 交给下一个异常处理器
+//        return $response;
+        $data = Result::fail([], $throwable->getCode(),$throwable->getMessage());
+        // 阻止异常冒泡
+        $this->stopPropagation();
+        return $response->withStatus(500)->withBody(new SwooleStream($data));
+
+    }
+
+    /**
+     * 判断该异常处理器是否要对该异常进行处理
+     */
+    public function isValid(Throwable $throwable): bool
+    {
+        return true;
     }
 
 }

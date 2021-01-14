@@ -16,11 +16,15 @@ namespace Captainbi\Hyperf\Util;
 
 class Result
 {
-
+    /**
+     * @param $code
+     * @param $msg
+     * @param array $data
+     * @return mixed
+     */
     private static function data($code, $msg, $data = [])
     {
-
-        return json(array(
+        return json_encode(array(
             'code' => $code ? $code : 0,
             'msg' => $msg ? $msg : 'success',
             'data' => $data
@@ -28,28 +32,25 @@ class Result
     }
 
     /**
-     * 成功时
-     * @param <T>
-     * @return
+     * 成功
+     * @param array $data
+     * @param string $msg
+     * @return mixed
      */
-    public static function success($data = [], $msg = '')
+    public static function success($data = [], $msg = 'success')
     {
-        if (empty($msg)) {
-            $msg = isset(config('error')[200]) ? config('error')[200] : '';
-        }
         return self::data(200, $msg, $data);
     }
 
     /**
      * 失败
-     * @param <T>
-     * @return
+     * @param array $data
+     * @param string $msg
+     * @param int $code
+     * @return mixed
      */
-    public static function fail($code = -1, $msg = '', $data = [])
+    public static function fail($data = [], $msg = 'error', $code = -1)
     {
-        if ($msg == '') {
-            $msg = isset(config('error')[$code]) ? config('error')[$code] : '';
-        }
         return self::data($code, $msg, $data);
     }
 
