@@ -17,7 +17,7 @@ use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
-class AppExceptionHandler extends ExceptionHandler
+class BiAppExceptionHandler extends ExceptionHandler
 {
     /**
      * @var StdoutLoggerInterface

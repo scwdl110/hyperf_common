@@ -11,15 +11,12 @@ declare(strict_types=1);
  */
 namespace Captainbi\Hyperf\Exception\Handle;
 
-use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
-use Hyperf\HttpMessage\Exception\HttpException;
 use Hyperf\HttpMessage\Stream\SwooleStream;
+use Hyperf\HttpServer\Exception\Handler\HttpExceptionHandler;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
-use Hyperf\HttpServer\Exception\Handler as HHttpExceptionHandler;
 
-class HttpExceptionHandler extends HHttpExceptionHandler
+class BiHttpExceptionHandler extends HttpExceptionHandler
 {
 
     /**
