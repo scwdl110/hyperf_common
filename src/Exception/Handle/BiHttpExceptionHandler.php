@@ -13,11 +13,22 @@ namespace Captainbi\Hyperf\Exception\Handle;
 
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpServer\Exception\Handler\HttpExceptionHandler;
+use Hyperf\Logger\LoggerFactory;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 class BiHttpExceptionHandler extends HttpExceptionHandler
 {
+    /**
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    public function __construct(LoggerFactory $loggerFactory)
+    {
+        $this->logger = $loggerFactory->get('log', 'default');
+    }
 
     /**
      * Handle the exception, and return the specified result.

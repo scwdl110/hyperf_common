@@ -11,22 +11,24 @@ declare(strict_types=1);
  */
 namespace Captainbi\Hyperf\Exception\Handle;
 
-use Hyperf\Contract\StdoutLoggerInterface;
+use Captainbi\Hyperf\Util\Result;
 use Hyperf\ExceptionHandler\ExceptionHandler;
 use Hyperf\HttpMessage\Stream\SwooleStream;
+use Hyperf\Logger\LoggerFactory;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 class BiAppExceptionHandler extends ExceptionHandler
 {
     /**
-     * @var StdoutLoggerInterface
+     * @var LoggerInterface
      */
     protected $logger;
 
-    public function __construct(StdoutLoggerInterface $logger)
+    public function __construct(LoggerFactory $loggerFactory)
     {
-        $this->logger = $logger;
+        $this->logger = $loggerFactory->get('log', 'default');
     }
 
     public function handle(Throwable $throwable, ResponseInterface $response)
@@ -35,6 +37,7 @@ class BiAppExceptionHandler extends ExceptionHandler
         $this->logger->error($throwable->getTraceAsString());
         // 格式化输出
         $data = Result::fail([], $throwable->getCode(),'Internal Server Error.');
+        $this->stopPropagation();
         return $response->withHeader('Server', 'Hyperf')->withStatus(500)->withBody(new SwooleStream($data));
     }
 
