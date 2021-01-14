@@ -9,7 +9,7 @@ use Throwable;
 /**
  * HTTP异常
  */
-class BusinessException extends ServerException implements Throwable
+class BusinessException extends ServerException
 {
     public function __construct($code = 10001, $message = '', Throwable $previous = null)
     {
