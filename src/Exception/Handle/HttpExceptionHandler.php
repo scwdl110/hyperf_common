@@ -12,30 +12,15 @@ declare(strict_types=1);
 namespace Captainbi\Hyperf\Exception\Handle;
 
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\ExceptionHandler\ExceptionHandler;
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
 use Hyperf\HttpMessage\Exception\HttpException;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ResponseInterface;
 use Throwable;
+use Hyperf\HttpServer\Exception\Handler as HHttpExceptionHandler;
 
-class HttpExceptionHandler extends ExceptionHandler
+class HttpExceptionHandler extends HHttpExceptionHandler
 {
-    /**
-     * @var StdoutLoggerInterface
-     */
-    protected $logger;
-
-    /**
-     * @var FormatterInterface
-     */
-    protected $formatter;
-
-    public function __construct(StdoutLoggerInterface $logger, FormatterInterface $formatter)
-    {
-        $this->logger = $logger;
-        $this->formatter = $formatter;
-    }
 
     /**
      * Handle the exception, and return the specified result.
@@ -50,17 +35,5 @@ class HttpExceptionHandler extends ExceptionHandler
         $data = Result::fail([], $throwable->getCode(),$throwable->getMessage());
 
         return $response->withStatus($throwable->getStatusCode())->withBody(new SwooleStream($data));
-    }
-
-    /**
-     * Determine if the current exception handler should handle the exception,.
-     *
-     * @return bool
-     *              If return true, then this exception handler will handle the exception,
-     *              If return false, then delegate to next handler
-     */
-    public function isValid(Throwable $throwable): bool
-    {
-        return $throwable instanceof HttpException;
     }
 }
