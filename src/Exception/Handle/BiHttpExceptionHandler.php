@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 namespace Captainbi\Hyperf\Exception\Handle;
 
+use Captainbi\Hyperf\Util\Result;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpServer\Exception\Handler\HttpExceptionHandler;
 use Hyperf\Logger\LoggerFactory;
@@ -36,11 +37,12 @@ class BiHttpExceptionHandler extends HttpExceptionHandler
      */
     public function handle(Throwable $throwable, ResponseInterface $response)
     {
-        $this->logger->debug($this->formatter->format($throwable));
+        $this->logger->error(sprintf('%s[%s] in %s', $throwable->getMessage(), $throwable->getLine(), $throwable->getFile()));
+        $this->logger->error($throwable->getTraceAsString());
 
         $this->stopPropagation();
         // 格式化输出
-        $data = Result::fail([], $throwable->getCode(),$throwable->getMessage());
+        $data = Result::fail([], $throwable->getMessage(), $throwable->getCode());
 
         return $response->withStatus($throwable->getStatusCode())->withBody(new SwooleStream($data));
     }

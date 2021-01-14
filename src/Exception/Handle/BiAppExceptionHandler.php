@@ -36,7 +36,7 @@ class BiAppExceptionHandler extends ExceptionHandler
         $this->logger->error(sprintf('%s[%s] in %s', $throwable->getMessage(), $throwable->getLine(), $throwable->getFile()));
         $this->logger->error($throwable->getTraceAsString());
         // 格式化输出
-        $data = Result::fail([], $throwable->getCode(),'Internal Server Error.');
+        $data = Result::fail([], 'Internal Server Error.', $throwable->getCode());
         $this->stopPropagation();
         return $response->withHeader('Server', 'Hyperf')->withStatus(500)->withBody(new SwooleStream($data));
     }
