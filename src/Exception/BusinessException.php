@@ -11,7 +11,7 @@ use Throwable;
  */
 class BusinessException extends ServerException
 {
-    public function __construct($code = 10001, $message = '', Throwable $previous = null)
+    public function __construct($code = 10001, $message = 'business fail', Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
     }
