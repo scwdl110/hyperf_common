@@ -11,35 +11,24 @@ declare(strict_types=1);
  */
 namespace Captainbi\Hyperf\Exception\Handle;
 
-use Captainbi\Hyperf\Util\Result;
-use Hyperf\ExceptionHandler\ExceptionHandler;
-use Hyperf\HttpMessage\Stream\SwooleStream;
-use Hyperf\Logger\LoggerFactory;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
-class BiAppExceptionHandler extends ExceptionHandler
+class BiAppExceptionHandler extends BaseExceptionHandler
 {
     /**
-     * @var LoggerInterface
+     * @var $code
      */
-    protected $logger;
+    protected $code = 500;
 
-    public function __construct(LoggerFactory $loggerFactory)
-    {
-        $this->logger = $loggerFactory->get('log', 'default');
-    }
+    /**
+     * @var $message
+     */
+    protected $message = 'Internal Server Error.';
 
-    public function handle(Throwable $throwable, ResponseInterface $response)
-    {
-        $this->logger->error(sprintf('%s[%s] in %s', $throwable->getMessage(), $throwable->getLine(), $throwable->getFile()));
-        $this->logger->error($throwable->getTraceAsString());
-        // 格式化输出
-        $data = Result::fail([], 'Internal Server Error.', $throwable->getStatusCode());
-        $this->stopPropagation();
-        return $response->withHeader('Server', 'Hyperf')->withStatus($throwable->getStatusCode())->withBody(new SwooleStream($data));
-    }
+    /**
+     * @var $data
+     */
+    protected $data = [];
 
     public function isValid(Throwable $throwable): bool
     {
