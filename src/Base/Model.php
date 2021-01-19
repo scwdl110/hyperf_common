@@ -1,6 +1,6 @@
 <?php
 
-
+declare(strict_types=1);
 namespace Captainbi\Hyperf\Base;
 
 use Hyperf\DbConnection\Model\Model as BaseModel;
