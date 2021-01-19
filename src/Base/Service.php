@@ -16,25 +16,33 @@ class Service
     protected $validationFactory;
 
     /**
-     * @param RequestInterface $request
+     * @param array $request_data
      * @param array $rule
      * @param array $message
-     * @param array $attribute
-     * @return bool|string
+     * @return array
      */
-    protected function validate(RequestInterface $request, array $rule, array $message)
+    protected function validate(array $request_data, array $rule=[], array $message=[], $attribute=[])
     {
         $validator = $this->validationFactory->make(
-            $request->all(),
+            $request_data,
             $rule,
-            $message
+            $message,
+            $attribute
         );
 
         if ($validator->fails()){
             // Handle exception
-            return Result::fail([], $validator->errors()->first());
+            $data =  [
+                'code' => 0,
+                'msg' => $validator->errors()->first()
+            ];
+            return $data;
         }
 
-        return Result::success();
+        $data =  [
+            'code' => 1,
+            'msg' => 'success'
+        ];
+        return $data;
     }
 }
