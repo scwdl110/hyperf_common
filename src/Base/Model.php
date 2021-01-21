@@ -3,11 +3,9 @@
 declare(strict_types=1);
 namespace Captainbi\Hyperf\Base;
 
-use Hyperf\DbConnection\Model\Model as BaseModel;
-use Hyperf\ModelCache\Cacheable;
-use Hyperf\ModelCache\CacheableInterface;
+use App\Model\Model as BaseModel;
 
-class Model extends BaseModel implements CacheableInterface
+class Model extends BaseModel
 {
-    use Cacheable;
+
 }

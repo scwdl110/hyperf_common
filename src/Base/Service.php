@@ -3,8 +3,6 @@
 declare(strict_types=1);
 namespace Captainbi\Hyperf\Base;
 
-use Captainbi\Hyperf\Util\Result;
-use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 
 class Service
