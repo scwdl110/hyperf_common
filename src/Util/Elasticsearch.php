@@ -28,7 +28,7 @@ class Elasticsearch {
 
     /**
      * 返回客户端
-     * @param string $host
+     * @param array $hosts
      * @return \Elasticsearch\Client|string
      */
     final public function getClient(array $hosts = ['http://127.0.0.1:9200']){
