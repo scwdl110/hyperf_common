@@ -28,13 +28,13 @@ class Elasticsearch {
 
     /**
      * 返回客户端
-     * @param array $hosts
+     * @param string $host
      * @return \Elasticsearch\Client|string
      */
     final public function getClient(array $hosts = ['http://127.0.0.1:9200']){
         if(empty($this->client)){
             $middleware = new \Wizacha\Middleware\AwsSignatureMiddleware($this->credentials, $this->signature);
-            $clientBuilder =  ClientBuilder::create();
+            $clientBuilder =  ClientBuilder::create()->setConnectionPool('\Elasticsearch\ConnectionPool\SimpleConnectionPool', []);
             if (Coroutine::getCid() > 0) {
 //                $handler = make(PoolHandler::class, [
 //                    'option' => [
@@ -45,8 +45,9 @@ class Elasticsearch {
                 $awsHandler = $middleware($handler);
                 $clientBuilder->setHandler($awsHandler);
             }
-    //            ->setHosts(['https://vpc-captain-search-test-yka42farqqrngrcags3vab6nhq.cn-northwest-1.es.amazonaws.com.cn']);
-            $this->client = $clientBuilder->setHosts($hosts)->build();
+            //            ->setHosts(['https://vpc-captain-search-test-yka42farqqrngrcags3vab6nhq.cn-northwest-1.es.amazonaws.com.cn']);
+            //setRetries重试次数
+            $this->client = $clientBuilder->setRetries(5)->setHosts($hosts)->build();
         }
         return $this->client;
     }
