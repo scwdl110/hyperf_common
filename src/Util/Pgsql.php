@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\Util;
 
-use Hyperf\Logger\LoggerFactory;
+use Hyperf\Utils\ApplicationContext;
 use Swoole\Coroutine\PostgreSQL;
 use Psr\Log\LoggerInterface;
 
@@ -18,8 +18,9 @@ class Pgsql {
      */
     protected $logger;
 
-    public function __construct(LoggerFactory $loggerFactory)
+    public function __construct()
     {
+        $loggerFactory = ApplicationContext::getContainer()->get("Hyperf\Logger\LoggerFactory");
         $this->logger = $loggerFactory->get('log', 'default');
     }
 
