@@ -25,8 +25,8 @@ class Pgsql {
 
     /**
      * 返回客户端
-     * @param string $host
-     * @return \Elasticsearch\Client|string
+     * @param array $hosts
+     * @return bool|string|PostgreSQL
      */
     final public function getClient(array $hosts = []){
         if(!$hosts || !isset($hosts['host']) || !isset($hosts['database']) || !isset($hosts['port']) || !isset($hosts['username']) || !isset($hosts['password'])){
