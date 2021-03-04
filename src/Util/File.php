@@ -32,11 +32,12 @@ class File {
         ]);
 
         $source = fopen($file, 'rb');
+        $folder = date("Ymd");
 
         $uploader = new ObjectUploader(
             $s3Client,
             $fileConfig['bucket'],
-            basename($file),
+            $folder."/".basename($file),
             $source
         );
 
