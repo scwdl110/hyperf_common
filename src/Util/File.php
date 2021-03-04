@@ -17,7 +17,7 @@ class File {
         $this->logger = $loggerFactory->get('log', 'default');
     }
 
-    public function upload($file, $fileConfig){
+    public function upload($fileConfig, $file, $fileAttach){
         if(!$file || !$fileConfig || !isset($fileConfig['region']) || !isset($fileConfig['bucket']) || !isset($fileConfig['key']) || !isset($fileConfig['secret'])){
             $this->logger->error('file无参数');
             return false;
@@ -33,13 +33,19 @@ class File {
 
         $source = fopen($file, 'rb');
         $folder = date("Ymd");
+        $fileBaseName = basename($file);
+        $fileArr = explode(".", $fileBaseName);
+        $extension = end($fileArr);
+        $fileName = prev($fileArr);
+        $md5FileName = md5($fileAttach.$fileName);
+        $finalFileName = $folder."/".$md5FileName.".".$extension;
 
         $uploader = new ObjectUploader(
             $s3Client,
             $fileConfig['bucket'],
-            $folder."/".basename($file),
-            $source
-        );
+
+            $source,
+            );
 
         do {
             try {
