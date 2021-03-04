@@ -43,7 +43,7 @@ class File {
         $uploader = new ObjectUploader(
             $s3Client,
             $fileConfig['bucket'],
-
+            $finalFileName,
             $source,
             );
 
