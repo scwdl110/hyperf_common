@@ -17,7 +17,7 @@ class File {
         $this->logger = $loggerFactory->get('log', 'default');
     }
 
-    public function upload($fileConfig, $file, $fileAttach){
+    public function upload($fileConfig, $file, $fileAttach=''){
         if(!$file || !$fileConfig || !isset($fileConfig['region']) || !isset($fileConfig['bucket']) || !isset($fileConfig['key']) || !isset($fileConfig['secret'])){
             $this->logger->error('file无参数');
             return false;
@@ -44,8 +44,8 @@ class File {
             $s3Client,
             $fileConfig['bucket'],
             $finalFileName,
-            $source,
-            );
+            $source
+        );
 
         do {
             try {
