@@ -11,7 +11,7 @@ class Log {
     /**
      * @var LoggerInterface
      */
-    protected $logger;
+    protected static $logger;
 
     /**
      * 返回http客户端
