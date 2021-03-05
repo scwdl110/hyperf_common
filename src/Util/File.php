@@ -64,7 +64,7 @@ class File {
         } while (!isset($result));
         fclose($source);
         return [
-            'file_id'       => 1,
+            'file_id' => 1,
             'url'     => $result["ObjectURL"]
         ];
     }
