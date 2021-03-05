@@ -65,7 +65,7 @@ class File {
         fclose($source);
         return [
             'file_id'       => 1,
-            'file_name'     => $result["ObjectURL"]
+            'url'     => $result["ObjectURL"]
         ];
     }
 
