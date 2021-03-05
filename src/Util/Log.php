@@ -15,9 +15,7 @@ class Log {
 
     /**
      * 返回http客户端
-     * @param string $host
-     * @param string $proxy
-     * @return Client|string
+     * @return LoggerInterface
      */
     public static function getClient(){
         if(empty(self::$logger)){
