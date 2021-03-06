@@ -32,13 +32,7 @@ class File {
         ]);
 
         $source = fopen($file, 'rb');
-        $folder = date("Ymd");
-        $fileBaseName = basename($file);
-        $fileArr = explode(".", $fileBaseName);
-        $extension = end($fileArr);
-        $fileName = prev($fileArr);
-        $md5FileName = md5($fileAttach.$fileName);
-        $finalFileName = $folder."/".$md5FileName.".".$extension;
+        $finalFileName = File::getFinalFileName($file);
 
         $uploader = new ObjectUploader(
             $s3Client,
@@ -71,6 +65,24 @@ class File {
 
     public function download(){
 
+    }
+
+
+    /**
+     * 通过url或者本地文件得到输出文件名
+     * @param $fileUrl
+     * @param $fileAttach
+     * @return string
+     */
+    public static function getFinalFileName($fileUrl, $fileAttach){
+        $folder = date("Ymd");
+        $fileBaseName = basename($fileUrl);
+        $fileArr = explode(".", $fileBaseName);
+        $extension = end($fileArr);
+        $fileName = prev($fileArr);
+        $md5FileName = md5($fileAttach.$fileName);
+        $finalFileName = $folder."/".$md5FileName.".".$extension;
+        return $finalFileName;
     }
 
 }
