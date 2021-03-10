@@ -32,7 +32,7 @@ class File {
         ]);
 
         $source = fopen($file, 'rb');
-        $finalFileName = File::getFinalFileName($file);
+        $finalFileName = File::getFinalFileName($file, $fileAttach);
 
         $uploader = new ObjectUploader(
             $s3Client,
