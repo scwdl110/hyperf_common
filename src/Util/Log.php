@@ -14,13 +14,26 @@ class Log {
     protected static $logger;
 
     /**
-     * 返回http客户端
+     * 返回日志客户端
      * @return LoggerInterface
      */
     public static function getClient(){
         if(empty(self::$logger)){
             $loggerFactory = ApplicationContext::getContainer()->get("Hyperf\Logger\LoggerFactory");
             self::$logger = $loggerFactory->get('log', 'default');
+        }
+
+        return self::$logger;
+    }
+
+    /**
+     * 返回定时任务日志客户端
+     * @return LoggerInterface
+     */
+    public static function getCrontabClient(){
+        if(empty(self::$logger)){
+            $loggerFactory = ApplicationContext::getContainer()->get("Hyperf\Logger\LoggerFactory");
+            self::$logger = $loggerFactory->get('log', 'crontab');
         }
 
         return self::$logger;
