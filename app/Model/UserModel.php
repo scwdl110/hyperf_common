@@ -15,7 +15,6 @@ use Captainbi\Hyperf\Base\Model;
 
 class UserModel extends Model
 {
-    //时间戳字段
     protected $connection = 'erp_base';
     protected $table = 'user';
 }

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 namespace App\Controller;
+use App\Service\UserService;
+use App\Service\GoodsService;
 use Captainbi\Hyperf\Util\Result;
 use Hyperf\HttpServer\Annotation\AutoController;
 use Hyperf\HttpServer\Contract\ResponseInterface;
@@ -27,8 +29,17 @@ class ApiController extends BaseController
      */
     protected $validationFactory;
 
+    /**
+     * @Inject()
+     * @var UserService
+     */
+    protected $userService;
 
-
+    /**
+     * @Inject()
+     * @var GoodsService
+     */
+    protected $goodsService;
 
     public function __construct()
     {
@@ -36,8 +47,16 @@ class ApiController extends BaseController
         $this->redis = $container->get(\Redis::class);
     }
 
-    public function test(){
-        return 'AutoController注解路由测试';
+    public function test(ResponseInterface $response){
+        $user_info = $this->userService->getUserInfo(304);
+        return Result::success($user_info , '成功');
+
+    }
+
+    public function test2(){
+        $goods_info = $this->goodsService->getGoodsList(304) ;
+        return json_encode($goods_info , 256) ;
+        return Result::success($goods_info , '成功');
     }
 
     public function getFinanceData()  {

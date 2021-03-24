@@ -10,16 +10,13 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 namespace App\Service;
-use App\Model\UserModel;
-use Captainbi\Hyperf\Util\Auth;
-use Captainbi\Hyperf\Util\Pgsql;
-use Firebase\JWT\JWT;
+use App\Model\GoodsModel;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Di\Annotation\Inject;
-use Hyperf\DbConnection\Db;
+
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 
-class UserService extends BaseService {
+class GoodsService extends BaseService {
     /**
      * @Inject()
      * @var ValidatorFactoryInterface
@@ -32,10 +29,10 @@ class UserService extends BaseService {
      */
     protected $config;
 
-
-    public function getUserInfo($user_id = 0){
-        $user_info = UserModel::query()->where(array('id'=>$user_id))->first();
-        return $user_info;
+    public function getGoodsList($user_id = 0){
+        $goods_md = new GoodsModel('001','001');
+        $goods_list = $goods_md::query()->where(array('user_id'=>$user_id))->first();
+        return $goods_list;
     }
 
 }
