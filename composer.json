@@ -29,6 +29,7 @@
         "hyperf/http-server": "~2.1.0",
         "hyperf/logger": "~2.1.0",
         "hyperf/memory": "~2.1.0",
+        "hyperf/paginator": "^2.1",
         "hyperf/pool": "^2.1",
         "hyperf/process": "~2.1.0",
         "hyperf/redis": "~2.1.0",
