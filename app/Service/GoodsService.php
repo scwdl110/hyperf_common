@@ -29,9 +29,12 @@ class GoodsService extends BaseService {
      */
     protected $config;
 
+
     public function getGoodsList($user_id = 0){
-        $goods_md = new GoodsModel('001','001');
-        $goods_list = $goods_md::query()->where(array('user_id'=>$user_id))->first();
+        $goods_list = GoodsModel::query()->where(array('user_id'=>$user_id))->first();
+        if(empty($goods_list)){
+            $goods_list = array() ;
+        }
         return $goods_list;
     }
 

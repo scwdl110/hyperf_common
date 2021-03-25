@@ -11,12 +11,8 @@ declare(strict_types=1);
  */
 namespace App\Service;
 use App\Model\UserModel;
-use Captainbi\Hyperf\Util\Auth;
-use Captainbi\Hyperf\Util\Pgsql;
-use Firebase\JWT\JWT;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Di\Annotation\Inject;
-use Hyperf\DbConnection\Db;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 
 class UserService extends BaseService {
@@ -33,8 +29,12 @@ class UserService extends BaseService {
     protected $config;
 
 
+
     public function getUserInfo($user_id = 0){
-        $user_info = UserModel::query()->where(array('id'=>$user_id))->first();
+        $user_info = UserModel::query()->where(array('id'=>$user_id , 'status'=>1))->first();
+        if(empty($user_info)){
+            $user_info = array();
+        }
         return $user_info;
     }
 

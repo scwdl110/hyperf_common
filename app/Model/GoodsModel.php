@@ -12,19 +12,24 @@ declare(strict_types=1);
 namespace App\Model;
 
 use Captainbi\Hyperf\Base\Model;
-
+use Hyperf\Di\Annotation\Inject;
+use Hyperf\HttpServer\Contract\RequestInterface;
 class GoodsModel extends Model
 {
     protected $dbhost;
     protected  $codeno ;
     protected $connection;
     protected $table;
-    public function __construct($dbhost = '001' , $codeno = '001')
-    {
+    /**
+     * @Inject()
+     * @var RequestInterface
+     */
+    protected $request;
+    public function __construct(){
+        $this->dbhost = $this->request->getAttribute('dbhost'); ;
+        $this->codeno = $this->request->getAttribute('codeno'); ;
+        $this->connection = 'erp_goods_'.$this->dbhost ;
+        $this->table = 'amazon_goods_'.$this->codeno ;
         parent::__construct();
-        $this->dbhost = $dbhost ;
-        $this->codeno = $codeno ;
-        $this->connection = 'erp_goods_'.$dbhost ;
-        $this->table = 'amazon_goods_'.$codeno ;
     }
 }

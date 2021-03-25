@@ -9,7 +9,6 @@ use Hyperf\HttpServer\Annotation\AutoController;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
-use Hyperf\Utils\ApplicationContext;
 use Hyperf\Paginator\Paginator;
 use Hyperf\Utils\Collection;
 use Hyperf\Di\Annotation\Inject;
@@ -21,8 +20,6 @@ use  \Hyperf\Contract\SessionInterface ;
 
 class ApiController extends BaseController
 {
-    private $redis;
-
     /**
      * @Inject()
      * @var ValidatorFactoryInterface
@@ -41,11 +38,6 @@ class ApiController extends BaseController
      */
     protected $goodsService;
 
-    public function __construct()
-    {
-        $container = ApplicationContext::getContainer();
-        $this->redis = $container->get(\Redis::class);
-    }
 
     public function test(ResponseInterface $response){
         $user_info = $this->userService->getUserInfo(304);
@@ -59,10 +51,10 @@ class ApiController extends BaseController
         return Result::success($goods_info , '成功');
     }
 
-    public function getFinanceData()  {
-        $this->redis->set('a' , '1234') ;
-        $a = $this->redis->get('a');
-        return Result::success(array($a) , '成功');
+
+    public function getFinanceData(RequestInterface $request)  {
+
+        return Result::success('' , '成功');
     }
 
     public function page(RequestInterface $request)
