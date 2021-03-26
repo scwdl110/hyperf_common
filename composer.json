@@ -4,7 +4,9 @@
     "license": "MIT",
     "minimum-stability": "dev",
     "require": {
-        "php": ">=7.2.0"
+        "php": ">=7.2.0",
+        "ext-openssl": "*",
+        "ext-swoole_postgresql": "*"
     },
     "autoload":{
         "psr-4":{
