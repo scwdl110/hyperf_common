@@ -9,7 +9,10 @@
     "autoload":{
         "psr-4":{
             "Captainbi\\Hyperf\\":"src/"
-        }
+        },
+        "files": [
+            "src/functions_include.php"
+        ]
     },
     "description": "",
     "repositories": {
