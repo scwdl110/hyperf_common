@@ -25,11 +25,31 @@ function current_domain(): string
             }
         }
 
-        return $domain;
+        return strtolower($domain);
     } else {
         if (1 === preg_match('#^https?://[^/]+#i', (string)$request->getUri(), $match)) {
-            return $match[0];
+            return strtolower($match[0]);
         }
+    }
+
+    return '';
+}
+
+function current_url(): string
+{
+    $request = ApplicationContext::getContainer()->get(RequestInterface::class);
+    // todo 用户实际访问的 url 可能在 负载均衡 或者 api 网关中被重写(rewrite)
+    // $request->fullUrl() 方法只能获取到被重写后的 url
+    // 如果在 hyperf 中需要输出 url 给用户或需要重定向，则使用 fullUrl 会出问题
+    $url = $request->fullUrl();
+
+    $domain = current_domain();
+    if ($domain) {
+        if ($domain === strtolower(substr($url, 0, strlen($domain)))) {
+            return $url;
+        }
+
+        return preg_replace('#^https?://[^/]+#i', $domain, $url);
     }
 
     return '';
