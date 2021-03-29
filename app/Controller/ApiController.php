@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller;
 use App\Service\UserService;
 use App\Service\GoodsService;
+use App\Service\TestService;
 use Captainbi\Hyperf\Util\Result;
 use Hyperf\HttpServer\Annotation\AutoController;
 use Hyperf\HttpServer\Contract\ResponseInterface;
@@ -38,11 +39,23 @@ class ApiController extends BaseController
      */
     protected $goodsService;
 
+    /**
+     * @Inject()
+     * @var TestService
+     */
+    protected $testService;
+
+
 
     public function test(ResponseInterface $response){
         $user_info = $this->userService->getUserInfo(304);
         return Result::success($user_info , '成功');
 
+    }
+
+    public function getAttributeTest(){
+        $data = $this->testService->test() ;
+        return Result::success($data , '成功');
     }
 
     public function test2(){
