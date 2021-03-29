@@ -1,10 +1,13 @@
 <?php
+
 namespace App\Lib;
+
 use App\Model\UserModel;
-use Hyperf\HttpServer\Contract\RequestInterface ;
+use Hyperf\HttpServer\Contract\RequestInterface;
 use App\Service\UserService;
 use Hyperf\Di\Annotation\Inject;
-use App\Lib\Redis ;
+use App\Lib\Redis;
+
 class Common
 {
 
@@ -26,31 +29,41 @@ class Common
      */
     protected $redis;
 
-    function getDbCode(){
+    function getDbCode()
+    {
         $user_info = self::getUserInfo();
-        if(empty($user_info)){
-            return false ;
-        }else{
-            $rt = array('dbhost'=>$user_info['dbhost'] , 'codeno'=>$user_info['codeno']) ;
-            return $rt ;
+        if (empty($user_info)) {
+            return false;
+        } else {
+            $rt = array('dbhost' => $user_info['dbhost'], 'codeno' => $user_info['codeno']);
+            return $rt;
         }
     }
 
+<<<<<<< Updated upstream
     function getUserInfo(){
         //$user_id = (int)$this->requset->getHeader('x-authenticated-userid') ;
         $user_id = (int)$this->requset->input('user_id' ,0 ) ;
         if($user_id > 0 ){
             $user_info = $this->redis->get('COMMON_API_USERINFO_'.$user_id) ;
             if(empty($user_info)){
+=======
+    function getUserInfo()
+    {
+        $user_id = (int)$this->requset->input('user_id');
+        if ($user_id > 0) {
+            $user_info = $this->redis->get('COMMON_API_USERINFO_' . $user_id);
+            if (empty($user_info)) {
+>>>>>>> Stashed changes
                 $user_info = $this->userService->getUserInfo($user_id);
-                if(!empty($user_info)){
-                    $this->redis->set('COMMON_API_USERINFO_'.$user_id ,$user_info) ;
+                if (!empty($user_info)) {
+                    $this->redis->set('COMMON_API_USERINFO_' . $user_id, $user_info);
                 }
             }
 
-        }else{
-            $user_info = array() ;
+        } else {
+            $user_info = array();
         }
-        return $user_info ;
+        return $user_info;
     }
 }

@@ -12,3 +12,4 @@ vendor/
 *.lock
 .phpunit*
 *.cache
+php_errors.log

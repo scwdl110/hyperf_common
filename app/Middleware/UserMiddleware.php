@@ -3,17 +3,19 @@
 declare(strict_types=1);
 
 namespace App\Middleware;
+
 use Hyperf\Server\Exception\ServerException;
 use Hyperf\Utils\Context;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
+use Hyperf\Utils\Coroutine;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Hyperf\Di\Annotation\Inject;
-use App\Lib\Common ;
+use App\Lib\Common;
 
 class UserMiddleware implements MiddlewareInterface
 {
@@ -51,13 +53,14 @@ class UserMiddleware implements MiddlewareInterface
         $request = $request->withAttribute('dbhost', '');
         $request = $request->withAttribute('codeno', '');
         $db_code = $this->Common->getDbCode();
-        if(!empty($db_code)){
+        if (!empty($db_code)) {
             $request = $request->withAttribute('dbhost', $db_code['dbhost']);
             $request = $request->withAttribute('codeno', $db_code['codeno']);
-        }else {
+        } else {
             throw new ServerException("未找到用户数据库编号");
         }
         Context::set(ServerRequestInterface::class, $request);
+
         return $handler->handle($request);
     }
 }
