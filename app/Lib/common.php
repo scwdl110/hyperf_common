@@ -37,7 +37,8 @@ class Common
     }
 
     function getUserInfo(){
-        $user_id = (int)$this->requset->input('user_id') ;
+        //$user_id = (int)$this->requset->getHeader('x-authenticated-userid') ;
+        $user_id = (int)$this->requset->input('user_id' ,0 ) ;
         if($user_id > 0 ){
             $user_info = $this->redis->get('COMMON_API_USERINFO_'.$user_id) ;
             if(empty($user_info)){
