@@ -43,8 +43,29 @@ class InfoController extends BaseController
      */
     protected $service;
 
+
     /**
-     * @RequestMapping(path="list", methods="get,post")
+     * @OA\Post(
+     *     path="/info/list",
+     *     summary="金蝶第三方接口",
+     *     tags={"info"},
+     *     @OA\Parameter(
+     *          name="date",
+     *          required=true,
+     *          description="日期",
+     *          @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *          name="authorization",
+     *          required=true,
+     *          in="header",
+     *          description="令牌",
+     *          @OA\Schema(type="string")
+     *     ),
+     *
+     *
+     * @RequestMapping(path="list", methods="post")
+     * @return mixed
      */
     public function getInfo(){
         $request_data = $this->request->all();

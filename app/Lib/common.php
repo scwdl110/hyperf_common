@@ -40,27 +40,18 @@ class Common
         }
     }
 
-<<<<<<< Updated upstream
-    function getUserInfo(){
-        //$user_id = (int)$this->requset->getHeader('x-authenticated-userid') ;
-        $user_id = (int)$this->requset->input('user_id' ,0 ) ;
-        if($user_id > 0 ){
-            $user_info = $this->redis->get('COMMON_API_USERINFO_'.$user_id) ;
-            if(empty($user_info)){
-=======
+
     function getUserInfo()
     {
         $user_id = (int)$this->requset->input('user_id');
         if ($user_id > 0) {
             $user_info = $this->redis->get('COMMON_API_USERINFO_' . $user_id);
             if (empty($user_info)) {
->>>>>>> Stashed changes
                 $user_info = $this->userService->getUserInfo($user_id);
                 if (!empty($user_info)) {
                     $this->redis->set('COMMON_API_USERINFO_' . $user_id, $user_info);
                 }
             }
-
         } else {
             $user_info = array();
         }
