@@ -34,7 +34,7 @@ class Session extends \Hyperf\Session\Session
 
     public function isValidId(string $id): bool
     {
-        return is_string($id);
+        return is_string($id) && ctype_alnum($id);
     }
 
     public function has(string $name): bool
