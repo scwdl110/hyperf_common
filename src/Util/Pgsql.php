@@ -181,7 +181,8 @@ class Pgsql
 
         $res = false;
         if ($bind) {
-            $stmt = 'query_stmt';
+            // 修复 prepared statement "query_stmt" already exists 错误
+            $stmt = sprintf('query_smtm_%.6f%d', microtime(true), rand());
             if ($pg->prepare($stmt, $sql)) {
                 $res = $pg->execute($stmt, $bind);
             }
