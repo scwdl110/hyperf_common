@@ -47,7 +47,7 @@ class InfoController extends BaseController
     /**
      * @OA\Post(
      *     path="/info/list",
-     *     summary="金蝶第三方接口",
+     *     summary="金蝶第三方数据信息",
      *     tags={"info"},
      *     @OA\Parameter(
      *          name="date",
@@ -70,6 +70,58 @@ class InfoController extends BaseController
     public function getInfo(){
         $request_data = $this->request->all();
         $data =$this->service->getKingDeeInfo($request_data);
+        if($data['code']== 0){
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'],$data['msg']);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/info/shop_list",
+     *     summary="金蝶第三方店铺信息",
+     *     tags={"info"},
+     *     @OA\Parameter(
+     *          name="authorization",
+     *          required=true,
+     *          in="header",
+     *          description="令牌",
+     *          @OA\Schema(type="string")
+     *     ),
+     *
+     *
+     * @RequestMapping(path="shop_list", methods="post")
+     * @return mixed
+     */
+    public function getShopInfo(){
+        $request_data = $this->request->all();
+        $data =$this->service->getShopList($request_data);
+        if($data['code']== 0){
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'],$data['msg']);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/info/exchange_rate_list",
+     *     summary="接口信息表",
+     *     tags={"info"},
+     *     @OA\Parameter(
+     *          name="authorization",
+     *          required=true,
+     *          in="header",
+     *          description="令牌",
+     *          @OA\Schema(type="string")
+     *     ),
+     *
+     *
+     * @RequestMapping(path="exchange_rate_list", methods="post")
+     * @return mixed
+     */
+    public function getExchangeRateList(){
+        $request_data = $this->request->all();
+        $data =$this->service->getExchangeRateList($request_data);
         if($data['code']== 0){
             return Result::fail([], $data['msg']);
         }

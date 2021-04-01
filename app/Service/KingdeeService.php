@@ -12,16 +12,18 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Model\ChannelModel;
 use App\Model\ChannelProfitReportModel;
+use App\Model\FinanceCurrencyModel;
+use App\Model\SystemCurrencyModel;
 use App\Service\BaseService;
 use App\Model\FinanceReportModel;
-
 use Hyperf\Utils\Context;
 use Hyperf\Utils\Coroutine;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
-
+use Hyperf\Contract\ConfigInterface;
 
 class KingdeeService extends BaseService
 {
@@ -37,6 +39,18 @@ class KingdeeService extends BaseService
      */
     protected $validationFactory;
 
+    /**
+     * @Inject()
+     * @var ConfigInterface
+     */
+    protected $config;
+
+
+    /**
+     * 获取金蝶信息
+     * @param $request_data
+     * @return array
+     */
     public function getKingDeeInfo($request_data)
     {
         $rule = [
@@ -53,7 +67,6 @@ class KingdeeService extends BaseService
 
         $current_firstday = date('Y-m-01', strtotime($request_data['date']));
         $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
-
 
         $begin_time = strtotime($current_firstday . " 00:00:00");
         $end_time = strtotime($current_lastday . " 23:59:59");
@@ -170,6 +183,106 @@ class KingdeeService extends BaseService
         $info['fee']['purchasing_cost'] = $FinanceReportInfo[0]['purchasing_cost']; //采购成本
         $info['fee']['logistics_head_course'] = $FinanceReportInfo[0]['logistics_head_course']; //头程物流（FBA）
         $info['fee']['fbm'] = $FinanceReportInfo[0]['fbm']; //物流（FBM）
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => $info
+        ];
+
+        return $data;
+    }
+
+    /**
+     * 拉取当前用户的店铺信息
+     * @param $request_data
+     * @return array
+     */
+    public function getShopList($request_data)
+    {
+        $rule = [
+            'user_id' => 'integer|filled',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $info = array();
+
+        $ShopListInfo = ChannelModel::select("id", "title", "modified_time")->where([['user_id', '=', $request_data['user_id']]])->get()->toArray();
+
+        foreach ($ShopListInfo as $key => $value) {
+            $info[$key]['shop_id'] = $value['id'];
+            $info[$key]['shop_name'] = $value['title'];
+            $info[$key]['modified_time'] = $value['modified_time'];
+        }
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => $info
+        ];
+
+        return $data;
+    }
+
+    /**
+     * 拉取货币兑换利率
+     * @param $request_data
+     * @return array
+     */
+
+    public function getExchangeRateList($request_data)
+    {
+        $rule = [
+            'user_id' => 'integer|filled',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+
+        $financeCurrencyList = FinanceCurrencyModel::selectRaw(
+            "id ,custom_usd_exchang_rate AS usd_exchang_rate,
+            custom_cad_exchang_rate as cad_exchang_rate,custom_mxn_exchang_rate as mxn_exchang_rate,custom_jpy_exchang_rate as jpy_exchang_rate,
+            custom_gbp_exchang_rate as gbp_exchang_rate,custom_eur_exchang_rate as eur_exchang_rate,custom_au_exchang_rate as au_exchang_rate,
+            custom_in_exchang_rate as in_exchang_rate,custom_br_exchang_rate as br_exchang_rate,custom_br_exchang_rate as br_exchang_rate, 
+            custom_tr_exchang_rate as tr_exchang_rate,custom_ae_exchang_rate as ae_exchang_rate,custom_sa_exchang_rate as sa_exchang_rate,
+            custom_nl_exchang_rate as nl_exchang_rate,custom_sg_exchang_rate as sg_exchang_rate,custom_hk_exchang_rate as hk_exchang_rate"
+        )->where([['user_id', '=', $request_data['user_id']]])->first()->toArray();
+
+        $result = array();
+
+        if (!isset($financeCurrencyList)) {
+            $SystemCurrencyList = SystemCurrencyModel::select(
+                "id", "usd_exchang_rate", "cad_exchang_rate", "mxn_exchang_rate", "jpy_exchang_rate", "gbp_exchang_rate", "eur_exchang_rate", "au_exchang_rate", "in_exchang_rate", "br_exchang_rate",
+                "tr_exchang_rate", "ae_exchang_rate", "nl_exchang_rate", "sa_exchang_rate", "sg_exchang_rate", "hk_exchang_rate"
+            )->first()->toArray();
+            $result = $SystemCurrencyList;
+        } else {
+            $result = $financeCurrencyList;
+        }
+
+        $info = array();
+        $config = $this->config->get("common");
+
+        $i = 0;
+        foreach ($result as $key => $value) {
+            if ($key == 'id') {
+                $info['id'] = $value;
+                continue;
+            }
+
+            if (isset($config['currency_list'][$key])) {
+                $info[$i] = $config['currency_list'][$key];
+                $info[$i]['usd_exchang_rate'] = $value;
+            }
+            $i++;
+        }
 
         $data = [
             'code' => 1,
