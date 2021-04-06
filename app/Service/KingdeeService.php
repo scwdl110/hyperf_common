@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Lib\Common;
 use App\Model\ChannelModel;
 use App\Model\ChannelProfitReportModel;
 use App\Model\FinanceCurrencyModel;
@@ -45,6 +46,25 @@ class KingdeeService extends BaseService
      */
     protected $config;
 
+    /**
+     * @Inject()
+     * @var Common
+     */
+    protected $common;
+
+
+    /**
+     * 用户ID
+     * @var
+     */
+    private $user_id;
+
+
+    public function __construct()
+    {
+       $userInfo = $this->common->getUserInfo();
+       $this->user_id = $userInfo->getAttribute('id');
+    }
 
     /**
      * 获取金蝶信息
@@ -55,7 +75,6 @@ class KingdeeService extends BaseService
     {
         $rule = [
             'date' => 'required|date',
-            'user_id' => 'integer|filled',
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -98,7 +117,7 @@ class KingdeeService extends BaseService
 	    ifnull(sum(logistics_head_course) - sum(reserved_field13),0) as fbm,
 	    ifnull(sum(reversal_reimbursement),0) as reversal_reimbursement
         ")->where([
-            ['user_id', '=', $request_data['user_id']],
+            ['user_id', '=', $this->user_id],
             ['create_time', '>=', $begin_time],
             ['create_time', '<', $end_time]
         ])->get()->toArray();
@@ -126,7 +145,7 @@ class KingdeeService extends BaseService
         ifnull(sum(return_postage_billing_postage),0) as return_postage_billing_postage,
         ifnull(sum(fba_per_unit_fulfillment_fee),0) as fba_per_unit_fulfillment_fee
         ")->where([
-            ['user_id', '=', $request_data['user_id']],
+            ['user_id', '=', $this->user_id],
             ['create_time', '>=', $begin_time],
             ['create_time', '<', $end_time]
         ])->get()->toArray();
@@ -198,20 +217,11 @@ class KingdeeService extends BaseService
      * @param $request_data
      * @return array
      */
-    public function getShopList($request_data)
+    public function getShopList()
     {
-        $rule = [
-            'user_id' => 'integer|filled',
-        ];
-
-        $res = $this->validate($request_data, $rule);
-        if ($res['code'] == 0) {
-            return $res;
-        }
-
         $info = array();
 
-        $ShopListInfo = ChannelModel::select("id", "title", "modified_time")->where([['user_id', '=', $request_data['user_id']]])->get()->toArray();
+        $ShopListInfo = ChannelModel::select("id", "title", "modified_time")->where([['user_id', '=', $this->user_id]])->get()->toArray();
 
         foreach ($ShopListInfo as $key => $value) {
             $info[$key]['shop_id'] = $value['id'];
@@ -234,18 +244,8 @@ class KingdeeService extends BaseService
      * @return array
      */
 
-    public function getExchangeRateList($request_data)
+    public function getExchangeRateList()
     {
-        $rule = [
-            'user_id' => 'integer|filled',
-        ];
-
-        $res = $this->validate($request_data, $rule);
-        if ($res['code'] == 0) {
-            return $res;
-        }
-
-
         $financeCurrencyList = FinanceCurrencyModel::selectRaw(
             "id ,custom_usd_exchang_rate AS usd_exchang_rate,
             custom_cad_exchang_rate as cad_exchang_rate,custom_mxn_exchang_rate as mxn_exchang_rate,custom_jpy_exchang_rate as jpy_exchang_rate,
@@ -253,9 +253,7 @@ class KingdeeService extends BaseService
             custom_in_exchang_rate as in_exchang_rate,custom_br_exchang_rate as br_exchang_rate,custom_br_exchang_rate as br_exchang_rate, 
             custom_tr_exchang_rate as tr_exchang_rate,custom_ae_exchang_rate as ae_exchang_rate,custom_sa_exchang_rate as sa_exchang_rate,
             custom_nl_exchang_rate as nl_exchang_rate,custom_sg_exchang_rate as sg_exchang_rate,custom_hk_exchang_rate as hk_exchang_rate"
-        )->where([['user_id', '=', $request_data['user_id']]])->first()->toArray();
-
-        $result = array();
+        )->where([['user_id', '=', $this->user_id]])->first()->toArray();
 
         if (!isset($financeCurrencyList)) {
             $SystemCurrencyList = SystemCurrencyModel::select(
@@ -273,7 +271,6 @@ class KingdeeService extends BaseService
         $i = 0;
         foreach ($result as $key => $value) {
             if ($key == 'id') {
-                $info['id'] = $value;
                 continue;
             }
 
