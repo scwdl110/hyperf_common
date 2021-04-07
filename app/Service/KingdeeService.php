@@ -135,6 +135,7 @@ class KingdeeService extends BaseService
         ifnull(sum(fba_removal_fee),0) as fba_removal_fee,
         ifnull(sum(fba_inbound_convenience_fee),0) as fba_inbound_convenience_fee,
         ifnull(sum(fba_inbound_defect_fee),0) as fba_inbound_defect_fee,
+        ifnull(sum(labeling_fee),0) as labeling_fee,
         ifnull(sum(polybagging_fee),0) as polybagging_fee,
         ifnull(sum(fba_inbound_shipment_carton_level_info_fee),0) as fba_inbound_shipment_carton_level_info_fee,
         ifnull(sum(fba_inbound_transportation_fee),0) as fba_inbound_transportation_fee,
@@ -176,6 +177,7 @@ class KingdeeService extends BaseService
         $info['inventory_cost']['restocking_fee'] = $FinanceReportInfo[0]['restocking_fee']; //FBA重新入仓费
         $info['inventory_cost']['fba_inbound_convenience_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_convenience_fee'];//库存配置服务费
         $info['inventory_cost']['fba_inbound_defect_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_defect_fee']; //FBA入库缺陷费
+        $info['inventory_cost']['labeling_fee'] = $ChannelProfitReportInfo[0]['labeling_fee']; //贴标费
         $info['inventory_cost']['polybagging_fee'] = $ChannelProfitReportInfo[0]['polybagging_fee']; //包装费
         $info['inventory_cost']['fba_inbound_shipment_carton_level_info_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_shipment_carton_level_info_fee']; //人工处理费用
         $info['inventory_cost']['fba_inbound_transportation_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_transportation_fee']; //入仓运输费
