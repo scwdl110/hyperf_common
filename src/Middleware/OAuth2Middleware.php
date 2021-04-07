@@ -26,6 +26,19 @@ use Psr\Http\Server\RequestHandlerInterface;
  *     'dbhost' => string,
  *     'codeno' => string,
  * ]
+ *
+ * 对于本地开发，未接入 OAuth 2.0 服务的情况下，可在 .env 中添加
+ * MOCK_OAUTH2_USERINFO
+ * 配置信息，格式为
+ * sprintf(
+ *     '%d:%d:%d:%s:%s',
+ *     $adminId,
+ *     $userId,
+ *     $isMaster,
+ *     $dbhost,
+ *     $codeno
+ * );
+ * 如：MOCK_OAUTH2_USERINFO=304:229:1:001:001
  */
 class OAuth2Middleware implements MiddlewareInterface
 {
@@ -33,6 +46,9 @@ class OAuth2Middleware implements MiddlewareInterface
     {
         $authenticatedUserId = $request->getHeader('x-authenticated-userid');
         $authenticatedUserId = $authenticatedUserId[0] ?? '';
+        if ('' === $authenticatedUserId && 'dev' === env('APP_ENV')) {
+            $authenticatedUserId = strval(env('MOCK_OAUTH2_USERINFO', ''));
+        }
 
         if (1 !== preg_match('/^\d+:\d+:[01]:\d{3}:\d{3}$/', $authenticatedUserId)) {
             return Context::get(ResponseInterface::class)->withStatus(401, 'Unauthorized');
