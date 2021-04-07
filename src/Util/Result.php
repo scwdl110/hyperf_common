@@ -20,15 +20,15 @@ class Result
      * @param $code
      * @param $msg
      * @param array $data
-     * @return mixed
+     * @return string
      */
     private static function data($code, $msg, $data = [])
     {
         return json_encode(array(
-            'code' => $code ? $code : 0,
-            'msg' => $msg ? $msg : 'success',
-            'data' => $data
-        ));
+            'code' => $code ?: 0,
+            'msg' => $msg ?: 'success',
+            'data' => (object)$data,
+        ), JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -54,4 +54,16 @@ class Result
         return self::data($code, $msg, $data);
     }
 
+    /**
+     * fail 的别名，一般错误都不需要 data 参数
+     *
+     * @param string $msg
+     * @param int $code
+     * @param array $data
+     * @return string
+     */
+    public static function error(string $msg = 'error', int $code = -1, array $data = []): string
+    {
+        return self::data($code, $msg, $data);
+    }
 }
