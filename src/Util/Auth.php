@@ -54,7 +54,7 @@ class Auth {
      */
     public static function jwtDecode(string $authorization, string $keyName){
         $data = [];
-        $jwt = trim(str_replace('Bearer', '', $authorization));
+//        $jwt = trim(str_replace('Bearer', '', $authorization));
         //权限验证
         $authorizationArr = preg_split('/[\s\.]+/is', $authorization);
         if(!isset($authorizationArr[1]) || !isset($authorizationArr[2])){
