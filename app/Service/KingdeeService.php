@@ -62,8 +62,9 @@ class KingdeeService extends BaseService
 
     public function __construct()
     {
-       $userInfo = $this->common->getUserInfo();
-       $this->user_id = $userInfo->getAttribute('id');
+        $context = Context::get(ServerRequestInterface::class);
+        $userInfo = $context->getAttribute('userInfo');
+        $this->user_id = $userInfo['user_id'];
     }
 
     /**

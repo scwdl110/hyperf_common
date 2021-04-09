@@ -38,10 +38,11 @@ class ChannelProfitReportModel extends Model
 
     public function __construct()
     {
-        $this->request = Context::get(ServerRequestInterface::class);
-
-        $this->dbhost = $this->request->getAttribute('dbhost');;
-        $this->codeno = $this->request->getAttribute('codeno');;
+        $context = Context::get(ServerRequestInterface::class);
+        $userInfo = $context->getAttribute('userInfo');
+  ;
+        $this->dbhost =  $userInfo['dbhost'];
+        $this->codeno =  $userInfo['codeno'];
 
         $this->connection = 'erp_finance_' . $this->dbhost;
         $this->table = 'f_channel_profit_report_by_everyday_' . $this->codeno;

@@ -417,7 +417,7 @@ class InfoController extends BaseController
      *
      * )
      *
-     * @RequestMapping(path="shop_list", methods="post")
+     * @RequestMapping(path="shop_list", methods="get")
      * @return mixed
      */
     public function getShopInfo()
@@ -493,7 +493,7 @@ class InfoController extends BaseController
      *          )
      * )
      *
-     * @RequestMapping(path="exchange_rate_list", methods="post")
+     * @RequestMapping(path="exchange_rate_list", methods="get")
      * @return mixed
      */
     public function getExchangeRateList()

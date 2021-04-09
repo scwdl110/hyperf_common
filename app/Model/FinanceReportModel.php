@@ -38,10 +38,12 @@ class FinanceReportModel extends Model
 
     public function __construct()
     {
-        $this->request = Context::get(ServerRequestInterface::class);
+        $context = Context::get(ServerRequestInterface::class);
 
-        $this->dbhost = $this->request->getAttribute('dbhost');;
-        $this->codeno = $this->request->getAttribute('codeno');;
+        $userInfo = $context->getAttribute('userInfo');
+
+        $this->dbhost =  $userInfo['dbhost'];
+        $this->codeno =  $userInfo['codeno'];
 
         $this->connection = 'erp_finance_' . $this->dbhost;
         $this->table = 'f_amazon_goods_finance_report_' . $this->codeno;
