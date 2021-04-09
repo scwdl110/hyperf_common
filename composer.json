@@ -15,10 +15,10 @@
         "php": ">=7.3",
         "aws/aws-sdk-php": "^3.173",
         "captainbi/hyperf": "dev-master",
-        "firebase/php-jwt": "^5.2",
         "hyperf/cache": "^2.1",
         "hyperf/command": "~2.1.0",
         "hyperf/config": "~2.1.0",
+        "hyperf/config-apollo": "^2.1",
         "hyperf/crontab": "^2.1",
         "hyperf/database": "~2.1.0",
         "hyperf/db-connection": "~2.1.0",
@@ -37,7 +37,6 @@
         "hyperf/task": "^2.1",
         "hyperf/translation": "^2.1",
         "hyperf/validation": "^2.1",
-        "yurunsoft/guzzle-swoole": "^2.2",
         "zircote/swagger-php": "^3.1"
     },
     "require-dev": {
@@ -84,5 +83,11 @@
         "cs-fix": "php-cs-fixer fix $1",
         "analyse": "phpstan analyse --memory-limit 300M -l 0 -c phpstan.neon ./app ./config",
         "start": "php ./bin/hyperf.php start"
+    },
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://mirrors.aliyun.com/composer/"
+        }
     }
 }

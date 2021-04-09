@@ -14,6 +14,7 @@ use Hyperf\HttpServer\Router\Router;
 //Router::addRoute(['GET', 'POST', 'HEAD'], '/', 'App\Controller\IndexController@index');
 
 Router::get('/api/getFinanceDatas' , "App\Controller\ApiController@getFinanceData");
-//Router::get('/favicon.ico', function () {
-//    return '';
-//});
+
+Router::get('/favicon.ico', function () {
+    return '';
+});
