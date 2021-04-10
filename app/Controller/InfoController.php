@@ -84,8 +84,14 @@ class InfoController extends BaseController
      *                          description="msg"
      *                      ),
      *                      @OA\Property(
-     *                           property="data",
-     *                           type="object",
+     *                          property="data",
+     *                          type="array",
+     *                          @OA\Items(
+     *                           @OA\Property(
+     *                            property="id",
+     *                            type="number",
+     *                            description="商铺id"
+     *                           ),
      *                           @OA\Property(
      *                                property="commodity_sales",
      *                                type="array",
@@ -146,6 +152,11 @@ class InfoController extends BaseController
      *                                      property="profit",
      *                                      type="number",
      *                                      description="多渠道配送费"
+     *                                  ),
+     *                                  @OA\Property(
+     *                                      property="other_order_fee",
+     *                                      type="number",
+     *                                      description="其他订单费用"
      *                                  ),
      *                                )
      *                             ),
@@ -249,6 +260,11 @@ class InfoController extends BaseController
      *                                      type="number",
      *                                      description="库存仓储超量费"
      *                                  ),
+     *                                  @OA\Property(
+     *                                      property="other_amazon_fee",
+     *                                      type="number",
+     *                                      description="其他亚马逊费用"
+     *                                  ),
      *                                )
      *                             ),
      *                             @OA\Property(
@@ -269,6 +285,11 @@ class InfoController extends BaseController
      *                                      property="review_enrollment_fee",
      *                                      type="number",
      *                                      description="早期评论者计划"
+     *                                  ),
+     *                                  @OA\Property(
+     *                                      property="cpc_cost",
+     *                                      type="number",
+     *                                      description="CPC花费"
      *                                  ),
      *                                )
      *                             ),
@@ -311,6 +332,11 @@ class InfoController extends BaseController
      *                                      type="number",
      *                                      description="费用盘点-重量和尺寸更改"
      *                                  ),
+     *                                  @OA\Property(
+     *                                      property="fee_adjustment",
+     *                                      type="number",
+     *                                      description="其他商品调整费用"
+     *                                  ),
      *                                )
      *                             ),
      *                             @OA\Property(
@@ -344,6 +370,7 @@ class InfoController extends BaseController
      *                                  ),
      *                                )
      *                             ),
+     *                           )
      *                      )
      *             )
      *      )
