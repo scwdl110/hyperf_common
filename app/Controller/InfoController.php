@@ -98,9 +98,9 @@ class InfoController extends BaseController
      *                          type="array",
      *                          @OA\Items(
      *                           @OA\Property(
-     *                            property="id",
+     *                            property="channel_id",
      *                            type="number",
-     *                            description="商铺id"
+     *                            description="店铺id"
      *                           ),
      *                           @OA\Property(
      *                                property="commodity_sales",
