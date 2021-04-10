@@ -270,7 +270,7 @@ class KingdeeService extends BaseService
         $shopListInfoquery = ChannelModel::select("id", "title", "modified_time")->where([['user_id', '=', $userInfo['user_id']]]);
 
         if ($userAdmin->is_master != 1) {
-            $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : 0;
+            $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
             $shopListInfoquery->whereIn('id', $ids);
         }
 
