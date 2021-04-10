@@ -60,11 +60,21 @@ class InfoController extends BaseController
      *         @OA\MediaType(
      *             mediaType="application/x-www-form-urlencoded",
      *             @OA\Schema(required={"country_id"},
-     *                 @OA\Property(
-     *                     property="date",
-     *                     type="string",
-     *                     description="日期"
-     *                 ),
+     *             @OA\Property(
+     *               property="date",
+     *               type="string",
+     *               description="日期"
+     *             ),
+     *             @OA\Property(
+     *               property="offset",
+     *               type="integer",
+     *               description="偏移量"
+     *             ),
+     *             @OA\Property(
+     *                property="limit",
+     *                type="integer",
+     *                description="每页条数"
+     *             ),
      *         )
      *      )
      *),
