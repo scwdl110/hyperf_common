@@ -283,7 +283,12 @@ class AccountingService extends BaseService
             $shopListInfoquery->whereIn('id', $ids);
         }
 
-        $shopListInfo = $shopListInfoquery->get()->toArray();
+        $count = $shopListInfoquery->count();
+
+        $request_data['offset'] = $request_data['offset'] ?? 0;
+        $request_data['limit'] = $request_data['limit'] ?? 10;
+
+        $shopListInfo = $shopListInfoquery->offset($request_data['offset'])->limit($request_data['limit'])->get()->toArray();
 
         foreach ($shopListInfo as $key => $value) {
             $info[$key]['shop_id'] = $value['id'];
@@ -294,7 +299,10 @@ class AccountingService extends BaseService
         $data = [
             'code' => 1,
             'msg' => 'success',
-            'data' => $info
+            'data' => array(
+                'total' => $count,
+                'list' => $info
+            )
         ];
 
         return $data;
@@ -383,8 +391,8 @@ class AccountingService extends BaseService
             'code' => 1,
             'msg' => 'success',
             'data' => [
-                'username'=>$userAdmin->username,
-                'uuid'=>$snowflakeId
+                'username' => $userAdmin->username,
+                'uuid' => $snowflakeId
             ]
         ];
 

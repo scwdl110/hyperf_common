@@ -431,22 +431,33 @@ class AccountingController extends BaseController
      *                          property="data",
      *                          type="array",
      *                          @OA\Items(
-     *                            @OA\Property(
-     *                               property="shop_id",
-     *                               type="integer",
-     *                               description="店铺ID"
-     *                            ),
-     *                            @OA\Property(
-     *                               property="shop_name",
-     *                               type="string",
-     *                               description="店铺名称"
-     *                            ),
-     *                            @OA\Property(
-     *                               property="modified_time",
-     *                               type="integer",
-     *                               description="修改时间"
-     *                            ),
-     *                         )
+     *                           @OA\Property(
+     *                            property="total",
+     *                            type="number",
+     *                            description="总条数"
+     *                           ),
+     *                           @OA\Property(
+     *                               property="list",
+     *                               type="array",
+     *                               @OA\Items(
+     *                                @OA\Property(
+     *                                  property="shop_id",
+     *                                   type="integer",
+     *                                   description="店铺ID"
+     *                                ),
+     *                               @OA\Property(
+     *                                   property="shop_name",
+     *                                  type="string",
+     *                                  description="店铺名称"
+     *                               ),
+     *                               @OA\Property(
+     *                                   property="modified_time",
+     *                                  type="integer",
+     *                                  description="修改时间"
+     *                               ),
+     *                            )
+     *                           )
+     *                       )
      *                     ),
      *                  )
      *               )
