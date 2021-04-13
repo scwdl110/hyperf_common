@@ -7,6 +7,7 @@ use RuntimeException;
 use App\Lib\Presto;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use GuzzleHttp\ClientInterface;
 
 use Hyperf\Utils\ApplicationContext;
@@ -30,15 +31,22 @@ abstract class AbstractPrestoModel
     protected $cache = null;
 
     public function __construct(
-        string $dbhost = '001',
-        string $codeno = '001',
+        string $dbhost = '',
+        string $codeno = '',
         ?LoggerInterface $logger = null,
         ?ClientInterface $httpClient = null
     ) {
+        $container = ApplicationContext::getContainer();
         if (null === $logger) {
-            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('presto', 'default');
+            $logger = $container->get(LoggerFactory::class)->get('presto', 'default');
         }
         $this->logger = $logger;
+
+        if ('' === $dbhost) {
+            $userInfo = $container->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
+            $dbhost = $userInfo['dbhost'] ?? '';
+            $codeno = $userInfo['codeno'] ?? '';
+        }
 
         if (!is_numeric($dbhost) || !is_numeric($codeno)) {
             $this->logger->error('错误的 presto dbhost 或 codeno', [$dbhost, $codeno]);
@@ -143,12 +151,23 @@ abstract class AbstractPrestoModel
         $limit = is_string($limit) || is_numeric($limit) ? trim((string)$limit) : '';
 
         if (!empty($limit)) {
+            // 兼容 $limit = '1', '1, 2', 'limit 1,2', 'limit 1 offset 2', 'offset 1 limit 2' 等形式
             if (false !== strpos($limit, ',')) {
                 list($offset, $limit) = explode(',', $limit, 2);
+                if (1 === preg_match('/\s*limit\s+(\d+)/i', $offset, $m)) {
+                    $offset = $m[1];
+                }
+
                 // presto 语法必须 offset 在前，且不支持 limit 1,2 这种写法
                 $limit = " OFFSET {$offset} LIMIT {$limit}";
             } else {
-                $limit = " LIMIT {$limit}";
+                if (is_numeric($limit)) {
+                    $limit = " LIMIT {$limit}";
+                } elseif (1 === preg_match('/\s*offset\s+(\d+)\s+limit\s+(\d+)\s*/i', $limit, $m)) {
+                    $limit = " OFFSET {$m[1]} LIMIT {$m[2]}";
+                } elseif (1 === preg_match('/\s*limit\s+(\d+)\s+offset\s+(\d+)\s*/i', $limit, $m)) {
+                    $limit = " OFFSET {$m[2]} LIMIT {$m[1]}";
+                }
             }
         }
 
