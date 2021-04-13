@@ -298,7 +298,7 @@ class AccountingService extends BaseService
             $shopListInfoquery->whereIn('id', $ids);
         }
 
-        isset($request_data['date_time']) && $shopListInfoquery->where([['modified_time', '>=', $request_data['date_time']]]);
+        isset($request_data['date_time']) && $shopListInfoquery->where([['modified_time', '>', $request_data['date_time']]]);
 
         $count = $shopListInfoquery->count();
 
