@@ -461,7 +461,7 @@ class AccountingService extends BaseService
 
         $UserExtInfo = $UserExtInfoQuery->first();
 
-        if ($UserExtInfo->ext_info == "null") {
+        //if ($UserExtInfo->ext_info == "null") {
             try {
                 $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info']));
                 if (!$userExtInfoModel) {
@@ -475,9 +475,9 @@ class AccountingService extends BaseService
                     'msg' => trans('common.error')
                 ];
             }
-        } else {
-            throw new BusinessException(10001, trans('finance.user_is_bind'));
-        }
+//        } else {
+//            throw new BusinessException(10001, trans('finance.user_is_bind'));
+//        }
 
         return ['code' => 1, 'msg' => 'success', 'data' => array()];
     }
