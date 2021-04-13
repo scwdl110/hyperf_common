@@ -102,8 +102,7 @@ class AccountingService extends BaseService
         $userInfo = $this->getUserInfo();
 
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
-        var_dump($userAdmin);
-        $shopListInfoquery = ChannelModel::select("id", "site_id")->where([['user_id', '=', $userInfo['user_id']]]);
+        $shopListInfoquery = ChannelModel::select("id", "site_id", "title")->where([['user_id', '=', $userInfo['user_id']]]);
 
         if ($userAdmin->is_master != 1) {
             $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
@@ -159,6 +158,7 @@ class AccountingService extends BaseService
 
             //商品销售额
             $info['shop_id'] = $list['id'];
+            $info['shop_name'] = $list['title'];
             $info['currency_id'] = $Currency['id'];
             $info['exchang_rate'] = $Currency['exchang_rate'];
 
