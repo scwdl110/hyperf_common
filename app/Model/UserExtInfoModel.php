@@ -11,12 +11,8 @@ declare(strict_types=1);
  */
 namespace App\Model;
 
-use Captainbi\Hyperf\Base\Model;
-
-class UserAdminModel extends Model
+class UserExtInfoModel extends BaseModel
 {
-    public $timestamps = true;
-    protected $connection = 'erp_base';
-    protected $table = 'user_admin';
-
+    protected $table = 'user_ext_info';
+    protected $fillable = ['uuid', 'admin_id','client_id','ext_info'];
 }

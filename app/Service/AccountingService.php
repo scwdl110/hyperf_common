@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Exception\BusinessException;
 use App\Lib\Common;
 use App\Model\CurrencyModel;
 use App\Model\ChannelModel;
@@ -20,6 +19,7 @@ use App\Model\ChannelProfitReportModel;
 use App\Model\FinanceCurrencyModel;
 use App\Model\SystemCurrencyModel;
 use App\Model\UserAdminModel;
+use App\Model\UserExtInfoModel;
 use App\Service\BaseService;
 use App\Model\FinanceReportModel;
 use Hyperf\Utils\Context;
@@ -29,6 +29,8 @@ use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Hyperf\Contract\ConfigInterface;
 use Captainbi\Hyperf\Util\Unique;
+use Captainbi\Hyperf\Exception\BusinessException;
+use Captainbi\Hyperf\Util\Log;
 
 class AccountingService extends BaseService
 {
@@ -385,7 +387,26 @@ class AccountingService extends BaseService
 
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('username')->first();
 
-        $snowflakeId = Unique::snowflake();
+        $UserExtInfo = UserExtInfoModel::query()->where(array('admin_id' => $userInfo['admin_id']))->first();
+
+        if ($UserExtInfo == null) {
+            $snowflakeId = Unique::snowflake();
+            try {
+                $userExtInfoModel = UserExtInfoModel::create(array('uuid' => $snowflakeId, 'admin_id' => $userInfo['admin_id']));
+                if (!$userExtInfoModel->id) {
+                    throw new BusinessException(10001, trans('finance.user_add_error'));
+                }
+            } catch (\Throwable $ex) {
+                //写入日志
+                Log::getClient()->error($ex->getMessage());
+                return [
+                    'code' => 0,
+                    'msg' => trans('common.error')
+                ];
+            }
+        } else {
+            $snowflakeId = $UserExtInfo->uuid;
+        }
 
         $data = [
             'code' => 1,
@@ -408,24 +429,37 @@ class AccountingService extends BaseService
 
     public function bindUser($request_data)
     {
-        $userInfo = $this->getUserInfo();
-
-        $rule = [
-            'ext_info' => 'required|json',
-        ];
+        $rule = ['ext_info' => 'required|json'];
 
         $res = $this->validate($request_data, $rule);
-
         if ($res['code'] == 0) {
             return $res;
         }
 
-        $data = [
-            'code' => 1,
-            'msg' => 'success',
-            'data' => array()
-        ];
+        $userInfo = $this->getUserInfo();
 
-        return $data;
+        $UserExtInfoQuery = UserExtInfoModel::query()->where(array('admin_id' => $userInfo['admin_id']));
+
+        $UserExtInfo = $UserExtInfoQuery->first();
+
+        if ($UserExtInfo->ext_info == "null") {
+            try {
+                $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info']));
+                if (!$userExtInfoModel) {
+                    throw new BusinessException(10001, trans('finance.user_bind_error'));
+                }
+            } catch (\Throwable $ex) {
+                //写入日志
+                Log::getClient()->error($ex->getMessage());
+                return [
+                    'code' => 0,
+                    'msg' => trans('common.error')
+                ];
+            }
+        } else {
+            throw new BusinessException(10001, trans('finance.user_is_bind'));
+        }
+
+        return ['code' => 1, 'msg' => 'success', 'data' => array()];
     }
 }
