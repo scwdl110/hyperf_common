@@ -14,6 +14,7 @@ namespace App\Service;
 
 use App\Exception\BusinessException;
 use App\Lib\Common;
+use App\Model\CurrencyModel;
 use App\Model\ChannelModel;
 use App\Model\ChannelProfitReportModel;
 use App\Model\FinanceCurrencyModel;
@@ -27,8 +28,9 @@ use Hyperf\Di\Annotation\Inject;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Hyperf\Contract\ConfigInterface;
+use Captainbi\Hyperf\Util\Unique;
 
-class KingdeeService extends BaseService
+class AccountingService extends BaseService
 {
 
     /**
@@ -59,7 +61,7 @@ class KingdeeService extends BaseService
      * @return mixed
      */
 
-    public function getuserinfo()
+    public function getUserInfo()
     {
         $context = Context::get(ServerRequestInterface::class);
         $userInfo = $context->getAttribute('userInfo');
@@ -70,11 +72,11 @@ class KingdeeService extends BaseService
     }
 
     /**
-     * 获取金蝶信息
+     * 获取财务利润信息
      * @param $request_data
      * @return array
      */
-    public function getKingDeeInfo($request_data)
+    public function getFiancialProfitInfo($request_data)
     {
         $rule = [
             'date' => 'required|date',
@@ -88,7 +90,6 @@ class KingdeeService extends BaseService
             return $res;
         }
 
-
         $current_firstday = date('Y-m-01', strtotime($request_data['date']));
         $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
 
@@ -98,19 +99,22 @@ class KingdeeService extends BaseService
         $request_data['offset'] = $request_data['offset'] ?? 0;
         $request_data['limit'] = $request_data['limit'] ?? 10;
 
-        $userInfo = $this->getuserinfo();
+        $userInfo = $this->getUserInfo();
 
-        $userAdmin = UserAdminModel::where('id', $userInfo['admin_id'])->first('is_master', 'check_prv_ids');
-
-        $shopListInfoquery = ChannelModel::select("id","site_id")->where([['user_id', '=', $userInfo['user_id']]]);
+        $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
+        var_dump($userAdmin);
+        $shopListInfoquery = ChannelModel::select("id", "site_id")->where([['user_id', '=', $userInfo['user_id']]]);
 
         if ($userAdmin->is_master != 1) {
-            $shopListInfoquery->whereIn('id', explode(',', $userAdmin->check_prv_ids));
+            $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
+            $shopListInfoquery->whereIn('id', $ids);
         }
+
+        $count = $shopListInfoquery->count();
 
         $shopListId = $shopListInfoquery->orderBy('id', 'asc')->offset($request_data['offset'])->limit($request_data['limit'])->get()->toArray();
 
-        $infoList = array();
+        $infoList = array('total' => $count, 'list' => array());
 
         foreach ($shopListId as $key => $list) {
 
@@ -151,8 +155,13 @@ class KingdeeService extends BaseService
                 ['create_time', '<', $end_time]
             ])->get()->toArray();
 
+            $Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
+
             //商品销售额
             $info['shop_id'] = $list['id'];
+            $info['currency_id'] = $Currency['id'];
+            $info['exchang_rate'] = $Currency['exchang_rate'];
+
             $info['commodity_sales']['fba_sales_quota'] = $FinanceReportInfo[0]['fba_sales_quota']; //FBA销售额
             $info['commodity_sales']['fbm_sales_quota'] = $FinanceReportInfo[0]['fbm_sales_quota']; //FBM销售额
 
@@ -242,7 +251,7 @@ class KingdeeService extends BaseService
             $info['fee']['logistics_head_course'] = $FinanceReportInfo[0]['logistics_head_course']; //头程物流（FBA）
             $info['fee']['fbm'] = $FinanceReportInfo[0]['fbm']; //物流（FBM）
 
-            $infoList[] = $info;
+            $infoList['list'][] = $info;
         }
 
         $data = [
@@ -263,9 +272,9 @@ class KingdeeService extends BaseService
     {
         $info = array();
 
-        $userInfo = $this->getuserinfo();
+        $userInfo = $this->getUserInfo();
 
-        $userAdmin = UserAdminModel::where('id', $userInfo['admin_id'])->first('is_master', 'check_prv_ids');
+        $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
 
         $shopListInfoquery = ChannelModel::select("id", "title", "modified_time")->where([['user_id', '=', $userInfo['user_id']]]);
 
@@ -299,7 +308,7 @@ class KingdeeService extends BaseService
 
     public function getExchangeRateList()
     {
-        $userInfo = $this->getuserinfo();
+        $userInfo = $this->getUserInfo();
 
         $financeCurrencyList = FinanceCurrencyModel::selectRaw(
             "id ,custom_usd_exchang_rate AS usd_exchang_rate,
@@ -340,6 +349,73 @@ class KingdeeService extends BaseService
             'code' => 1,
             'msg' => 'success',
             'data' => $info
+        ];
+
+        return $data;
+    }
+
+
+    /**
+     * 拉取用户名以及openid
+     * @param $request_data
+     * @return array
+     */
+
+    public function getUserName($request_data)
+    {
+        $rule = [
+            'client_id' => 'required|date',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $userInfo = $this->getUserInfo();
+
+        $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('username')->first();
+
+        $snowflakeId = Unique::snowflake();
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => [
+                'username'=>$userAdmin->username,
+                'uuid'=>$snowflakeId
+            ]
+        ];
+
+        return $data;
+    }
+
+
+    /**
+     * 绑定用户
+     * @param $request_data
+     * @return array
+     */
+
+    public function bindUser($request_data)
+    {
+        $userInfo = $this->getUserInfo();
+
+        $rule = [
+            'ext_info' => 'required|date',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => array()
         ];
 
         return $data;

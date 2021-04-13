@@ -19,6 +19,7 @@ use Hyperf\HttpServer\Contract\ResponseInterface;
 
 /**
  * @Controller()
+ * @OA\Info(title="财务",version="1.0")
  */
 class SwaggerController extends BaseController
 {

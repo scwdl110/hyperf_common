@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 
-use App\Service\KingdeeService;
+use App\Service\AccountingService;
 use Captainbi\Hyperf\Util\Result;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\HttpServer\Annotation\Controller;
@@ -22,9 +22,9 @@ use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 
 /**
- * @Controller(prefix="info")
+ * @Controller()
  */
-class InfoController extends BaseController
+class AccountingController extends BaseController
 {
     /**
      * @Inject()
@@ -40,16 +40,16 @@ class InfoController extends BaseController
 
     /**
      * @Inject()
-     * @var KingdeeService
+     * @var AccountingService
      */
     protected $service;
 
 
     /**
      * @OA\Post(
-     *     path="/info/list",
+     *     path="/accounting/fiancial",
      *     summary="金蝶第三方数据信息",
-     *     tags={"info"},
+     *     tags={"accounting"},
      *     @OA\Parameter(
      *          name="authorization",
      *          in="header",
@@ -386,14 +386,14 @@ class InfoController extends BaseController
      *      )
      *   )
      * )
-     * @RequestMapping(path="list", methods="post")
+     * @RequestMapping(path="fiancial", methods="post")
      * @return mixed
      *
      */
-    public function getInfo()
+    public function getFiancialProfitInfo()
     {
         $request_data = $this->request->all();
-        $data = $this->service->getKingDeeInfo($request_data);
+        $data = $this->service->getFiancialProfitInfo($request_data);
         if ($data['code'] == 0) {
             return Result::fail([], $data['msg']);
         }
@@ -402,9 +402,9 @@ class InfoController extends BaseController
 
     /**
      * @OA\Get(
-     *     path="/info/shop_list",
+     *     path="/accounting/shop_list",
      *     summary="金蝶第三方店铺信息",
-     *     tags={"info"},
+     *     tags={"accounting"},
      *     @OA\Parameter(
      *          name="authorization",
      *          required=true,
@@ -469,9 +469,9 @@ class InfoController extends BaseController
 
     /**
      * @OA\Get(
-     *     path="/info/exchange_rate_list",
-     *     summary="接口信息表",
-     *     tags={"info"},
+     *     path="/accounting/exchange_rate_list",
+     *     summary="汇率接口",
+     *     tags={"accounting"},
      *     @OA\Parameter(
      *          name="authorization",
      *          required=true,
@@ -542,4 +542,135 @@ class InfoController extends BaseController
         }
         return Result::success($data['data'], $data['msg']);
     }
+
+    /**
+     * @OA\Post(
+     *     path="/accounting/get_username",
+     *     summary="用户名接口",
+     *     tags={"get_username"},
+     *     @OA\Parameter(
+     *          name="authorization",
+     *          in="header",
+     *          required=true,
+     *          description="令牌"
+     *     ),
+     *     @OA\RequestBody(
+     *         @OA\MediaType(
+     *             mediaType="application/x-www-form-urlencoded",
+     *             @OA\Schema(required={"country_id"},
+     *             @OA\Property(
+     *               property="client_id",
+     *               type="string",
+     *               description="调用方id"
+     *             )
+     *         )
+     *        )
+     *      ),
+     *      @OA\Response(response=200,
+     *          description="获取成功",
+     *             @OA\MediaType(mediaType="application/json",
+     *                  @OA\Schema(
+     *                       @OA\Property(
+     *                          property="code",
+     *                          type="integer",
+     *                          description="200",
+     *                          example="200"
+     *                      ),
+     *                      @OA\Property(
+     *                          property="msg",
+     *                          type="string",
+     *                          description="msg"
+     *                      ),
+     *                       @OA\Property(
+     *                          property="data",
+     *                          type="array",
+     *                          @OA\Items(
+     *                            @OA\Property(
+     *                               property="uuid",
+     *                               type="string",
+     *                               description="加密后第三方id"
+     *                            ),
+     *                            @OA\Property(
+     *                               property="user_name",
+     *                               type="string",
+     *                               description="用户名"
+     *                            ),
+     *                         ),
+     *                     ),
+     *                  )
+     *               )
+     *          )
+     * )
+     *
+     * @RequestMapping(path="get_username", methods="post")
+     * @return mixed
+     */
+    public function getUsername()
+    {
+        $request_data = $this->request->all();
+        $data = $this->service->getUserName($request_data);
+        if ($data['code'] == 0) {
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'], $data['msg']);
+    }
+
+
+    /**
+     * @OA\Post(
+     *     path="/accounting/bind",
+     *     summary="绑定第三方信息接口",
+     *     tags={"get_username"},
+     *     @OA\Parameter(
+     *          name="authorization",
+     *          in="header",
+     *          required=true,
+     *          description="令牌"
+     *     ),
+     *     @OA\RequestBody(
+     *         @OA\MediaType(
+     *             mediaType="application/x-www-form-urlencoded",
+     *             @OA\Schema(required={"country_id"},
+     *             @OA\Property(
+     *               property="ext_info",
+     *               type="string",
+     *               description="第三方信息"
+     *             ),
+     *         )
+     *      )
+     *),
+     *      @OA\Response(response=200,
+     *          description="获取成功",
+     *             @OA\MediaType(mediaType="application/json",
+     *                  @OA\Schema(
+     *                       @OA\Property(
+     *                          property="code",
+     *                          type="integer",
+     *                          description="200",
+     *                          example="200"
+     *                      ),
+     *                      @OA\Property(
+     *                          property="msg",
+     *                          type="string",
+     *                          description="msg"
+     *                      ),
+     *                     ),
+     *                  )
+     *               )
+     *          )
+     * )
+     *
+     * @RequestMapping(path="bind", methods="post")
+     * @return mixed
+     */
+    public function bindUser()
+    {
+        $request_data = $this->request->all();
+        $data = $this->service->bindUser($request_data);
+        if ($data['code'] == 0) {
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'], $data['msg']);
+    }
+
 }
