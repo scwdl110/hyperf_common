@@ -270,7 +270,7 @@ class AccountingService extends BaseService
      * @param $request_data
      * @return array
      */
-    public function getShopList()
+    public function getShopList($request_data)
     {
         $info = array();
 
