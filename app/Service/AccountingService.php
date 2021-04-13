@@ -272,6 +272,19 @@ class AccountingService extends BaseService
      */
     public function getShopList($request_data)
     {
+        $rule = [
+            'date_time' => 'integer|filled',
+            'offset' => 'integer|filled',
+            'limit' => 'integer|filled'
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+
         $info = array();
 
         $userInfo = $this->getUserInfo();
@@ -284,6 +297,8 @@ class AccountingService extends BaseService
             $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
             $shopListInfoquery->whereIn('id', $ids);
         }
+
+        isset($request_data['date_time']) && $shopListInfoquery->where([['modified_time', '>=', $request_data['date_time']]]);
 
         $count = $shopListInfoquery->count();
 
@@ -351,6 +366,7 @@ class AccountingService extends BaseService
             if (isset($config['currency_list'][$key])) {
                 $info[$i] = $config['currency_list'][$key];
                 $info[$i]['usd_exchang_rate'] = $value;
+                $info[$i]['modified_time'] = time();
             }
             $i++;
         }
@@ -358,7 +374,10 @@ class AccountingService extends BaseService
         $data = [
             'code' => 1,
             'msg' => 'success',
-            'data' => $info
+            'data' => [
+                'total' => $i,
+                'list' => $info
+            ]
         ];
 
         return $data;
