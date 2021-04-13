@@ -372,7 +372,7 @@ class AccountingService extends BaseService
     public function getUserName($request_data)
     {
         $rule = [
-            'client_id' => 'required|date',
+            'client_id' => 'required|string',
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -411,7 +411,7 @@ class AccountingService extends BaseService
         $userInfo = $this->getUserInfo();
 
         $rule = [
-            'ext_info' => 'required|date',
+            'ext_info' => 'required|json',
         ];
 
         $res = $this->validate($request_data, $rule);
