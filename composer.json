@@ -21,6 +21,7 @@
         "hyperf/config-apollo": "^2.1",
         "hyperf/crontab": "^2.1",
         "hyperf/database": "~2.1.0",
+        "hyperf/db": "^2.1",
         "hyperf/db-connection": "~2.1.0",
         "hyperf/elasticsearch": "^2.1",
         "hyperf/event": "^2.1",
@@ -58,7 +59,9 @@
         "psr-4": {
             "App\\": "app/"
         },
-        "files": []
+        "files": [
+            "app/functions_include.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
