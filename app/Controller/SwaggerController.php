@@ -44,7 +44,9 @@ class SwaggerController extends BaseController
      * @RequestMapping(path="/swagger", methods="get,post")
      */
     public function swagger(){
-        $openapi = \OpenApi\scan(BASE_PATH."/app/Controller");
-        return $this->response->withHeader('Content-Type', 'application/x-yaml')->withContent($openapi->toYaml());
+//        $openapi = \OpenApi\scan(BASE_PATH."/app/Controller");
+//        return $this->response->withHeader('Content-Type', 'application/x-yaml')->withContent($openapi->toJson());
+        $openapi = file_get_contents(BASE_PATH."/api_document.json");
+        return $this->response->withHeader('Content-Type', 'application/x-yaml')->withContent($openapi);
     }
 }
