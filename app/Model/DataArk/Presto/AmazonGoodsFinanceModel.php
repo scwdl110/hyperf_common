@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\DataArk\Presto;
 
-class AmazonGoodsFinancePrestoModel extends AbstractPrestoModel
+use App\Model\AbstractPrestoModel;
+
+class AmazonGoodsFinanceModel extends AbstractPrestoModel
 {
     public function __construct(string $dbhost = '', string $codeno = '')
     {

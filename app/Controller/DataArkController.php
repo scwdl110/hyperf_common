@@ -2,8 +2,6 @@
 
 namespace App\Controller;
 
-use App\Model\AmazonGoodsFinanceReportByOrderPrestoModel;
-
 class DataArkController extends AbstractController
 {
     protected $user = [];
@@ -19,7 +17,7 @@ class DataArkController extends AbstractController
     {
         $req = $this->request->all();
         $searchVal = trim(strval($req['searchVal'] ?? ''));
-        $searchType = intval($req['searchType'] ?? AmazonGoodsFinanceReportByOrderPrestoModel::SEARCH_TYPE_PRESTO);
+        $searchType = intval($req['searchType'] ?? 0);
         $params = $req['params'] ?? [];
         $page = intval($req['page'] ?? 1);
         $limit = intval($req['rows'] ?? 100);
@@ -102,7 +100,9 @@ class DataArkController extends AbstractController
         ][$type];
 
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
-        $amazonGoodsFinanceReportByOrderMD = new AmazonGoodsFinanceReportByOrderPrestoModel($this->user['dbhost'], $this->user['codeno']);
+        $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
+        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonGoodsFinanceReportByOrderModel";
+        $amazonGoodsFinanceReportByOrderMD = new $className($this->user['dbhost'], $this->user['codeno']);
 
         return $amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,

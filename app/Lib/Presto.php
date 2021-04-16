@@ -103,6 +103,8 @@ class Presto
 
     protected static $connections = [];
 
+    protected static $connectionKeys = [];
+
     public static function getConnection(array $config, ?LoggerInterface $logger = null, ?ClientInterface $client = null)
     {
         if (null === $logger) {
@@ -123,16 +125,16 @@ class Presto
 
         // client 如果为 null，会自动实例化一个，因为这个实例化对象没有 set 到 DI 中
         // 所以每次实例化都会返回一个新对象，为避免出现这种情况，这里取 key 不应考虑默认实例化的 client
-        $key = md5(print_r([$config, $logger, $client], true));
+        $key = self::getConnectionsKey($config, $logger, $client);
         if (!isset(self::$connections[$key])) {
-            $key2 = '';
+            $key2 = -1;
             if (null === $client) {
                 $retries = max(min(intval($config['retries'] ?? 3), 0), 20);
                 $client = self::createHttpClient($retries, $logger);
-                $key2 = md5(print_r([$config, $logger, $client], true));
+                $key2 = self::getConnectionsKey($config, $logger, $client);
             }
 
-            if ($key2) {
+            if ($key2 !== -1) {
                 if (!isset(self::$connections[$key2])) {
                     self::$connections[$key2] = new self($config, $logger, $client);
                 }
@@ -144,6 +146,17 @@ class Presto
         }
 
         return self::$connections[$key];
+    }
+
+    protected static function getConnectionsKey(array $config, LoggerInterface $logger, ?ClientInterface $client = null): int
+    {
+        foreach (self::$connectionKeys as $key => $val) {
+            if ($config === $val[0] && $logger === $val[1] && $client === $val[2]) {
+                return $key;
+            }
+        }
+
+        return array_push(self::$connectionKeys, [$config, $logger, $client]) - 1;
     }
 
     private static function createHttpClient(int $maxRetries, LoggerInterface $logger): ClientInterface
@@ -252,6 +265,8 @@ class Presto
     private function __construct(array $config, LoggerInterface $logger, ClientInterface $client)
     {
         $this->config = $config;
+        $this->logger = $logger;
+        $this->httpClient = $client;
 
         $this->httpHeaders = [
             self::HEADER_USER => $config['user'],

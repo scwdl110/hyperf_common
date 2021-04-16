@@ -14,7 +14,7 @@ use Hyperf\Utils\ApplicationContext;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Logger\LoggerFactory;
 
-abstract class AbstractPrestoModel
+abstract class AbstractPrestoModel implements BIModelInterface
 {
     protected $dbhost = '001';
 
@@ -55,7 +55,7 @@ abstract class AbstractPrestoModel
         $this->dbhost = trim($dbhost);
         $this->codeno = trim($codeno);
 
-        $config = ApplicationContext::getContainer()->get(ConfigInterface::class)->get('presto', []);
+        $config = $container->get(ConfigInterface::class)->get('presto', []);
         if (empty($config)) {
             $this->logger->error('presto 配置信息不存在');
             throw new RuntimeException('Missing Presto config.');
@@ -245,7 +245,7 @@ abstract class AbstractPrestoModel
      * @param $cacheTTL     缓存保存时间（秒）
      * @return int		    记录数
      */
-    final public function count(
+    public function count(
         $where = '',
         string $table = '',
         string $group = '',
@@ -293,5 +293,10 @@ abstract class AbstractPrestoModel
         } else {
             return is_string($where) ? $where : '';
         }
+    }
+
+    public static function escape(string $val): string
+    {
+        return Presto::escape((string)$val);
     }
 }

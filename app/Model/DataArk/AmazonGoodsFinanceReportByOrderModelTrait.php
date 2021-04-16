@@ -1,22 +1,11 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\DataArk;
 
 use Hyperf\DB\DB;
 
-class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
+trait AmazonGoodsFinanceReportByOrderModelTrait
 {
-    const SEARCH_TYPE_PRESTO = 0;
-
-    const SEARCH_TYPE_ES = 1;
-
-    public function __construct(string $dbhost = '', string $codeno = '')
-    {
-        parent::__construct($dbhost, $codeno);
-
-        $this->tableName = "ods.ods_dataark_f_amazon_goods_finance_report_by_order_{$this->dbhost}";
-    }
-
     /**
      * 获取商品维度统计列表(新增统计维度完成)
      * @param string $where
@@ -365,7 +354,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -375,7 +364,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
                 }
             }
 
@@ -571,7 +560,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $where;
     }
 
-    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
+    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array(), int $searchType = self::SEARCH_TYPE_PRESTO)
     {
         if(empty($lists)){
             return $lists ;
@@ -624,21 +613,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             foreach($lists as $list1){
                 if($datas['count_dimension'] == 'sku'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('sku' => addslashes($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('sku' => self::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('sku' => addslashes($list1['sku']));
+                        $where_arr[] = array('sku' => self::escape($list1['sku']));
                     }
                 }else if($datas['count_dimension'] == 'asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => addslashes($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('asin' => addslashes($list1['asin']));
+                        $where_arr[] = array('asin' => self::escape($list1['asin']));
                     }
                 }else if($datas['count_dimension'] == 'parent_asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('parent_asin' => addslashes($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('parent_asin' => addslashes($list1['parent_asin']));
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
                     }
                 }else if($datas['count_dimension'] == 'class1'){
                     $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ,  'site_id'=>$list1['site_id']) ;
@@ -725,7 +714,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $fba_fields .= ' , SUM(DISTINCT(CASE WHEN g.fulfillable_quantity < 0 THEN 0 ELSE g.fulfillable_quantity END )) as fba_sales_stock ,MAX(DISTINCT( CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as  fba_sales_day , MAX(DISTINCT(g.available_days) ) as max_fba_sales_day , MIN( DISTINCT(g.available_days) ) as min_fba_sales_day , MIN(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END ))  as min_egt0_fba_sales_day , MAX(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as max_egt0_fba_sales_day , SUM(DISTINCT(CASE WHEN g.reserved_quantity < 0 THEN 0 ELSE g.reserved_quantity END )) as fba_reserve_stock  , SUM(DISTINCT( CASE WHEN g.replenishment_quantity < 0 THEN 0 ELSE g.replenishment_quantity END ))  as fba_recommended_replenishment , MAX( DISTINCT(g.replenishment_quantity) ) as max_fba_recommended_replenishment ,MIN( DISTINCT(g.replenishment_quantity) ) as min_fba_recommended_replenishment , SUM(DISTINCT( CASE WHEN g.available_stock < 0 THEN 0 ELSE g.available_stock END )) as fba_special_purpose , MAX( DISTINCT(g.available_stock)) as  max_fba_special_purpose , MIN(DISTINCT( g.available_stock) )  as min_fba_special_purpose ';
 
-        $goods_finance_md = new AmazonGoodsFinancePrestoModel($this->dbhost, $this->codeno);
+        $dataChannel = $searchType === self::SEARCH_TYPE_PRESTO ? 'Presto' : 'ES';
+        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonGoodsFinanceModel";
+        $goods_finance_md = new $className($this->dbhost, $this->codeno);
         $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
         $fbaDatas = array() ;
         if (!empty($fbaData)){
@@ -2674,7 +2665,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     /**
-     * @desc 获取不是时间类型的字段
+     * 获取不是时间类型的字段
      * @author json.qiu 2021/03/04
      *
      * @param $fields
@@ -3122,7 +3113,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -3132,7 +3123,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
                 }
             }
             if (empty($lists)) {
@@ -4756,7 +4747,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo, $exchangeCode)
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1', $searchType = self::SEARCH_TYPE_PRESTO)
     {
         if(empty($lists)){
             return $lists ;
@@ -4817,7 +4808,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelPrestoModel($this->dbhost, $this->codeno);
+        $dataChannel = $searchType === self::SEARCH_TYPE_PRESTO ? 'Presto' : 'ES';
+        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonFbaInventoryByChannelModel";
+        $amazon_fba_inventory_by_channel_md = new $className($this->dbhost, $this->codeno);
         $where.= ' AND ' . $where_str ;
         if ($datas['currency_code'] == 'ORIGIN') {
             $fba_fields .= " , SUM ( DISTINCT (c.yjzhz) )  as fba_goods_value";
@@ -4873,8 +4866,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     /**
-     * function getListByOperators
-     * @desc: 获取运营人员维度统计列表
+     * 获取运营人员维度统计列表
      * @param string $where
      * @param array $datas
      * @param string $limit
@@ -4884,7 +4876,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param array $channel_arr
      * @return array
      * @author: LWZ
-     * @editTime: 2021-01-05 11:37
      */
     public function getListByOperators(
         $where = '',

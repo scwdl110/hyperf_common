@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Model;
+namespace App\Model\DataArk\Presto;
 
-class AmazonFbaInventoryByChannelPrestoModel extends AbstractPrestoModel
+use App\Model\AbstractPrestoModel;
+
+class AmazonFbaInventoryByChannelModel extends AbstractPrestoModel
 {
     public function __construct(string $dbhost = '', string $codeno = '')
     {
