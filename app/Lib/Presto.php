@@ -12,6 +12,7 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\MessageFormatter;
 
+use Psr\Log\LoggerInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -100,51 +101,65 @@ class Presto
 
     protected $httpHeaders = [];
 
-    protected $retries = 3;
+    protected static $connections = [];
 
-    public function __construct(array $config = [], ?LoggerInterface $logger = null, ?ClientInterface $client = null)
+    protected static $connectionKeys = [];
+
+    public static function getConnection(array $config, ?LoggerInterface $logger = null, ?ClientInterface $client = null)
     {
         if (null === $logger) {
-            $this->logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('presto', 'default');
-        }
-
-        if (null === $client) {
-            $this->httpClient = $this->createHttpClient();
-        }
-
-        if (empty($config)) {
-            $config = ApplicationContext::getContainer()->get(ConfigInterface::class)->get('presto', []);
+            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('presto', 'default');
         }
 
         if (empty($config) || !isset($config['user'], $config['server'], $config['catalog'], $config['schema'])) {
-            $this->logger->error('presto 连接参数错误', [$config]);
+            $logger->error('presto 连接参数错误', [$config]);
             throw new RuntimeException('Presto connection config is required.');
         }
 
         if (!is_string($config['user']) || !is_string($config['server'])
             || !is_string($config['catalog']) || !is_string($config['schema'])
         ) {
-            $this->logger->error('presto 连接参数数据类型错误', [$config]);
+            $logger->error('presto 连接参数数据类型错误', [$config]);
             throw new RuntimeException('Invalid presto connection config.');
         }
 
-        $this->config = $config;
-        $this->retries = max(min(intval($config['retries'] ?? 3), 0), 20);
+        // client 如果为 null，会自动实例化一个，因为这个实例化对象没有 set 到 DI 中
+        // 所以每次实例化都会返回一个新对象，为避免出现这种情况，这里取 key 不应考虑默认实例化的 client
+        $key = self::getConnectionsKey($config, $logger, $client);
+        if (!isset(self::$connections[$key])) {
+            $key2 = -1;
+            if (null === $client) {
+                $retries = max(min(intval($config['retries'] ?? 3), 0), 20);
+                $client = self::createHttpClient($retries, $logger);
+                $key2 = self::getConnectionsKey($config, $logger, $client);
+            }
 
-        $this->httpHeaders = [
-            self::HEADER_USER => $config['user'],
-            self::HEADER_SCHEMA => $config['schema'],
-            self::HEADER_CATALOG => $config['catalog'],
-        ];
+            if ($key2 !== -1) {
+                if (!isset(self::$connections[$key2])) {
+                    self::$connections[$key2] = new self($config, $logger, $client);
+                }
 
-        if (1 === preg_match('#^https?://#i', $config['server'])) {
-            $this->url = trim($config['server'], '/') . self::ENDPOINT;
-        } else {
-            $this->url = 'http://' . trim($config['server'], '/') . self::ENDPOINT;
+                self::$connections[$key] = self::$connections[$key2];
+            } else {
+                self::$connections[$key] = new self($config, $logger, $client);
+            }
         }
+
+        return self::$connections[$key];
     }
 
-    private function createHttpClient(): ClientInterface
+    protected static function getConnectionsKey(array $config, LoggerInterface $logger, ?ClientInterface $client = null): int
+    {
+        foreach (self::$connectionKeys as $key => $val) {
+            if ($config === $val[0] && $logger === $val[1] && $client === $val[2]) {
+                return $key;
+            }
+        }
+
+        return array_push(self::$connectionKeys, [$config, $logger, $client]) - 1;
+    }
+
+    private static function createHttpClient(int $maxRetries, LoggerInterface $logger): ClientInterface
     {
         $handler = null;
         if (Coroutine::inCoroutine()) {
@@ -159,7 +174,7 @@ class Presto
 
         // 开发模式下，记录请求详情
         if ('dev' === env('APP_ENV')) {
-            $stack->push(Middleware::log($this->logger, new MessageFormatter(MessageFormatter::DEBUG), 'DEBUG'));
+            $stack->push(Middleware::log($logger, new MessageFormatter(MessageFormatter::DEBUG), 'DEBUG'));
         }
 
         $stack->push(Middleware::retry(function(
@@ -167,7 +182,7 @@ class Presto
             RequestInterface $req,
             ResponseInterface $resp = null,
             $exception = null
-        ) {
+        ) use (&$logger, $maxRetries) {
             if ($resp) {
                 $statusCode = $resp->getStatusCode();
                 if (200 === $statusCode) {
@@ -178,16 +193,16 @@ class Presto
                 // and the client should try again in 50-100 milliseconds.
                 // Any HTTP status other than 503 or 200 means that the query has failed.
                 // v.a. https://prestodb.io/docs/current/develop/client-protocol.html#overview-of-query-processing
-                if (503 === $statusCode && $retries < $this->retries) {
+                if (503 === $statusCode && $retries < $maxRetries) {
                     return true;
                 }
 
-                $this->logger->error('presto 请求失败', [
+                $logger->error('presto 请求失败', [
                     'response' => (string)$resp->getBody(),
                 ]);
             } else {
                 if ($execption) {
-                    $this->logger->error('presto 请求异常', [
+                    $logger->error('presto 请求异常', [
                         'exception' => $exception instanceof Throwable ? $exception->getMessage() : $exception
                     ]);
                 }
@@ -205,21 +220,65 @@ class Presto
         ]);
     }
 
-    protected function executeParams(array $params): string
+    /**
+     * 转义字符串内的特殊字符
+     * presto 的字符串规定只能使用 单引号，转义只需要将字符串内的 单引号 转义为 2个单引号 即可
+     *
+     * @param string $val
+     * @return string
+     */
+    public static function escape(string $val): string
     {
-        $vals = [];
-        foreach ($params as $key => $val) {
-            if (is_string($val)) {
-                // presto 的字符串只能用 单引号，而单引号内的单引号使用2个单引号作为转义
-                $val = sprintf("'%s'", strtr($val, ["'" => "''"]));
-            } elseif (is_bool($val)) {
-                $val = $val ? 'true' : 'false';
+        return strtr($val, ["'" => "''"]);
+    }
+
+    public static function bindValue($val): string
+    {
+        if (is_string($val)) {
+            // presto 的字符串只能用 单引号，而单引号内的单引号使用2个单引号作为转义
+            return sprintf("'%s'", self::escape($val));
+        } elseif (is_bool($val)) {
+            return $val ? 'true' : 'false';
+        } elseif (is_array($val)) {
+            $in = [];
+            // todo presto 还支持 array,map 等 数据类型，但我们一般不会这样查，真遇到的时候添加支持
+            if (array_filter($val, 'is_string') === $val) {
+                foreach ($val as $v) {
+                    $in[] = self::bindValue((string)$v);
+                }
+            } elseif (array_filter($val, 'is_bool') === $val) {
+                foreach ($val as $v) {
+                    $in[] = self::bindValue((bool)$v);
+                }
+            } elseif (array_filter($val, 'is_numeric') === $val) {
+                $in = $val;
             }
 
-            $vals[] = $val;
+            return $in ? join(',', $in) : '';
+        } elseif (is_numeric($val)) {
+            return (string)$val;
         }
 
-        return join(',', $vals);
+        return '';
+    }
+
+    private function __construct(array $config, LoggerInterface $logger, ClientInterface $client)
+    {
+        $this->config = $config;
+        $this->logger = $logger;
+        $this->httpClient = $client;
+
+        $this->httpHeaders = [
+            self::HEADER_USER => $config['user'],
+            self::HEADER_SCHEMA => $config['schema'],
+            self::HEADER_CATALOG => $config['catalog'],
+        ];
+
+        if (1 === preg_match('#^https?://#i', $config['server'])) {
+            $this->url = trim($config['server'], '/') . self::ENDPOINT;
+        } else {
+            $this->url = 'http://' . trim($config['server'], '/') . self::ENDPOINT;
+        }
     }
 
     public function query(string $sql, ...$params)
@@ -229,7 +288,11 @@ class Presto
             $result = $this->request($sql);
         } else {
             // prepare 查询
-            $executeParams = $this->executeParams($params);
+            $executeParams = [];
+            foreach ($params as $param) {
+                $executeParams[] = self::bindValue($param);
+            }
+            $executeParams = join(',', $executeParams);
             $statementName = 'stmt_' . md5($sql . $executeParams);
             $result = $this->request("EXECUTE {$statementName} USING {$executeParams}", [
                 self::HEADER_PREPARED_STATEMENT => $statementName . '=' . urlencode($sql),
