@@ -18,3 +18,7 @@ Router::get('/api/getFinanceDatas' , "App\Controller\ApiController@getFinanceDat
 Router::get('/favicon.ico', function () {
     return '';
 });
+
+Router::post('/dataark/unGoodsDatas', "App\Controller\DataArkController@getUnGoodsDatas");
+Router::post('/dataark/goodsDatas', "App\Controller\DataArkController@getGoodsDatas");
+Router::post('/dataark/operatorsDatas', "App\Controller\DataArkController@getOperatorsDatas");

@@ -311,7 +311,7 @@ trait AmazonGoodsFinanceReportByOrderModelTrait
                 }
             }
 
-            $target_wheres = $where_detail['target'];
+            $target_wheres = $where_detail['target'] ?? '';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     if(!empty($fields[$target_where['key']])){
