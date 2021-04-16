@@ -117,18 +117,20 @@ class AccountingService extends BaseService
 
         $infoList = array('total' => $count, 'list' => array());
 
+        $rateList = $this->getExchangeRate($userInfo['user_id']);
+
         foreach ($shopListId as $key => $list) {
 
             $info = array();
 
             $FinanceReportInfo = FinanceReportModel::selectRaw("
-            ifnull(sum(format( sales_quota * ( reserved_field11 / sales_volume + group_id ), 2 )),0) AS fba_sales_quota,           
-            ifnull(sum(sales_quota) - sum(format( sales_quota * ( reserved_field11 / sales_volume + group_id ), 2 )),0) as fbm_sales_quota,
+            ifnull(sum(format( sales_quota * ( reserved_field11 / sales_volume ), 2 )),0) AS fba_sales_quota,           
+            ifnull(sum(sales_quota) - sum(format( sales_quota * ( reserved_field11 / sales_volume ), 2 )),0) as fbm_sales_quota,
             ifnull(sum(promote_discount),0) as promote_discount,
             ifnull(sum(cpc_sb_cost),0) as cpc_sb_cost ,
             ifnull(sum(platform_sales_commission),0) as platform_sales_commission,
             ifnull(sum(fba_generation_delivery_cost),0) as fba_generation_delivery_cost,
-            ifnull(sum(profit),0)	as profit,
+            ifnull(sum(profit),0) as profit,
             ifnull(sum(return_and_return_commission),0) as  return_and_return_commission,
             ifnull(sum(fba_refund_treatment_fee),0) as fba_refund_treatment_fee,
             ifnull(sum(return_and_return_sales_commission),0) as return_and_return_sales_commission,
@@ -156,13 +158,18 @@ class AccountingService extends BaseService
                 ['create_time', '<', $end_time]
             ])->get()->toArray();
 
-            $Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
+            //$Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
+
+            foreach ($rateList as $rate) {
+                if ($list['site_id'] == $rate['site_id']) {
+                    $info['currency_id'] = $rate['site_id'];
+                    $info['exchang_rate'] = $rate['exchang_rate'];
+                }
+            }
 
             //商品销售额
             $info['shop_id'] = $list['id'];
             $info['shop_name'] = $list['title'];
-            $info['currency_id'] = $Currency['id'];
-            $info['exchang_rate'] = $Currency['exchang_rate'];
 
             $info['commodity_sales']['fba_sales_quota'] = $FinanceReportInfo[0]['fba_sales_quota']; //FBA销售额
             $info['commodity_sales']['fbm_sales_quota'] = $FinanceReportInfo[0]['fbm_sales_quota']; //FBM销售额
@@ -203,9 +210,9 @@ class AccountingService extends BaseService
 
             //订单费用
             $info['order_fee']['platform_sales_commission'] = $FinanceReportInfo[0]['platform_sales_commission'];  //亚马逊销售佣金
-            $info['order_fee']['fba_generation_delivery_cost'] = $FinanceReportInfo[0]['fba_generation_delivery_cost']; //FBA代发货费用
+            $info['order_fee']['fba_generation_delivery_cost'] = $FinanceReportInfo[0]['fba_generation_delivery_cost']; //FBA代发货费用 **
             $info['order_fee']['profit'] = $FinanceReportInfo[0]['profit'];  //多渠道配送费
-            $info['order_fee']['other_order_fee'] = $FinanceReportInfo[0]['amazon_fee'] - $FinanceReportInfo[0]['platform_sales_commission'] - $FinanceReportInfo[0]['fba_generation_delivery_cost'] - $FinanceReportInfo[0]['profit']; //其他订单费用
+            $info['order_fee']['other_order_fee'] = $FinanceReportInfo[0]['amazon_fee'] - $FinanceReportInfo[0]['platform_sales_commission'] - $FinanceReportInfo[0]['fba_generation_delivery_cost'] - $FinanceReportInfo[0]['profit']; //其他订单费用 **
 
             //退货退款费用
             $info['return_refund_fee']['return_and_return_commission'] = $FinanceReportInfo[0]['return_and_return_commission'];  //退款扣除佣金
@@ -217,7 +224,7 @@ class AccountingService extends BaseService
             //库存费用
             $info['inventory_cost']['fba_storage_fee'] = $ChannelProfitReportInfo[0]['fba_storage_fee']; //FBA月仓储费用
             $info['inventory_cost']['fba_long_term_storage_fee'] = $ChannelProfitReportInfo[0]['fba_long_term_storage_fee']; //FBA长期仓储费
-            $info['inventory_cost']['fba_disposal_fee'] = $ChannelProfitReportInfo[0]['fba_disposal_fee'];  //FBA处理费
+            $info['inventory_cost']['fba_disposal_fee'] = $ChannelProfitReportInfo[0]['fba_disposal_fee'];  //FBA处理费 **
             $info['inventory_cost']['fba_removal_fee'] = $ChannelProfitReportInfo[0]['fba_removal_fee'];  //FBA移除费
             $info['inventory_cost']['restocking_fee'] = $FinanceReportInfo[0]['restocking_fee']; //FBA重新入仓费
             $info['inventory_cost']['fba_inbound_convenience_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_convenience_fee'];//库存配置服务费
@@ -230,7 +237,7 @@ class AccountingService extends BaseService
             $info['inventory_cost']['fba_overage_fee'] = $ChannelProfitReportInfo[0]['fba_overage_fee']; //库存仓储超量费
 
             //其他费用
-            $info['other_fee']['other_amazon_fee'] = $FinanceReportInfo[0]['other_amazon_fee'] + $ChannelProfitReportInfo[0]['other_amazon_fee']; //其他亚马逊费用
+            $info['other_fee']['other_amazon_fee'] = $FinanceReportInfo[0]['other_amazon_fee'] + $ChannelProfitReportInfo[0]['other_amazon_fee']; //其他亚马逊费用 **
             $info['other_fee']['reserved_field17'] = $FinanceReportInfo[0]['reserved_field17']; //VAT
             $info['other_fee']['misc_adjustment'] = $ChannelProfitReportInfo[0]['misc_adjustment']; //其他
             $info['other_fee']['review_enrollment_fee'] = $ChannelProfitReportInfo[0]['review_enrollment_fee']; //早期评论者计划
@@ -243,15 +250,15 @@ class AccountingService extends BaseService
             $info['commodity_adjustment_fee']['return_postage_billing_postage'] = $ChannelProfitReportInfo[0]['return_postage_billing_postage']; //ReturnPostageBilling_postage
             $info['commodity_adjustment_fee']['missing_from_inbound'] = $FinanceReportInfo[0]['missing_from_inbound']; //入库丢失赔偿
             $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] = $FinanceReportInfo[0]['missing_from_inbound_clawback']; //入库丢失赔偿(夺回)
-            $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] = $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'];  //费用盘点-重量和尺寸更改
-            $info['commodity_adjustment_fee']['fee_adjustment'] = $FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'];  //其他商品调整费用
+            $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] = $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'];  //费用盘点-重量和尺寸更改 **
+            $info['commodity_adjustment_fee']['fee_adjustment'] = $FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'];  //其他商品调整费用 ？？
 
             //费用
             $info['fee']['reserved_field16'] = $FinanceReportInfo[0]['reserved_field16']; //运营费用
             $info['fee']['reserved_field10'] = $FinanceReportInfo[0]['reserved_field10']; //测评费用
-            $info['fee']['purchasing_cost'] = $FinanceReportInfo[0]['purchasing_cost']; //采购成本
-            $info['fee']['logistics_head_course'] = $FinanceReportInfo[0]['logistics_head_course']; //头程物流（FBA）
-            $info['fee']['fbm'] = $FinanceReportInfo[0]['fbm']; //物流（FBM）
+            $info['fee']['purchasing_cost'] = $FinanceReportInfo[0]['purchasing_cost']; //采购成本 **
+            $info['fee']['logistics_head_course'] = $FinanceReportInfo[0]['logistics_head_course']; //头程物流（FBA） **
+            $info['fee']['fbm'] = $FinanceReportInfo[0]['fbm']; //物流（FBM） **
 
             $infoList['list'][] = $info;
         }
@@ -335,6 +342,23 @@ class AccountingService extends BaseService
     {
         $userInfo = $this->getUserInfo();
 
+        $info = $this->getExchangeRate($userInfo['user_id']);
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => [
+                'total' => count($info),
+                'list' => $info
+            ]
+        ];
+
+        return $data;
+    }
+
+
+    public function getExchangeRate($user_id)
+    {
         $financeCurrencyList = FinanceCurrencyModel::selectRaw(
             "id ,custom_usd_exchang_rate AS usd_exchang_rate,
             custom_cad_exchang_rate as cad_exchang_rate,custom_mxn_exchang_rate as mxn_exchang_rate,custom_jpy_exchang_rate as jpy_exchang_rate,
@@ -342,7 +366,7 @@ class AccountingService extends BaseService
             custom_in_exchang_rate as in_exchang_rate,custom_br_exchang_rate as br_exchang_rate,custom_br_exchang_rate as br_exchang_rate, 
             custom_tr_exchang_rate as tr_exchang_rate,custom_ae_exchang_rate as ae_exchang_rate,custom_sa_exchang_rate as sa_exchang_rate,
             custom_nl_exchang_rate as nl_exchang_rate,custom_sg_exchang_rate as sg_exchang_rate,custom_hk_exchang_rate as hk_exchang_rate"
-        )->where([['user_id', '=', $userInfo['user_id']]])->first()->toArray();
+        )->where([['user_id', '=', $user_id]])->first()->toArray();
 
         if (!isset($financeCurrencyList)) {
             $SystemCurrencyList = SystemCurrencyModel::select(
@@ -365,22 +389,13 @@ class AccountingService extends BaseService
 
             if (isset($config['currency_list'][$key])) {
                 $info[$i] = $config['currency_list'][$key];
-                $info[$i]['usd_exchang_rate'] = $value;
+                $info[$i]['exchang_rate'] = $value;
                 $info[$i]['modified_time'] = time();
             }
             $i++;
         }
 
-        $data = [
-            'code' => 1,
-            'msg' => 'success',
-            'data' => [
-                'total' => $i,
-                'list' => $info
-            ]
-        ];
-
-        return $data;
+        return $info;
     }
 
 
@@ -462,19 +477,19 @@ class AccountingService extends BaseService
         $UserExtInfo = $UserExtInfoQuery->first();
 
         //if ($UserExtInfo->ext_info == "null") {
-            try {
-                $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info']));
-                if (!$userExtInfoModel) {
-                    throw new BusinessException(10001, trans('finance.user_bind_error'));
-                }
-            } catch (\Throwable $ex) {
-                //写入日志
-                Log::getClient()->error($ex->getMessage());
-                return [
-                    'code' => 0,
-                    'msg' => trans('common.error')
-                ];
+        try {
+            $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info']));
+            if (!$userExtInfoModel) {
+                throw new BusinessException(10001, trans('finance.user_bind_error'));
             }
+        } catch (\Throwable $ex) {
+            //写入日志
+            Log::getClient()->error($ex->getMessage());
+            return [
+                'code' => 0,
+                'msg' => trans('common.error')
+            ];
+        }
 //        } else {
 //            throw new BusinessException(10001, trans('finance.user_is_bind'));
 //        }
