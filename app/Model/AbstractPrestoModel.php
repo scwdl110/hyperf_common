@@ -26,7 +26,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $lastSql = '';
 
-    protected $tableName = '';
+    protected $table = '';
 
     protected $cache = null;
 
@@ -143,7 +143,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         int $cacheTTL = 300
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
-        $table = $table !== '' ? $table : $this->tableName;
+        $table = $table !== '' ? $table : $this->table;
 
         $where = empty($where) ? '' : " WHERE {$where}";
         $order = empty($order) ? '' : " ORDER BY {$order}";

@@ -101,7 +101,7 @@ class DataArkController extends AbstractController
 
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
         $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
-        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonGoodsFinanceReportByOrderModel";
+        $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
         $amazonGoodsFinanceReportByOrderMD = new $className($this->user['dbhost'], $this->user['codeno']);
 
         return json_encode($amazonGoodsFinanceReportByOrderMD->{$method}(

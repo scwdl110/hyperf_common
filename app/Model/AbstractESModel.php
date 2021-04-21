@@ -4,6 +4,7 @@ namespace App\Model;
 
 use RuntimeException;
 
+use Hyperf\Utils\ApplicationContext;
 use App\Lib\Elasticsearch;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -23,7 +24,7 @@ abstract class AbstractESModel implements BIModelInterface
 
     protected $cache = null;
 
-    protected $tableName = '';
+    protected $table = '';
 
     public function __construct(
         string $dbhost = '',
@@ -86,7 +87,7 @@ abstract class AbstractESModel implements BIModelInterface
         array $orMatch = []
     ) {
         $where = is_array($where) ? $this->sqls($where) : $where;
-        $table = $table !== '' ? $table : $this->tableName;
+        $table = $table !== '' ? $table : $this->table;
         $matchSql = $orMatchSql = '';
 
         if ($match) {

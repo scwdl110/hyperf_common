@@ -1,11 +1,13 @@
 <?php
 
-namespace App\Model\DataArk\Presto;
+namespace App\Model\DataArk;
 
 use Hyperf\DB\DB;
 use App\Model\AbstractPrestoModel;
+use App\Model\DataArk\AmazonGoodsFinanceModel;
+use App\Model\DataArk\AmazonFbaInventoryByChannelModel;
 
-class AmazonGoodsFinanceReportByOrderModel extends AbstractPrestoModel
+class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
     const SEARCH_TYPE_PRESTO = 0;
 
@@ -15,7 +17,7 @@ class AmazonGoodsFinanceReportByOrderModel extends AbstractPrestoModel
     {
         parent::__construct($dbhost, $codeno);
 
-        $this->tableName = "ods.ods_dataark_f_amazon_goods_finance_report_by_order_{$this->dbhost}";
+        $this->table = "ods.ods_dataark_f_amazon_goods_finance_report_by_order_{$this->dbhost}";
     }
 
     /**
@@ -726,9 +728,7 @@ class AmazonGoodsFinanceReportByOrderModel extends AbstractPrestoModel
 
         $fba_fields .= ' , SUM(DISTINCT(CASE WHEN g.fulfillable_quantity < 0 THEN 0 ELSE g.fulfillable_quantity END )) as fba_sales_stock ,MAX(DISTINCT( CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as  fba_sales_day , MAX(DISTINCT(g.available_days) ) as max_fba_sales_day , MIN( DISTINCT(g.available_days) ) as min_fba_sales_day , MIN(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END ))  as min_egt0_fba_sales_day , MAX(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as max_egt0_fba_sales_day , SUM(DISTINCT(CASE WHEN g.reserved_quantity < 0 THEN 0 ELSE g.reserved_quantity END )) as fba_reserve_stock  , SUM(DISTINCT( CASE WHEN g.replenishment_quantity < 0 THEN 0 ELSE g.replenishment_quantity END ))  as fba_recommended_replenishment , MAX( DISTINCT(g.replenishment_quantity) ) as max_fba_recommended_replenishment ,MIN( DISTINCT(g.replenishment_quantity) ) as min_fba_recommended_replenishment , SUM(DISTINCT( CASE WHEN g.available_stock < 0 THEN 0 ELSE g.available_stock END )) as fba_special_purpose , MAX( DISTINCT(g.available_stock)) as  max_fba_special_purpose , MIN(DISTINCT( g.available_stock) )  as min_fba_special_purpose ';
 
-        $dataChannel = $searchType === self::SEARCH_TYPE_PRESTO ? 'Presto' : 'ES';
-        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonGoodsFinanceModel";
-        $goods_finance_md = new $className($this->dbhost, $this->codeno);
+        $goods_finance_md = new AmazonGoodsFinanceModel([], $this->dbhost, $this->codeno);
         $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
         $fbaDatas = array() ;
         if (!empty($fbaData)){
@@ -4820,9 +4820,7 @@ class AmazonGoodsFinanceReportByOrderModel extends AbstractPrestoModel
             }
         }
 
-        $dataChannel = $searchType === self::SEARCH_TYPE_PRESTO ? 'Presto' : 'ES';
-        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonFbaInventoryByChannelModel";
-        $amazon_fba_inventory_by_channel_md = new $className($this->dbhost, $this->codeno);
+        $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelModel([], $this->dbhost, $this->codeno);
         $where.= ' AND ' . $where_str ;
         if ($datas['currency_code'] == 'ORIGIN') {
             $fba_fields .= " , SUM ( DISTINCT (c.yjzhz) )  as fba_goods_value";
