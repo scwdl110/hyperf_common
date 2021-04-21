@@ -7,10 +7,6 @@ use App\Model\AbstractPrestoModel;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
-    const SEARCH_TYPE_PRESTO = 0;
-
-    const SEARCH_TYPE_ES = 1;
-
     protected $table = 'ods.ods_dataark_f_amazon_goods_finance_report_by_order_';
 
     /**
@@ -36,7 +32,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -73,11 +68,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
-            if ($searchType === self::SEARCH_TYPE_ES) {
-                $table = "f_dw_goods_day_report_{$this->dbhost} AS report" ;
-            } else {
-                $table = "dwd.dwd_dataark_f_dw_goods_day_report_{$this->dbhost} AS report" ;
-            }
+            $table = "dwd.dwd_dataark_f_dw_goods_day_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "dwd.dwd_dataark_f_dw_goods_week_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
@@ -361,7 +352,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -371,7 +362,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
             }
 
@@ -567,7 +558,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $where;
     }
 
-    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array(), int $searchType = self::SEARCH_TYPE_PRESTO)
+    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
     {
         if(empty($lists)){
             return $lists ;
@@ -2877,7 +2868,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -2894,11 +2884,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
-            if ($searchType === self::SEARCH_TYPE_ES) {
-                $table = "f_dw_channel_day_report_{$this->dbhost} AS report";
-            } else {
-                $table = "dwd.dwd_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
-            }
+            $table = "dwd.dwd_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $table = "dwd.dwd_dataark_f_dw_channel_week_report_{$this->dbhost} AS report" ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
@@ -3115,7 +3101,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -3125,7 +3111,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
                 }
             }
             if (empty($lists)) {
@@ -4749,7 +4735,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1', $searchType = self::SEARCH_TYPE_PRESTO)
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1')
     {
         if(empty($lists)){
             return $lists ;
@@ -4889,7 +4875,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -4925,11 +4910,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
-            if ($searchType === self::SEARCH_TYPE_ES) {
-                $table = "f_dw_operation_day_report_{$this->dbhost} AS report" ;
-            } else {
-                $table = "dwd.dwd_dataark_f_dw_operation_day_report_{$this->dbhost} AS report" ;
-            }
+            $table = "dwd.dwd_dataark_f_dw_operation_day_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "dwd.dwd_dataark_f_dw_operation_week_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){

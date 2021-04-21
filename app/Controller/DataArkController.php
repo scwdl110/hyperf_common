@@ -116,7 +116,6 @@ class DataArkController extends AbstractController
             $exchangeCode,
             $timeLine,
             $deparmentData,
-            $searchType,
             $this->user['user_id'],
             $this->user['admin_id']
         ));

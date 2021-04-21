@@ -6,10 +6,6 @@ use App\Model\AbstractESModel;
 
 class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 {
-    const SEARCH_TYPE_PRESTO = 0;
-
-    const SEARCH_TYPE_ES = 1;
-
     protected $table = 'f_amazon_goods_finance_report_by_order_';
 
     /**
@@ -35,7 +31,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -297,7 +292,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -307,7 +302,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
             }
 
@@ -401,12 +396,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             case "channel_id":
                 $field_data = "max(report.channel_id) as channel_id";
                 break;
-            case "department":
-                $field_data = "max(dc.user_department_id) as user_department_id";
-                break;
-            case "admin_id":
-                $field_data = "max(uc.admin_id) as admin_id";
-                break;
                 //运营人员
             case "operators":
                 $field_data = "max(report.goods_operation_user_admin_id) as goods_operation_user_admin_id";
@@ -490,7 +479,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         return $where;
     }
 
-    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array(), int $searchType = self::SEARCH_TYPE_PRESTO)
+    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
     {
         if(empty($lists)){
             return $lists ;
@@ -1120,8 +1109,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if ($datas['count_dimension'] == 'parent_asin') {
             $fields['parent_asin'] = "max(report.goods_parent_asin)";
-            $fields['image'] = 'max(report.goods_image)';
-            $fields['title'] = 'max(report.goods_title)';
             if($datas['is_distinct_channel'] == '1'){
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
@@ -1133,8 +1120,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }else if ($datas['count_dimension'] == 'asin') {
             $fields['asin'] = "max(report.goods_asin)";
-            $fields['image'] = 'max(report.goods_image)';
-            $fields['title'] = 'max(report.goods_title)';
             if($datas['is_distinct_channel'] == '1'){
                 $fields['parent_asin'] = "max(report.goods_parent_asin)";
                 $fields['channel_id'] = 'max(report.channel_id)';
@@ -1148,8 +1133,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
-            $fields['image'] = 'max(report.goods_image)';
-            $fields['title'] = 'max(report.goods_title)';
             if($datas['is_distinct_channel'] == '1'){
 
                 $fields['asin'] = "max(report.goods_asin)";
@@ -1168,8 +1151,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fields['site_id'] = 'max(report.site_id)';
 
                 $fields['class1'] = 'max(report.goods_product_category_name_1)';
-                $fields['group'] = 'max(report.goods_group_name)';
-                $fields['operators'] = 'max(report.goods_operation_user_admin_name)';
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }
         } else if ($datas['count_dimension'] == 'isku') {
@@ -1321,7 +1302,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -1450,7 +1430,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -1460,7 +1440,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
                 }
             }
             if (empty($lists)) {
@@ -1891,7 +1871,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1', $searchType = self::SEARCH_TYPE_PRESTO)
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1')
     {
         if(empty($lists)){
             return $lists ;
@@ -2007,7 +1987,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
