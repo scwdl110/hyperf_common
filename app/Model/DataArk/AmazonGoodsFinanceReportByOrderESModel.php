@@ -727,15 +727,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $fields = $this->getGoodsTheSameFields($datas,$fields);
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mquarter) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
-            $fields['time'] = "cast(max(report.myear) as varchar)";
+            $fields['time'] = "report.myear";
         }
 
         $targets = explode(',', $datas['target']);
@@ -1482,15 +1482,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mquarter) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
-            $fields['time'] = "cast(max(report.myear) as varchar)";
+            $fields['time'] = "report.myear";
         }
 
         $targets = explode(',', $datas['target']);
@@ -2133,15 +2133,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-',  cast(max(report.mquarter) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
-            $fields['time'] = "cast(max(report.myear) as varchar)";
+            $fields['time'] = "report.myear";
         }
 
         $targets = explode(',', $datas['target']);
