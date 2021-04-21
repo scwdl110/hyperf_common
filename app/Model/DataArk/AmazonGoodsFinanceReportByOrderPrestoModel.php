@@ -2,7 +2,7 @@
 
 namespace App\Model\DataArk;
 
-use Hyperf\DB\DB;
+use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
@@ -2915,10 +2915,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($params['count_dimension'] == 'department') {
             $table .= " LEFT JOIN dim.dim_dataark_b_department_channel as dc ON dc.user_id = report.user_id AND dc.channel_id = report.channel_id  LEFT JOIN ods.ods_dataark_b_user_department as ud ON ud.id = dc.user_department_id ";
             $where .= " AND ud.status < 3";
-            $admin_info = DB::fetch(
-                'select is_master,is_responsible,user_department_id from erp_base.b_user_admin where id=? and user_id=?',
-                [$adminId, $userId]
-            );
+            $admin_info = UserAdminModel::query()->select('is_master', 'is_responsible', 'user_department_id')->where('user_id', 304)->where('id', 400)->first();
             if($admin_info['is_master'] != 1){
                 if($admin_info['is_responsible'] == 0 ){ //非部门负责人
                     $rt['lists'] = array();
