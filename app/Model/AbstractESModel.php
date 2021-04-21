@@ -5,6 +5,7 @@ namespace App\Model;
 use RuntimeException;
 
 use Hyperf\Utils\ApplicationContext;
+use Hyperf\Logger\LoggerFactory;
 use App\Lib\Elasticsearch;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -25,6 +26,8 @@ abstract class AbstractESModel implements BIModelInterface
     protected $cache = null;
 
     protected $table = '';
+
+    protected $dryRun = false;
 
     public function __construct(
         string $dbhost = '',
@@ -54,13 +57,13 @@ abstract class AbstractESModel implements BIModelInterface
 
         $config = $container->get(ConfigInterface::class)->get('elasticsearch', []);
         if (empty($config)) {
-            $this->logger->error('es 配置信息不存在');
+            $this->glogger->error('es 配置信息不存在');
             throw new RuntimeException('Missing Elasticsearch config.');
         }
 
         $config = $config[$this->dbhost] ?? [];
         if (empty($config)) {
-            $this->logger->error('es 数据库配置不存在', [$config]);
+            $this->glogger->error('es 数据库配置不存在', [$config]);
             throw new RuntimeException('Missing Elasticsearch connection config.');
         }
 
@@ -71,7 +74,7 @@ abstract class AbstractESModel implements BIModelInterface
         $this->esClient = Elasticsearch::getConnection($config, $this->logger, $handler, $tracer);
     }
 
-    protected function getCache()
+    protected function getCache(): CacheInterface
     {
         if (null === $this->cache) {
             $this->cache = ApplicationContext::getContainer()->get(CacheInterface::class);
@@ -151,6 +154,10 @@ abstract class AbstractESModel implements BIModelInterface
         int $cacheTTL = 300
     ): array {
         $sql = $this->lastSql = $this->parseSql($where, $data, $table, $limit, $order, $group);
+        if ($this->logDryRun()) {
+            return [];
+        }
+
         $cacheKey = 'ES_SQL_DATAS_' . md5($sql);
         if ($isCache) {
             $cacheData = $this->getCache()->get($cacheKey);
@@ -221,6 +228,10 @@ abstract class AbstractESModel implements BIModelInterface
         int $cacheTTL = 300
     ): int {
         $sql = $this->lastSql = $this->parseSql($where, 'count(*)', $table, '', '', $group);
+        if ($this->logDryRun()) {
+            return 0;
+        }
+
         $cacheKey = 'ES_SQL_DATAS_' . md5($sql);
         if ($isCache) {
             $cacheData = $this->getCache()->get($cacheKey);
@@ -340,5 +351,19 @@ abstract class AbstractESModel implements BIModelInterface
     public static function escape(string $val): string
     {
         return \addslashes($val);
+    }
+
+    public function dryRun(bool $dryRun): void
+    {
+        $this->dryRun = $dryRun;
+    }
+
+    protected function logDryRun(): bool
+    {
+        if ($this->dryRun) {
+            $this->logger->debug('ES dry run: ' . $this->getLastSql());
+            return true;
+        }
+        return false;
     }
 }

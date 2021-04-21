@@ -3,7 +3,9 @@
 namespace App\Model;
 
 use Hyperf\DbConnection\Db;
+use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
+use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -17,8 +19,14 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
 
     protected $codeno = '001';
 
-    public function __construct(array $attributes = [], string $dbhost = '', string $codeno = '')
+    protected $dryRun = false;
+
+    protected $logger = null;
+
+    public function __construct(array $attributes = [], string $dbhost = '', string $codeno = '', ?LoggerInterface $logger = null)
     {
+        $this->logger = $logger;
+
         if ('' === $dbhost) {
             $userInfo = ApplicationContext::getContainer()->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
             $dbhost = $userInfo['dbhost'] ?? '';
@@ -26,6 +34,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         }
 
         if (!is_numeric($dbhost) || !is_numeric($codeno)) {
+            $this->getLogger()->error('错误的 mysql dbhost 或 codeno', [$dbhost, $codeno]);
             throw new RuntimeException('Invalid dbhost or codeno.');
         }
         $this->dbhost = trim($dbhost);
@@ -40,6 +49,15 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         }
 
         parent::__construct($attributes);
+    }
+
+    protected function getLogger(): LoggerInterface
+    {
+        if (null === $this->logger) {
+            $this->logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('mysql', 'default');
+        }
+
+        return $this->logger;
     }
 
     /**
@@ -131,6 +149,10 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         }
 
         $sql = $this->lastSql = "SELECT {$data} FROM {$table}{$where}{$group}{$order}{$limit}";
+        if ($this->logDryRun()) {
+            return [];
+        }
+
         $cacheKey = 'MYSQL_SQL_DATAS_' . md5($sql);
         if ($isCache) {
             $cacheData = $this->getCache()->get($cacheKey);
@@ -226,5 +248,20 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         } else {
             return is_string($where) ? $where : '';
         }
+    }
+
+    public function dryRun(bool $dryRun): void
+    {
+        $this->dryRun = $dryRun;
+    }
+
+    protected function logDryRun(): bool
+    {
+        if ($this->dryRun) {
+            $this->getLogger()->debug('MySQL dry run: ' . $this->getLastSql());
+            return true;
+        }
+
+        return false;
     }
 }
