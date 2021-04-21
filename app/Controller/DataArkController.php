@@ -87,7 +87,7 @@ class DataArkController extends AbstractController
             }
 
             if (empty($ors)) {
-                return [];
+                return json_encode([]);
             }
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
@@ -101,10 +101,10 @@ class DataArkController extends AbstractController
 
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
         $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
-        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonGoodsFinanceReportByOrderModel";
+        $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
         $amazonGoodsFinanceReportByOrderMD = new $className($this->user['dbhost'], $this->user['codeno']);
 
-        return $amazonGoodsFinanceReportByOrderMD->{$method}(
+        return json_encode($amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,
             $params,
             $limit,
@@ -119,7 +119,7 @@ class DataArkController extends AbstractController
             $searchType,
             $this->user['user_id'],
             $this->user['admin_id']
-        );
+        ));
     }
 
     public function getUnGoodsDatas()

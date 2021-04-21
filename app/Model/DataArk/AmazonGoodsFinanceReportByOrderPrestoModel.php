@@ -2,10 +2,17 @@
 
 namespace App\Model\DataArk;
 
-use Hyperf\DB\DB;
+use App\Model\UserAdminModel;
+use App\Model\AbstractPrestoModel;
 
-trait AmazonGoodsFinanceReportByOrderModelTrait
+class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
+    const SEARCH_TYPE_PRESTO = 0;
+
+    const SEARCH_TYPE_ES = 1;
+
+    protected $table = 'ods.ods_dataark_f_amazon_goods_finance_report_by_order_';
+
     /**
      * 获取商品维度统计列表(新增统计维度完成)
      * @param string $where
@@ -311,7 +318,7 @@ trait AmazonGoodsFinanceReportByOrderModelTrait
                 }
             }
 
-            $target_wheres = $where_detail['target'];
+            $target_wheres = $where_detail['target'] ?? '';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     if(!empty($fields[$target_where['key']])){
@@ -714,9 +721,7 @@ trait AmazonGoodsFinanceReportByOrderModelTrait
 
         $fba_fields .= ' , SUM(DISTINCT(CASE WHEN g.fulfillable_quantity < 0 THEN 0 ELSE g.fulfillable_quantity END )) as fba_sales_stock ,MAX(DISTINCT( CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as  fba_sales_day , MAX(DISTINCT(g.available_days) ) as max_fba_sales_day , MIN( DISTINCT(g.available_days) ) as min_fba_sales_day , MIN(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END ))  as min_egt0_fba_sales_day , MAX(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as max_egt0_fba_sales_day , SUM(DISTINCT(CASE WHEN g.reserved_quantity < 0 THEN 0 ELSE g.reserved_quantity END )) as fba_reserve_stock  , SUM(DISTINCT( CASE WHEN g.replenishment_quantity < 0 THEN 0 ELSE g.replenishment_quantity END ))  as fba_recommended_replenishment , MAX( DISTINCT(g.replenishment_quantity) ) as max_fba_recommended_replenishment ,MIN( DISTINCT(g.replenishment_quantity) ) as min_fba_recommended_replenishment , SUM(DISTINCT( CASE WHEN g.available_stock < 0 THEN 0 ELSE g.available_stock END )) as fba_special_purpose , MAX( DISTINCT(g.available_stock)) as  max_fba_special_purpose , MIN(DISTINCT( g.available_stock) )  as min_fba_special_purpose ';
 
-        $dataChannel = $searchType === self::SEARCH_TYPE_PRESTO ? 'Presto' : 'ES';
-        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonGoodsFinanceModel";
-        $goods_finance_md = new $className($this->dbhost, $this->codeno);
+        $goods_finance_md = new AmazonGoodsFinancePrestoModel($this->dbhost, $this->codeno);
         $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
         $fbaDatas = array() ;
         if (!empty($fbaData)){
@@ -2910,10 +2915,7 @@ trait AmazonGoodsFinanceReportByOrderModelTrait
         if ($params['count_dimension'] == 'department') {
             $table .= " LEFT JOIN dim.dim_dataark_b_department_channel as dc ON dc.user_id = report.user_id AND dc.channel_id = report.channel_id  LEFT JOIN ods.ods_dataark_b_user_department as ud ON ud.id = dc.user_department_id ";
             $where .= " AND ud.status < 3";
-            $admin_info = DB::fetch(
-                'select is_master,is_responsible,user_department_id from erp_base.b_user_admin where id=? and user_id=?',
-                [$adminId, $userId]
-            );
+            $admin_info = UserAdminModel::query()->select('is_master', 'is_responsible', 'user_department_id')->where('user_id', 304)->where('id', 400)->first();
             if($admin_info['is_master'] != 1){
                 if($admin_info['is_responsible'] == 0 ){ //非部门负责人
                     $rt['lists'] = array();
@@ -3075,7 +3077,7 @@ trait AmazonGoodsFinanceReportByOrderModelTrait
         }
 
         if (!empty($where_detail)) {
-            $target_wheres = $where_detail['target'];
+            $target_wheres = $where_detail['target'] ?? '';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     $where_value = $target_where['value'];
@@ -4808,9 +4810,7 @@ trait AmazonGoodsFinanceReportByOrderModelTrait
             }
         }
 
-        $dataChannel = $searchType === self::SEARCH_TYPE_PRESTO ? 'Presto' : 'ES';
-        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonFbaInventoryByChannelModel";
-        $amazon_fba_inventory_by_channel_md = new $className($this->dbhost, $this->codeno);
+        $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelPrestoModel($this->dbhost, $this->codeno);
         $where.= ' AND ' . $where_str ;
         if ($datas['currency_code'] == 'ORIGIN') {
             $fba_fields .= " , SUM ( DISTINCT (c.yjzhz) )  as fba_goods_value";

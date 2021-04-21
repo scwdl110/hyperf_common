@@ -26,7 +26,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $lastSql = '';
 
-    protected $tableName = '';
+    protected $table = '';
 
     protected $cache = null;
 
@@ -65,6 +65,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if (empty($config)) {
             $this->logger->error('presto 数据库配置不存在', [$config]);
             throw new RuntimeException('Missing Presto connection config.');
+        }
+
+        if ($this->table && strlen($this->table) - 1 === strrpos($this->table, '_')) {
+            $this->table = $this->table . $this->dbhost;
         }
 
         $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
@@ -143,7 +147,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         int $cacheTTL = 300
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
-        $table = $table !== '' ? $table : $this->tableName;
+        $table = $table !== '' ? $table : $this->table;
 
         $where = empty($where) ? '' : " WHERE {$where}";
         $order = empty($order) ? '' : " ORDER BY {$order}";
