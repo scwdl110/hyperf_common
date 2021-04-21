@@ -360,7 +360,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             case "parent_asin":
                 if($datas['is_distinct_channel'] == '1'){
                     $field_data = "max(report.channel_id) as channel_id,max(report.goods_parent_asin) as goods_parent_asin";
-
                 }else{
                     $field_data = "max(report.goods_parent_asin) as goods_parent_asin";
                 }
@@ -478,12 +477,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     break;
                 case "channel_id":
                     $where .=  " AND report.channel_id IN (".implode(",",array_column($lists,'channel_id')).")";
-                    break;
-                case "department":
-                    $where .=  " AND dc.user_department_id IN (".implode(",",array_column($lists,'user_department_id')).")";
-                    break;
-                case "admin_id":
-                    $where .=  " AND uc.admin_id IN (".implode(",",array_column($lists,'admin_id')).")";
                     break;
                     //运营人员
                 case "operators":
