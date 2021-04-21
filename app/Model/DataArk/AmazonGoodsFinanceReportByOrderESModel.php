@@ -523,21 +523,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             foreach($lists as $list1){
                 if($datas['count_dimension'] == 'sku'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('sku' => self::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('sku' => self::escape($list1['sku']));
+                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']));
                     }
                 }else if($datas['count_dimension'] == 'asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('asin' => self::escape($list1['asin']));
+                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']));
                     }
                 }else if($datas['count_dimension'] == 'parent_asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
+                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']));
                     }
                 }else if($datas['count_dimension'] == 'class1'){
                     $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ,  'site_id'=>$list1['site_id']) ;
@@ -1057,21 +1057,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 }else{
                     $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
                 }
-                if($datas['cost_count_type'] == '1'){
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost + report.byorder_purchasing_cost + report.byorder_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
-                }else{
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost + report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
-                }
             } else {
                 if($datas['cost_count_type'] == '1'){
                     $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.report_purchasing_cost +  report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
                 }else{
                     $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
-                }
-                if($datas['cost_count_type'] == '1'){
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost + report.report_purchasing_cost + report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
-                }else{
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost + report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
                 }
             }
         }

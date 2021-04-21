@@ -1426,6 +1426,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }else{
                         $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
                     }
+                } else {
                     if($datas['cost_count_type'] == '1'){
                         $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost + report.byorder_purchasing_cost + report.byorder_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
                     }else{
@@ -1439,6 +1440,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }else{
                         $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
                     }
+                } else {
                     if($datas['cost_count_type'] == '1'){
                         $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost + report.report_purchasing_cost + report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
                     }else{
