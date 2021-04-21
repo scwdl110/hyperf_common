@@ -67,6 +67,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
             throw new RuntimeException('Missing Presto connection config.');
         }
 
+        if ($this->table && strlen($this->table) - 1 === strrpos($this->table, '_')) {
+            $this->table = $this->table . $this->dbhost;
+        }
+
         $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
     }
 

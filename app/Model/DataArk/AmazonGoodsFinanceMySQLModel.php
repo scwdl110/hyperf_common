@@ -4,7 +4,7 @@ namespace App\Model\DataArk;
 
 use App\Model\AbstractMySQLModel;
 
-class AmazonGoodsFinanceModel extends AbstractMySQLModel
+class AmazonGoodsFinanceMySQLModel extends AbstractMySQLModel
 {
     protected $table = 'amazon_goods_finance_';
 

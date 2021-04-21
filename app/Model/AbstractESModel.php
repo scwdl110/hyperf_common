@@ -64,6 +64,10 @@ abstract class AbstractESModel implements BIModelInterface
             throw new RuntimeException('Missing Elasticsearch connection config.');
         }
 
+        if ($this->table && strlen($this->table) - 1 === strrpos($this->table, '_')) {
+            $this->table = $this->table . $this->dbhost;
+        }
+
         $this->esClient = Elasticsearch::getConnection($config, $this->logger, $handler, $tracer);
     }
 
