@@ -103,6 +103,7 @@ class DataArkController extends AbstractController
         $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
         $amazonGoodsFinanceReportByOrderMD = new $className($this->user['dbhost'], $this->user['codeno']);
+        $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
 
         return json_encode($amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,
