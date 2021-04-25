@@ -6,10 +6,6 @@ use App\Model\AbstractESModel;
 
 class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 {
-    const SEARCH_TYPE_PRESTO = 0;
-
-    const SEARCH_TYPE_ES = 1;
-
     protected $table = 'f_amazon_goods_finance_report_by_order_';
 
     /**
@@ -35,7 +31,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -297,7 +292,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -307,7 +302,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr, $searchType) ;
+                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
             }
 
@@ -360,7 +355,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             case "parent_asin":
                 if($datas['is_distinct_channel'] == '1'){
                     $field_data = "max(report.channel_id) as channel_id,max(report.goods_parent_asin) as goods_parent_asin";
-
                 }else{
                     $field_data = "max(report.goods_parent_asin) as goods_parent_asin";
                 }
@@ -401,12 +395,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 break;
             case "channel_id":
                 $field_data = "max(report.channel_id) as channel_id";
-                break;
-            case "department":
-                $field_data = "max(dc.user_department_id) as user_department_id";
-                break;
-            case "admin_id":
-                $field_data = "max(uc.admin_id) as admin_id";
                 break;
                 //运营人员
             case "operators":
@@ -479,12 +467,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 case "channel_id":
                     $where .=  " AND report.channel_id IN (".implode(",",array_column($lists,'channel_id')).")";
                     break;
-                case "department":
-                    $where .=  " AND dc.user_department_id IN (".implode(",",array_column($lists,'user_department_id')).")";
-                    break;
-                case "admin_id":
-                    $where .=  " AND uc.admin_id IN (".implode(",",array_column($lists,'admin_id')).")";
-                    break;
                     //运营人员
                 case "operators":
                     $where .=  " AND report.goods_operation_user_admin_id IN (".implode(",",array_column($lists,'goods_operation_user_admin_id')).")";
@@ -497,7 +479,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         return $where;
     }
 
-    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array(), int $searchType = self::SEARCH_TYPE_PRESTO)
+    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
     {
         if(empty($lists)){
             return $lists ;
@@ -541,21 +523,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             foreach($lists as $list1){
                 if($datas['count_dimension'] == 'sku'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('sku' => self::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('sku' => self::escape($list1['sku']));
+                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']));
                     }
                 }else if($datas['count_dimension'] == 'asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('asin' => self::escape($list1['asin']));
+                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']));
                     }
                 }else if($datas['count_dimension'] == 'parent_asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                     }else{
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
+                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']));
                     }
                 }else if($datas['count_dimension'] == 'class1'){
                     $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ,  'site_id'=>$list1['site_id']) ;
@@ -621,6 +603,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $fba_fields .= ' , SUM(DISTINCT(CASE WHEN g.fulfillable_quantity < 0 THEN 0 ELSE g.fulfillable_quantity END )) as fba_sales_stock ,MAX(DISTINCT( CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as  fba_sales_day , MAX(DISTINCT(g.available_days) ) as max_fba_sales_day , MIN( DISTINCT(g.available_days) ) as min_fba_sales_day , MIN(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END ))  as min_egt0_fba_sales_day , MAX(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as max_egt0_fba_sales_day , SUM(DISTINCT(CASE WHEN g.reserved_quantity < 0 THEN 0 ELSE g.reserved_quantity END )) as fba_reserve_stock  , SUM(DISTINCT( CASE WHEN g.replenishment_quantity < 0 THEN 0 ELSE g.replenishment_quantity END ))  as fba_recommended_replenishment , MAX( DISTINCT(g.replenishment_quantity) ) as max_fba_recommended_replenishment ,MIN( DISTINCT(g.replenishment_quantity) ) as min_fba_recommended_replenishment , SUM(DISTINCT( CASE WHEN g.available_stock < 0 THEN 0 ELSE g.available_stock END )) as fba_special_purpose , MAX( DISTINCT(g.available_stock)) as  max_fba_special_purpose , MIN(DISTINCT( g.available_stock) )  as min_fba_special_purpose ';
 
         $goods_finance_md = new AmazonGoodsFinanceMysqlModel([], $this->dbhost, $this->codeno);
+        $goods_finance_md->dryRun(env('APP_TEST_RUNNING', false));
         $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
         $fbaDatas = array() ;
         if (!empty($fbaData)){
@@ -745,15 +728,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $fields = $this->getGoodsTheSameFields($datas,$fields);
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mquarter) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
-            $fields['time'] = "cast(max(report.myear) as varchar)";
+            $fields['time'] = "report.myear";
         }
 
         $targets = explode(',', $datas['target']);
@@ -1075,21 +1058,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 }else{
                     $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
                 }
-                if($datas['cost_count_type'] == '1'){
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost + report.byorder_purchasing_cost + report.byorder_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
-                }else{
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost + report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
-                }
             } else {
                 if($datas['cost_count_type'] == '1'){
                     $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.report_purchasing_cost +  report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
                 }else{
                     $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
-                }
-                if($datas['cost_count_type'] == '1'){
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost + report.report_purchasing_cost + report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
-                }else{
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( (0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost + report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17) / COALESCE(rates.rate ,1) * {:RATE} )" ;
                 }
             }
         }
@@ -1127,8 +1100,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if ($datas['count_dimension'] == 'parent_asin') {
             $fields['parent_asin'] = "max(report.goods_parent_asin)";
-            $fields['image'] = 'max(report.goods_image)';
-            $fields['title'] = 'max(report.goods_title)';
             if($datas['is_distinct_channel'] == '1'){
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
@@ -1140,8 +1111,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }else if ($datas['count_dimension'] == 'asin') {
             $fields['asin'] = "max(report.goods_asin)";
-            $fields['image'] = 'max(report.goods_image)';
-            $fields['title'] = 'max(report.goods_title)';
             if($datas['is_distinct_channel'] == '1'){
                 $fields['parent_asin'] = "max(report.goods_parent_asin)";
                 $fields['channel_id'] = 'max(report.channel_id)';
@@ -1155,8 +1124,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
-            $fields['image'] = 'max(report.goods_image)';
-            $fields['title'] = 'max(report.goods_title)';
             if($datas['is_distinct_channel'] == '1'){
 
                 $fields['asin'] = "max(report.goods_asin)";
@@ -1175,8 +1142,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fields['site_id'] = 'max(report.site_id)';
 
                 $fields['class1'] = 'max(report.goods_product_category_name_1)';
-                $fields['group'] = 'max(report.goods_group_name)';
-                $fields['operators'] = 'max(report.goods_operation_user_admin_name)';
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }
         } else if ($datas['count_dimension'] == 'isku') {
@@ -1328,7 +1293,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -1457,7 +1421,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
                 }
             }
         } else {  //统计列表和总条数
@@ -1467,7 +1431,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode, $searchType) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
                 }
             }
             if (empty($lists)) {
@@ -1509,15 +1473,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mquarter) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
-            $fields['time'] = "cast(max(report.myear) as varchar)";
+            $fields['time'] = "report.myear";
         }
 
         $targets = explode(',', $datas['target']);
@@ -1898,7 +1862,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1', $searchType = self::SEARCH_TYPE_PRESTO)
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1')
     {
         if(empty($lists)){
             return $lists ;
@@ -1940,6 +1904,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelMySQLModel([], $this->dbhost, $this->codeno);
+        $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
         $where.= ' AND ' . $where_str ;
         $fba_fields .= " , SUM ( DISTINCT (c.yjzhz) )  as fba_goods_value";
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
@@ -2014,7 +1979,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $exchangeCode = '1',
         array $timeLine = [],
         array $deparmentData = [],
-        int $searchType = self::SEARCH_TYPE_PRESTO,
         int $userId = 0,
         int $adminId = 0
     ) {
@@ -2161,15 +2125,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-',  cast(max(report.mquarter) as varchar))";
+            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
-            $fields['time'] = "cast(max(report.myear) as varchar)";
+            $fields['time'] = "report.myear";
         }
 
         $targets = explode(',', $datas['target']);

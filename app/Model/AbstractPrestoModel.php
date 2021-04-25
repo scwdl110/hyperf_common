@@ -30,6 +30,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $cache = null;
 
+    protected $dryRun = false;
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
@@ -176,6 +178,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         $sql = $this->lastSql = "SELECT {$data} FROM {$table}{$where}{$group}{$order}{$limit}";
+        if ($this->logDryRun()) {
+            return [];
+        }
+
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
         if ($isCache) {
             $cacheData = $this->getCache()->get($cacheKey);
@@ -302,5 +308,20 @@ abstract class AbstractPrestoModel implements BIModelInterface
     public static function escape(string $val): string
     {
         return Presto::escape((string)$val);
+    }
+
+    public function dryRun(bool $dryRun): void
+    {
+        $this->dryRun = $dryRun;
+    }
+
+    protected function logDryRun(): bool
+    {
+        if ($this->dryRun) {
+            $this->logger->debug('Presto dry run: ' . $this->getLastSql());
+            return true;
+        }
+
+        return false;
     }
 }
