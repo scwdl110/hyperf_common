@@ -413,15 +413,6 @@ class AccountingService extends BaseService
 
     public function getUserName($request_data)
     {
-        $rule = [
-            'client_id' => 'required|string',
-        ];
-
-        $res = $this->validate($request_data, $rule);
-
-        if ($res['code'] == 0) {
-            return $res;
-        }
 
         $userInfo = $this->getUserInfo();
 
