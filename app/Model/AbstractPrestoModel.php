@@ -85,7 +85,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         return $this->cache;
     }
 
-    public function query(string $sql, array $bindings = [], bool $isCache = false, int $cacheTTl = 300): array
+    public function query(string $sql, array $bindings = [], bool $isCache = false, int $cacheTTL = 300): array
     {
         if ($bindings) {
             $this->lastSql = $psql = "PREPARE {$sql}; EXECUTE " . @join(',', $bindings);
