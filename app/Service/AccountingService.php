@@ -475,7 +475,7 @@ class AccountingService extends BaseService
 
         //if ($UserExtInfo->ext_info == "null") {
         try {
-            $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info']));
+            $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info'], 'is_authorized' => 1, 'authorized_time' => time(), 'cancel_time' => 0));
             if (!$userExtInfoModel) {
                 throw new BusinessException(10001, trans('finance.user_bind_error'));
             }
