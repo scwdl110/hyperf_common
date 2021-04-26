@@ -1149,31 +1149,24 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
             }
-            if($_REQUEST['is_bi_request']  == 1){
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-            }
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
         }else if ($datas['count_dimension'] == 'asin') {
             $fields['asin'] = "max(report.goods_asin)";
             if($datas['is_distinct_channel'] == '1'){
                 $fields['parent_asin'] = "max(report.goods_parent_asin)";
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
-
             }
-            if($_REQUEST['is_bi_request'] == 1){
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-            }
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
             if($datas['is_distinct_channel'] == '1'){
-
                 $fields['asin'] = "max(report.goods_asin)";
                 $fields['parent_asin'] = "max(report.goods_parent_asin)";
-
                 $fields['goods_product_category_name_1'] = 'max(report.goods_product_category_name_1)';
                 $fields['goods_product_category_name_2'] = 'max(report.goods_product_category_name_2)';
                 $fields['goods_product_category_name_3'] = 'max(report.goods_product_category_name_3)';
@@ -1182,10 +1175,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fields['up_status']                  = 'max(report.goods_up_status)';
                 $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
                 $fields['isku_id']                       = 'max(report.goods_isku_id)';
-
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
-
                 $fields['class1'] = 'max(report.goods_product_category_name_1)';
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }

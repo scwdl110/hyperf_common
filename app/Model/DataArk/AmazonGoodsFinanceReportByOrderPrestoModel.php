@@ -1559,11 +1559,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
             }
-            if($_REQUEST['is_bi_request']  == 1){
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-            }
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
         }else if ($datas['count_dimension'] == 'asin') {
             $fields['asin'] = "max(report.goods_asin)";
             $fields['image'] = 'max(report.goods_image)';
@@ -1574,11 +1572,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['site_id'] = 'max(report.site_id)';
 
             }
-            if($_REQUEST['is_bi_request'] == 1){
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-            }
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
             $fields['image'] = 'max(report.goods_image)';
