@@ -611,6 +611,10 @@
                   "ext_info": {
                     "description": "第三方信息",
                     "type": "string"
+                  },
+                  "uuid": {
+                    "description": "第三方用户id",
+                    "type": "integer"
                   }
                 },
                 "type": "object"

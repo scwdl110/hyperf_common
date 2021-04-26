@@ -454,7 +454,10 @@ class AccountingService extends BaseService
 
     public function bindUser($request_data)
     {
-        $rule = ['ext_info' => 'required|json'];
+        $rule = [
+            'ext_info' => 'required|json',
+            'uuid' => 'required|integer'
+        ];
 
         $res = $this->validate($request_data, $rule);
         if ($res['code'] == 0) {
@@ -463,7 +466,7 @@ class AccountingService extends BaseService
 
         $userInfo = $this->getUserInfo();
 
-        $UserExtInfoQuery = UserExtInfoModel::query()->where(array('admin_id' => $userInfo['admin_id']));
+        $UserExtInfoQuery = UserExtInfoModel::query()->where(array('uuid' => $userInfo['uuid']));
 
         $UserExtInfo = $UserExtInfoQuery->first();
 
