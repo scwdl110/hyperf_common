@@ -9,7 +9,7 @@ namespace App\Model;
  */
 interface BIModelInterface
 {
-    public static function escape(): string;
+    public static function escape(string $val): string;
 
     public function getLastSql(): string;
 

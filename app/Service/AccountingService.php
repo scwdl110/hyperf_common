@@ -124,8 +124,8 @@ class AccountingService extends BaseService
             $info = array();
 
             $FinanceReportInfo = FinanceReportModel::selectRaw("
-            ifnull(sum(format( sales_quota * ( reserved_field11 / sales_volume ), 2 )),0) AS fba_sales_quota,           
-            ifnull(sum(sales_quota) - sum(format( sales_quota * ( reserved_field11 / sales_volume ), 2 )),0) as fbm_sales_quota,
+          	ifnull( sum( sales_quota * ( reserved_field11 / sales_volume )), 0 ) AS fba_sales_quota,
+	        ifnull( sum( sales_quota ) - sum( sales_quota * ( reserved_field11 / sales_volume )), 0 ) AS fbm_sales_quota,
             ifnull(sum(promote_discount),0) as promote_discount,
             ifnull(sum(cpc_sb_cost),0) as cpc_sb_cost ,
             ifnull(sum(platform_sales_commission),0) as platform_sales_commission,
@@ -171,8 +171,8 @@ class AccountingService extends BaseService
             $info['shop_id'] = $list['id'];
             $info['shop_name'] = $list['title'];
 
-            $info['commodity_sales']['fba_sales_quota'] = $FinanceReportInfo[0]['fba_sales_quota']; //FBA销售额
-            $info['commodity_sales']['fbm_sales_quota'] = $FinanceReportInfo[0]['fbm_sales_quota']; //FBM销售额
+            $info['commodity_sales']['fba_sales_quota'] = floor($FinanceReportInfo[0]['fba_sales_quota'] * 100) / 100; //FBA销售额
+            $info['commodity_sales']['fbm_sales_quota'] = floor($FinanceReportInfo[0]['fbm_sales_quota'] * 100) / 100; //FBM销售额
 
             $ChannelProfitReportInfo = ChannelProfitReportModel::selectRaw("
             ifnull(sum(coupon_redemption_fee + coupon_payment_eventList_tax),0) as coupon,
@@ -203,62 +203,62 @@ class AccountingService extends BaseService
             ])->get()->toArray();
 
             //促销费用
-            $info['promotion_fee']['promote_discount'] = $FinanceReportInfo[0]['promote_discount']; //Promote折扣
-            $info['promotion_fee']['cpc_sb_cost'] = $FinanceReportInfo[0]['cpc_sb_cost']; //退款返还Promote折扣
-            $info['promotion_fee']['coupon'] = $ChannelProfitReportInfo[0]['coupon'];  //coupon优惠券
-            $info['promotion_fee']['run_lightning_deal_fee'] = $ChannelProfitReportInfo[0]['run_lightning_deal_fee'];  //RunLightningDealFee
+            $info['promotion_fee']['promote_discount'] = floor($FinanceReportInfo[0]['promote_discount'] * 100) / 100; //Promote折扣
+            $info['promotion_fee']['cpc_sb_cost'] = floor($FinanceReportInfo[0]['cpc_sb_cost'] * 100) / 100; //退款返还Promote折扣
+            $info['promotion_fee']['coupon'] = floor($ChannelProfitReportInfo[0]['coupon'] * 100) / 100;  //coupon优惠券
+            $info['promotion_fee']['run_lightning_deal_fee'] = floor($ChannelProfitReportInfo[0]['run_lightning_deal_fee'] * 100) / 100;  //RunLightningDealFee
 
             //订单费用
-            $info['order_fee']['platform_sales_commission'] = $FinanceReportInfo[0]['platform_sales_commission'];  //亚马逊销售佣金
-            $info['order_fee']['fba_generation_delivery_cost'] = $FinanceReportInfo[0]['fba_generation_delivery_cost']; //FBA代发货费用 **
-            $info['order_fee']['profit'] = $FinanceReportInfo[0]['profit'];  //多渠道配送费
-            $info['order_fee']['other_order_fee'] = $FinanceReportInfo[0]['amazon_fee'] - $FinanceReportInfo[0]['platform_sales_commission'] - $FinanceReportInfo[0]['fba_generation_delivery_cost'] - $FinanceReportInfo[0]['profit']; //其他订单费用 **
+            $info['order_fee']['platform_sales_commission'] = floor($FinanceReportInfo[0]['platform_sales_commission'] * 100) / 100;  //亚马逊销售佣金
+            $info['order_fee']['fba_generation_delivery_cost'] = floor($FinanceReportInfo[0]['fba_generation_delivery_cost'] * 100) / 100; //FBA代发货费用 **
+            $info['order_fee']['profit'] = floor($FinanceReportInfo[0]['profit'] * 100) / 100;  //多渠道配送费
+            $info['order_fee']['other_order_fee'] = floor(($FinanceReportInfo[0]['amazon_fee'] - $FinanceReportInfo[0]['platform_sales_commission'] - $FinanceReportInfo[0]['fba_generation_delivery_cost'] - $FinanceReportInfo[0]['profit']) * 100) / 100; //其他订单费用 **
 
             //退货退款费用
-            $info['return_refund_fee']['return_and_return_commission'] = $FinanceReportInfo[0]['return_and_return_commission'];  //退款扣除佣金
-            $info['return_refund_fee']['fba_refund_treatment_fee'] = $FinanceReportInfo[0]['fba_refund_treatment_fee']; //FBA退货处理费
-            $info['return_refund_fee']['return_and_return_sales_commission'] = $FinanceReportInfo[0]['return_and_return_sales_commission']; //返还亚马逊销售佣金
-            $info['return_refund_fee']['returnshipping'] = $FinanceReportInfo[0]['returnshipping']; //返还运费
-            $info['return_refund_fee']['refund_variableclosingfee'] = $FinanceReportInfo[0]['refund_variableclosingfee']; //可变结算费-退款
+            $info['return_refund_fee']['return_and_return_commission'] = floor($FinanceReportInfo[0]['return_and_return_commission'] * 100) / 100;  //退款扣除佣金
+            $info['return_refund_fee']['fba_refund_treatment_fee'] = floor($FinanceReportInfo[0]['fba_refund_treatment_fee'] * 100) / 100; //FBA退货处理费
+            $info['return_refund_fee']['return_and_return_sales_commission'] = floor($FinanceReportInfo[0]['return_and_return_sales_commission'] * 100) / 100; //返还亚马逊销售佣金
+            $info['return_refund_fee']['returnshipping'] = floor($FinanceReportInfo[0]['returnshipping'] * 100) / 100; //返还运费
+            $info['return_refund_fee']['refund_variableclosingfee'] = floor($FinanceReportInfo[0]['refund_variableclosingfee'] * 100) / 100; //可变结算费-退款
 
             //库存费用
-            $info['inventory_cost']['fba_storage_fee'] = $ChannelProfitReportInfo[0]['fba_storage_fee']; //FBA月仓储费用
-            $info['inventory_cost']['fba_long_term_storage_fee'] = $ChannelProfitReportInfo[0]['fba_long_term_storage_fee']; //FBA长期仓储费
-            $info['inventory_cost']['fba_disposal_fee'] = $ChannelProfitReportInfo[0]['fba_disposal_fee'];  //FBA处理费 **
-            $info['inventory_cost']['fba_removal_fee'] = $ChannelProfitReportInfo[0]['fba_removal_fee'];  //FBA移除费
-            $info['inventory_cost']['restocking_fee'] = $FinanceReportInfo[0]['restocking_fee']; //FBA重新入仓费
-            $info['inventory_cost']['fba_inbound_convenience_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_convenience_fee'];//库存配置服务费
-            $info['inventory_cost']['fba_inbound_defect_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_defect_fee']; //FBA入库缺陷费
-            $info['inventory_cost']['labeling_fee'] = $ChannelProfitReportInfo[0]['labeling_fee']; //贴标费
-            $info['inventory_cost']['polybagging_fee'] = $ChannelProfitReportInfo[0]['polybagging_fee']; //包装费
-            $info['inventory_cost']['fba_inbound_shipment_carton_level_info_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_shipment_carton_level_info_fee']; //人工处理费用
-            $info['inventory_cost']['fba_inbound_transportation_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_transportation_fee']; //入仓运输费
-            $info['inventory_cost']['fba_inbound_transportation_program_fee'] = $ChannelProfitReportInfo[0]['fba_inbound_transportation_program_fee']; //FBA入境运输费
-            $info['inventory_cost']['fba_overage_fee'] = $ChannelProfitReportInfo[0]['fba_overage_fee']; //库存仓储超量费
+            $info['inventory_cost']['fba_storage_fee'] = floor($ChannelProfitReportInfo[0]['fba_storage_fee'] * 100) / 100; //FBA月仓储费用
+            $info['inventory_cost']['fba_long_term_storage_fee'] = floor($ChannelProfitReportInfo[0]['fba_long_term_storage_fee'] * 100) / 100; //FBA长期仓储费
+            $info['inventory_cost']['fba_disposal_fee'] = floor($ChannelProfitReportInfo[0]['fba_disposal_fee'] * 100) / 100;  //FBA处理费 **
+            $info['inventory_cost']['fba_removal_fee'] = floor($ChannelProfitReportInfo[0]['fba_removal_fee'] * 100) / 100;  //FBA移除费
+            $info['inventory_cost']['restocking_fee'] = floor($FinanceReportInfo[0]['restocking_fee'] * 100) / 100; //FBA重新入仓费
+            $info['inventory_cost']['fba_inbound_convenience_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_convenience_fee'] * 100) / 100;//库存配置服务费
+            $info['inventory_cost']['fba_inbound_defect_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_defect_fee'] * 100) / 100; //FBA入库缺陷费
+            $info['inventory_cost']['labeling_fee'] = floor($ChannelProfitReportInfo[0]['labeling_fee'] * 100) / 100; //贴标费
+            $info['inventory_cost']['polybagging_fee'] = floor($ChannelProfitReportInfo[0]['polybagging_fee'] * 100) / 100; //包装费
+            $info['inventory_cost']['fba_inbound_shipment_carton_level_info_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_shipment_carton_level_info_fee'] * 100) / 100; //人工处理费用
+            $info['inventory_cost']['fba_inbound_transportation_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_fee'] * 100) / 100; //入仓运输费
+            $info['inventory_cost']['fba_inbound_transportation_program_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_program_fee'] * 100) / 100; //FBA入境运输费
+            $info['inventory_cost']['fba_overage_fee'] = floor($ChannelProfitReportInfo[0]['fba_overage_fee'] * 100) / 100; //库存仓储超量费
 
             //其他费用
-            $info['other_fee']['other_amazon_fee'] = $FinanceReportInfo[0]['other_amazon_fee'] + $ChannelProfitReportInfo[0]['other_amazon_fee']; //其他亚马逊费用 **
-            $info['other_fee']['reserved_field17'] = $FinanceReportInfo[0]['reserved_field17']; //VAT
-            $info['other_fee']['misc_adjustment'] = $ChannelProfitReportInfo[0]['misc_adjustment']; //其他
-            $info['other_fee']['review_enrollment_fee'] = $ChannelProfitReportInfo[0]['review_enrollment_fee']; //早期评论者计划
-            $info['other_fee']['cpc_cost'] = $ChannelProfitReportInfo[0]['cpc_cost']; //cpc 花费
+            $info['other_fee']['other_amazon_fee'] = floor(($FinanceReportInfo[0]['other_amazon_fee'] + $ChannelProfitReportInfo[0]['other_amazon_fee']) * 100) / 100; //其他亚马逊费用 **
+            $info['other_fee']['reserved_field17'] = floor($FinanceReportInfo[0]['reserved_field17'] * 100) / 100; //VAT
+            $info['other_fee']['misc_adjustment'] = floor($ChannelProfitReportInfo[0]['misc_adjustment'] * 100) / 100; //其他
+            $info['other_fee']['review_enrollment_fee'] = floor($ChannelProfitReportInfo[0]['review_enrollment_fee'] * 100) / 100; //早期评论者计划
+            $info['other_fee']['cpc_cost'] = floor($ChannelProfitReportInfo[0]['cpc_cost'] * 100) / 100; //cpc 花费
 
             //商品调整费用
-            $info['commodity_adjustment_fee']['ware_house_lost'] = $FinanceReportInfo[0]['ware_house_lost'];  //FBA仓丢失赔款
-            $info['commodity_adjustment_fee']['ware_house_damage'] = $FinanceReportInfo[0]['ware_house_damage']; //FBA仓损坏赔款
-            $info['commodity_adjustment_fee']['reversal_reimbursement'] = $FinanceReportInfo[0]['reversal_reimbursement']; //REVERSAL REIMBURSEMENT
-            $info['commodity_adjustment_fee']['return_postage_billing_postage'] = $ChannelProfitReportInfo[0]['return_postage_billing_postage']; //ReturnPostageBilling_postage
-            $info['commodity_adjustment_fee']['missing_from_inbound'] = $FinanceReportInfo[0]['missing_from_inbound']; //入库丢失赔偿
-            $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] = $FinanceReportInfo[0]['missing_from_inbound_clawback']; //入库丢失赔偿(夺回)
-            $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] = $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'];  //费用盘点-重量和尺寸更改 **
-            $info['commodity_adjustment_fee']['fee_adjustment'] = $FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'];  //其他商品调整费用 ？？
+            $info['commodity_adjustment_fee']['ware_house_lost'] = floor($FinanceReportInfo[0]['ware_house_lost'] * 100) / 100;  //FBA仓丢失赔款
+            $info['commodity_adjustment_fee']['ware_house_damage'] = floor($FinanceReportInfo[0]['ware_house_damage'] * 100) / 100; //FBA仓损坏赔款
+            $info['commodity_adjustment_fee']['reversal_reimbursement'] = floor($FinanceReportInfo[0]['reversal_reimbursement'] * 100) / 100; //REVERSAL REIMBURSEMENT
+            $info['commodity_adjustment_fee']['return_postage_billing_postage'] = floor($ChannelProfitReportInfo[0]['return_postage_billing_postage'] * 100) / 100; //ReturnPostageBilling_postage
+            $info['commodity_adjustment_fee']['missing_from_inbound'] = floor($FinanceReportInfo[0]['missing_from_inbound'] * 100) / 100; //入库丢失赔偿
+            $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] = floor($FinanceReportInfo[0]['missing_from_inbound_clawback'] * 100) / 100; //入库丢失赔偿(夺回)
+            $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] = floor($ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'] * 100) / 100;  //费用盘点-重量和尺寸更改 **
+            $info['commodity_adjustment_fee']['fee_adjustment'] = floor(($FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee']) * 100) / 100;  //其他商品调整费用 ？？
 
             //费用
-            $info['fee']['reserved_field16'] = $FinanceReportInfo[0]['reserved_field16']; //运营费用
-            $info['fee']['reserved_field10'] = $FinanceReportInfo[0]['reserved_field10']; //测评费用
-            $info['fee']['purchasing_cost'] = $FinanceReportInfo[0]['purchasing_cost']; //采购成本 **
-            $info['fee']['logistics_head_course'] = $FinanceReportInfo[0]['logistics_head_course']; //头程物流（FBA） **
-            $info['fee']['fbm'] = $FinanceReportInfo[0]['fbm']; //物流（FBM） **
+            $info['fee']['reserved_field16'] = floor($FinanceReportInfo[0]['reserved_field16'] * 100) / 100; //运营费用
+            $info['fee']['reserved_field10'] = floor($FinanceReportInfo[0]['reserved_field10'] * 100) / 100; //测评费用
+            $info['fee']['purchasing_cost'] = floor($FinanceReportInfo[0]['purchasing_cost'] * 100) / 100; //采购成本 **
+            $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //头程物流（FBA） **
+            $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //物流（FBM） **
 
             $infoList['list'][] = $info;
         }
@@ -363,7 +363,7 @@ class AccountingService extends BaseService
             "id ,custom_usd_exchang_rate AS usd_exchang_rate,
             custom_cad_exchang_rate as cad_exchang_rate,custom_mxn_exchang_rate as mxn_exchang_rate,custom_jpy_exchang_rate as jpy_exchang_rate,
             custom_gbp_exchang_rate as gbp_exchang_rate,custom_eur_exchang_rate as eur_exchang_rate,custom_au_exchang_rate as au_exchang_rate,
-            custom_in_exchang_rate as in_exchang_rate,custom_br_exchang_rate as br_exchang_rate,custom_br_exchang_rate as br_exchang_rate, 
+            custom_in_exchang_rate as in_exchang_rate,custom_br_exchang_rate as br_exchang_rate,
             custom_tr_exchang_rate as tr_exchang_rate,custom_ae_exchang_rate as ae_exchang_rate,custom_sa_exchang_rate as sa_exchang_rate,
             custom_nl_exchang_rate as nl_exchang_rate,custom_sg_exchang_rate as sg_exchang_rate,custom_hk_exchang_rate as hk_exchang_rate"
         )->where([['user_id', '=', $user_id]])->first()->toArray();
@@ -407,15 +407,6 @@ class AccountingService extends BaseService
 
     public function getUserName($request_data)
     {
-        $rule = [
-            'client_id' => 'required|string',
-        ];
-
-        $res = $this->validate($request_data, $rule);
-
-        if ($res['code'] == 0) {
-            return $res;
-        }
 
         $userInfo = $this->getUserInfo();
 
@@ -487,7 +478,7 @@ class AccountingService extends BaseService
 
         //if ($UserExtInfo->ext_info == "null") {
         try {
-            $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info']));
+            $userExtInfoModel = $UserExtInfoQuery->update(array('ext_info' => $request_data['ext_info'], 'is_authorized' => 1, 'authorized_time' => time(), 'cancel_time' => 0));
             if (!$userExtInfoModel) {
                 throw new BusinessException(10001, trans('finance.user_bind_error'));
             }

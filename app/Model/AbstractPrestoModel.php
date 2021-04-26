@@ -26,9 +26,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $lastSql = '';
 
-    protected $tableName = '';
+    protected $table = '';
 
     protected $cache = null;
+
+    protected $dryRun = false;
 
     public function __construct(
         string $dbhost = '',
@@ -65,6 +67,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if (empty($config)) {
             $this->logger->error('presto 数据库配置不存在', [$config]);
             throw new RuntimeException('Missing Presto connection config.');
+        }
+
+        if ($this->table && strlen($this->table) - 1 === strrpos($this->table, '_')) {
+            $this->table = $this->table . $this->dbhost;
         }
 
         $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
@@ -143,7 +149,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         int $cacheTTL = 300
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
-        $table = $table !== '' ? $table : $this->tableName;
+        $table = $table !== '' ? $table : $this->table;
 
         $where = empty($where) ? '' : " WHERE {$where}";
         $order = empty($order) ? '' : " ORDER BY {$order}";
@@ -172,6 +178,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         $sql = $this->lastSql = "SELECT {$data} FROM {$table}{$where}{$group}{$order}{$limit}";
+        if ($this->logDryRun()) {
+            return [];
+        }
+
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
         if ($isCache) {
             $cacheData = $this->getCache()->get($cacheKey);
@@ -298,5 +308,20 @@ abstract class AbstractPrestoModel implements BIModelInterface
     public static function escape(string $val): string
     {
         return Presto::escape((string)$val);
+    }
+
+    public function dryRun(bool $dryRun): void
+    {
+        $this->dryRun = $dryRun;
+    }
+
+    protected function logDryRun(): bool
+    {
+        if ($this->dryRun) {
+            $this->logger->debug('Presto dry run: ' . $this->getLastSql());
+            return true;
+        }
+
+        return false;
     }
 }

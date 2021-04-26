@@ -537,10 +537,7 @@
                   "country_id"
                 ],
                 "properties": {
-                  "client_id": {
-                    "description": "调用方id",
-                    "type": "string"
-                  }
+
                 },
                 "type": "object"
               }

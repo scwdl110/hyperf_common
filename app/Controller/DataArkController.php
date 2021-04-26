@@ -9,13 +9,13 @@ class DataArkController extends AbstractController
     public function __construct()
     {
         parent::__construct();
-
         $this->user = $this->request->getAttribute('userInfo');
     }
 
     protected function init($type = 1)
     {
         $req = $this->request->all();
+        $searchKey = trim(strval($req['searchKey'] ?? ''));
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
         $params = $req['params'] ?? [];
@@ -38,7 +38,75 @@ class DataArkController extends AbstractController
             $where = "report.user_id={$this->user['user_id']} AND report.channel_id={$channelIds[0]}";
         }
 
-        if (!empty($searchVal)) {
+        if(!empty($searchKey) && !empty($searchVal)){
+            //匹配方式 ：eq -> 全匹配  like-模糊匹配
+            $matchType =  trim(strval($req['matchType'] ?? ''));
+            if($searchKey == 'parent_asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_parent_asin = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.goods_parent_asin like '%" . $searchVal . "%'" ;
+                }
+            }else if($searchKey == 'asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_asin = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_asin like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'sku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_sku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_sku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'isku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.isku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.isku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'site_group'){
+                $where .= " AND report.area_id = " . intval($searchVal);
+            }else if($searchKey == 'channel_id'){
+                $where .= " AND report.channel_id = " . intval($searchVal);
+            }else if($searchKey == 'site_id'){
+                $where .= " AND report.site_id = " . intval($searchVal) ;
+            }else if($searchKey == 'class1'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_product_category_name_1 = '" . $searchVal . "'" ;
+                }else{
+                    if (strpos($searchVal,'&') !== false){
+                        $str_arr = explode("&",$searchVal);
+                        foreach ($str_arr as $v){
+                            $where .= " AND report.goods_product_category_name_1 like '%" . $v . "%'" ;
+                        }
+                    }else{
+                        $where .= " AND report.goods_product_category_name_1 like '%" . $searchVal . "%'" ;
+
+                    }
+                }
+            }else if($searchKey == 'group'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_group_name = '".$searchVal."' " ;
+                }else{
+                    $where .= " AND report.goods_group_name like '%".$searchVal."%' " ;
+                }
+
+            }else if($searchKey == 'tags'){
+                if($matchType == 'eq'){
+                    $where .= " AND gtags.tag_name = '".$searchVal."' " ;
+                }else {
+                    $where .= " AND gtags.tag_name like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'operators'){
+                if($matchType == 'eq'){
+                     $where .= " AND report.operation_user_admin_name = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.operation_user_admin_name like '%" . $searchVal . "%'" ;
+                }
+            }
+
+        } else if (!empty($searchVal)) {
             $likes = [
                 'isku' => 'report.isku',
                 'tags' => 'gtags.tag_name',
@@ -87,7 +155,7 @@ class DataArkController extends AbstractController
             }
 
             if (empty($ors)) {
-                return [];
+                return json_encode([]);
             }
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
@@ -101,25 +169,25 @@ class DataArkController extends AbstractController
 
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
         $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
-        $className = "\\App\\Model\\DataArk\\{$dataChannel}\\AmazonGoodsFinanceReportByOrderModel";
+        $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
         $amazonGoodsFinanceReportByOrderMD = new $className($this->user['dbhost'], $this->user['codeno']);
+        $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
 
-        return $amazonGoodsFinanceReportByOrderMD->{$method}(
+        return json_encode($amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,
             $params,
             $limit,
             $sort,
             $order,
-            0,
+            $countTip,
             $channelIds,
             $currencyInfo,
             $exchangeCode,
             $timeLine,
             $deparmentData,
-            $searchType,
             $this->user['user_id'],
             $this->user['admin_id']
-        );
+        ));
     }
 
     public function getUnGoodsDatas()
