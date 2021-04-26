@@ -141,7 +141,7 @@ abstract class AbstractESModel implements BIModelInterface
             }
         }
 
-        return "SELECT {$data} FROM {$table}{$where}{$group}{$order}{$limit}";
+        return "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
     }
 
     public function select(

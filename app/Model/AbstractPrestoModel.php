@@ -177,7 +177,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
-        $sql = $this->lastSql = "SELECT {$data} FROM {$table}{$where}{$group}{$order}{$limit}";
+        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
         if ($this->logDryRun()) {
             return [];
         }

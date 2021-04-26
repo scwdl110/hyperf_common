@@ -930,7 +930,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }else{
                 $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
-                if (intval($total_views_numbers['total_views_number']) > 0) {
+                if (!empty($total_views_numbers) && intval($total_views_numbers['total_views_number']) > 0) {
                     $fields['goods_views_rate'] = " SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_numbers['total_views_number']) .' , 2)';
                 }else{
                     $fields['goods_views_rate'] = 0 ;
@@ -955,7 +955,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }else{
                 $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
-                if (intval($total_user_sessions['total_user_sessions']) > 0) {
+                if (!empty($total_user_sessions) && intval($total_user_sessions['total_user_sessions']) > 0) {
                     $fields['goods_buyer_visit_rate'] = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_user_sessions['total_user_sessions']).',2)';
                 }else{
                     $fields['goods_buyer_visit_rate'] =0 ;
@@ -1667,7 +1667,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             }else{
                 $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
-                if (intval($total_views_numbers['total_views_number']) > 0) {
+                if (!empty($total_views_numbers) && intval($total_views_numbers['total_views_number']) > 0) {
                     $fields['count_total'] = "SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_numbers['total_views_number']) .',2)';
                     $time_fields = $this->getTimeFields($time_line, "  report.byorder_number_of_visits  / round(" . intval($total_views_numbers['total_views_number']).',2)');
                 } else {
@@ -1698,7 +1698,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }else{
                 $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
-                if (intval($total_user_sessions['total_user_sessions']) > 0) {
+                if (!empty($total_user_sessions) && intval($total_user_sessions['total_user_sessions']) > 0) {
                     $fields['count_total'] = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_user_sessions['total_user_sessions']) .",2)";
                     $time_fields = $this->getTimeFields($time_line, " report.byorder_user_sessions  / round(" . intval($total_user_sessions['total_user_sessions']).",2)");
                 } else {
@@ -2474,7 +2474,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
 
         $fields[$datas['time_target']] = $fields['count_total'] ;
-        if(!empty($time_fields)){
+        if(!empty($time_fields) && is_array($time_fields)){
             foreach($time_fields as $kt=>$time_field){
                 $fields[$kt] = $time_field ;
             }
@@ -3009,6 +3009,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($where_detail)) {
             $where_detail = [];
         }
+        $group = '';
         if ($params['count_dimension'] == 'channel_id') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
                 if($params['count_periods'] == '4'){ //按季度
@@ -4747,7 +4748,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $fields[$datas['time_target']] = $fields['count_total'] ;
-        if(!empty($time_fields)){
+        if(!empty($time_fields) && is_array($time_fields)){
             foreach($time_fields as $kt=>$time_field){
                 $fields[$kt] = $time_field ;
             }
@@ -6590,7 +6591,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $fields[$datas['time_target']] = $fields['count_total'] ;
-        if(!empty($time_fields)){
+        if(!empty($time_fields) && is_array($time_fields)){
             foreach($time_fields as $kt=>$time_field){
                 $fields[$kt] = $time_field ;
             }
