@@ -407,12 +407,21 @@ class AccountingService extends BaseService
 
     public function getUserName($request_data)
     {
+        $rule = [
+            'client_id' => 'required|string',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
 
         $userInfo = $this->getUserInfo();
 
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('username')->first();
 
-        $UserExtInfo = UserExtInfoModel::query()->where(array('admin_id' => $userInfo['admin_id']))->first();
+        $UserExtInfo = UserExtInfoModel::query()->where(array('admin_id' => $userInfo['admin_id'], 'client_id' => $request_data['client_id']))->first();
 
 //        if ($UserExtInfo == null) {
 //            $snowflakeId = Unique::snowflake();
@@ -434,8 +443,8 @@ class AccountingService extends BaseService
 //        }
 
 
-        if(!$UserExtInfo){
-            $data =  [
+        if (!$UserExtInfo) {
+            $data = [
                 'code' => 0,
                 'msg' => trans('auth.no_authorized'),
             ];
