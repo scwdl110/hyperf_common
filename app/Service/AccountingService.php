@@ -260,12 +260,6 @@ class AccountingService extends BaseService
             $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //头程物流（FBA） **
             $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //物流（FBM） **
 
-            //造假数据
-            if($list['id'] == 231){
-                $json = "{\"currency_id\":1,\"exchang_rate\":\"0.1541\",\"shop_id\":231,\"shop_name\":\"Cocoleggings_US\",\"commodity_sales\":{\"fba_sales_quota\":7072.26,\"fbm_sales_quota\":10037.01},\"promotion_fee\":{\"promote_discount\":-124.75,\"cpc_sb_cost\":234213,\"coupon\":321,\"run_lightning_deal_fee\":23211},\"order_fee\":{\"platform_sales_commission\":-2902.14,\"fba_generation_delivery_cost\":-2529.98,\"profit\":-13.42,\"other_order_fee\":957.68},\"return_refund_fee\":{\"return_and_return_commission\":-174.09,\"fba_refund_treatment_fee\":-387.79,\"return_and_return_sales_commission\":867.74,\"returnshipping\":2123,\"refund_variableclosingfee\":31},\"inventory_cost\":{\"fba_storage_fee\":32411,\"fba_long_term_storage_fee\":123541,\"fba_disposal_fee\":2121,\"fba_removal_fee\":3221,\"restocking_fee\":324121,\"fba_inbound_convenience_fee\":22113,\"fba_inbound_defect_fee\":322113,\"labeling_fee\":321233,\"polybagging_fee\":32133,\"fba_inbound_shipment_carton_level_info_fee\":322113,\"fba_inbound_transportation_fee\":23211,\"fba_inbound_transportation_program_fee\":213,\"fba_overage_fee\":123},\"other_fee\":{\"other_amazon_fee\":861.52,\"reserved_field17\":12432,\"misc_adjustment\":3246,\"review_enrollment_fee\":521,\"cpc_cost\":5235},\"commodity_adjustment_fee\":{\"ware_house_lost\":40.13,\"ware_house_damage\":231,\"reversal_reimbursement\":229.4,\"return_postage_billing_postage\":523,\"missing_from_inbound\":432,\"missing_from_inbound_clawback\":532,\"fba_per_unit_fulfillment_fee\":342,\"fee_adjustment\":51.28},\"fee\":{\"reserved_field16\":2432,\"reserved_field10\":2353,\"purchasing_cost\":-24197.47,\"logistics_head_course\":-1233.47,\"fbm\":-562.74}}";
-                $info = json_decode($json,true);
-            }
-
             $infoList['list'][] = $info;
         }
 
