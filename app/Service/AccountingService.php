@@ -423,23 +423,32 @@ class AccountingService extends BaseService
 
         $UserExtInfo = UserExtInfoModel::query()->where(array('admin_id' => $userInfo['admin_id']))->first();
 
-        if ($UserExtInfo == null) {
-            $snowflakeId = Unique::snowflake();
-            try {
-                $userExtInfoModel = UserExtInfoModel::create(array('uuid' => $snowflakeId, 'admin_id' => $userInfo['admin_id']));
-                if (!$userExtInfoModel->id) {
-                    throw new BusinessException(10001, trans('finance.user_add_error'));
-                }
-            } catch (\Throwable $ex) {
-                //写入日志
-                Log::getClient()->error($ex->getMessage());
-                return [
-                    'code' => 0,
-                    'msg' => trans('common.error')
-                ];
-            }
-        } else {
-            $snowflakeId = $UserExtInfo->uuid;
+//        if ($UserExtInfo == null) {
+//            $snowflakeId = Unique::snowflake();
+//            try {
+//                $userExtInfoModel = UserExtInfoModel::create(array('uuid' => $snowflakeId, 'admin_id' => $userInfo['admin_id']));
+//                if (!$userExtInfoModel->id) {
+//                    throw new BusinessException(10001, trans('finance.user_add_error'));
+//                }
+//            } catch (\Throwable $ex) {
+//                //写入日志
+//                Log::getClient()->error($ex->getMessage());
+//                return [
+//                    'code' => 0,
+//                    'msg' => trans('common.error')
+//                ];
+//            }
+//        } else {
+//            $snowflakeId = $UserExtInfo->uuid;
+//        }
+
+
+        if(!$UserExtInfo){
+            $data =  [
+                'code' => 0,
+                'msg' => trans('auth.no_authorized'),
+            ];
+            return $data;
         }
 
         $data = [
@@ -447,7 +456,7 @@ class AccountingService extends BaseService
             'msg' => 'success',
             'data' => [
                 'username' => $userAdmin->username,
-                'uuid' => $snowflakeId
+                'uuid' => $UserExtInfo->uuid
             ]
         ];
 

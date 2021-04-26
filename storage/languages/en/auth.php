@@ -12,4 +12,5 @@ declare(strict_types=1);
 return [
     'no_jwt' => 'user not exist',
     'no_authorization' => 'authorization not exist',
+    'no_authorized' => 'user no authorized',
 ];
