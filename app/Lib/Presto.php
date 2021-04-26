@@ -201,7 +201,7 @@ class Presto
                     'response' => (string)$resp->getBody(),
                 ]);
             } else {
-                if ($execption) {
+                if ($exception) {
                     $logger->error('presto 请求异常', [
                         'exception' => $exception instanceof Throwable ? $exception->getMessage() : $exception
                     ]);

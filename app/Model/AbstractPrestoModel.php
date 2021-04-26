@@ -310,9 +310,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
         return Presto::escape((string)$val);
     }
 
-    public function dryRun(bool $dryRun): void
+    public function dryRun(?bool $dryRun): bool
     {
-        $this->dryRun = $dryRun;
+        if (null !== $dryRun) {
+            $this->dryRun = $dryRun;
+        }
+
+        return $this->dryRun;
     }
 
     protected function logDryRun(): bool
