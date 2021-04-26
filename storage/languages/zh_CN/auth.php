@@ -12,4 +12,5 @@ declare(strict_types=1);
 return [
     'no_jwt' => '用户不存在',
     'no_authorization' => 'authorization不存在',
+    'no_authorized' => '用户未授权',
 ];
