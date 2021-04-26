@@ -65,7 +65,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
         $table = "f_dw_goods_day_report_{$this->dbhost} AS report" ;
-        $mod_where = "report.user_id_mod = '" . ($datas['user_id'] % 20) . "'";
+        $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
         if (!empty($mod_where)) {
             $where .= ' AND ' . $mod_where;
         }
@@ -1353,7 +1353,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $table = "f_dw_channel_day_report_{$this->dbhost} AS report";
 
-        $where .= " AND report.user_id_mod = '" . ($params['user_id'] % 20) . "'";
+        $where .= " AND report.user_id_mod = " . ($params['user_id'] % 20);
 
         $orderby = '';
         if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
@@ -2083,7 +2083,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $table = "f_dw_operation_day_report_{$this->dbhost} AS report" ;
 
-        $mod_where = "report.user_id_mod = '" . ($datas['user_id'] % 20) . "'";
+        $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
         if (!empty($mod_where)) {
             $where .= ' AND ' . $mod_where;
         }
