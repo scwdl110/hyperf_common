@@ -2,18 +2,14 @@
 
 namespace App\Controller;
 
+use Hyperf\Logger\LoggerFactory;
+use Hyperf\Utils\ApplicationContext;
+
 class DataArkController extends AbstractController
 {
-    protected $user = [];
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->user = $this->request->getAttribute('userInfo');
-    }
-
     protected function init($type = 1)
     {
+        $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
         $searchKey = trim(strval($req['searchKey'] ?? ''));
         $searchVal = trim(strval($req['searchVal'] ?? ''));
@@ -32,11 +28,16 @@ class DataArkController extends AbstractController
         $offset = ($page - 1) * $limit;
 
         $where = '';
-        if (count($channelIds) > 1) {
-            $where = "report.user_id={$this->user['user_id']} AND report.channel_id IN (" . implode(',' , $channelIds) .')';
-        } else {
-            $where = "report.user_id={$this->user['user_id']} AND report.channel_id={$channelIds[0]}";
+        if (empty($channelIds)) {
+            return json_encode(['lists' => [], 'count' => 0]);
         }
+
+        if (count($channelIds) > 1) {
+            $where = "report.user_id={$userInfo['user_id']} AND report.channel_id IN (" . implode(',' , $channelIds) .')';
+        } else {
+            $where = "report.user_id={$userInfo['user_id']} AND report.channel_id={$channelIds[0]}";
+        }
+        $params['origin_where'] = $where;
 
         if(!empty($searchKey) && !empty($searchVal)){
             //匹配方式 ：eq -> 全匹配  like-模糊匹配
@@ -143,6 +144,7 @@ class DataArkController extends AbstractController
                 (int)$params['search_start_time'],
                 (int)$params['search_end_time']
             );
+            $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
         } else {
             $ors = [];
             foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type']) as $times) {
@@ -159,6 +161,7 @@ class DataArkController extends AbstractController
             }
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
+            $params['origin_where'] .= " AND ({$ors}) ";
         }
 
         $method = [
@@ -170,10 +173,10 @@ class DataArkController extends AbstractController
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
         $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
-        $amazonGoodsFinanceReportByOrderMD = new $className($this->user['dbhost'], $this->user['codeno']);
+        $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
         $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
 
-        return json_encode($amazonGoodsFinanceReportByOrderMD->{$method}(
+        $result = $amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,
             $params,
             $limit,
@@ -185,9 +188,15 @@ class DataArkController extends AbstractController
             $exchangeCode,
             $timeLine,
             $deparmentData,
-            $this->user['user_id'],
-            $this->user['admin_id']
-        ));
+            $userInfo['user_id'],
+            $userInfo['admin_id']
+        );
+
+        if (!isset($result['lists'])) {
+            $result = ['lists' => [], 'count' => 0];
+        }
+
+        return json_encode($result);
     }
 
     public function getUnGoodsDatas()

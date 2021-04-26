@@ -6,6 +6,7 @@ use RuntimeException;
 
 use Hyperf\Utils\ApplicationContext;
 use Hyperf\Logger\LoggerFactory;
+use Hyperf\Contract\ConfigInterface;
 use App\Lib\Elasticsearch;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -353,9 +354,13 @@ abstract class AbstractESModel implements BIModelInterface
         return \addslashes($val);
     }
 
-    public function dryRun(bool $dryRun): void
+    public function dryRun(?bool $dryRun): bool
     {
-        $this->dryRun = $dryRun;
+        if (null !== $dryRun) {
+            $this->dryRun = $dryRun;
+        }
+
+        return $this->dryRun;
     }
 
     protected function logDryRun(): bool

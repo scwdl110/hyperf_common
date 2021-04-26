@@ -1550,7 +1550,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['time'] = "report.myear";
         }
 
-        $targets = explode(',', $datas['target']);
+        if (is_array($datas['target'])) {
+            $targets = $datas['target'];
+        } else {
+            $targets = explode(',', $datas['target']);
+        }
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
@@ -2202,7 +2206,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['time'] = "report.myear";
         }
 
-        $targets = explode(',', $datas['target']);
+        if (is_array($datas['target'])) {
+            $targets = $datas['target'];
+        } else {
+            $targets = explode(',', $datas['target']);
+        }
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
