@@ -475,7 +475,7 @@ class AccountingService extends BaseService
 
         $userInfo = $this->getUserInfo();
 
-        $UserExtInfoQuery = UserExtInfoModel::query()->where(array('uuid' => $userInfo['uuid']));
+        $UserExtInfoQuery = UserExtInfoModel::query()->where(array('uuid' => $request_data['uuid']));
 
         $UserExtInfo = $UserExtInfoQuery->first();
 
