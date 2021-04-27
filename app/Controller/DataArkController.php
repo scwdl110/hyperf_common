@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
+use Captainbi\Hyperf\Util\Result;
 
 class DataArkController extends AbstractController
 {
@@ -27,9 +28,11 @@ class DataArkController extends AbstractController
         $deparmentData = $req['deparmentData'] ?? [];
         $offset = ($page - 1) * $limit;
 
+        $result = ['lists' => [], 'count' => 0];
+
         $where = '';
         if (empty($channelIds)) {
-            return json_encode(['lists' => [], 'count' => 0]);
+            return Result::success($result);
         }
 
         if (count($channelIds) > 1) {
@@ -162,7 +165,7 @@ class DataArkController extends AbstractController
             }
 
             if (empty($ors)) {
-                return json_encode([]);
+                return Result::success($result);
             }
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
@@ -202,7 +205,7 @@ class DataArkController extends AbstractController
             $result = ['lists' => [], 'count' => 0];
         }
 
-        return json_encode($result);
+        return Result::success($result);
     }
 
     public function getUnGoodsDatas()
