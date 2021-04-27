@@ -17,10 +17,10 @@ return [
     'servers' => [
         [
             'name' => env('HYPERF_SERVER_NAME', 'http'),
-            'type' => env('HYPERF_SERVER_TYPE', Server::SERVER_HTTP),
+            'type' => (int)env('HYPERF_SERVER_TYPE', Server::SERVER_HTTP),
             'host' => env('HYPERF_HOST', '0.0.0.0'),
-            'port' => env('HYPERF_PORT', 9501),
-            'sock_type' => env('HYPERF_SOCK_TYPE', SWOOLE_SOCK_TCP),
+            'port' => (int)env('HYPERF_PORT', 9501),
+            'sock_type' => (int)env('HYPERF_SOCK_TYPE', SWOOLE_SOCK_TCP),
             'callbacks' => [
                 Event::ON_REQUEST => [Hyperf\HttpServer\Server::class, 'onRequest'],
             ],
