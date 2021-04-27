@@ -16,11 +16,11 @@ return [
     'mode' => SWOOLE_PROCESS,
     'servers' => [
         [
-            'name' => 'http',
-            'type' => Server::SERVER_HTTP,
-            'host' => '0.0.0.0',
-            'port' => 9501,
-            'sock_type' => SWOOLE_SOCK_TCP,
+            'name' => env('HYPERF_SERVER_NAME', 'http'),
+            'type' => env('HYPERF_SERVER_TYPE', Server::SERVER_HTTP),
+            'host' => env('HYPERF_HOST', '0.0.0.0'),
+            'port' => env('HYPERF_PORT', 9501),
+            'sock_type' => env('HYPERF_SOCK_TYPE', SWOOLE_SOCK_TCP),
             'callbacks' => [
                 Event::ON_REQUEST => [Hyperf\HttpServer\Server::class, 'onRequest'],
             ],
