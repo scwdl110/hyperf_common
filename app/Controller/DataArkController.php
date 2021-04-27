@@ -145,9 +145,14 @@ class DataArkController extends AbstractController
                 (int)$params['search_end_time']
             );
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
+            $min_ym = date('Ym',$params['search_start_time']) ;
+            $max_ym = date('Ym',$params['search_end_time']) ;
         } else {
             $ors = [];
             foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type']) as $times) {
+
+                $min_ym = empty($min_ym) ? date('Ym',$times['start']) : ($min_ym > date('Ym',$times['start']) ? date('Ym',$times['start']) : $min_ym) ;
+                $max_ym = empty($max_ym) ? date('Ym',$times['end']) : ($max_ym < date('Ym',$times['end']) ? date('Ym',$times['end']) : $max_ym) ;
                 $ors[] = sprintf(
                     '(report.site_id in (%s) and report.create_time>=%d and report.create_time<=%d)',
                     $times['site_id'],
@@ -175,7 +180,8 @@ class DataArkController extends AbstractController
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
         $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
         $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
-
+        $params['min_ym'] = $min_ym ;
+        $params['max_ym'] = $max_ym ;
         $result = $amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,
             $params,
