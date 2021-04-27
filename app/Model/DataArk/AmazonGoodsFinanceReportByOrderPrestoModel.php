@@ -81,6 +81,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND "  . (empty($where) ? "" : " AND " . $where) ;
             $table = "dwd.dwd_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
         }else if($datas['cost_count_type'] == 2 ){
+            $where = $ym_where . " AND "  . (empty($where) ? "" : " AND " . $where) ;
             $table = "dwd.dwd_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
         }else{
             return [];
