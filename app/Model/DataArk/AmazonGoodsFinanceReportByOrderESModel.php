@@ -274,6 +274,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             if(!empty($where_detail['is_new'])){
                 $where.= " AND report.goods_is_new = " . (intval($where_detail['is_new']) == 1 ? 1 : 0 );
             }
+            if(!empty($where_detail['is_care'])){
+                $where.= " AND report.goods_is_care = " . (intval($where_detail['is_care']) == 1 ? 1 : 0 );
+            }
             if (!empty($where_detail['group_id'])) {
                 if(is_array($where_detail['group_id'])){
                     $group_str = implode(',', $where_detail['group_id']);
@@ -1162,6 +1165,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
             if($datas['is_distinct_channel'] == '1'){
@@ -1173,13 +1177,14 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fields['goods_is_care']                 = 'max(report.goods_is_care)';
                 $fields['goods_is_new']                  = 'max(report.goods_is_new)';
                 $fields['up_status']                  = 'max(report.goods_up_status)';
-                $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
+
                 $fields['isku_id']                       = 'max(report.goods_isku_id)';
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
                 $fields['class1'] = 'max(report.goods_product_category_name_1)';
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }
+            $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         } else if ($datas['count_dimension'] == 'isku') {
             $fields['isku_id'] = 'max(report.goods_isku_id)';
         }else if ($datas['count_dimension'] == 'class1') {
