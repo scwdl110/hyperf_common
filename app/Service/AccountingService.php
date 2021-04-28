@@ -282,7 +282,9 @@ class AccountingService extends BaseService
         $rule = [
             'date_time' => 'integer|filled',
             'offset' => 'integer|filled',
-            'limit' => 'integer|filled'
+            'limit' => 'integer|filled',
+            'shop_name' => 'string|filled',
+            'shop_ip' => 'integer|filled',
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -299,6 +301,14 @@ class AccountingService extends BaseService
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
 
         $shopListInfoquery = ChannelModel::select("id", "title", "modified_time")->where([['user_id', '=', $userInfo['user_id']]]);
+
+        if (isset($request_data['shop_name'])) {
+            $shopListInfoquery->where('title', 'like', '%' . $request_data['shop_name'] . '%');
+        }
+
+        if (isset($request_data['id'])) {
+            $shopListInfoquery->where('id', 'like', '%' . $request_data['id'] . '%');
+        }
 
         if ($userAdmin->is_master != 1) {
             $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
@@ -338,11 +348,25 @@ class AccountingService extends BaseService
      * @return array
      */
 
-    public function getExchangeRateList()
+    public function getExchangeRateList($request_data)
     {
+        $rule = [
+            'id' => 'integer|filled',
+            'name' => 'string|filled'
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $request_data['id'] = $request_data['id'] ?? '';
+        $request_data['name'] = $request_data['name'] ?? '';
+
         $userInfo = $this->getUserInfo();
 
-        $info = $this->getExchangeRate($userInfo['user_id']);
+        $info = $this->getExchangeRate($userInfo['user_id'], $request_data['id'], $request_data['name']);
 
         $data = [
             'code' => 1,
@@ -357,7 +381,7 @@ class AccountingService extends BaseService
     }
 
 
-    public function getExchangeRate($user_id)
+    public function getExchangeRate($user_id, $id = '', $name = '')
     {
         $financeCurrencyList = FinanceCurrencyModel::selectRaw(
             "id ,custom_usd_exchang_rate AS usd_exchang_rate,
@@ -378,7 +402,7 @@ class AccountingService extends BaseService
             $result = $financeCurrencyList;
         }
 
-        $info = array();
+        $infos = array();
         $config = $this->config->get("common");
 
         $i = 0;
@@ -388,14 +412,31 @@ class AccountingService extends BaseService
             }
 
             if (isset($config['currency_list'][$key])) {
-                $info[$i] = $config['currency_list'][$key];
-                $info[$i]['exchang_rate'] = $value;
-                $info[$i]['modified_time'] = time();
+                $infos[$i] = $config['currency_list'][$key];
+                $infos[$i]['exchang_rate'] = $value;
+                $infos[$i]['modified_time'] = time();
             }
             $i++;
         }
 
-        return $info;
+        if ($id != '') {
+            foreach ($infos as $info_key => $info) {
+                if ( strstr(strval($info['id']),strval($id)) == false) {
+                    unset($infos[$info_key]);
+                }
+            }
+        }
+
+
+        if ($name != '') {
+            foreach ($infos as $info_key => $info) {
+                if ( strstr(strval($info['name']),strval($name)) == false) {
+                    unset($infos[$info_key]);
+                }
+            }
+        }
+
+        return $infos;
     }
 
 
@@ -405,7 +446,8 @@ class AccountingService extends BaseService
      * @return array
      */
 
-    public function getUserName($request_data)
+    public
+    function getUserName($request_data)
     {
         $rule = [
             'client_id' => 'required|string',
@@ -422,26 +464,6 @@ class AccountingService extends BaseService
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('username')->first();
 
         $UserExtInfo = UserExtInfoModel::query()->where(array('admin_id' => $userInfo['admin_id'], 'client_id' => $request_data['client_id']))->first();
-
-//        if ($UserExtInfo == null) {
-//            $snowflakeId = Unique::snowflake();
-//            try {
-//                $userExtInfoModel = UserExtInfoModel::create(array('uuid' => $snowflakeId, 'admin_id' => $userInfo['admin_id']));
-//                if (!$userExtInfoModel->id) {
-//                    throw new BusinessException(10001, trans('finance.user_add_error'));
-//                }
-//            } catch (\Throwable $ex) {
-//                //写入日志
-//                Log::getClient()->error($ex->getMessage());
-//                return [
-//                    'code' => 0,
-//                    'msg' => trans('common.error')
-//                ];
-//            }
-//        } else {
-//            $snowflakeId = $UserExtInfo->uuid;
-//        }
-
 
         if (!$UserExtInfo) {
             $data = [
@@ -470,7 +492,8 @@ class AccountingService extends BaseService
      * @return array
      */
 
-    public function bindUser($request_data)
+    public
+    function bindUser($request_data)
     {
         $rule = [
             'ext_info' => 'required|json',
