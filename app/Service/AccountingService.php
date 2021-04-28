@@ -284,7 +284,7 @@ class AccountingService extends BaseService
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
-            'shop_ip' => 'integer|filled',
+            'shop_id' => 'integer|filled',
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -306,8 +306,8 @@ class AccountingService extends BaseService
             $shopListInfoquery->where('title', 'like', '%' . $request_data['shop_name'] . '%');
         }
 
-        if (isset($request_data['id'])) {
-            $shopListInfoquery->where('id', 'like', '%' . $request_data['id'] . '%');
+        if (isset($request_data['shop_id'])) {
+            $shopListInfoquery->where('id', 'like', '%' . $request_data['shop_id'] . '%');
         }
 
         if ($userAdmin->is_master != 1) {
