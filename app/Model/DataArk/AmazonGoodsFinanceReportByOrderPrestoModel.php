@@ -1367,6 +1367,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['evaluation_fee_rate'] = '(' . $fields['evaluation_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
 
+        if (in_array('cpc_sp_cost', $targets)) {  //CPC_SP花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost) ";
+            } else {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
+        }
+        if (in_array('cpc_sd_cost', $targets)) {  //CPC_SD花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost) ";
+            } else {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
+        }
+
         if (in_array('cpc_cost', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_avg_click_cost', $targets) || in_array('cpc_acos', $targets)) {  //CPC花费
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['cpc_cost'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost ) ";
@@ -1573,6 +1588,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
+            $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'asin') {
             $fields['asin'] = "max(report.goods_asin)";
             $fields['image'] = 'max(report.goods_image)';
@@ -1587,6 +1604,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
             $fields['image'] = 'max(report.goods_image)';
@@ -1611,6 +1629,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         } else if ($datas['count_dimension'] == 'isku') {
             $fields['isku_id'] = 'max(report.goods_isku_id)';
         }else if ($datas['count_dimension'] == 'class1') {
@@ -2275,7 +2294,23 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
 
             }
-        } else if ($datas['time_target'] == 'cpc_cost') {  //CPC花费
+        } else if ($datas['time_target'] == 'cpc_sp_cost') {  //CPC SP 花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_cost  ) ";
+                $time_fields = $this->getTimeFields($time_line, 'report.byorder_cpc_cost');
+            } else {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE}  ) ";
+                $time_fields = $this->getTimeFields($time_line, ' report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE}  ');
+            }
+        }  else if ($datas['time_target'] == 'cpc_sd_cost') {  //CPC SD 花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_sd_cost  ) ";
+                $time_fields = $this->getTimeFields($time_line, 'report.byorder_cpc_sd_cost');
+            } else {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE}  ) ";
+                $time_fields = $this->getTimeFields($time_line, ' report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE}  ');
+            }
+        }  else if ($datas['time_target'] == 'cpc_cost') {  //CPC花费
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['count_total'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost ) ";
                 $time_fields = $this->getTimeFields($time_line, 'report.byorder_cpc_cost + report.byorder_cpc_sd_cost ');
@@ -3703,6 +3738,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
+        if (in_array('cpc_sp_cost', $targets)) {  //CPC_SP花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost) ";
+            } else {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
+        }
+        if (in_array('cpc_sd_cost', $targets)) {  //CPC_SD花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost) ";
+            } else {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
+        }
+
+
         if (in_array('cpc_cost', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_avg_click_cost', $targets) || in_array('cpc_acos', $targets)) {  //CPC花费
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['cpc_cost'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0) ) ";
@@ -4541,6 +4592,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else {
                 $fields['count_total'] = "SUM(report.bychannel_product_ads_payment_eventlist_charge / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_product_ads_payment_eventlist_refund / COALESCE(rates.rate ,1) * {:RATE})";
                 $time_fields = $this->getTimeFields($timeLine, 'report.bychannel_product_ads_payment_eventlist_charge / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_product_ads_payment_eventlist_refund / COALESCE(rates.rate ,1) * {:RATE} ');
+            }
+        } else if ($datas['time_target'] == 'cpc_sp_cost') {  //CPC SP 花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_cost  ) ";
+                $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost ');
+            } else {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE} ) ";
+                $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE} ');
+            }
+        } else if ($datas['time_target'] == 'cpc_sp_cost') {  //CPC SD 花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_sd_cost  ) ";
+                $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_sd_cost ');
+            } else {
+                $fields['count_total'] = " SUM ( report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE} ) ";
+                $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE} ');
             }
         } else if ($datas['time_target'] == 'cpc_cost') {  //CPC花费
             if ($datas['currency_code'] == 'ORIGIN') {

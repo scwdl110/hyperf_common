@@ -1015,6 +1015,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['evaluation_fee_rate'] = '(' . $fields['evaluation_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
 
+        if (in_array('cpc_sp_cost', $targets)) {  //CPC_SP花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost) ";
+            } else {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
+        }
+        if (in_array('cpc_sd_cost', $targets)) {  //CPC_SD花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost) ";
+            } else {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
+        }
+
         if (in_array('cpc_cost', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_avg_click_cost', $targets) || in_array('cpc_acos', $targets)) {  //CPC花费
             $fields['cpc_cost'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost ) ";
         }
@@ -1155,6 +1170,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
+            $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'asin') {
             $fields['asin'] = "max(report.goods_asin)";
             if($datas['is_distinct_channel'] == '1'){
@@ -1166,6 +1183,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
             if($datas['is_distinct_channel'] == '1'){
@@ -1185,6 +1203,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         } else if ($datas['count_dimension'] == 'isku') {
             $fields['isku_id'] = 'max(report.goods_isku_id)';
         }else if ($datas['count_dimension'] == 'class1') {
@@ -1793,6 +1812,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if (in_array('cpc_ad_settlement', $targets)) { //广告结款
             $fields['cpc_ad_settlement'] = "SUM(report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund)";
+        }
+
+        if (in_array('cpc_sp_cost', $targets)) {  //CPC_SP花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost) ";
+            } else {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
+        }
+        if (in_array('cpc_sd_cost', $targets)) {  //CPC_SD花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost) ";
+            } else {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost / COALESCE(rates.rate ,1) * {:RATE}) ";
+            }
         }
 
         if (in_array('cpc_cost', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_avg_click_cost', $targets) || in_array('cpc_acos', $targets)) {  //CPC花费
