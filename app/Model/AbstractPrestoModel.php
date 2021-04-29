@@ -32,6 +32,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $dryRun = false;
 
+    protected $logSql = false;
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
@@ -68,6 +70,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $this->logger->error('presto 数据库配置不存在', [$config]);
             throw new RuntimeException('Missing Presto connection config.');
         }
+
+        $this->logSql = $config['logSql'] ?? false;
 
         if ($this->table && strlen($this->table) - 1 === strrpos($this->table, '_')) {
             $this->table = $this->table . $this->dbhost;
@@ -178,6 +182,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
+        $this->logSql();
         if ($this->logDryRun()) {
             return [];
         }
@@ -327,5 +332,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         return false;
+    }
+
+    protected function logSql()
+    {
+        if ($this->logSql) {
+            $this->logger->info('Presto Sql: ' . $this->getLastSql());
+        }
     }
 }
