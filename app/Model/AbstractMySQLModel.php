@@ -212,10 +212,11 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         $where = is_array($where) ? $this->sqls($where) : $where;
 
         if ($group) {
+            $data = $data ?: '1';
             $result = $this->getOne(
                 '',
                 "COUNT(*) AS num",
-                "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group} ORDER BY null) AS tmp",
+                "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
                 '',
                 '',
                 $isCache,
