@@ -771,6 +771,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $goods_finance_md = new AmazonGoodsFinancePrestoModel($this->dbhost, $this->codeno);
         $goods_finance_md->dryRun(env('APP_TEST_RUNNING', false));
         $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
+        $this->logger->debug($goods_finance_md->getLastSql(), [$fbaData]) ;
         $fbaDatas = array() ;
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
