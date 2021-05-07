@@ -378,6 +378,8 @@ class Presto
             $this->logger->debug('presto status', [$stats]);
         }
 
+        $this->logger->debug('presto data', [$datas]);
+
         return $datas;
     }
 
