@@ -385,9 +385,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $group .= " having " . $having;
         }
 
-        $group = str_replace("{:RATE}", $exchangeCode, $group);
-        $where = str_replace("{:RATE}", $exchangeCode, $where);
-        $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $group = str_replace("{:RATE}", $exchangeCode, $group ?? '');
+        $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
+        $orderby = str_replace("{:RATE}", $exchangeCode, $orderby ?? '');
         $limit_num = 0 ;
         if($datas['show_type'] == 2 && $datas['limit_num'] > 0 ){
             $limit_num = $datas['limit_num'] ;
