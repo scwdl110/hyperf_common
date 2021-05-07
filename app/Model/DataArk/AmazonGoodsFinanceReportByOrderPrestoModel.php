@@ -72,7 +72,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $ym_where = ($datas['max_ym'] == $datas['min_ym']) ? ("report.ym = '" .$datas['max_ym'] ."'") : "report.ym >= '".$datas['min_ym']."' AND report.ym <= '" .$datas['max_ym'] ."'";
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "dwd.dwd_dataark_f_dw_goods_day_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report" ;
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "dwd.dwd_dataark_f_dw_goods_week_report_{$this->dbhost} AS report" ;
@@ -924,8 +924,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (in_array('goods_views_rate', $targets)) { //页面浏览次数百分比 (需要计算)
             //总流量次数
-            $table = "dwd.dwd_dataark_f_dw_goods_day_report_{$this->dbhost} AS report  LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
-            $where =$datas['origin_where'] .  " AND report.user_id_mod = " . ($datas['user_id'] % 20);
+            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report  LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
+            $where =   " report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
 
                 $total_views_numbers = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',"report.channel_id");
@@ -949,8 +949,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         if (in_array('goods_buyer_visit_rate', $targets)) { //买家访问次数百分比 （需要计算）
-            $table = "dwd.dwd_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
-            $where =$datas['origin_where'] .  " AND report.user_id_mod = " . ($datas['user_id'] % 20);
+            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
+            $where =  " report.user_id_mod = " . ($datas['user_id'] % 20) . " AND " . $datas['origin_where'] ;
 
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $total_user_sessions = $this->select($where." AND byorder_user_sessions>0", 'report.channel_id,SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
@@ -1674,8 +1674,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $time_fields = $this->getTimeFields($time_line, 'report.byorder_number_of_visits');
         } else if ($datas['time_target'] == 'goods_views_rate') { //页面浏览次数百分比 (需要计算)
             //总流量次数
-            $table = "dwd.dwd_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
-            $where =$datas['origin_where'] .  " AND report.user_id_mod = " . ($datas['user_id'] % 20);
+            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
+            $where = " report.user_id_mod = " . ($datas['user_id'] % 20) . " AND " . $datas['origin_where'] ;
 
 
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
@@ -1705,8 +1705,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
         } else if ($datas['time_target'] == 'goods_buyer_visit_rate') { //买家访问次数百分比 （需要计算）
-            $table = "dwd.dwd_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
-            $where =$datas['origin_where'] .  " AND report.user_id_mod = " . ($datas['user_id'] % 20);
+            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
+            $where =  " report.user_id_mod = " . ($datas['user_id'] % 20). ' AND ' . $datas['origin_where'];
 
 
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
@@ -2977,7 +2977,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $ym_where = ($params['max_ym'] == $params['min_ym']) ? ("report.ym = '" .$params['max_ym'] ."'") : "report.ym >= '".$params['min_ym']."' AND report.ym <= '" .$params['max_ym'] ."'";
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "dwd.dwd_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
+            $table = "dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $table = "dwd.dwd_dataark_f_dw_channel_week_report_{$this->dbhost} AS report" ;
@@ -5063,7 +5063,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
-            $table = "dwd.dwd_dataark_f_dw_operation_day_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_operation_day_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "dwd.dwd_dataark_f_dw_operation_week_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
