@@ -158,7 +158,7 @@ class DataArkController extends AbstractController
             $max_ym = date('Yn',$params['search_end_time']) ;
         } else {
             $ors = [];
-            foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type']) as $times) {
+            foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type'], $params['search_start_time'], $params['search_end_time']) as $times) {
 
                 $min_ym = empty($min_ym) ? date('Yn',$times['start']) : ($min_ym > date('Yn',$times['start']) ? date('Yn',$times['start']) : $min_ym) ;
                 $max_ym = empty($max_ym) ? date('Yn',$times['end']) : ($max_ym < date('Yn',$times['end']) ? date('Yn',$times['end']) : $max_ym) ;
@@ -229,11 +229,11 @@ class DataArkController extends AbstractController
         return $this->init(2);
     }
 
-    protected function getSiteLocalTime(array $siteIds, int $timeType = 99): array
+    protected function getSiteLocalTime(array $siteIds, int $timeType = 99, $startTime, $endTime): array
     {
         $result = [[
-            'end' => 0,
-            'start' => 0,
+            'end' => (int)$endTime,
+            'start' => (int)$startTime,
             'site_id' => '0',
         ]];
 
