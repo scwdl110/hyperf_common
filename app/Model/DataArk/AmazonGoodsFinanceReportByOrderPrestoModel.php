@@ -742,22 +742,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!is_array($datas['where_detail'])){
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
             }
-            if ($datas['where_detail']['group_id'] && !empty(trim($datas['where_detail']['group_id']))){
+            if (!empty($datas['where_detail']['group_id']) && !empty(trim($datas['where_detail']['group_id']))){
                 $where .= ' AND g.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
             }
-            if ($datas['where_detail']['transport_mode'] && !empty(trim($datas['where_detail']['transport_mode']))){
+            if (!empty($datas['where_detail']['transport_mode']) && !empty(trim($datas['where_detail']['transport_mode']))){
                 $where .= ' AND g."Transport_mode" = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
             }
-            if ($datas['where_detail']['is_care'] && !empty(trim($datas['where_detail']['is_care']))){
+            if (!empty($datas['where_detail']['is_care']) && !empty(trim($datas['where_detail']['is_care']))){
                 $where .= ' AND g.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
             }
-            if ($datas['where_detail']['tag_id'] && !empty(trim($datas['where_detail']['tag_id']))){
+            if (!empty($datas['where_detail']['tag_id']) && !empty(trim($datas['where_detail']['tag_id']))){
                 if ($datas['count_dimension'] != 'tags'){
                     $table .= "  LEFT JOIN ods.ods_dataark_g_amazon_goods_tags_rel_{$this->dbhost} AS rel ON g.g_amazon_goods_id = rel.goods_id ";
                 }
                 $where .=' AND rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
             }
-            if ($datas['where_detail']['operators_id'] && !empty(trim($datas['where_detail']['operators_id']))){
+            if (!empty($datas['where_detail']['operators_id']) && !empty(trim($datas['where_detail']['operators_id']))){
 
                 $table .= "  LEFT JOIN ods.ods_dataark_b_channel AS c ON g.channel_id = c.id  ";
 
