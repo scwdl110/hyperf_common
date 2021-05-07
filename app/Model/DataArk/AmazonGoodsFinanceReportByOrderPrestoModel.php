@@ -801,34 +801,34 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         foreach($lists as $k=>$list2){
             if($datas['count_dimension'] == 'sku'){
                 if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['sku'] . '-' . $list2['channel_id']];
+                    $fba_data = empty($fbaDatas[$list2['sku'] . '-' . $list2['channel_id']]) ? array() : $fbaDatas[$list2['sku'] . '-' . $list2['channel_id']];
                 }else{
-                    $fba_data = $fbaDatas[$list2['sku']];
+                    $fba_data = empty($fbaDatas[$list2['sku']]) ? array() : $fbaDatas[$list2['sku']];
                 }
             }else if($datas['count_dimension'] == 'asin'){
                 if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['asin'] . '-' . $list2['channel_id']];
+                    $fba_data = empty($fbaDatas[$list2['asin'] . '-' . $list2['channel_id']]) ? array() : $fbaDatas[$list2['asin'] . '-' . $list2['channel_id']];
                 }else{
-                    $fba_data = $fbaDatas[$list2['asin']];
+                    $fba_data = empty($fbaDatas[$list2['asin']]) ? array() : $fbaDatas[$list2['asin']];
                 }
             }else if($datas['count_dimension'] == 'parent_asin'){
                 if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['parent_asin'] . '-' . $list2['channel_id']];
+                    $fba_data = empty($fbaDatas[$list2['parent_asin'] . '-' . $list2['channel_id']]) ? array() : $fbaDatas[$list2['parent_asin'] . '-' . $list2['channel_id']];
                 }else{
-                    $fba_data = $fbaDatas[$list2['parent_asin']];
+                    $fba_data = empty($fbaDatas[$list2['parent_asin']]) ? array() : $fbaDatas[$list2['parent_asin']];
                 }
             }else if($datas['count_dimension'] == 'class1'){
-                $fba_data = $fbaDatas[$list2['class1']] ;
+                $fba_data = empty($fbaDatas[$list2['class1']]) ? array() :  $fbaDatas[$list2['class1']];
             }else if($datas['count_dimension'] == 'group'){
-                $fba_data = $fbaDatas[$list2['group_id']] ;
+                $fba_data = empty($fbaDatas[$list2['group_id']]) ? array() :  $fbaDatas[$list2['group_id']];
             }else if($datas['count_dimension'] == 'tags'){  //标签（需要刷数据）
-                $fba_data = $fbaDatas[$list2['tags_id']] ;
+                $fba_data = empty($fbaDatas[$list2['tags_id']]) ? array() :  $fbaDatas[$list2['tags_id']];
             }else if($datas['count_dimension'] == 'head_id'){
-                $fba_data = $fbaDatas[$list2['head_id']] ;
+                $fba_data = empty($fbaDatas[$list2['head_id']]) ? array() : $fbaDatas[$list2['head_id']] ;
             }else if($datas['count_dimension'] == 'developer_id'){
-                $fba_data = $fbaDatas[$list2['developer_id']] ;
+                $fba_data = empty($fbaDatas[$list2['developer_id']]) ? array() : $fbaDatas[$list2['developer_id']] ;
             }else if($datas['count_dimension'] == 'isku'){
-                $fba_data = $fbaDatas[$list2['isku_id']] ;
+                $fba_data = empty($fbaDatas[$list2['isku_id']]) ? array() : $fbaDatas[$list2['isku_id']] ;
             }
 
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
