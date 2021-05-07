@@ -922,16 +922,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_views_number'] = " SUM ( report.byorder_number_of_visits ) ";
         }
 
-        if (in_array('goods_views_rate', $targets)) { //页面浏览次数百分比 (需要计算)
-            //总流量次数
-            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report  LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
+        if(in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)){
+            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report ";
             $where =   " report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',"report.channel_id");
-                if (!empty($total_views_numbers)){
+                 $totals_view_session_lists = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
+            }else{
+                $total_views_session_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table);
+            }
+        }
+        if (in_array('goods_views_rate', $targets)) { //页面浏览次数百分比 (需要计算)
+            //总流量次数
+            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
+                if (!empty($totals_view_session_lists)){
                     $case = " CASE ";
-                    foreach ($total_views_numbers as $total_views_numbers_list){
+                    foreach ($totals_view_session_lists as $total_views_numbers_list){
                         $case .=  " WHEN max(report.channel_id) = " . $total_views_numbers_list['channel_id']." THEN SUM ( report.byorder_number_of_visits ) / round( " . $total_views_numbers_list['total_views_number'].",2) ";
                     }
                     $case .= "ELSE 0 END";
@@ -940,23 +945,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fields['goods_views_rate'] = 0 ;
                 }
             }else{
-                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
-                if (!empty($total_views_numbers) && intval($total_views_numbers['total_views_number']) > 0) {
-                    $fields['goods_views_rate'] = " SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_numbers['total_views_number']) .' , 2)';
+                if (!empty($total_views_session_numbers) && intval($total_views_session_numbers['total_views_number']) > 0) {
+                    $fields['goods_views_rate'] = " SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_session_numbers['total_views_number']) .' , 2)';
                 }else{
                     $fields['goods_views_rate'] = 0 ;
                 }
             }
         }
         if (in_array('goods_buyer_visit_rate', $targets)) { //买家访问次数百分比 （需要计算）
-            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
-            $where =  " report.user_id_mod = " . ($datas['user_id'] % 20) . " AND " . $datas['origin_where'] ;
-
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions>0", 'report.channel_id,SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
-                if (!empty($total_user_sessions)){
+                if (!empty($totals_view_session_lists)){
                     $case = " CASE ";
-                    foreach ($total_user_sessions as $total_user_sessions_list){
+                    foreach ($totals_view_session_lists as $total_user_sessions_list){
                         $case .=  " WHEN max(report.channel_id) = " . $total_user_sessions_list['channel_id']." THEN SUM ( report.byorder_user_sessions ) / round(" . $total_user_sessions_list['total_user_sessions'].",2)";
                     }
                     $case .= " ELSE 0 END";
@@ -965,9 +965,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fields['goods_buyer_visit_rate'] = 0 ;
                 }
             }else{
-                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
-                if (!empty($total_user_sessions) && intval($total_user_sessions['total_user_sessions']) > 0) {
-                    $fields['goods_buyer_visit_rate'] = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_user_sessions['total_user_sessions']).',2)';
+                if (!empty($total_views_session_numbers) && intval($total_views_session_numbers['total_user_sessions']) > 0) {
+                    $fields['goods_buyer_visit_rate'] = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_views_session_numbers['total_user_sessions']).',2)';
                 }else{
                     $fields['goods_buyer_visit_rate'] =0 ;
                 }
@@ -1657,6 +1656,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fields = $this->getGoodsTheSameFields($datas,$fields);
 
         $time_fields = [];
+
+        if($datas['time_target'] == 'goods_views_rate' || $datas['time_target'] == 'goods_buyer_visit_rate'){
+            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report ";
+            $where =   " report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
+                $totals_view_session_lists = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
+            }else{
+                $total_views_session_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table);
+            }
+        }
+
         if ($datas['time_target'] == 'goods_visitors') {  // 买家访问次数
             $fields['count_total'] = "SUM(report.byorder_user_sessions)";
             $time_fields = $this->getTimeFields($time_line, 'report.byorder_user_sessions');
@@ -1673,17 +1683,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['count_total'] = "SUM(report.byorder_number_of_visits)";
             $time_fields = $this->getTimeFields($time_line, 'report.byorder_number_of_visits');
         } else if ($datas['time_target'] == 'goods_views_rate') { //页面浏览次数百分比 (需要计算)
-            //总流量次数
-            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
-            $where = " report.user_id_mod = " . ($datas['user_id'] % 20) . " AND " . $datas['origin_where'] ;
-
 
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',"report.channel_id");
-                if (!empty($total_views_numbers)){
+                if (!empty($totals_view_session_lists)){
                     $case = "CASE ";
-                    foreach ($total_views_numbers as $total_views_numbers_list){
+                    foreach ($totals_view_session_lists as $total_views_numbers_list){
                         $case .=  " WHEN max(report.channel_id) = " . $total_views_numbers_list['channel_id']." THEN SUM ( report.byorder_number_of_visits ) / round(" . $total_views_numbers_list['total_views_number'].",2) ";
                     }
                     $case .= " ELSE 0 END";
@@ -1695,26 +1699,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
 
             }else{
-                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
-                if (!empty($total_views_numbers) && intval($total_views_numbers['total_views_number']) > 0) {
-                    $fields['count_total'] = "SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_numbers['total_views_number']) .',2)';
-                    $time_fields = $this->getTimeFields($time_line, "  report.byorder_number_of_visits  / round(" . intval($total_views_numbers['total_views_number']).',2)');
+                if (!empty($total_views_session_numbers) && intval($total_views_session_numbers['total_views_number']) > 0) {
+                    $fields['count_total'] = "SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_session_numbers['total_views_number']) .',2)';
+                    $time_fields = $this->getTimeFields($time_line, "  report.byorder_number_of_visits  / round(" . intval($total_views_session_numbers['total_views_number']).',2)');
                 } else {
                     $fields['count_total'] = 0;
                     $time_fields = $this->getTimeFields($time_line, 0);
                 }
             }
         } else if ($datas['time_target'] == 'goods_buyer_visit_rate') { //买家访问次数百分比 （需要计算）
-            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report LEFT JOIN ods.ods_dataark_f_amazon_goods_finance_001 AS goods ON goods.db_num='{$this->dbhost}' AND report.amazon_goods_id = goods.id ";
-            $where =  " report.user_id_mod = " . ($datas['user_id'] % 20). ' AND ' . $datas['origin_where'];
-
-
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions>0", 'report.channel_id,SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
-                if (!empty($total_user_sessions)){
+                if (!empty($totals_view_session_lists)){
                     $case = "CASE ";
-                    foreach ($total_user_sessions as $total_user_sessions_list){
+                    foreach ($totals_view_session_lists as $total_user_sessions_list){
                         $case .=  " WHEN max(report.channel_id) = " . $total_user_sessions_list['channel_id']." THEN SUM ( report.byorder_user_sessions ) / round(" . $total_user_sessions_list['total_user_sessions'].",2)";
                     }
                     $case .= " ELSE 0 END";
@@ -1726,10 +1723,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($time_line, 0);
                 }
             }else{
-                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
-                if (!empty($total_user_sessions) && intval($total_user_sessions['total_user_sessions']) > 0) {
-                    $fields['count_total'] = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_user_sessions['total_user_sessions']) .",2)";
-                    $time_fields = $this->getTimeFields($time_line, " report.byorder_user_sessions  / round(" . intval($total_user_sessions['total_user_sessions']).",2)");
+                if (!empty($total_views_session_numbers) && intval($total_views_session_numbers['total_user_sessions']) > 0) {
+                    $fields['count_total'] = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_views_session_numbers['total_user_sessions']) .",2)";
+                    $time_fields = $this->getTimeFields($time_line, " report.byorder_user_sessions  / round(" . intval($total_views_session_numbers['total_user_sessions']).",2)");
                 } else {
                     $fields['count_total'] = 0;
                     $time_fields = $this->getTimeFields($time_line, 0);
