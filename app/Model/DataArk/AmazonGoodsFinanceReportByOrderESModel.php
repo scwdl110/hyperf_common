@@ -2147,7 +2147,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $where .= " AND report.goods_operation_user_admin_id > 0";
 
         if (!empty($where_detail)) {
-            $target_wheres = $where_detail['target'];
+            $target_wheres = $where_detail['target'] ?? '';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     if(!empty($fields[$target_where['key']])){

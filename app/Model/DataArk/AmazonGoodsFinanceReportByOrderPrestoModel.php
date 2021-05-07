@@ -328,9 +328,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if(!empty($where_detail['is_new'])){
                 $where.= " AND report.goods_is_new = " . (intval($where_detail['is_new']) == 1 ? 1 : 0 );
             }
-            if(!empty($where_detail['is_new'])){
-
-            }
             if (!empty($where_detail['group_id'])) {
                 if(is_array($where_detail['group_id'])){
                     $group_str = implode(',', $where_detail['group_id']);
@@ -771,7 +768,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $goods_finance_md = new AmazonGoodsFinancePrestoModel($this->dbhost, $this->codeno);
         $goods_finance_md->dryRun(env('APP_TEST_RUNNING', false));
         $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
-        $this->logger->debug($goods_finance_md->getLastSql(), [$fbaData]) ;
         $fbaDatas = array() ;
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
@@ -5108,7 +5104,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where .= " AND report.goods_operation_user_admin_id > 0";
 
         if (!empty($where_detail)) {
-            $target_wheres = $where_detail['target'];
+            $target_wheres = empty($where_detail['target']) ? array() : $where_detail['target'];
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     if(!empty($fields[$target_where['key']])){
