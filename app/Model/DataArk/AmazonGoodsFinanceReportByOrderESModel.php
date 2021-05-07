@@ -268,8 +268,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $where .= ' AND report."goods_Transport_mode" = ' . ($transport_modes[0] == 'FBM' ? 1 : 2);
                 }
             }
-            if(!empty($where_detail['is_care'])){
-                $where.= " AND report.goods_is_care = " . (intval($where_detail['is_care']) == 1 ? 1 : 0 );
+            if(!empty($where_detail['up_status'])){
+                $where.= " AND report.goods_up_status = " . (intval($where_detail['up_status']) == 1 ? 1 : 2 );
             }
             if(!empty($where_detail['is_new'])){
                 $where.= " AND report.goods_is_new = " . (intval($where_detail['is_new']) == 1 ? 1 : 0 );
