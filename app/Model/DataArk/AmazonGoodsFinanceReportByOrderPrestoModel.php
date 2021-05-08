@@ -4,6 +4,7 @@ namespace App\Model\DataArk;
 
 use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
+use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
@@ -5161,8 +5162,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->select($where, $field_data, $table, $limit);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                //$logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
-                //$logger->info('request body', [$this->getLastSql() , $where , $field_data ]);
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('request body', [$this->getLastSql() , $where , $field_data ]);
             }
             if (empty($lists)) {
                 $count = 0;
