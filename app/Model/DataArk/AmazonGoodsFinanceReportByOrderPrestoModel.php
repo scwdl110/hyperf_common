@@ -414,8 +414,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['is_count'] == 1){
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 $lists = $this->select($where, $field_data, $table);
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('getListByGoods Request', [$this->getLastSql()]);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
@@ -3227,8 +3231,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($params['is_count'] == 1){
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 $lists = $this->select($where, $field_data, $table, $limit);
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('getListByUnGoods Request', [$this->getLastSql()]);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
                 }
@@ -5160,10 +5168,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['is_count'] == 1){
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 $lists = $this->select($where, $field_data, $table, $limit);
-                //$logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
-                //$logger->info('Total Request', [$this->getLastSql()]);
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('getListByOperators Total Request', [$this->getLastSql()]);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('getListByOperators Request', [$this->getLastSql()]);
             }
             if (empty($lists)) {
                 $count = 0;
