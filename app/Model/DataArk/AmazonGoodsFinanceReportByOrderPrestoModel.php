@@ -5160,10 +5160,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['is_count'] == 1){
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 $lists = $this->select($where, $field_data, $table, $limit);
+                //$logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                //$logger->info('Total Request', [$this->getLastSql()]);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
-                $logger->info('request body', [$this->getLastSql() , $where , $field_data ]);
             }
             if (empty($lists)) {
                 $count = 0;
