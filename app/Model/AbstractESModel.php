@@ -10,7 +10,6 @@ use Hyperf\Contract\ConfigInterface;
 use App\Lib\Elasticsearch;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 abstract class AbstractESModel implements BIModelInterface
 {
@@ -44,7 +43,7 @@ abstract class AbstractESModel implements BIModelInterface
         $this->logger = $logger;
 
         if ('' === $dbhost) {
-            $userInfo = $container->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
+            $userInfo = \app\getUserInfo();
             $dbhost = $userInfo['dbhost'] ?? '';
             $codeno = $userInfo['codeno'] ?? '';
         }

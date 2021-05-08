@@ -7,7 +7,6 @@ use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
 {
@@ -28,7 +27,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         $this->logger = $logger;
 
         if ('' === $dbhost) {
-            $userInfo = ApplicationContext::getContainer()->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
+            $userInfo = \app\getUserInfo();
             $dbhost = $userInfo['dbhost'] ?? '';
             $codeno = $userInfo['codeno'] ?? '';
         }

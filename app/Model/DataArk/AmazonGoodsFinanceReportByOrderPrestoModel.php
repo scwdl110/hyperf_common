@@ -9,7 +9,7 @@ use Hyperf\Utils\ApplicationContext;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
-    protected $table = 'ods.ods_dataark_f_amazon_goods_finance_report_by_order_001';
+    protected $table = 'table_amazon_goods_finance_report_by_order';
 
     /**
      * 获取商品维度统计列表(新增统计维度完成)
@@ -74,17 +74,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $ym_where = ($datas['max_ym'] == $datas['min_ym']) ? ("report.ym = '" .$datas['max_ym'] ."'") : "report.ym >= '".$datas['min_ym']."' AND report.ym <= '" .$datas['max_ym'] ."'";
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_goods_day_report} AS report" ;
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
-            $table = "dws.dws_dataark_f_dw_goods_week_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_goods_week_report} AS report" ;
             $where = $ym_where   . (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
             $where = $ym_where . (empty($where) ? "" : " AND " . $where) ;
-            $table = "dws.dws_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_goods_month_report} AS report" ;
         }else if($datas['cost_count_type'] == 2 ){
             $where = $ym_where .  (empty($where) ? "" : " AND " . $where) ;
-            $table = "dws.dws_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_goods_month_report} AS report" ;
         }else{
             return [];
         }
@@ -93,9 +93,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if ($datas['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
             } else {
-                $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
             }
         }
 
@@ -206,7 +206,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where .= " AND report.goods_product_category_name_1 != ''";
 
         } else if($datas['count_dimension'] == 'tags'){
-            $table.= " LEFT JOIN ods.ods_dataark_g_amazon_goods_tags_rel_{$this->dbhost} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id and  tags_rel.status = 1 LEFT JOIN ods.ods_dataark_g_amazon_goods_tags_{$this->dbhost} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.status = 1" ;
+            $table.= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id and  tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.status = 1" ;
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
                     $group = 'tags_rel.tags_id  , report.myear , report.mmonth  , report.mday';
@@ -352,7 +352,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             if (!empty($where_detail['tag_id'])) {
                 if (strpos($group, 'tags_rel.tags_id') === false) {
-                    $table .= " LEFT JOIN ods.ods_dataark_g_amazon_goods_tags_rel_{$this->dbhost} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id LEFT JOIN ods.ods_dataark_g_amazon_goods_tags_{$this->dbhost} AS gtags ON gtags.id = tags_rel.tags_id";
+                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id";
                 }
                 if(is_array($where_detail['group_id'])){
                     $tag_str = implode(',', $where_detail['tag_id']);
@@ -626,7 +626,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
                 }
             }
-            $table = "ods.ods_dataark_f_amazon_goods_finance_001 as g " ;
+            $table = "{$this->table_amazon_goods_finance} as g " ;
             if($datas['count_dimension'] == 'sku'){
                 if($datas['is_distinct_channel'] == 1){
                     $fba_fields = $group = 'g.sku , g.channel_id' ;
@@ -653,13 +653,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_fields = $group = 'g.group_id ,g.fba_inventory_v3_id' ;
             }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
                 $fba_fields = $group = 'rel.tags_id,g.fba_inventory_v3_id' ;
-                $table .= "  LEFT JOIN ods.ods_dataark_g_amazon_goods_tags_rel_{$this->dbhost} AS rel ON g.g_amazon_goods_id = rel.goods_id ";
+                $table .= "  LEFT JOIN {$this->table_amazon_goods_tags_rel} AS rel ON g.g_amazon_goods_id = rel.goods_id ";
             }else if($datas['count_dimension'] == 'head_id') { //负责人
                 $fba_fields = $group = 'i.head_id ,g.fba_inventory_v3_id' ;
-                $table .= "  LEFT JOIN ods.ods_dataark_f_amazon_goods_isku_001 AS i ON i.db_num='{$this->dbhost}' AND g.isku_id = i.id  ";
+                $table .= "  LEFT JOIN {$this->table_amazon_goods_isku} AS i ON i.db_num='{$this->dbhost}' AND g.isku_id = i.id  ";
             }else if($datas['count_dimension'] == 'developer_id') { //开发人员
                 $fba_fields = $group = 'i.developer_id ,g.fba_inventory_v3_id' ;
-                $table .= "  LEFT JOIN ods.ods_dataark_f_amazon_goods_isku_001 AS i ON i.db_num='{$this->dbhost}' AND g.isku_id = i.id  ";
+                $table .= "  LEFT JOIN {$this->table_amazon_goods_isku} AS i ON i.db_num='{$this->dbhost}' AND g.isku_id = i.id  ";
             }
 
             $where_arr = array() ;
@@ -752,13 +752,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if (!empty($datas['where_detail']['tag_id']) && !empty(trim($datas['where_detail']['tag_id']))){
                 if ($datas['count_dimension'] != 'tags'){
-                    $table .= "  LEFT JOIN ods.ods_dataark_g_amazon_goods_tags_rel_{$this->dbhost} AS rel ON g.g_amazon_goods_id = rel.goods_id ";
+                    $table .= "  LEFT JOIN {$this->table_amazon_goods_tags_rel} AS rel ON g.g_amazon_goods_id = rel.goods_id ";
                 }
                 $where .=' AND rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
             }
             if (!empty($datas['where_detail']['operators_id']) && !empty(trim($datas['where_detail']['operators_id']))){
 
-                $table .= "  LEFT JOIN ods.ods_dataark_b_channel AS c ON g.channel_id = c.id  ";
+                $table .= "  LEFT JOIN {$this->table_channel} AS c ON g.channel_id = c.id  ";
 
                 $where .=' AND (g.operation_user_admin_id IN (' .  trim($datas['where_detail']['operators_id']) . ' ) OR c.operation_user_admin_id IN (' .  trim($datas['where_detail']['operators_id']) . ' ) )';
             }
@@ -922,7 +922,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if(in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)){
-            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report ";
+            $table = "{$this->table_goods_day_report} AS report ";
             if($datas['min_ym'] == $datas['max_ym']){
                 $where  = "report.ym = '" . $datas['min_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
             }else{
@@ -1662,7 +1662,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $time_fields = [];
 
         if($datas['time_target'] == 'goods_views_rate' || $datas['time_target'] == 'goods_buyer_visit_rate'){
-            $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report ";
+            $table = "{$this->table_goods_day_report} AS report ";
             if($datas['min_ym'] == $datas['max_ym']){
                 $where  = "report.ym = '" . $datas['min_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
             }else{
@@ -2981,21 +2981,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $ym_where = ($params['max_ym'] == $params['min_ym']) ? ("report.ym = '" .$params['max_ym'] ."'") : "report.ym >= '".$params['min_ym']."' AND report.ym <= '" .$params['max_ym'] ."'";
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
+            $table = "{$this->table_channel_day_report} AS report";
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
-            $table = "dws.dws_dataark_f_dw_channel_week_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_channel_week_report} AS report" ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
-            $table = "dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report" ;
         }else if($params['cost_count_type'] == 2 ){
-            $table = "dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report" ;
         } else {
             return [];
         }
 
         //部门维度统计
         if ($params['count_dimension'] == 'department') {
-            $table .= " LEFT JOIN dim.dim_dataark_b_department_channel as dc ON dc.user_id = report.user_id AND dc.channel_id = report.channel_id  LEFT JOIN ods.ods_dataark_b_user_department as ud ON ud.id = dc.user_department_id ";
+            $table .= " LEFT JOIN {$this->table_department_channel} as dc ON dc.user_id = report.user_id AND dc.channel_id = report.channel_id  LEFT JOIN {$this->table_user_department} as ud ON ud.id = dc.user_department_id ";
             $where .= " AND ud.status < 3";
             $admin_info = UserAdminModel::query()->select('is_master', 'is_responsible', 'user_department_id')->where('user_id', 304)->where('id', 400)->first();
             if($admin_info['is_master'] != 1){
@@ -3028,7 +3028,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where .= " AND dc.level IN (".implode(',' ,$level_where ).")" ;
             }
         }else if($params['count_dimension'] == 'admin_id'){
-            $table .= " LEFT JOIN dim.dim_dataark_b_user_channel as uc ON uc.user_id = report.user_id AND uc.channel_id = report.channel_id ";
+            $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = report.user_id AND uc.channel_id = report.channel_id ";
             $where .= " AND uc.status = 1 AND uc.is_master = 0 ";
         }
 
@@ -3050,9 +3050,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if ($params['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
             } else {
-                $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id ";
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id ";
             }
         }
 
@@ -4891,7 +4891,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if(empty($lists)){
             return $lists ;
         } else {
-            $table = "ods.ods_dataark_f_amazon_fba_inventory_by_channel_{$this->dbhost} as c";
+            $table = "{$this->table_amazon_fba_inventory_by_channel} as c";
             $where = 'c.user_id = ' . $lists[0]['user_id'];
             if (!empty($channel_arr)){
                 if (count($channel_arr)==1){
@@ -4906,10 +4906,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_fields = $group = 'c.site_id' ;
             }else if($datas['count_dimension'] == 'department') { //部门
                 $fba_fields = $group = 'dc.user_department_id ,c.area_id' ;
-                $table .= " LEFT JOIN dim.dim_dataark_b_department_channel as dc ON dc.user_id = c.user_id and dc.channel_id = c.channel_id " ;
+                $table .= " LEFT JOIN {$this->table_department_channel} as dc ON dc.user_id = c.user_id and dc.channel_id = c.channel_id " ;
             }else if($datas['count_dimension'] == 'admin_id'){ //子账号
                 $fba_fields = $group = 'uc.admin_id , c.area_id' ;
-                $table .= " LEFT JOIN dim.dim_dataark_b_user_channel as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
+                $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
             }
             $where_arr = array() ;
             foreach($lists as $list1){
@@ -4925,9 +4925,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if ($datas['currency_code'] != 'ORIGIN') {
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
+                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
                 } else {
-                    $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  ";
+                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  ";
                 }
             }
 
@@ -5067,13 +5067,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
-            $table = "dws.dws_dataark_f_dw_operation_day_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_operation_day_report} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
-            $table = "dws.dws_dataark_f_dw_operation_week_report_{$this->dbhost} AS report" ;
+            $table = "{$this->table_operation_week_report} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $table = "dws.dws_dataark_f_dw_operation_month_report_{$this->dbhost} AS report";
+            $table = "{$this->table_operation_month_report} AS report";
         }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
-            $table = "dws.dws_dataark_f_dw_operation_month_report_{$this->dbhost} AS report";
+            $table = "{$this->table_operation_month_report} AS report";
         } else {
             return [];
         }
@@ -5090,9 +5090,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if ($datas['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
             } else {
-                $table .= " LEFT JOIN ods.ods_dataark_b_site_rate as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
             }
         }
         if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
