@@ -169,7 +169,6 @@ class DataArkController extends AbstractController
                     (int)$times['end']
                 );
             }
-
             if (empty($ors)) {
                 return Result::success($result);
             }

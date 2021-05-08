@@ -4,6 +4,7 @@ namespace App\Model\DataArk;
 
 use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
+use Hyperf\Utils\ApplicationContext;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
@@ -75,14 +76,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report" ;
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
-            $table = "dwd.dwd_dataark_f_dw_goods_week_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_goods_week_report_{$this->dbhost} AS report" ;
             $where = $ym_where   . (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
             $where = $ym_where . (empty($where) ? "" : " AND " . $where) ;
-            $table = "dwd.dwd_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
         }else if($datas['cost_count_type'] == 2 ){
             $where = $ym_where .  (empty($where) ? "" : " AND " . $where) ;
-            $table = "dwd.dwd_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_goods_month_report_{$this->dbhost} AS report" ;
         }else{
             return [];
         }
@@ -921,7 +922,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if(in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)){
             $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report ";
-            $where =   " report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            if($datas['min_ym'] == $datas['max_ym']){
+                $where  = "report.ym = '" . $datas['min_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            }else{
+                $where  = "report.ym >= '" . $datas['min_ym'] . "' AND report.ym <= '" .$datas['max_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            }
+
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                  $totals_view_session_lists = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
             }else{
@@ -1656,7 +1662,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if($datas['time_target'] == 'goods_views_rate' || $datas['time_target'] == 'goods_buyer_visit_rate'){
             $table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report ";
-            $where =   " report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            if($datas['min_ym'] == $datas['max_ym']){
+                $where  = "report.ym = '" . $datas['min_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            }else{
+                $where  = "report.ym >= '" . $datas['min_ym'] . "' AND report.ym <= '" .$datas['max_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            }
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $totals_view_session_lists = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
             }else{
@@ -2973,11 +2983,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = "dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
-            $table = "dwd.dwd_dataark_f_dw_channel_week_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_channel_week_report_{$this->dbhost} AS report" ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
-            $table = "dwd.dwd_dataark_f_dw_channel_month_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} AS report" ;
         }else if($params['cost_count_type'] == 2 ){
-            $table = "dwd.dwd_dataark_f_dw_channel_month_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} AS report" ;
         } else {
             return [];
         }
@@ -5058,11 +5068,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
             $table = "dws.dws_dataark_f_dw_operation_day_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
-            $table = "dwd.dwd_dataark_f_dw_operation_week_report_{$this->dbhost} AS report" ;
+            $table = "dws.dws_dataark_f_dw_operation_week_report_{$this->dbhost} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $table = "dwd.dwd_dataark_f_dw_operation_month_report_{$this->dbhost} AS report";
+            $table = "dws.dws_dataark_f_dw_operation_month_report_{$this->dbhost} AS report";
         }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
-            $table = "dwd.dwd_dataark_f_dw_operation_month_report_{$this->dbhost} AS report";
+            $table = "dws.dws_dataark_f_dw_operation_month_report_{$this->dbhost} AS report";
         } else {
             return [];
         }
@@ -5151,7 +5161,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->select($where, $field_data, $table, $limit);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-
+                //$logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                //$logger->info('request body', [$this->getLastSql() , $where , $field_data ]);
             }
             if (empty($lists)) {
                 $count = 0;
