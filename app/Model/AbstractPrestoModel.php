@@ -7,7 +7,6 @@ use RuntimeException;
 use App\Lib\Presto;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use GuzzleHttp\ClientInterface;
 
 use Hyperf\Utils\ApplicationContext;
@@ -16,6 +15,31 @@ use Hyperf\Logger\LoggerFactory;
 
 abstract class AbstractPrestoModel implements BIModelInterface
 {
+    protected static $tableMaps = [
+        'table_channel' => 'ods.ods_dataark_b_channel',
+        'table_site_rate' => 'ods.ods_dataark_b_site_rate',
+        'table_user_department' => 'ods.ods_dataark_b_user_department',
+        'table_amazon_goods_isku' => 'ods.ods_dataark_f_amazon_goods_isku_001',
+        'table_amazon_goods_finance' => 'ods.ods_dataark_f_amazon_goods_finance_001',
+        'table_amazon_goods_tags' => 'ods.ods_dataark_g_amazon_goods_tags_001',
+        'table_amazon_goods_tags_rel' => 'ods.ods_dataark_g_amazon_goods_tags_rel_001',
+        'table_amazon_fba_inventory_by_channel' => 'ods.ods_dataark_f_amazon_fba_inventory_by_channel_001',
+        'table_amazon_goods_finance_report_by_order' => 'ods.ods_dataark_f_amazon_goods_finance_report_by_order_001',
+
+        'table_user_channel' => 'dim.dim_dataark_b_user_channel',
+        'table_department_channel' => 'dim.dim_dataark_b_department_channel',
+
+        'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST}' ,
+        'table_channel_day_report' => 'dws.dws_dataark_f_dw_channel_day_report_{DBHOST}',
+        'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_week_report_{DBHOST}' ,
+        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DBHOST}' ,
+        'table_channel_week_report' => 'dws.dws_dataark_f_dw_channel_week_report_{DBHOST}' ,
+        'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_{DBHOST}' ,
+        'table_operation_day_report' => 'dws.dws_dataark_f_dw_operation_day_report_{DBHOST}' ,
+        'table_operation_week_report' => 'dws.dws_dataark_f_dw_operation_week_report_{DBHOST}',
+        'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_{DBHOST}',
+    ];
+
     protected $dbhost = '001';
 
     protected $codeno = '001';
@@ -47,7 +71,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $this->logger = $logger;
 
         if ('' === $dbhost) {
-            $userInfo = $container->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
+            $userInfo = \app\getUserInfo();
             $dbhost = $userInfo['dbhost'] ?? '';
             $codeno = $userInfo['codeno'] ?? '';
         }
@@ -73,8 +97,15 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         $this->logSql = $config['logSql'] ?? false;
 
-        if ($this->table && strlen($this->table) - 1 === strrpos($this->table, '_')) {
-            $this->table = $this->table . $this->dbhost;
+        if ($this->table) {
+            $tableName = $this->__get($this->table);
+            if ($tableName) {
+                $this->table = $tableName;
+            } else {
+                if (strlen($this->table) - 1 === strrpos($this->table, '_')) {
+                    $this->table = $this->table . $this->dbhost;
+                }
+            }
         }
 
         $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
@@ -340,5 +371,19 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if ($this->logSql) {
             $this->logger->info('Presto Sql: ' . $this->getLastSql());
         }
+    }
+
+    public function __get(string $name)
+    {
+        if (array_key_exists($name, self::$tableMaps)) {
+            $tableName = self::$tableMaps[$name];
+            if (false !== strpos($tableName, '{DBHOST}')) {
+                $tableName = strtr($tableName, ['{DBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
+            }
+
+            return $tableName;
+        }
+
+        return strpos($name, 'table_') === 0 ? '' : null;
     }
 }

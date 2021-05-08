@@ -4,6 +4,7 @@ namespace App;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Utils\ApplicationContext;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * 获得所有站点的时间控件选定的时间范
@@ -481,4 +482,14 @@ function getAmazonSitesConfig(): array
 
     // 对于获取不到配置的，返回空数组或上一次的配置
     return $sites;
+}
+
+/**
+ * 获取用户信息
+ *
+ * @return array
+ */
+function getUserInfo(): array
+{
+    return ApplicationContext::getContainer()->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
 }

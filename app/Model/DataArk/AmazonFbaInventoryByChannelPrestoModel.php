@@ -6,5 +6,5 @@ use App\Model\AbstractPrestoModel;
 
 class AmazonFbaInventoryByChannelPrestoModel extends AbstractPrestoModel
 {
-    protected $table = 'ods.ods_dataark_f_amazon_fba_inventory_by_channel_';
+    protected $table = 'table_amazon_fba_inventory_by_channel';
 }
