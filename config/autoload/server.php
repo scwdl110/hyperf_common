@@ -40,7 +40,7 @@ return [
         'max_request' => 100000,
         'socket_buffer_size' => 2 * 1024 * 1024,
         'buffer_output_size' => 2 * 1024 * 1024,
-//        'daemonize' => 1
+        'daemonize' => (int)env('HYPERF_DAEMONIZE', 1),
     ],
     'callbacks' => [
         Event::ON_WORKER_START => [Hyperf\Framework\Bootstrap\WorkerStartCallback::class, 'onWorkerStart'],
