@@ -395,7 +395,7 @@
                   },
                   "shop_name": {
                     "description": "店铺名称",
-                    "type": "integer"
+                    "type": "string"
                   },
                   "shop_id": {
                     "description": "店铺ID",
@@ -482,6 +482,28 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "country_id"
+                ],
+                "properties": {
+                  "id": {
+                    "description": "货币id",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "货币名称",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "获取成功",
