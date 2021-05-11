@@ -369,7 +369,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if(!empty($lists)){
             //获取部分需要先获取出汇总数据再计算的值
-            $this->getOtherCountDatas($lists , $datas) ;
+            $this->getOtherCountDatas($lists , $datas ,1) ;
         }
 
         $rt['lists'] = empty($lists) ? array() : $lists;
@@ -378,7 +378,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
     }
 
     //获取部分需要先获取出汇总数据再计算的值
-    public function getOtherCountDatas($lists = array() , $datas = array()){
+    function getOtherCountDatas($lists = array() , $datas = array() , $count_dimension_type = 1 ){
         $targets = explode(',', $datas['target']);
         foreach($lists as $k=>$fields){
             if (in_array('goods_conversion_rate', $targets)) { //订单商品数量转化率
@@ -417,14 +417,27 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
 
             if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
-                $lists[$k]['evaluation_fee_rate'] =  empty($fields['sale_sales_quota']) ? 0 : round($fields['cpc_cost'] / $fields['sale_sales_quota'],2) ;
+                if($count_dimension_type==1){
+                    $lists[$k]['cpc_cost_rate'] =  empty($fields['sale_sales_quota']) ? 0 : round($fields['cpc_cost'] / $fields['sale_sales_quota'],2) ;
+                }else{
+                    $lists[$k]['cpc_cost_rate'] =  empty($fields['sale_sales_dollars']) ? 0 : round($fields['cpc_cost'] / $fields['sale_sales_dollars'],2) ;
+                }
+            }
+
+            if (in_array('cpc_click_rate', $targets)) {  //cpc点击率
+                $lists[$k]['cpc_click_rate'] =  empty($fields['cpc_exposure']) ? 0 : round($fields['cpc_click_number'] / $fields['cpc_exposure'],2) ;
             }
 
             if (in_array('cpc_order_rate', $targets)) {  //cpc订单占比
-                $lists[$k]['cpc_order_rate'] =  empty($fields['sale_sales_volume']) ? 0 : round($fields['cpc_order_number'] / $fields['sale_sales_volume'],2) ;
+                if($count_dimension_type == 1){
+                    $lists[$k]['cpc_order_rate'] =  empty($fields['sale_sales_volume']) ? 0 : round($fields['cpc_order_number'] / $fields['sale_sales_volume'],2) ;
+                }else{
+                    $lists[$k]['cpc_order_rate'] =  empty($fields['bychannel_sales_volume']) ? 0 : round($fields['cpc_order_number'] / $fields['bychannel_sales_volume'],2) ;
+                }
+
             }
             if (in_array('cpc_click_conversion_rate', $targets)) {  //cpc点击转化率
-                $lists[$k]['cost_profit_profit_rate'] = empty($fields['cpc_click_number']) ? 0 : round($fields['cpc_order_number'] / $fields['cpc_click_number'],2) ;
+
             }
 
             if (in_array('cpc_turnover_rate', $targets)) {  //CPC成交额占比
@@ -1147,7 +1160,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['cpc_click_number'] = "SUM(script('', 'return doc.byorder_cpc_sd_clicks.value + doc.byorder_cpc_sp_clicks.value;'))";
         }
         if (in_array('cpc_click_rate', $targets)) {  //CPC点击率
-            $fields['cpc_click_rate'] = '('.$fields['cpc_click_number'].')' . " / nullif( " . $fields['cpc_exposure'] . " , 0 ) ";
+
         }
         if (in_array('cpc_order_number', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_click_conversion_rate', $targets)) {  //CPC订单数
             // $fields['cpc_order_number'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" ) ';
@@ -1271,7 +1284,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if ($datas['count_dimension'] == 'parent_asin') {
-            $fields['parent_asin'] = "max(report.goods_parent_asin)";
+
             if($datas['is_distinct_channel'] == '1'){
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
@@ -1282,9 +1295,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'asin') {
-            $fields['asin'] = "max(report.goods_asin)";
+
             if($datas['is_distinct_channel'] == '1'){
-                $fields['parent_asin'] = "max(report.goods_parent_asin)";
+
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
             }
@@ -1294,13 +1307,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         }else if ($datas['count_dimension'] == 'sku') {
-            $fields['sku'] = "max(report.goods_sku)";
+
             if($datas['is_distinct_channel'] == '1'){
-                $fields['asin'] = "max(report.goods_asin)";
-                $fields['parent_asin'] = "max(report.goods_parent_asin)";
-                $fields['goods_product_category_name_1'] = 'max(report.goods_product_category_name_1)';
-                $fields['goods_product_category_name_2'] = 'max(report.goods_product_category_name_2)';
-                $fields['goods_product_category_name_3'] = 'max(report.goods_product_category_name_3)';
+
                 $fields['goods_is_care']                 = 'max(report.goods_is_care)';
                 $fields['goods_is_new']                  = 'max(report.goods_is_new)';
                 $fields['up_status']                  = 'max(report.goods_up_status)';
@@ -1308,7 +1317,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fields['isku_id']                       = 'max(report.goods_isku_id)';
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
-                $fields['class1'] = 'max(report.goods_product_category_name_1)';
+
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
@@ -1316,11 +1325,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         } else if ($datas['count_dimension'] == 'isku') {
             $fields['isku_id'] = 'max(report.goods_isku_id)';
         }else if ($datas['count_dimension'] == 'class1') {
-            $fields['class1'] = 'max(report.goods_product_category_name_1)';
+
             $fields['class1_id'] = 'max(report.goods_product_category_id_1)';
         } else if ($datas['count_dimension'] == 'group') {
             $fields['group_id'] = 'max(report.goods_group_id)';
-            $fields['group'] = 'max(report.goods_group_name)';
+
         } else if ($datas['count_dimension'] == 'head_id') {
             $fields['head_id'] = 'max(report.isku_head_id)';
         } else if ($datas['count_dimension'] == 'developer_id') {
@@ -1639,6 +1648,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC ;
             array_multisort($sort_names,$order2,$lists);
         }
+        if(!empty($lists)){
+            //获取部分需要先获取出汇总数据再计算的值
+            $this->getOtherCountDatas($lists , $params ,2) ;
+        }
         $rt['lists'] = empty($lists) ? [] : $lists;
         $rt['count'] = (int)$count;
         return $rt;
@@ -1654,7 +1667,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if ($datas['count_dimension'] === 'channel_id') {
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
-            $fields['operators'] = 'max(report.operation_user_admin_name)';
             $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
@@ -1736,7 +1748,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('sale_refund_rate', $targets)) {  //退款率
-            $fields['sale_refund_rate'] = '('.$fields['sale_return_goods_number'] . ") * 1.0 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
+
         }
 
         if (in_array('promote_discount', $targets)) {  //promote折扣
@@ -1817,7 +1829,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
-            $fields['cost_profit_profit_rate'] = "({$fields['cost_profit_profit']}) / nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
         if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets)) {  //亚马逊费用
             if ($datas['finance_datas_origin'] == '1') {
@@ -1907,18 +1919,18 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('amazon_fee_rate', $targets)) {  //亚马逊费用占比
-            $fields['amazon_fee_rate'] = "({$fields['amazon_fee']}) / nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
 
 
         if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
-            $fields['purchase_logistics_cost_rate'] = "({$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}) / nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
         if (in_array('operate_fee', $targets) || in_array('operate_fee_rate', $targets)) {  //运营费用
             $fields['operate_fee'] = "SUM ( report.bychannel_operating_fee ) ";
         }
         if (in_array('operate_fee_rate', $targets)) {  //运营费用占比
-            $fields['operate_fee_rate'] = "({$fields['operate_fee']})/nullif({$fields['sale_sales_quota']}, 0)";
+
         }
         if (in_array('evaluation_fee', $targets) || in_array('evaluation_fee_rate', $targets)) {  //测评费用
             if ($datas['finance_datas_origin'] == '1'){
@@ -1928,7 +1940,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('evaluation_fee_rate', $targets)) {  //测评费用占比
-            $fields['evaluation_fee_rate'] = "({$fields['evaluation_fee']})/nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
 
         if (in_array('other_vat_fee', $targets)) {//VAT
@@ -1972,7 +1984,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['cpc_cost'] = " SUM(script('', 'def xcost = doc.containsKey(\"bychannel_cpc_sb_cost\") ? (doc.bychannel_cpc_sb_cost.value ?: 0) : 0; return doc.byorder_cpc_cost.value + doc.byorder_cpc_sd_cost.value - xcost;')) ";
         }
         if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
-            $fields['cpc_cost_rate'] = "({$fields['cpc_cost']})/nullif({$fields['sale_sales_dollars']}, 0) ";
+
         }
         if (in_array('cpc_exposure', $targets) || in_array('cpc_click_rate', $targets)) {  //CPC曝光量
             // $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3)";
@@ -1983,7 +1995,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['cpc_click_number'] = "SUM(script('', 'return doc.byorder_cpc_sd_clicks.value + doc.byorder_cpc_sp_clicks.value + doc.bychannel_reserved_field4.value;'))";
         }
         if (in_array('cpc_click_rate', $targets)) {  //CPC点击率
-            $fields['cpc_click_rate'] = "({$fields['cpc_click_number']})/nullif({$fields['cpc_exposure']}, 0) ";
+
         }
         // 注！此处将字段名用引号包起来是为避免报错，有些数据库会自动将字段大小写转换，会导致报字段不存在的错误
         if (in_array('cpc_order_number', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_click_conversion_rate', $targets)) {  //CPC订单数
@@ -1991,7 +2003,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['cpc_order_number'] = "SUM(script('', 'return doc.byorder_sp_attributedconversions7d.value + doc.byorder_sd_attributedconversions7d.value + doc.bychannel_reserved_field7.value;')) ";
         }
         if (in_array('cpc_order_rate', $targets)) {  //cpc订单占比
-            $fields['cpc_order_rate'] = "({$fields['cpc_order_number']})/nullif(SUM(report.bychannel_sales_volume), 0) ";
+            $fields['bychannel_sales_volume'] = "SUM(report.bychannel_sales_volume)" ;
         }
         if (in_array('cpc_click_conversion_rate', $targets)) {  //cpc点击转化率
             $fields['cpc_click_conversion_rate'] = "({$fields['cpc_order_number']})/nullif({$fields['cpc_click_number']}, 0) ";
@@ -2001,13 +2013,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['cpc_turnover'] = "SUM(script('', 'return doc.byorder_sp_attributedsales7d.value + doc.byorder_sd_attributedsales7d.value + doc.bychannel_reserved_field5.value;'))";
         }
         if (in_array('cpc_turnover_rate', $targets)) {  //CPC成交额占比
-            $fields['cpc_turnover_rate'] = "({$fields['cpc_turnover']})/nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
         if (in_array('cpc_avg_click_cost', $targets)) {  //CPC平均点击花费
-            $fields['cpc_avg_click_cost'] = "({$fields['cpc_cost']})/nullif({$fields['cpc_click_number']}, 0) ";
+
         }
         if (in_array('cpc_acos', $targets)) {  // ACOS
-            $fields['cpc_acos'] = "({$fields['cpc_cost']})/nullif({$fields['cpc_turnover']}, 0) ";
+
         }
         if (in_array('cpc_direct_sales_volume', $targets) || in_array('cpc_direct_sales_volume_rate', $targets)) {  //CPC直接销量
             // $fields['cpc_direct_sales_volume'] = 'SUM ( report."byorder_sd_attributedConversions7dSameSKU" + report."byorder_sp_attributedConversions7dSameSKU" + report.bychannel_reserved_field8 )';
@@ -2018,7 +2030,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['cpc_direct_sales_quota'] = "SUM(script('', 'return doc.byorder_sd_attributedsales7dsamesku.value + doc.byorder_sp_attributedsales7dsamesku.value + doc.bychannel_reserved_field6.value;'))";
         }
         if (in_array('cpc_direct_sales_volume_rate', $targets)) {  // CPC直接销量占比
-            $fields['cpc_direct_sales_volume_rate'] = "({$fields['cpc_direct_sales_volume']})/nullif({$fields['sale_sales_volume']}, 0) ";
+
         }
         if (in_array('cpc_indirect_sales_volume', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量
             // $fields['cpc_indirect_sales_volume'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" + report.bychannel_reserved_field7 - report."byorder_sd_attributedConversions7dSameSKU" - report."byorder_sp_attributedConversions7dSameSKU" - report.bychannel_reserved_field8) ';
@@ -2029,7 +2041,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['cpc_indirect_sales_quota'] = "SUM(script('', 'return doc.byorder_sd_attributedsales7d.value + doc.byorder_sp_attributedSales7d.value + doc.bychannel_reserved_field5.value - doc.byorder_sd_attributedsales7dsamesku.value - doc.byorder_sp_attributedsales7dsamesku.value - doc.bychannel_reserved_field6.value;'))";
         }
         if (in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量占比
-            $fields['cpc_indirect_sales_volume_rate'] = "({$fields['cpc_indirect_sales_volume']})/nullif({$fields['sale_sales_volume']}, 0) ";
+
         }
 
         if (in_array('fba_goods_value', $targets)) {  //在库总成本
