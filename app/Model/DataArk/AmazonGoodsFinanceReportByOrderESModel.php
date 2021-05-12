@@ -1367,6 +1367,12 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['head_id'] = 'max(report.isku_head_id)';
         } else if ($datas['count_dimension'] == 'developer_id') {
             $fields['developer_id'] = 'max(report.isku_developer_id)';
+        } elseif($datas['count_dimension'] == 'all_goods') {
+            if($datas['is_distinct_channel'] == '1'){
+                $fields['channel_id'] = 'max(report.channel_id)';
+            }
+        } else if($datas['count_dimension'] == 'goods_channel'){
+            $fields['channel_id'] = 'max(report.channel_id)';
         }
 
         return $fields;
