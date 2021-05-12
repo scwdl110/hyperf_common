@@ -677,6 +677,14 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fba_fields = $group = 'g.product_category_name_1 ,g.fba_inventory_v3_id' ;
             }else if($datas['count_dimension'] == 'group'){ //分组
                 $fba_fields = $group = 'g.group_id ,g.fba_inventory_v3_id' ;
+            }else if($datas['count_dimension'] == 'all_goods'){
+                if($datas['is_distinct_channel'] == 1) { //有区分店铺
+                    $fba_fields = $group = 'g.channel_id' ;
+                }else{
+                    $fba_fields = $group = 'g.fba_inventory_v3_id' ;
+                }
+            }else if($datas['count_dimension'] == 'goods_channel'){
+                $fba_fields = $group = 'g.channel_id' ;
             }
 
             $where_arr = array() ;
@@ -742,6 +750,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
                 $where_str = 'g.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else{
+                $where_str = '1=1' ;
             }
         }
         $where.= ' AND ' . $where_str." AND g.fba_inventory_v3_id > 0  AND g.\"Transport_mode\" = 2" ;
@@ -2191,6 +2201,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'site_id'){
                 $where_strs = array_unique(array_column($where_arr , 'site_id')) ;
                 $where_str = 'c.site_id IN (' . implode(',' , $where_strs) . ")" ;
+            }else{
+                $where_str = '1=1' ;
             }
         }
 

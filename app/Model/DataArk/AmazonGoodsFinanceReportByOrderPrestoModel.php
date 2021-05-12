@@ -687,7 +687,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'developer_id') { //开发人员
                 $fba_fields = $group = 'i.developer_id ,g.fba_inventory_v3_id' ;
                 $table .= "  LEFT JOIN {$this->table_amazon_goods_isku} AS i ON i.db_num='{$this->dbhost}' AND g.isku_id = i.id  ";
+            }else if($datas['count_dimension'] == 'all_goods'){
+                if($datas['is_distinct_channel'] == 1) { //有区分店铺
+                    $fba_fields = $group = 'g.channel_id' ;
+                }else{
+                    $fba_fields = $group = 'g.fba_inventory_v3_id' ;
+                }
+            }else if($datas['count_dimension'] == 'goods_channel'){
+                $fba_fields = $group = 'g.channel_id' ;
             }
+
 
             $where_arr = array() ;
             foreach($lists as $list1){
@@ -761,6 +770,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
                 $where_str = 'g.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else{
+                $where_str = '1=1' ;
             }
         }
         $where.= ' AND ' . $where_str." AND g.fba_inventory_v3_id > 0  AND g.\"Transport_mode\" = 2" ;
@@ -4975,6 +4986,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'admin_id'){
                 $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
                 $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
+            }else{
+                $where_str = '1=1' ;
             }
         }
 
