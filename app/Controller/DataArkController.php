@@ -154,14 +154,14 @@ class DataArkController extends AbstractController
                 (int)$params['search_end_time']
             );
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
-            $min_ym = date('Yn',$params['search_start_time']) ;
-            $max_ym = date('Yn',$params['search_end_time']) ;
+            $min_ym = date('Ym',$params['search_start_time']) ;
+            $max_ym = date('Ym',$params['search_end_time']) ;
         } else {
             $ors = [];
             foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type'], $params['search_start_time'], $params['search_end_time']) as $times) {
 
-                $min_ym = empty($min_ym) ? date('Yn',$times['start']) : ($min_ym > date('Yn',$times['start']) ? date('Yn',$times['start']) : $min_ym) ;
-                $max_ym = empty($max_ym) ? date('Yn',$times['end']) : ($max_ym < date('Yn',$times['end']) ? date('Yn',$times['end']) : $max_ym) ;
+                $min_ym = empty($min_ym) ? date('Ym',$times['start']) : ($min_ym > date('Ym',$times['start']) ? date('Ym',$times['start']) : $min_ym) ;
+                $max_ym = empty($max_ym) ? date('Ym',$times['end']) : ($max_ym < date('Ym',$times['end']) ? date('Ym',$times['end']) : $max_ym) ;
                 $ors[] = sprintf(
                     '(report.site_id in (%s) and report.create_time>=%d and report.create_time<=%d)',
                     $times['site_id'],

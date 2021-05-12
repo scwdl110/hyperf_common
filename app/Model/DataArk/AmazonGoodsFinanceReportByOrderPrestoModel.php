@@ -71,7 +71,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
 
-        $ym_where = ($datas['max_ym'] == $datas['min_ym']) ? ("report.ym = '" .$datas['max_ym'] ."'") : "report.ym >= '".$datas['min_ym']."' AND report.ym <= '" .$datas['max_ym'] ."'";
+        $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_goods_day_report} AS report" ;
@@ -3022,7 +3022,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $mod_where = "report.user_id_mod = " . ($params['user_id'] % 20);
 
-        $ym_where = ($params['max_ym'] == $params['min_ym']) ? ("report.ym = '" .$params['max_ym'] ."'") : "report.ym >= '".$params['min_ym']."' AND report.ym <= '" .$params['max_ym'] ."'";
+
+        $ym_where = $this->getYnWhere($params['max_ym'] , $params['min_ym'] ) ;
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_channel_day_report} AS report";
@@ -5220,7 +5221,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
 
-        $ym_where = ($datas['max_ym'] == $datas['min_ym']) ? ("report.ym = '" .$datas['max_ym'] ."'") : "report.ym >= '".$datas['min_ym']."' AND report.ym <= '" .$datas['max_ym'] ."'";
+        $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
@@ -6845,5 +6846,44 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         //$fields = array_merge($fields, $time_fields);
         return $fields;
+    }
+
+    public function getYnWhere($max_ym = '' , $min_ym = ''){
+        $ym_array = array() ;
+        if(!empty($max_ym) && !empty($min_ym)){
+            while($max_ym != $min_ym){
+                $year = intval(substr($min_ym ,0 ,4)) ;
+                $month = intval(substr($min_ym ,4 ,2));
+                $ym_array[] = $year.$month ;
+                if($month == 12){
+                    $year = $year + 1 ;
+                    $month = '01' ;
+                }else{
+                    $month = $month + 1 ;
+                    if($month <10){
+                        $month = '0'.$month ;
+                    }else{
+                        $month = "{$month}" ;
+                    }
+                }
+                $min_ym = $year.$month ;
+            }
+            $year = intval(substr($max_ym ,0 ,4)) ;
+            $month = intval(substr($max_ym ,4 ,2));
+            $ym_array[] = $year.$month ;
+
+        }
+        if(empty($ym_array)){
+            return ' 1=1 ' ;
+        }else{
+            $ym_str = "'".implode("','" , $ym_array)."'" ;
+            if(count($ym_array) == 1){
+                $ym_where = "report.ym = " . $ym_str ;
+            }else{
+                $ym_where =  "report.ym IN (" . $ym_str . " )" ;
+            }
+            return $ym_where ;
+        }
+
     }
 }
