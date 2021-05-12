@@ -593,12 +593,8 @@
                   "country_id"
                 ],
                 "properties": {
-                  "id": {
-                    "description": "id",
-                    "type": "integer"
-                  },
-                  "name": {
-                    "description": "名称",
+                  "client_id": {
+                    "description": "第三方调用客户端id",
                     "type": "string"
                   }
                 },
@@ -651,7 +647,7 @@
     "/accounting/bind": {
       "post": {
         "tags": [
-          "get_username"
+          "bind"
         ],
         "summary": "绑定第三方信息接口",
         "operationId": "App\\Controller\\AccountingController::bindUser",
