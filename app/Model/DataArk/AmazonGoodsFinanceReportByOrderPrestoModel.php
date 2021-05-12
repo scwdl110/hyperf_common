@@ -308,6 +308,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
 
+        }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group = 'report.channel_id ,report.myear , report.mmonth  , report.mday';
+                    $orderby = 'report.channel_id ,report.myear , report.mmonth  , report.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group = 'report.channel_id ,report.mweekyear , report.mweek';
+                    $orderby = 'report.channel_id ,report.mweekyear , report.mweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group = 'report.channel_id ,report.myear , report.mmonth';
+                    $orderby = 'report.channel_id ,report.myear , report.mmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group = 'report.channel_id ,report.myear , report.mquarter';
+                    $orderby = 'report.channel_id ,report.myear , report.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group = 'report.channel_id ,report.myear';
+                    $orderby = 'report.channel_id ,report.myear';
+                }
+
+            }else{
+                $group = 'report.channel_id ';
+                $orderby = empty($orderby) ? ('report.channel_id ') : ($orderby . ' ,report.channel_id ');
+            }
         }
 
         if (!empty($where_detail)) {
