@@ -72,8 +72,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             if($datas['is_distinct_channel'] == 1){ //有区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                     if($datas['count_periods'] == '4'){ //按季度
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
+                        $group = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.lquarter ';
+                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.lquarter ';
                     }else if($datas['count_periods'] == '5') { //年
                         $group = 'report.goods_' . $datas['count_dimension'] . '  , report.channel_id ,report.myear' ;
                         $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id,report.myear ';
@@ -89,20 +89,20 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{  //不区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                     if($datas['count_periods'] == '4'){ //按季度
-                        $group = 'report.goods_' . $datas['count_dimension'] . '  ,report.myear , report.mquarter ';
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear , report.mquarter ';
+                        $group = 'report.goods_' . $datas['count_dimension'] . '  ,report.lquarter ';
+                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' ,report.lquarter ';
                     }else if($datas['count_periods'] == '5') { //年
                         $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear' ;
                         $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.myear ';
                     }else if($datas['count_periods'] == '3'){ //按月
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear ,report.mmonth' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.myear ,report.mmonth';
+                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.lmonth' ;
+                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.lmonth';
                     }else if($datas['count_periods'] == '2'){  //按周
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.mweekyear ,report.mweek' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.mweekyear ,report.mweek';
+                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.lweek' ;
+                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.lweek';
                     }else if($datas['count_periods'] == '1') {  //按天
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear ,report.mmonth ,report.mday' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.myear ,report.mmonth,report.mday';
+                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.lday' ;
+                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.lday';
                     }
                 }else{
                     $group = 'report.goods_' . $datas['count_dimension'] . ' ';
@@ -114,8 +114,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         } else if ($datas['count_dimension'] == 'isku') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.goods_isku_id  , report.myear , report.mquarter ';
-                    $orderby = 'report.goods_isku_id  , report.myear , report.mquarter ';
+                    $group = 'report.goods_isku_id  , report.lquarter ';
+                    $orderby = 'report.goods_isku_id  , report.lquarter ';
                 }else if($datas['count_periods'] == '5') { //年
                     $group = 'report.goods_isku_id  , report.myear' ;
                     $orderby = 'report.goods_isku_id  , report.myear ';
@@ -132,8 +132,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         } else if ($datas['count_dimension'] == 'group') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.goods_group_id , report.myear , report.mquarter ';
-                    $orderby = 'report.goods_group_id ,report.myear , report.mquarter ';
+                    $group = 'report.goods_group_id , report.lquarter ';
+                    $orderby = 'report.goods_group_id ,report.lquarter ';
                 }else if($datas['count_periods'] == '5') { //年
                     $group = 'report.goods_group_id , report.myear' ;
                     $orderby = 'report.goods_group_id , report.myear ';
@@ -151,17 +151,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
 
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group = 'report.goods_product_category_name_1  , report.myear , report.mmonth  , report.mday';
-                    $orderby = 'report.goods_product_category_name_1 , report.myear , report.mmonth  , report.mday';
+                    $group = 'report.goods_product_category_name_1  , report.lday';
+                    $orderby = 'report.goods_product_category_name_1 , report.lday';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group = 'report.goods_product_category_name_1 , report.myear , report.mweek';
-                    $orderby = 'report.goods_product_category_name_1, report.myear , report.mweek';
+                    $group = 'report.goods_product_category_name_1 , report.lweek';
+                    $orderby = 'report.goods_product_category_name_1, report.lweek';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group = 'report.goods_product_category_name_1  , report.myear , report.mmonth';
-                    $orderby = 'report.goods_product_category_name_1 , report.myear , report.mmonth';
+                    $group = 'report.goods_product_category_name_1  , report.lmonth';
+                    $orderby = 'report.goods_product_category_name_1 , report.lmonth';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group = 'report.goods_product_category_name_1 , report.myear , report.mquarter';
-                    $orderby = 'report.goods_product_category_name_1  , report.myear , report.mquarter';
+                    $group = 'report.goods_product_category_name_1 , report.lquarter';
+                    $orderby = 'report.goods_product_category_name_1  , report.lquarter';
                 } else if ($datas['count_periods'] == '5' ) { //按年
                     $group = 'report.goods_product_category_name_1 , report.myear';
                     $orderby = 'report.goods_product_category_name_1  , report.myear';
@@ -176,8 +176,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.isku_head_id , report.myear , report.mquarter ';
-                    $orderby = 'report.isku_head_id ,report.myear , report.mquarter ';
+                    $group = 'report.isku_head_id , report.lquarter ';
+                    $orderby = 'report.isku_head_id ,report.lquarter ';
                 }else if($datas['count_periods'] == '5') { //年
                     $group = 'report.isku_head_id , report.myear' ;
                     $orderby = 'report.isku_head_id , report.myear ';
@@ -193,8 +193,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.isku_developer_id , report.myear , report.mquarter ';
-                    $orderby = 'report.isku_developer_id ,report.myear , report.mquarter ';
+                    $group = 'report.isku_developer_id , report.lquarter ';
+                    $orderby = 'report.isku_developer_id ,report.lquarter ';
                 }else if($datas['count_periods'] == '5') { //年
                     $group = 'report.isku_developer_id , report.myear' ;
                     $orderby = 'report.isku_developer_id , report.myear ';
@@ -211,17 +211,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             if($datas['is_distinct_channel'] == 1) { //有区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                     if ($datas['count_periods'] == '1' ) { //按天
-                        $group = 'report.channel_id , report.myear , report.mmonth  , report.mday';
-                        $orderby = 'report.channel_id ,report.myear , report.mmonth  , report.mday';
+                        $group = 'report.channel_id , report.lday';
+                        $orderby = 'report.channel_id ,report.lday';
                     } else if ($datas['count_periods'] == '2' ) { //按周
-                        $group = 'report.channel_id ,report.mweekyear , report.mweek';
-                        $orderby = 'report.channel_id ,report.mweekyear , report.mweek';
+                        $group = 'report.channel_id ,report.lweek';
+                        $orderby = 'report.channel_id ,report.lweek';
                     } else if ($datas['count_periods'] == '3' ) { //按月
-                        $group = 'report.channel_id ,report.myear , report.mmonth';
-                        $orderby = 'report.channel_id ,report.myear , report.mmonth';
+                        $group = 'report.channel_id ,report.lmonth';
+                        $orderby = 'report.channel_id ,report.lmonth';
                     } else if ($datas['count_periods'] == '4' ) {  //按季
-                        $group = 'report.channel_id ,report.myear , report.mquarter';
-                        $orderby = 'report.channel_id ,report.myear , report.mquarter';
+                        $group = 'report.channel_id ,report.lquarter';
+                        $orderby = 'report.channel_id ,report.lquarter';
                     } else if ($datas['count_periods'] == '5' ) { //按年
                         $group = 'report.channel_id ,report.myear';
                         $orderby = 'report.channel_id ,report.myear';
@@ -232,17 +232,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else{
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                     if ($datas['count_periods'] == '1' ) { //按天
-                        $group = 'report.myear , report.mmonth  , report.mday';
-                        $orderby = 'report.myear , report.mmonth  , report.mday';
+                        $group = 'report.lday';
+                        $orderby = 'report.lday';
                     } else if ($datas['count_periods'] == '2' ) { //按周
-                        $group = 'report.mweekyear , report.mweek';
-                        $orderby = 'report.mweekyear , report.mweek';
+                        $group = 'report.lweek';
+                        $orderby = 'report.lweek';
                     } else if ($datas['count_periods'] == '3' ) { //按月
-                        $group = 'report.myear , report.mmonth';
-                        $orderby = 'report.myear , report.mmonth';
+                        $group = 'report.lmonth';
+                        $orderby = 'report.lmonth';
                     } else if ($datas['count_periods'] == '4' ) {  //按季
-                        $group = 'report.myear , report.mquarter';
-                        $orderby = 'report.myear , report.mquarter';
+                        $group = 'report.lquarter';
+                        $orderby = 'report.lquarter';
                     } else if ($datas['count_periods'] == '5' ) { //按年
                         $group = 'report.myear';
                         $orderby = 'report.myear';
@@ -255,17 +255,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group = 'report.channel_id ,report.myear , report.mmonth  , report.mday';
-                    $orderby = 'report.channel_id ,report.myear , report.mmonth  , report.mday';
+                    $group = 'report.channel_id ,report.lday';
+                    $orderby = 'report.channel_id ,report.lday';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group = 'report.channel_id ,report.mweekyear , report.mweek';
-                    $orderby = 'report.channel_id ,report.mweekyear , report.mweek';
+                    $group = 'report.channel_id ,report.lweek';
+                    $orderby = 'report.channel_id ,report.lweek';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group = 'report.channel_id ,report.myear , report.mmonth';
-                    $orderby = 'report.channel_id ,report.myear , report.mmonth';
+                    $group = 'report.channel_id ,report.lmonth';
+                    $orderby = 'report.channel_id ,report.lmonth';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group = 'report.channel_id ,report.myear , report.mquarter';
-                    $orderby = 'report.channel_id ,report.myear , report.mquarter';
+                    $group = 'report.channel_id ,report.lquarter';
+                    $orderby = 'report.channel_id ,report.lquarter';
                 } else if ($datas['count_periods'] == '5' ) { //按年
                     $group = 'report.channel_id ,report.myear';
                     $orderby = 'report.channel_id ,report.myear';
@@ -898,13 +898,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $fields = $this->getGoodsTheSameFields($datas,$fields);
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
+            $fields['time'] = "report.lday";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
+            $fields['time'] = "report.lweek";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
+            $fields['time'] = "report.lmonth";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
+            $fields['time'] = "report.lquarter";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
             $fields['time'] = "report.myear";
         }
@@ -1545,8 +1545,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if ($params['count_dimension'] == 'channel_id') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
                 if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.channel_id , report.myear , report.mquarter ';
-                    $orderby = 'report.channel_id , report.myear , report.mquarter ';
+                    $group = 'report.channel_id , report.lquarter ';
+                    $orderby = 'report.channel_id , report.lquarter ';
                 }else if($params['count_periods'] == '5') { //年
                     $group = 'report.channel_id , report.myear' ;
                     $orderby = 'report.channel_id , report.myear ';
@@ -1562,8 +1562,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         } else if ($params['count_dimension'] == 'site_id') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
                 if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.site_id , report.myear , report.mquarter ';
-                    $orderby = 'report.site_id , report.myear , report.mquarter ';
+                    $group = 'report.site_id , report.lquarter ';
+                    $orderby = 'report.site_id , report.lquarter ';
                 }else if($params['count_periods'] == '5') { //年
                     $group = 'report.site_id , report.myear' ;
                     $orderby = 'report.site_id , report.myear ';
@@ -1578,8 +1578,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         } else if ($params['count_dimension'] == 'site_group') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
                 if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.area_id , report.myear , report.mquarter ';
-                    $orderby = 'report.area_id , report.myear , report.mquarter ';
+                    $group = 'report.area_id , report.lquarter ';
+                    $orderby = 'report.area_id , report.lquarter ';
                 }else if($params['count_periods'] == '5') { //年
                     $group = 'report.area_id , report.myear' ;
                     $orderby = 'report.area_id , report.myear ';
@@ -1594,17 +1594,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }else if($params['count_dimension'] == 'all_channels') { //按全部店铺维度统计
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
                 if ($params['count_periods'] == '1') { //按天
-                    $group = 'report.myear , report.mmonth  , report.mday';
-                    $orderby = 'report.myear , report.mmonth  , report.mday';
+                    $group = 'report.lday';
+                    $orderby = 'report.lday';
                 } else if ($params['count_periods'] == '2') { //按周
-                    $group = 'report.mweekyear , report.mweek';
-                    $orderby = 'report.mweekyear , report.mweek';
+                    $group = 'report.lweek';
+                    $orderby = 'report.lweek';
                 } else if ($params['count_periods'] == '3') { //按月
-                    $group = 'report.myear , report.mmonth';
-                    $orderby = 'report.myear , report.mmonth';
+                    $group = 'report.lmonth';
+                    $orderby = 'report.lmonth';
                 } else if ($params['count_periods'] == '4') {  //按季
-                    $group = 'report.myear , report.mquarter';
-                    $orderby = 'report.myear , report.mquarter';
+                    $group = 'report.lquarter';
+                    $orderby = 'report.lquarter';
                 } else if ($params['count_periods'] == '5') { //按年
                     $group = 'report.myear';
                     $orderby = 'report.myear';
@@ -1708,13 +1708,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
+            $fields['time'] = "report.lday";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
+            $fields['time'] = "report.lweek";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
+            $fields['time'] = "report.lmonth";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
+            $fields['time'] = "report.lquarter";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
             $fields['time'] = "report.myear";
         }
