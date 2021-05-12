@@ -1815,50 +1815,66 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
 
-        $purchaseLogisticsPurchaseCostScript = '0';
-        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
+        if ($datas['finance_datas_origin'] == '1') {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsPurchaseCostScript = 'doc.byorder_purchasing_cost.value';
+            } else {
+                $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
+            }
+        } else {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsPurchaseCostScript = 'doc.report_purchasing_cost.value';
+            } else {
+                $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
+            }
+        }
+        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //采购成本
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['cost_count_type'] == '1') {
-                    $purchaseLogisticsPurchaseCostScript = 'doc.byorder_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM ( report.byorder_purchasing_cost ) ";
                 } else {
-                    $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM ((report.first_purchasing_cost) ) ";
                 }
             } else {
                 if ($datas['cost_count_type'] == '1') {
-                    $purchaseLogisticsPurchaseCostScript = 'doc.report_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM ( report.report_purchasing_cost ) ";
                 } else {
-                    $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM ((report.first_purchasing_cost) ) ";
                 }
             }
 
         }
 
-        $purchaseLogisticsLogisticsCostScript = '0';
-        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
+        if ($datas['finance_datas_origin'] == '1') {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsLogisticsCostScript = 'doc.byorder_logistics_head_course.value';
+            } else {
+                $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
+            }
+        } else {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsLogisticsCostScript = 'doc.report_logistics_head_course.value';
+            } else {
+                $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
+            }
+        }
+        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets) ) {  // 物流/头程
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['cost_count_type'] == '1') {
-                    $purchaseLogisticsLogisticsCostScript = 'doc.byorder_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM ( report.byorder_logistics_head_course ) ";
                 } else {
-                    $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM (  (report.first_logistics_head_course) ) ";
                 }
             } else {
                 if ($datas['cost_count_type'] == '1') {
-                    $purchaseLogisticsLogisticsCostScript = 'doc.report_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM ( report.report_logistics_head_course ) ";
                 } else {
-                    $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM ( ( report.first_logistics_head_course) ) ";
                 }
             }
         }
 
-        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
+        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //毛利润
             if ($datas['finance_datas_origin'] == '1') {
                 // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
                 $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
@@ -2150,6 +2166,33 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             } else {
                 // $fields['goods_adjust_fee'] = 'SUM(report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
                 $fields['goods_adjust_fee'] = "SUM(script('', 'return doc.report_channel_goods_adjustment_fee.value + doc.bychannel_channel_goods_adjustment_fee.value;'))";
+            }
+
+        }
+
+        if (in_array('cost_profit_total_income', $targets)) {  //总收入
+            if ($datas['sale_datas_origin'] == '1') {
+                $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
+            } elseif ($datas['sale_datas_origin'] == '2') {
+                $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota )";
+            }
+        }
+
+        if (in_array('cost_profit_total_pay', $targets)) {  //总支出
+            if($datas['sale_datas_origin'] == '1'){
+                if ($datas['finance_datas_origin'] == '1') {
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.byorder_sales_quota.value;'))";
+                } else {
+
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.byorder_sales_quota.value ;'))";
+                }
+            }else{
+                if ($datas['finance_datas_origin'] == '1') {
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.report_sales_quota.value;'))";
+                } else {
+
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.report_sales_quota.value;'))";
+                }
             }
 
         }

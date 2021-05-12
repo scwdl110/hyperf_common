@@ -3529,7 +3529,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }
 
-        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
+        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets) ) {  //毛利润
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
@@ -3991,6 +3991,27 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }
+
+        if (in_array('cost_profit_total_income', $targets)) {  //总收入
+            if ($datas['sale_datas_origin'] == '1') {
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
+                } else {
+                    $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE} )";
+                }
+            } elseif ($datas['sale_datas_origin'] == '2') {
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota )";
+                } else {
+                    $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE} )";
+                }
+            }
+        }
+
+        if (in_array('cost_profit_total_pay', $targets)) {  //总支出
+            $fields['cost_profit_total_pay'] = $fields['cost_profit_profit'] . '-' .  $fields['cost_profit_total_income'] ;
+        }
+
 
         $this->getUnTimeFields($fields, $datas, $targets, 2);
 
@@ -4870,6 +4891,94 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } else {
                     $fields['count_total'] = 'SUM(report.report_channel_goods_adjustment_fee  / COALESCE(rates.rate ,1) * {:RATE} +  report.bychannel_channel_goods_adjustment_fee / COALESCE(rates.rate ,1) * {:RATE} )';
                     $time_fields = $this->getTimeFields($timeLine, 'report.report_channel_goods_adjustment_fee  / COALESCE(rates.rate ,1) * {:RATE} +  report.bychannel_channel_goods_adjustment_fee / COALESCE(rates.rate ,1) * {:RATE}');
+                }
+            }
+        }else if($datas['time_target'] == 'cost_profit_total_income'){ //总收入
+            if ($datas['sale_datas_origin'] == '1') {
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $fields['count_total'] = "SUM ( report.byorder_sales_quota )";
+                    $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota");
+                } else {
+                    $fields['count_total'] = "SUM ( report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE} )";
+                    $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE}");
+                }
+            } elseif ($datas['sale_datas_origin'] == '2') {
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $fields['count_total'] = "SUM ( report.report_sales_quota )";
+                    $time_fields = $this->getTimeFields($timeLine, "report.report_sales_quota");
+                } else {
+                    $fields['count_total'] = "SUM ( report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE} )";
+                    $time_fields = $this->getTimeFields($timeLine, "report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE}");
+                }
+            }
+        } else if($datas['time_target'] == 'cost_profit_total_pay'){ //总支出
+            if ($datas['finance_datas_origin'] == '1') {
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    if ($datas['cost_count_type'] == '1') {
+                        if ($datas['sale_datas_origin'] == '1') {
+                            $fields['count_total'] = 'SUM(report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course - report.byorder_sales_quota)';
+                            $time_fields = $this->getTimeFields($timeLine, 'report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course - report.byorder_sales_quota');
+                        }else{
+                            $fields['count_total'] = 'SUM(report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course - report.byorder_sales_quota)';
+                            $time_fields = $this->getTimeFields($timeLine, 'report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course - report.report_sales_quota');
+                        }
+                    } else {
+                        if ($datas['sale_datas_origin'] == '1') {
+                            $fields['count_total'] = 'SUM((report.first_purchasing_cost + report.first_logistics_head_course) + report.byorder_channel_profit + report.bychannel_channel_profit  - report.byorder_sales_quota)';
+                            $time_fields = $this->getTimeFields($timeLine, '(report.first_purchasing_cost + report.first_logistics_head_course) + report.byorder_channel_profit + report.bychannel_channel_profit  - report.byorder_sales_quota');
+                        }else{
+                            $fields['count_total'] = 'SUM((report.first_purchasing_cost + report.first_logistics_head_course) + report.byorder_channel_profit + report.bychannel_channel_profit  - report.report_sales_quota)';
+                            $time_fields = $this->getTimeFields($timeLine, '(report.first_purchasing_cost + report.first_logistics_head_course) + report.byorder_channel_profit + report.bychannel_channel_profit  - report.report_sales_quota');
+                        }
+                    }
+                } else {
+                    if ($datas['cost_count_type'] == '1') {
+                        if ($datas['sale_datas_origin'] == '1') {
+                            $fields['count_total'] = 'SUM(report.byorder_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.byorder_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.byorder_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE} - report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE})';
+                            $time_fields = $this->getTimeFields($timeLine, 'report.byorder_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.byorder_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.byorder_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE} - report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE}');
+                        }
+                    } else {
+                        $fields['count_total'] = 'SUM(  (report.first_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.first_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE}) +  report.byorder_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} - report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE})';
+                        $time_fields = $this->getTimeFields($timeLine, '  (report.first_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.first_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE}) +  report.byorder_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} - report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE})');
+                    }
+                }
+            } else {
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    if ($datas['cost_count_type'] == '1') {
+                        if ($datas['sale_datas_origin'] == '1') {
+                            $fields['count_total'] = 'SUM(report.report_channel_profit + report.bychannel_channel_profit + report.report_purchasing_cost + report.report_logistics_head_course - report.byorder_sales_quota )';
+                            $time_fields = $this->getTimeFields($timeLine, 'report.report_channel_profit + report.bychannel_channel_profit + report.report_purchasing_cost + report.report_logistics_head_course - report.byorder_sales_quota');
+                        }else{
+                            $fields['count_total'] = 'SUM(report.report_channel_profit + report.bychannel_channel_profit + report.report_purchasing_cost + report.report_logistics_head_course - report.report_sales_quota )';
+                            $time_fields = $this->getTimeFields($timeLine, 'report.report_channel_profit + report.bychannel_channel_profit + report.report_purchasing_cost + report.report_logistics_head_course - report.report_sales_quota');
+                        }
+                    } else {
+                        if ($datas['sale_datas_origin'] == '1') {
+                            $fields['count_total'] = 'SUM(  (report.first_purchasing_cost + report.first_logistics_head_course) + report.report_channel_profit + report.bychannel_channel_profit  - report.byorder_sales_quota)';
+                            $time_fields = $this->getTimeFields($timeLine, '  (report.first_purchasing_cost + report.first_logistics_head_course) + report.report_channel_profit + report.bychannel_channel_profit  - report.byorder_sales_quota');
+                        }else{
+                            $fields['count_total'] = 'SUM(  (report.first_purchasing_cost + report.first_logistics_head_course) + report.report_channel_profit + report.bychannel_channel_profit  - report.report_sales_quota)';
+                            $time_fields = $this->getTimeFields($timeLine, '  (report.first_purchasing_cost + report.first_logistics_head_course) + report.report_channel_profit + report.bychannel_channel_profit  - report.report_sales_quota');
+                        }
+                    }
+                } else {
+                    if ($datas['cost_count_type'] == '1') {
+                        if ($datas['sale_datas_origin'] == '1') {
+                            $fields['count_total'] = 'SUM(report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.report_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.report_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE} - report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE})';
+                            $time_fields = $this->getTimeFields($timeLine, 'report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.report_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.report_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE} - report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE}');
+                        }else{
+                            $fields['count_total'] = 'SUM(report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.report_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.report_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE} - report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE})';
+                            $time_fields = $this->getTimeFields($timeLine, 'report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.report_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.report_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE} - report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE}');
+                        }
+                    } else {
+                        if ($datas['sale_datas_origin'] == '1') {
+                            $fields['count_total'] = 'SUM((report.first_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.first_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE}) + report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} - report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE} )';
+                            $time_fields = $this->getTimeFields($timeLine, '(report.first_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.first_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE}) + report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} - report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE}');
+                        }else{
+                            $fields['count_total'] = 'SUM((report.first_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.first_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE}) + report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} - report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE} )';
+                            $time_fields = $this->getTimeFields($timeLine, '(report.first_purchasing_cost / COALESCE(rates.rate ,1) * {:RATE} + report.first_logistics_head_course / COALESCE(rates.rate ,1) * {:RATE}) + report.report_channel_profit / COALESCE(rates.rate ,1) * {:RATE} + report.bychannel_channel_profit / COALESCE(rates.rate ,1) * {:RATE} - report.report_sales_quota / COALESCE(rates.rate ,1) * {:RATE}');
+                        }
+                    }
                 }
             }
         }else{
