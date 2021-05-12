@@ -73,6 +73,11 @@ class AccountingService extends BaseService
         return $userInfo;
     }
 
+    private function getArray($items)
+    {
+        return empty($items) ? array() : $items->toArray();
+    }
+
     /**
      * 获取财务利润信息
      * @param $request_data
@@ -113,7 +118,7 @@ class AccountingService extends BaseService
 
         $count = $shopListInfoquery->count();
 
-        $shopListId = $shopListInfoquery->orderBy('id', 'asc')->offset($request_data['offset'])->limit($request_data['limit'])->get()->toArray();
+        $shopListId = $this->getArray($shopListInfoquery->orderBy('id', 'asc')->offset($request_data['offset'])->limit($request_data['limit'])->get());
 
         $infoList = array('total' => $count, 'list' => array());
 
@@ -123,7 +128,7 @@ class AccountingService extends BaseService
 
             $info = array();
 
-            $FinanceReportInfo = FinanceReportModel::selectRaw("
+            $FinanceReportInfo = $this->getArray(FinanceReportModel::selectRaw("
           	ifnull( sum( sales_quota * ( reserved_field11 / sales_volume )), 0 ) AS fba_sales_quota,
 	        ifnull( sum( sales_quota ) - sum( sales_quota * ( reserved_field11 / sales_volume )), 0 ) AS fbm_sales_quota,
             ifnull(sum(promote_discount),0) as promote_discount,
@@ -156,7 +161,7 @@ class AccountingService extends BaseService
                 ['channel_id', '=', $list['id']],
                 ['create_time', '>=', $begin_time],
                 ['create_time', '<', $end_time]
-            ])->get()->toArray();
+            ])->get());
 
             //$Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
 
@@ -174,7 +179,7 @@ class AccountingService extends BaseService
             $info['commodity_sales']['fba_sales_quota'] = floor($FinanceReportInfo[0]['fba_sales_quota'] * 100) / 100; //FBA销售额
             $info['commodity_sales']['fbm_sales_quota'] = floor($FinanceReportInfo[0]['fbm_sales_quota'] * 100) / 100; //FBM销售额
 
-            $ChannelProfitReportInfo = ChannelProfitReportModel::selectRaw("
+            $ChannelProfitReportInfo = $this->getArray(ChannelProfitReportModel::selectRaw("
             ifnull(sum(coupon_redemption_fee + coupon_payment_eventList_tax),0) as coupon,
             ifnull(sum(run_lightning_deal_fee),0) as  run_lightning_deal_fee,
             ifnull(sum(fba_storage_fee),0) as fba_storage_fee,
@@ -200,7 +205,7 @@ class AccountingService extends BaseService
                 ['channel_id', '=', $list['id']],
                 ['create_time', '>=', $begin_time],
                 ['create_time', '<', $end_time]
-            ])->get()->toArray();
+            ])->get());
 
             //促销费用
             $info['promotion_fee']['promote_discount'] = floor($FinanceReportInfo[0]['promote_discount'] * 100) / 100; //Promote折扣
@@ -322,7 +327,7 @@ class AccountingService extends BaseService
         $request_data['offset'] = $request_data['offset'] ?? 0;
         $request_data['limit'] = $request_data['limit'] ?? 10;
 
-        $shopListInfo = $shopListInfoquery->offset($request_data['offset'])->limit($request_data['limit'])->get()->toArray();
+        $shopListInfo = $this->getArray($shopListInfoquery->offset($request_data['offset'])->limit($request_data['limit'])->get());
 
         foreach ($shopListInfo as $key => $value) {
             $info[$key]['shop_id'] = $value['id'];
@@ -383,20 +388,20 @@ class AccountingService extends BaseService
 
     public function getExchangeRate($user_id, $id = '', $name = '')
     {
-        $financeCurrencyList = FinanceCurrencyModel::selectRaw(
+        $financeCurrencyList = $this->getArray(FinanceCurrencyModel::selectRaw(
             "id ,custom_usd_exchang_rate AS usd_exchang_rate,
             custom_cad_exchang_rate as cad_exchang_rate,custom_mxn_exchang_rate as mxn_exchang_rate,custom_jpy_exchang_rate as jpy_exchang_rate,
             custom_gbp_exchang_rate as gbp_exchang_rate,custom_eur_exchang_rate as eur_exchang_rate,custom_au_exchang_rate as au_exchang_rate,
             custom_in_exchang_rate as in_exchang_rate,custom_br_exchang_rate as br_exchang_rate,
             custom_tr_exchang_rate as tr_exchang_rate,custom_ae_exchang_rate as ae_exchang_rate,custom_sa_exchang_rate as sa_exchang_rate,
             custom_nl_exchang_rate as nl_exchang_rate,custom_sg_exchang_rate as sg_exchang_rate,custom_hk_exchang_rate as hk_exchang_rate"
-        )->where([['user_id', '=', $user_id]])->first()->toArray();
+        )->where([['user_id', '=', $user_id]])->first());
 
         if (!isset($financeCurrencyList)) {
-            $SystemCurrencyList = SystemCurrencyModel::select(
+            $SystemCurrencyList = $this->getArray(SystemCurrencyModel::select(
                 "id", "usd_exchang_rate", "cad_exchang_rate", "mxn_exchang_rate", "jpy_exchang_rate", "gbp_exchang_rate", "eur_exchang_rate", "au_exchang_rate", "in_exchang_rate", "br_exchang_rate",
                 "tr_exchang_rate", "ae_exchang_rate", "nl_exchang_rate", "sa_exchang_rate", "sg_exchang_rate", "hk_exchang_rate"
-            )->first()->toArray();
+            )->first());
             $result = $SystemCurrencyList;
         } else {
             $result = $financeCurrencyList;
@@ -421,7 +426,7 @@ class AccountingService extends BaseService
 
         if ($id != '') {
             foreach ($infos as $info_key => $info) {
-                if ( strstr(strval($info['id']),strval($id)) == false) {
+                if (strstr(strval($info['id']), strval($id)) == false) {
                     unset($infos[$info_key]);
                 }
             }
@@ -430,7 +435,7 @@ class AccountingService extends BaseService
 
         if ($name != '') {
             foreach ($infos as $info_key => $info) {
-                if ( strstr(strval($info['name']),strval($name)) == false) {
+                if (strstr(strval($info['name']), strval($name)) == false) {
                     unset($infos[$info_key]);
                 }
             }
