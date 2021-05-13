@@ -9,8 +9,12 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-return [
-    'no_jwt' => '用户不存在',
-    'no_authorization' => 'authorization不存在',
-    'no_authorized' => '用户未授权',
-];
+namespace App\Model;
+
+use Captainbi\Hyperf\Base\Model;
+
+class ChannelModel extends Model
+{
+    protected $connection = 'erp_base';
+    protected $table = 'channel';
+}

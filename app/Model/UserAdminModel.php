@@ -15,7 +15,8 @@ use Captainbi\Hyperf\Base\Model;
 
 class UserAdminModel extends Model
 {
+    public $timestamps = true;
     protected $connection = 'erp_base';
-
     protected $table = 'user_admin';
+
 }

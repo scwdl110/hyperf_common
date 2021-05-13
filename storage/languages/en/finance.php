@@ -10,7 +10,7 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 return [
-    'no_jwt' => '用户不存在',
-    'no_authorization' => 'authorization不存在',
-    'no_authorized' => '用户未授权',
+    'user_add_error' => 'user add error',
+    'user_is_bind' => 'user is bind',
+    'user_bind_error'=>'user bind error',
 ];

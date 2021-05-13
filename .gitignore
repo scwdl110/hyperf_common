@@ -13,3 +13,4 @@ vendor/
 .phpunit*
 *.cache
 .*.sw[pon]
+php_errors.log

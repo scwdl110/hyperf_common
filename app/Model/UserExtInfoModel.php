@@ -9,8 +9,10 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-return [
-    'no_jwt' => '用户不存在',
-    'no_authorization' => 'authorization不存在',
-    'no_authorized' => '用户未授权',
-];
+namespace App\Model;
+
+class UserExtInfoModel extends BaseModel
+{
+    protected $table = 'user_ext_info';
+    protected $fillable = ['uuid', 'admin_id','client_id','ext_info'];
+}

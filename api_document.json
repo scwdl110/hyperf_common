@@ -1,0 +1,771 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "财务",
+    "version": "1.0"
+  },
+  "paths": {
+    "/accounting/fiancial": {
+      "post": {
+        "tags": [
+          "accounting"
+        ],
+        "summary": "金蝶第三方数据信息",
+        "operationId": "App\\Controller\\AccountingController::getFiancialProfitInfo",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "令牌",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "country_id"
+                ],
+                "properties": {
+                  "date": {
+                    "description": "日期",
+                    "type": "string"
+                  },
+                  "offset": {
+                    "description": "偏移量",
+                    "type": "integer"
+                  },
+                  "limit": {
+                    "description": "每页条数",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "description": "200",
+                      "type": "integer",
+                      "example": "200"
+                    },
+                    "msg": {
+                      "description": "msg",
+                      "type": "string"
+                    },
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "total": {
+                            "description": "总条数",
+                            "type": "number"
+                          },
+                          "list": {
+                            "type": "array",
+                            "items": {
+                              "properties": {
+                                "items": {
+                                  "properties": {
+                                    "channel_id": {
+                                      "description": "店铺id",
+                                      "type": "number"
+                                    },
+                                    "currency_id": {
+                                      "description": "货币id",
+                                      "type": "number"
+                                    },
+                                    "exchang_rate": {
+                                      "description": "汇率",
+                                      "type": "number"
+                                    },
+                                    "commodity_sales": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "fba_sales_quota": {
+                                            "description": "FBA销售额",
+                                            "type": "number"
+                                          },
+                                          "fbm_sales_quota": {
+                                            "description": "FBM销售额",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    },
+                                    "promotion_fee": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "promote_discount": {
+                                            "description": "Promote折扣",
+                                            "type": "number"
+                                          },
+                                          "cpc_sb_cost": {
+                                            "description": "退款返还Promote折扣",
+                                            "type": "number"
+                                          },
+                                          "coupon": {
+                                            "description": "coupon优惠券",
+                                            "type": "number"
+                                          },
+                                          "run_lightning_deal_fee": {
+                                            "description": "RunLightningDealFee",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    },
+                                    "order_fee": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "platform_sales_commission": {
+                                            "description": "亚马逊销售佣金",
+                                            "type": "number"
+                                          },
+                                          "fba_generation_delivery_cost": {
+                                            "description": "FBA代发货费用",
+                                            "type": "number"
+                                          },
+                                          "profit": {
+                                            "description": "多渠道配送费",
+                                            "type": "number"
+                                          },
+                                          "other_order_fee": {
+                                            "description": "其他订单费用",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    },
+                                    "return_refund_fee": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "return_and_return_commission": {
+                                            "description": "退款扣除佣金",
+                                            "type": "number"
+                                          },
+                                          "fba_refund_treatment_fee": {
+                                            "description": "FBA退货处理费",
+                                            "type": "number"
+                                          },
+                                          "return_and_return_sales_commission": {
+                                            "description": "返还亚马逊销售佣金",
+                                            "type": "number"
+                                          },
+                                          "returnshipping": {
+                                            "description": "返还运费",
+                                            "type": "number"
+                                          },
+                                          "refund_variableclosingfee": {
+                                            "description": "可变结算费-退款",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    },
+                                    "inventory_cost": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "fba_storage_fee": {
+                                            "description": "FBA月仓储费用",
+                                            "type": "number"
+                                          },
+                                          "fba_long_term_storage_fee": {
+                                            "description": "FBA长期仓储费",
+                                            "type": "number"
+                                          },
+                                          "fba_disposal_fee": {
+                                            "description": "FBA处理费",
+                                            "type": "number"
+                                          },
+                                          "fba_removal_fee": {
+                                            "description": "FBA移除费",
+                                            "type": "number"
+                                          },
+                                          "restocking_fee": {
+                                            "description": "FBA重新入仓费",
+                                            "type": "number"
+                                          },
+                                          "fba_inbound_convenience_fee": {
+                                            "description": "库存配置服务费",
+                                            "type": "number"
+                                          },
+                                          "fba_inbound_defect_fee": {
+                                            "description": "FBA入库缺陷费",
+                                            "type": "number"
+                                          },
+                                          "labeling_fee": {
+                                            "description": "贴标费",
+                                            "type": "number"
+                                          },
+                                          "polybagging_fee": {
+                                            "description": "包装费",
+                                            "type": "number"
+                                          },
+                                          "fba_inbound_shipment_carton_level_info_fee": {
+                                            "description": "人工处理费用",
+                                            "type": "number"
+                                          },
+                                          "fba_inbound_transportation_fee": {
+                                            "description": "入仓运输费",
+                                            "type": "number"
+                                          },
+                                          "fba_inbound_transportation_program_fee": {
+                                            "description": "FBA入境运输费",
+                                            "type": "number"
+                                          },
+                                          "fba_overage_fee": {
+                                            "description": "库存仓储超量费",
+                                            "type": "number"
+                                          },
+                                          "other_amazon_fee": {
+                                            "description": "其他亚马逊费用",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    },
+                                    "other_fee": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "reserved_field17": {
+                                            "description": "VAT",
+                                            "type": "number"
+                                          },
+                                          "misc_adjustment": {
+                                            "description": "其他",
+                                            "type": "number"
+                                          },
+                                          "review_enrollment_fee": {
+                                            "description": "早期评论者计划",
+                                            "type": "number"
+                                          },
+                                          "cpc_cost": {
+                                            "description": "CPC花费",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    },
+                                    "commodity_adjustment_fee": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "ware_house_lost": {
+                                            "description": "FBA仓丢失赔款",
+                                            "type": "number"
+                                          },
+                                          "ware_house_damage": {
+                                            "description": "FBA仓损坏赔款",
+                                            "type": "number"
+                                          },
+                                          "reversal_reimbursement": {
+                                            "description": "REVERSAL REIMBURSEMENT",
+                                            "type": "number"
+                                          },
+                                          "return_postage_billing_postage": {
+                                            "description": "ReturnPostageBilling_postage",
+                                            "type": "number"
+                                          },
+                                          "missing_from_inbound": {
+                                            "description": "入库丢失赔偿",
+                                            "type": "number"
+                                          },
+                                          "missing_from_inbound_clawback": {
+                                            "description": "入库丢失赔偿(夺回)",
+                                            "type": "number"
+                                          },
+                                          "fba_per_unit_fulfillment_fee": {
+                                            "description": "费用盘点-重量和尺寸更改",
+                                            "type": "number"
+                                          },
+                                          "fee_adjustment": {
+                                            "description": "其他商品调整费用",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    },
+                                    "fee": {
+                                      "type": "array",
+                                      "items": {
+                                        "properties": {
+                                          "reserved_field16": {
+                                            "description": "运营费用",
+                                            "type": "number"
+                                          },
+                                          "reserved_field10": {
+                                            "description": "测评费用",
+                                            "type": "number"
+                                          },
+                                          "purchasing_cost": {
+                                            "description": "商品成本",
+                                            "type": "number"
+                                          },
+                                          "logistics_head_course": {
+                                            "description": "FBA头程",
+                                            "type": "number"
+                                          },
+                                          "fbm": {
+                                            "description": "物流",
+                                            "type": "number"
+                                          }
+                                        },
+                                        "type": "object"
+                                      }
+                                    }
+                                  },
+                                  "type": "object"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/shop_list": {
+      "get": {
+        "tags": [
+          "accounting"
+        ],
+        "summary": "金蝶第三方店铺信息",
+        "operationId": "App\\Controller\\AccountingController::getShopInfo",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "令牌",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "country_id"
+                ],
+                "properties": {
+                  "date_time": {
+                    "description": "日期",
+                    "type": "date"
+                  },
+                  "offset": {
+                    "description": "偏移量",
+                    "type": "integer"
+                  },
+                  "limit": {
+                    "description": "每页条数",
+                    "type": "integer"
+                  },
+                  "shop_name": {
+                    "description": "店铺名称",
+                    "type": "string"
+                  },
+                  "shop_id": {
+                    "description": "店铺ID",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "description": "200",
+                      "type": "integer",
+                      "example": "200"
+                    },
+                    "msg": {
+                      "description": "msg",
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "total": {
+                            "description": "总条数",
+                            "type": "number"
+                          },
+                          "list": {
+                            "type": "array",
+                            "items": {
+                              "properties": {
+                                "shop_id": {
+                                  "description": "店铺ID",
+                                  "type": "integer"
+                                },
+                                "shop_name": {
+                                  "description": "店铺名称",
+                                  "type": "string"
+                                },
+                                "modified_time": {
+                                  "description": "修改时间",
+                                  "type": "integer"
+                                }
+                              },
+                              "type": "object"
+                            }
+                          }
+                        },
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/exchange_rate_list": {
+      "get": {
+        "tags": [
+          "accounting"
+        ],
+        "summary": "汇率接口",
+        "operationId": "App\\Controller\\AccountingController::getExchangeRateList",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "令牌",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "country_id"
+                ],
+                "properties": {
+                  "id": {
+                    "description": "货币id",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "货币名称",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "description": "200",
+                      "type": "integer",
+                      "example": "200"
+                    },
+                    "msg": {
+                      "description": "msg",
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "total": {
+                            "description": "总条数",
+                            "type": "number"
+                          },
+                          "list": {
+                            "type": "array",
+                            "items": {
+                              "properties": {
+                                "id": {
+                                  "description": "货币ID",
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "description": "货币名称",
+                                  "type": "string"
+                                },
+                                "code": {
+                                  "description": "货币代码",
+                                  "type": "integer"
+                                },
+                                "symbol": {
+                                  "description": "货币符号",
+                                  "type": "string"
+                                },
+                                "usd_exchang_rate": {
+                                  "description": "货币汇率",
+                                  "type": "number"
+                                }
+                              },
+                              "type": "object"
+                            }
+                          }
+                        },
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/accounting/get_username": {
+      "post": {
+        "tags": [
+          "get_username"
+        ],
+        "summary": "用户名接口",
+        "operationId": "App\\Controller\\AccountingController::getUsername",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "令牌",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "country_id"
+                ],
+                "properties": {
+                  "client_id": {
+                    "description": "第三方调用客户端id",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "description": "200",
+                      "type": "integer",
+                      "example": "200"
+                    },
+                    "msg": {
+                      "description": "msg",
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "uuid": {
+                            "description": "加密后第三方id",
+                            "type": "string"
+                          },
+                          "user_name": {
+                            "description": "用户名",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/accounting/bind": {
+      "post": {
+        "tags": [
+          "bind"
+        ],
+        "summary": "绑定第三方信息接口",
+        "operationId": "App\\Controller\\AccountingController::bindUser",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "令牌",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "country_id"
+                ],
+                "properties": {
+                  "ext_info": {
+                    "description": "第三方信息",
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "description": "第三方用户id",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "description": "200",
+                      "type": "integer",
+                      "example": "200"
+                    },
+                    "msg": {
+                      "description": "msg",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/common/get_result": {
+      "get": {
+        "tags": [
+          "common"
+        ],
+        "summary": "通过异步id获取结果(返回结果data里面的数据不是一定的，根据不同的类型id返回不同的值)",
+        "operationId": "App\\Controller\\CommonController::getResult",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "令牌",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "异步id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "description": "200",
+                      "type": "integer",
+                      "example": "200"
+                    },
+                    "msg": {
+                      "description": "msg",
+                      "type": "string"
+                    },
+                    "data": {
+                      "properties": {
+                        "url": {
+                          "description": "获取视频",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
