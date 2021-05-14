@@ -45,7 +45,7 @@ class ChannelProfitReportModel extends Model
         $this->codeno =  $userInfo['codeno'];
 
         $this->connection = 'erp_finance_' . $this->dbhost;
-        $this->table = 'f_channel_profit_report_by_everyday_' . $this->codeno;
+        $this->table = 'channel_profit_report_by_everyday_' . $this->codeno;
         parent::__construct();
     }
 }

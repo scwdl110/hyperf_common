@@ -46,7 +46,7 @@ class FinanceReportModel extends Model
         $this->codeno =  $userInfo['codeno'];
 
         $this->connection = 'erp_finance_' . $this->dbhost;
-        $this->table = 'f_amazon_goods_finance_report_' . $this->codeno;
+        $this->table = 'amazon_goods_finance_report_' . $this->codeno;
         parent::__construct();
     }
 }
