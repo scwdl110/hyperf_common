@@ -3,6 +3,8 @@
 namespace App\Model\DataArk;
 
 use App\Model\AbstractESModel;
+use Hyperf\Logger\LoggerFactory;
+use Hyperf\Utils\ApplicationContext;
 
 class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 {
@@ -56,12 +58,12 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $rt = array();
         $fields_arr = array();
         foreach ($fields as $field_name => $field) {
-            $fields_arr[] = $field . ' AS "' . $field_name . '"';
+            $fields_arr[] = $field . ' AS ' . $field_name ;
         }
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
-        $table = "f_dw_goods_day_report_{$this->dbhost} AS report" ;
+        $table = "dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report" ;
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
         if (!empty($mod_where)) {
             $where .= ' AND ' . $mod_where;
@@ -69,60 +71,47 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $having = '';
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
-            if($datas['is_distinct_channel'] == 1){ //有区分店铺
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
-                    if($datas['count_periods'] == '4'){ //按季度
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.lquarter ';
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.lquarter ';
-                    }else if($datas['count_periods'] == '5') { //年
-                        $group = 'report.goods_' . $datas['count_dimension'] . '  , report.channel_id ,report.myear' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id,report.myear ';
-                    }else {
-                        $group = 'report.' . $datas['count_dimension'] . '_group, report.channel_id  ';
-                        $orderby = "report." . $datas['count_dimension'] . "_group, report.channel_id ";
-                    }
-
-                }else{
-                    $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
-                    $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lday';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lweek';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lmonth';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lquarter';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.myear';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.myear';
                 }
-            }else{  //不区分店铺
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
-                    if($datas['count_periods'] == '4'){ //按季度
-                        $group = 'report.goods_' . $datas['count_dimension'] . '  ,report.lquarter ';
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' ,report.lquarter ';
-                    }else if($datas['count_periods'] == '5') { //年
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.myear ';
-                    }else if($datas['count_periods'] == '3'){ //按月
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.lmonth' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.lmonth';
-                    }else if($datas['count_periods'] == '2'){  //按周
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.lweek' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.lweek';
-                    }else if($datas['count_periods'] == '1') {  //按天
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.lday' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.lday';
-                    }
-                }else{
-                    $group = 'report.goods_' . $datas['count_dimension'] . ' ';
-                    $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension']) : ($orderby . ' , report.goods_'. $datas['count_dimension'] );
-                }
+            }else{
+                $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
+                $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
             }
-
             $where .= " AND report.goods_" . $datas['count_dimension'] . " != '' ";
         } else if ($datas['count_dimension'] == 'isku') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.goods_isku_id  , report.lquarter ';
-                    $orderby = 'report.goods_isku_id  , report.lquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.goods_isku_id  , report.myear' ;
-                    $orderby = 'report.goods_isku_id  , report.myear ';
-                }else {
-                    $group = "report.isku_group ";
-                    $orderby = "report.isku_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.goods_isku_id , report.lday';
+                    $orderby =  'report.goods_isku_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.goods_isku_id, report.lweek';
+                    $orderby =  'report.goods_isku_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.goods_isku_id, report.lmonth';
+                    $orderby =  'report.goods_isku_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.goods_isku_id , report.lquarter';
+                    $orderby =  'report.goods_isku_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.goods_isku_id , report.myear';
+                    $orderby =  'report.goods_isku_id , report.myear';
                 }
+
 
             }else{
                 $group = 'report.goods_isku_id ';
@@ -131,16 +120,23 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $where .= " AND report.goods_isku_id > 0";
         } else if ($datas['count_dimension'] == 'group') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.goods_group_id , report.lquarter ';
-                    $orderby = 'report.goods_group_id ,report.lquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.goods_group_id , report.myear' ;
-                    $orderby = 'report.goods_group_id , report.myear ';
-                }else {
-                    $group = 'report.group_id_group  ';
-                    $orderby = "report.group_id_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.goods_group_id , report.lday';
+                    $orderby =  'report.goods_group_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.goods_group_id, report.lweek';
+                    $orderby =  'report.goods_group_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.goods_group_id, report.lmonth';
+                    $orderby =  'report.goods_group_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.goods_group_id , report.lquarter';
+                    $orderby =  'report.goods_group_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.goods_group_id , report.myear';
+                    $orderby =  'report.goods_group_id , report.myear';
                 }
+
 
             }else{
                 $group = 'report.goods_group_id  ';
@@ -175,15 +171,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.isku_head_id , report.lquarter ';
-                    $orderby = 'report.isku_head_id ,report.lquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.isku_head_id , report.myear' ;
-                    $orderby = 'report.isku_head_id , report.myear ';
-                }else {
-                    $group = 'report.isku_head_id_group  ';
-                    $orderby = "report.isku_head_id_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.isku_head_id , report.lday';
+                    $orderby =  'report.isku_head_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.isku_head_id, report.lweek';
+                    $orderby =  'report.isku_head_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.isku_head_id, report.lmonth';
+                    $orderby =  'report.isku_head_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.isku_head_id , report.lquarter';
+                    $orderby =  'report.isku_head_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.isku_head_id , report.myear';
+                    $orderby =  'report.isku_head_id , report.myear';
                 }
             }else{
                 $group = 'report.isku_head_id  ';
@@ -192,15 +194,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $where.= " AND report.isku_head_id > 0";
         }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.isku_developer_id , report.lquarter ';
-                    $orderby = 'report.isku_developer_id ,report.lquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.isku_developer_id , report.myear' ;
-                    $orderby = 'report.isku_developer_id , report.myear ';
-                }else {
-                    $group = 'report.isku_developer_id_group  ';
-                    $orderby = "report.isku_developer_id_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.isku_developer_id , report.lday';
+                    $orderby =  'report.isku_developer_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.isku_developer_id, report.lweek';
+                    $orderby =  'report.isku_developer_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.isku_developer_id, report.lmonth';
+                    $orderby =  'report.isku_developer_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.isku_developer_id , report.lquarter';
+                    $orderby =  'report.isku_developer_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.isku_developer_id , report.myear';
+                    $orderby =  'report.isku_developer_id , report.myear';
                 }
             }else{
                 $group = 'report.isku_developer_id  ';
@@ -208,50 +216,26 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
             $where.= " AND report.isku_developer_id > 0";
         }else if($datas['count_dimension'] == 'all_goods'){ //按全部商品维度统计
-            if($datas['is_distinct_channel'] == 1) { //有区分店铺
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                    if ($datas['count_periods'] == '1' ) { //按天
-                        $group = 'report.channel_id , report.lday';
-                        $orderby = 'report.channel_id ,report.lday';
-                    } else if ($datas['count_periods'] == '2' ) { //按周
-                        $group = 'report.channel_id ,report.lweek';
-                        $orderby = 'report.channel_id ,report.lweek';
-                    } else if ($datas['count_periods'] == '3' ) { //按月
-                        $group = 'report.channel_id ,report.lmonth';
-                        $orderby = 'report.channel_id ,report.lmonth';
-                    } else if ($datas['count_periods'] == '4' ) {  //按季
-                        $group = 'report.channel_id ,report.lquarter';
-                        $orderby = 'report.channel_id ,report.lquarter';
-                    } else if ($datas['count_periods'] == '5' ) { //按年
-                        $group = 'report.channel_id ,report.myear';
-                        $orderby = 'report.channel_id ,report.myear';
-                    }
-                }else{
-                    $group = 'report.channel_id ,report.user_id  ';
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group = 'report.lday';
+                    $orderby = 'report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group = 'report.lweek';
+                    $orderby = 'report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group = 'report.lmonth';
+                    $orderby = 'report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group = 'report.lquarter';
+                    $orderby = 'report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group = 'report.myear';
+                    $orderby = 'report.myear';
                 }
             }else{
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                    if ($datas['count_periods'] == '1' ) { //按天
-                        $group = 'report.lday';
-                        $orderby = 'report.lday';
-                    } else if ($datas['count_periods'] == '2' ) { //按周
-                        $group = 'report.lweek';
-                        $orderby = 'report.lweek';
-                    } else if ($datas['count_periods'] == '3' ) { //按月
-                        $group = 'report.lmonth';
-                        $orderby = 'report.lmonth';
-                    } else if ($datas['count_periods'] == '4' ) {  //按季
-                        $group = 'report.lquarter';
-                        $orderby = 'report.lquarter';
-                    } else if ($datas['count_periods'] == '5' ) { //按年
-                        $group = 'report.myear';
-                        $orderby = 'report.myear';
-                    }
-                }else{
-                    $group = 'report.user_id  ';
-                }
+                $group = 'report.user_id  ';
             }
-
         }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                 if ($datas['count_periods'] == '1' ) { //按天
@@ -348,42 +332,23 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $limit_num = $datas['limit_num'] ;
         }
         $count = 0;
-        $lists  = array() ;
-        if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
-            if($limit_num > 0 && $count > $limit_num){
-                $count = $limit_num ;
-            }
-        } else if ($count_tip == 1) {  //仅仅统计列表
-            if ($datas['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
-                }
-            }
-        } else {  //统计列表和总条数
-            if ($datas['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
-                }
-            }
-
-            if (empty($lists) or $datas['is_count'] == 1) {
-                $count = 0;
-            } else {
-                $count = $this->getTotalNum($where, $table, $group);
-                if($limit_num > 0 && $count > $limit_num){
-                    $count = $limit_num ;
-                }
+        if ($datas['is_count'] == 1){
+            $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
+            $lists = $this->select($where, $field_data, $table,2000,'' ,'channel_id');
+        }else{
+            $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+            if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
+                $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
             }
         }
+        if(empty($lists)){
+            $lists = array() ;
+        }
+        $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+        $logger->info('getListByGoods Elastic 【'.$count_tip.'】【'.$datas['is_count'].'】', [$this->getLastSql()]);
+        $logger->info('getListByGoods Elastic 结果【'.$count_tip.'】【'.$datas['is_count'].'】',$lists);
+
+
         if(!empty($lists) && $datas['show_type'] = 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
@@ -513,26 +478,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         switch ($datas['count_dimension']){
             //商品级
             case "parent_asin":
-                if($datas['is_distinct_channel'] == '1'){
-                    $field_data = "max(report.channel_id) as channel_id,max(report.goods_parent_asin) as goods_parent_asin";
-                }else{
-                    $field_data = "max(report.goods_parent_asin) as goods_parent_asin";
-                }
+                $field_data = "(report.channel_id) as channel_id,max(report.goods_parent_asin) as goods_parent_asin";
                 break;
             case "asin":
-                if($datas['is_distinct_channel'] == '1'){
-                    $field_data = "max(report.channel_id) as channel_id,max(report.goods_asin) as goods_asin";
-                }else{
-                    $field_data = "max(report.goods_asin) as goods_asin";
-                }
+                $field_data = "(report.channel_id) as channel_id,max(report.goods_asin) as goods_asin";
                 break;
             case "sku":
-                if($datas['is_distinct_channel'] == '1'){
-                    $field_data = "max(report.amazon_goods_id) as amazon_goods_id";
-                }else{
-                    $field_data = "max(report.goods_sku) as goods_sku";
-                }
-
+                $field_data = "(report.amazon_goods_id) as amazon_goods_id";
                 break;
             case "isku":
                 $field_data = "max(report.goods_isku_id) as goods_isku_id";
@@ -541,24 +493,24 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $field_data = "max(report.goods_product_category_name_1) as goods_product_category_name_1";
                 break;
             case "group":
-                $field_data = "max(report.goods_group_id) as goods_group_id";
+                $field_data = "(report.goods_group_id) as goods_group_id";
                 break;
             case "head_id":
-                $field_data = "max(report.isku_head_id) as isku_head_id";
+                $field_data = "(report.isku_head_id) as isku_head_id";
                 break;
             case "developer_id":
-                $field_data = "max(report.isku_developer_id) as isku_developer_id";
+                $field_data = "(report.isku_developer_id) as isku_developer_id";
                 break;
                 //店铺级
             case "site_id":
-                $field_data = "max(report.site_id) as site_id";
+                $field_data = "(report.site_id) as site_id";
                 break;
             case "channel_id":
-                $field_data = "max(report.channel_id) as channel_id";
+                $field_data = "(report.channel_id) as channel_id";
                 break;
                 //运营人员
             case "operators":
-                $field_data = "max(report.goods_operation_user_admin_id) as goods_operation_user_admin_id";
+                $field_data = "(report.goods_operation_user_admin_id) as goods_operation_user_admin_id";
                 break;
 
             default:
@@ -569,41 +521,29 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             switch ($datas['count_dimension']){
                 //商品级
                 case "parent_asin":
-                    if($datas['is_distinct_channel'] == '1'){
-                        $channel_arr = array();
-                        foreach ($lists as $v){
-                            $channel_arr[$v['channel_id']][] = $v['goods_parent_asin'];
-                        }
-                        $where_tmp = array();
-                        foreach ($channel_arr as $key => $value){
-                            $where_tmp[] = " (report.channel_id = {$key} AND report.goods_parent_asin IN ( '".implode("','",$value)."' )) ";
-                        }
-                        $where .= " AND (".implode(" OR ",$where_tmp).")";
-                    }else{
-                        $where .=  " AND report.goods_parent_asin IN ( '".implode("','",array_column($lists,'goods_parent_asin'))."' )";
+                    $channel_arr = array();
+                    foreach ($lists as $v){
+                        $channel_arr[$v['channel_id']][] = $v['goods_parent_asin'];
                     }
+                    $where_tmp = array();
+                    foreach ($channel_arr as $key => $value){
+                        $where_tmp[] = " (report.channel_id = {$key} AND report.goods_parent_asin IN ( '".implode("','",$value)."' )) ";
+                    }
+                    $where .= " AND (".implode(" OR ",$where_tmp).")";
                     break;
                 case "asin":
-                    if($datas['is_distinct_channel'] == '1'){
-                        $channel_arr = array();
-                        foreach ($lists as $v){
-                            $channel_arr[$v['channel_id']][] = $v['goods_asin'];
-                        }
-                        $where_tmp = array();
-                        foreach ($channel_arr as $key => $value){
-                            $where_tmp[] = " (report.channel_id = {$key} AND report.goods_asin IN ( '".implode("','",$value)."' )) ";
-                        }
-                        $where .= " AND (".implode(" OR ",$where_tmp).")";
-                    }else{
-                        $where .=  " AND report.goods_asin IN ( '".implode("','",array_column($lists,'goods_asin'))."' )";
+                    $channel_arr = array();
+                    foreach ($lists as $v){
+                        $channel_arr[$v['channel_id']][] = $v['goods_asin'];
                     }
+                    $where_tmp = array();
+                    foreach ($channel_arr as $key => $value){
+                        $where_tmp[] = " (report.channel_id = {$key} AND report.goods_asin IN ( '".implode("','",$value)."' )) ";
+                    }
+                    $where .= " AND (".implode(" OR ",$where_tmp).")";
                     break;
                 case "sku":
-                    if($datas['is_distinct_channel'] == '1'){
-                        $where .=  " AND report.amazon_goods_id IN (".implode(",",array_column($lists,'amazon_goods_id')).")";
-                    }else{
-                        $where .=  " AND report.goods_sku IN ( '".implode("','",array_column($lists,'goods_sku'))."' ')";
-                    }
+                    $where .=  " AND report.amazon_goods_id IN (".implode(",",array_column($lists,'amazon_goods_id')).")";
                     break;
                 case "isku":
                     $where .=  " AND report.goods_isku_id IN (".implode(",",array_column($lists,'goods_isku_id')).")";
@@ -654,23 +594,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
             $table = "f_amazon_goods_finance_{$this->codeno} as g " ;
             if($datas['count_dimension'] == 'sku'){
-                if($datas['is_distinct_channel'] == 1){
-                    $fba_fields = $group = 'g.sku , g.channel_id' ;
-                }else{
-                    $fba_fields = $group = 'g.sku, g.fba_inventory_v3_id' ;
-                }
+                $fba_fields = $group = 'g.sku , g.channel_id' ;
             }else if($datas['count_dimension'] == 'asin'){
-                if($datas['is_distinct_channel'] == 1){
-                    $fba_fields = $group = 'g.asin , g.channel_id' ;
-                }else{
-                    $fba_fields = $group = 'g.asin ,g.fba_inventory_v3_id ' ;
-                }
+                $fba_fields = $group = 'g.asin , g.channel_id' ;
             }else if($datas['count_dimension'] == 'parent_asin'){
-                if($datas['is_distinct_channel'] == 1){
-                    $fba_fields = $group = 'g.parent_asin , g.channel_id' ;
-                }else{
-                    $fba_fields = $group = 'g.parent_asin ,g.fba_inventory_v3_id ' ;
-                }
+                $fba_fields = $group = 'g.parent_asin , g.channel_id' ;
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_fields = $group = 'g.isku_id ,g.fba_inventory_v3_id' ;
             }else if($datas['count_dimension'] == 'class1'){
@@ -678,11 +606,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'group'){ //分组
                 $fba_fields = $group = 'g.group_id ,g.fba_inventory_v3_id' ;
             }else if($datas['count_dimension'] == 'all_goods'){
-                if($datas['is_distinct_channel'] == 1) { //有区分店铺
-                    $fba_fields = $group = 'g.channel_id' ;
-                }else{
-                    $fba_fields = $group = 'g.fba_inventory_v3_id' ;
-                }
+                $fba_fields = $group = 'g.channel_id' ;
             }else if($datas['count_dimension'] == 'goods_channel'){
                 $fba_fields = $group = 'g.channel_id' ;
             }
@@ -690,23 +614,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $where_arr = array() ;
             foreach($lists as $list1){
                 if($datas['count_dimension'] == 'sku'){
-                    if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
-                    }else{
-                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']));
-                    }
+                    $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                 }else if($datas['count_dimension'] == 'asin'){
-                    if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
-                    }else{
-                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']));
-                    }
+                    $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                 }else if($datas['count_dimension'] == 'parent_asin'){
-                    if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
-                    }else{
-                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']));
-                    }
+                    $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                 }else if($datas['count_dimension'] == 'class1'){
                     $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ,  'site_id'=>$list1['site_id']) ;
                 }else if($datas['count_dimension'] == 'group'){
@@ -723,23 +635,16 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
 
             if($datas['count_dimension'] == 'sku' || $datas['count_dimension'] == 'asin' || $datas['count_dimension'] == 'parent_asin'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $whereDatas = array() ;
-                    foreach($where_arr as $wheres){
-                        $whereDatas[$wheres['channel_id']][] = $wheres[$datas['count_dimension']] ;
-                    }
-                    $where_strs = array() ;
-                    foreach($whereDatas as $cid => $wd){
-                        $str = "'" . implode("','" , $wd) . "'" ;
-                        $where_strs[] = '( g.channel_id = ' . $cid . ' AND g.'.$datas['count_dimension'] . ' IN (' . $str . '))' ;
-                    }
-                    $where_str = "(".implode(' OR ' , $where_strs).")" ;
-
-                }else{
-                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
-                    $str = "'" . implode("','" , $where_strs) . "'" ;
-                    $where_str = 'g.'.$datas['count_dimension'].' IN (' . $str . ') ' ;
+                $whereDatas = array() ;
+                foreach($where_arr as $wheres){
+                    $whereDatas[$wheres['channel_id']][] = $wheres[$datas['count_dimension']] ;
                 }
+                $where_strs = array() ;
+                foreach($whereDatas as $cid => $wd){
+                    $str = "'" . implode("','" , $wd) . "'" ;
+                    $where_strs[] = '( g.channel_id = ' . $cid . ' AND g.'.$datas['count_dimension'] . ' IN (' . $str . '))' ;
+                }
+                $where_str = "(".implode(' OR ' , $where_strs).")" ;
             }else if($datas['count_dimension'] == 'class1'){
                 $where_strs = array_unique(array_column($where_arr , 'goods_product_category_name_1')) ;
                 $str = "'" . implode("','" , $where_strs) . "'" ;
@@ -779,23 +684,23 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
                 if($datas['count_dimension'] == 'sku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'parent_asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'class1'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'group'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'tags'){  //标签（需要刷数据）
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'head_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'developer_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'isku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',1,$fbaDatas);
                 }
 
             }
@@ -803,23 +708,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         foreach($lists as $k=>$list2){
             if($datas['count_dimension'] == 'sku'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['sku'] . '-' . $list2['channel_id']];
-                }else{
-                    $fba_data = $fbaDatas[$list2['sku']];
-                }
+                $fba_data = $fbaDatas[$list2['sku'] . '-' . $list2['channel_id']];
             }else if($datas['count_dimension'] == 'asin'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['asin'] . '-' . $list2['channel_id']];
-                }else{
-                    $fba_data = $fbaDatas[$list2['asin']];
-                }
+                $fba_data = $fbaDatas[$list2['asin'] . '-' . $list2['channel_id']];
             }else if($datas['count_dimension'] == 'parent_asin'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['parent_asin'] . '-' . $list2['channel_id']];
-                }else{
-                    $fba_data = $fbaDatas[$list2['parent_asin']];
-                }
+                $fba_data = $fbaDatas[$list2['parent_asin'] . '-' . $list2['channel_id']];
             }else if($datas['count_dimension'] == 'class1'){
                 $fba_data = $fbaDatas[$list2['class1']] ;
             }else if($datas['count_dimension'] == 'group'){
@@ -864,7 +757,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
     protected function handleGoodsFbaData($fba, $field, $is_distinct_channel = 0, $fbaDatas = array())
     {
-        if($is_distinct_channel == 1 && ($field == 'sku' || $field == 'asin' || $field == 'parent_asin')){
+        if($field == 'sku' || $field == 'asin' || $field == 'parent_asin'){
             $fbaDatas[$fba[$field].'-'.$fba['channel_id']] = $fba ;
         } else {
             $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
@@ -1318,10 +1211,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if ($datas['count_dimension'] == 'parent_asin') {
 
-            if($datas['is_distinct_channel'] == '1'){
-                $fields['channel_id'] = 'max(report.channel_id)';
-                $fields['site_id'] = 'max(report.site_id)';
-            }
+
+            $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
@@ -1329,30 +1222,22 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'asin') {
 
-            if($datas['is_distinct_channel'] == '1'){
+            $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
 
-                $fields['channel_id'] = 'max(report.channel_id)';
-                $fields['site_id'] = 'max(report.site_id)';
-            }
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         }else if ($datas['count_dimension'] == 'sku') {
-
-            if($datas['is_distinct_channel'] == '1'){
-
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-
-                $fields['isku_id']                       = 'max(report.goods_isku_id)';
-                $fields['channel_id'] = 'max(report.channel_id)';
-                $fields['site_id'] = 'max(report.site_id)';
-
-                $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
-            }
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['isku_id']                       = 'max(report.goods_isku_id)';
+            $fields['channel_id'] = 'max(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+            $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         } else if ($datas['count_dimension'] == 'isku') {
@@ -1368,11 +1253,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         } else if ($datas['count_dimension'] == 'developer_id') {
             $fields['developer_id'] = 'max(report.isku_developer_id)';
         } elseif($datas['count_dimension'] == 'all_goods') {
-            if($datas['is_distinct_channel'] == '1'){
-                $fields['channel_id'] = 'max(report.channel_id)';
-            }
+            $fields['channel_id'] = '(report.channel_id)';
         } else if($datas['count_dimension'] == 'goods_channel'){
-            $fields['channel_id'] = 'max(report.channel_id)';
+            $fields['channel_id'] = '(report.channel_id)';
         }
 
         return $fields;
@@ -1523,7 +1406,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             return [];
         }
 
-        $table = "f_dw_channel_day_report_{$this->dbhost} AS report";
+        $table = "dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
 
         $where .= " AND report.user_id_mod = " . ($params['user_id'] % 20);
 
@@ -1538,7 +1421,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $rt = $fields_arr = [];
         foreach ($fields as $field_name => $field) {
-            $fields_arr[] = $field . ' AS "' . $field_name . '"';
+            $fields_arr[] = $field . ' AS ' . $field_name ;
         }
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
@@ -1550,15 +1433,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if ($params['count_dimension'] == 'channel_id') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
-                if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.channel_id , report.lquarter ';
-                    $orderby = 'report.channel_id , report.lquarter ';
-                }else if($params['count_periods'] == '5') { //年
-                    $group = 'report.channel_id , report.myear' ;
-                    $orderby = 'report.channel_id , report.myear ';
-                }else{
-                    $group = 'report.channel_id_group ';
-                    $orderby = 'report.channel_id_group ';
+                if ($params['count_periods'] == '1' ) { //按天
+                    $group = 'report.channel_id , report.lday';
+                    $orderby = 'report.channel_id ,report.lday';
+                } else if ($params['count_periods'] == '2' ) { //按周
+                    $group = 'report.channel_id ,report.lweek';
+                    $orderby = 'report.channel_id ,report.lweek';
+                } else if ($params['count_periods'] == '3' ) { //按月
+                    $group = 'report.channel_id ,report.lmonth';
+                    $orderby = 'report.channel_id ,report.lmonth';
+                } else if ($params['count_periods'] == '4' ) {  //按季
+                    $group = 'report.channel_id ,report.lquarter';
+                    $orderby = 'report.channel_id ,report.lquarter';
+                } else if ($params['count_periods'] == '5' ) { //按年
+                    $group = 'report.channel_id ,report.myear';
+                    $orderby = 'report.channel_id ,report.myear';
                 }
             }else{
                 $group = 'report.channel_id ';
@@ -1567,31 +1456,45 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         } else if ($params['count_dimension'] == 'site_id') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
-                if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.site_id , report.lquarter ';
-                    $orderby = 'report.site_id , report.lquarter ';
-                }else if($params['count_periods'] == '5') { //年
-                    $group = 'report.site_id , report.myear' ;
-                    $orderby = 'report.site_id , report.myear ';
-                }else {
-                    $group = 'report.site_id_group ';
-                    $orderby = 'report.site_id_group ';
+                if ($params['count_periods'] == '1' ) { //按天
+                    $group = 'report.site_id , report.lday';
+                    $orderby = 'report.site_id ,report.lday';
+                } else if ($params['count_periods'] == '2' ) { //按周
+                    $group = 'report.site_id ,report.lweek';
+                    $orderby = 'report.site_id ,report.lweek';
+                } else if ($params['count_periods'] == '3' ) { //按月
+                    $group = 'report.site_id ,report.lmonth';
+                    $orderby = 'report.site_id ,report.lmonth';
+                } else if ($params['count_periods'] == '4' ) {  //按季
+                    $group = 'report.site_id ,report.lquarter';
+                    $orderby = 'report.site_id ,report.lquarter';
+                } else if ($params['count_periods'] == '5' ) { //按年
+                    $group = 'report.site_id ,report.myear';
+                    $orderby = 'report.site_id ,report.myear';
                 }
-            }else{
+            }
+            else{
                 $group = 'report.site_id ';
                 $orderby = empty($orderby) ? 'report.site_id ' : ($orderby . ' , report.site_id ');
             }
+
         } else if ($params['count_dimension'] == 'site_group') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
-                if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.area_id , report.lquarter ';
-                    $orderby = 'report.area_id , report.lquarter ';
-                }else if($params['count_periods'] == '5') { //年
-                    $group = 'report.area_id , report.myear' ;
-                    $orderby = 'report.area_id , report.myear ';
-                }else {
-                    $orderby = 'report.area_id_group ';
-                    $group = 'report.area_id_group ';
+                if ($params['count_periods'] == '1' ) { //按天
+                    $group = 'report.area_id , report.lday';
+                    $orderby = 'report.area_id ,report.lday';
+                } else if ($params['count_periods'] == '2' ) { //按周
+                    $group = 'report.area_id ,report.lweek';
+                    $orderby = 'report.area_id ,report.lweek';
+                } else if ($params['count_periods'] == '3' ) { //按月
+                    $group = 'report.area_id ,report.lmonth';
+                    $orderby = 'report.area_id ,report.lmonth';
+                } else if ($params['count_periods'] == '4' ) {  //按季
+                    $group = 'report.area_id ,report.lquarter';
+                    $orderby = 'report.area_id ,report.lquarter';
+                } else if ($params['count_periods'] == '5' ) { //按年
+                    $group = 'report.area_id ,report.myear';
+                    $orderby = 'report.area_id ,report.myear';
                 }
             }else{
                 $group = 'report.area_id ';
@@ -1643,44 +1546,22 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
-        $limit_num = 0 ;
-        if($params['show_type'] == 2 && $params['limit_num'] > 0 ){
-            $limit_num = $params['limit_num'] ;
+
+        if ($params['is_count'] == 1){
+            $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
+            $lists = $this->select($where, $field_data, $table,2000,'' ,'channel_id');
+        }else{
+            $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+
         }
-        if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
-            if($limit_num > 0 && $count > $limit_num){
-                $count = $limit_num ;
-            }
-        } else if ($count_tip == 1) {  //仅仅统计列表
-            if ($params['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table, $limit);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
-                }
-            }
-        } else {  //统计列表和总条数
-            if ($params['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table, $limit);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
-                }
-            }
-            if (empty($lists)) {
-                $count = 0;
-            } else {
-                $count = $this->getTotalNum($where, $table, $group);
-                if($limit_num > 0 && $count > $limit_num){
-                    $count = $limit_num ;
-                }
-            }
+        $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+        $logger->info('getListByUnGoods Elastic 【'.$count_tip.'】【'.$params['is_count'].'】【'.$group.'】【'.$orderby.'】', [$this->getLastSql()]);
+        $logger->info('getListByUnGoods Elastic 结果 【'.$count_tip.'】【'.$params['is_count'].'】【'.$group.'】【'.$orderby.'】', $lists);
+
+        if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+            $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
         }
+
         if(!empty($lists) && $params['show_type'] = 2 && $params['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$params['sort_target']]) && !empty($params['sort_target']) && !empty($params['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
@@ -1692,7 +1573,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $this->getOtherCountDatas($lists , $params ,2) ;
         }
         $rt['lists'] = empty($lists) ? [] : $lists;
-        $rt['count'] = (int)$count;
+        $rt['count'] = 0;
         return $rt;
     }
 
@@ -1705,7 +1586,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if ($datas['count_dimension'] === 'channel_id') {
             $fields['site_id'] = 'max(report.site_id)';
-            $fields['channel_id'] = 'max(report.channel_id)';
+            $fields['channel_id'] = '(report.channel_id)';
             $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
@@ -2258,7 +2139,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelMySQLModel([], $this->dbhost, $this->codeno);
         $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
         $where.= ' AND ' . $where_str ;
-        $fba_fields .= " , SUM ( DISTINCT (c.yjzhz) )  as fba_goods_value";
+        $fba_fields .= " , SUM(DISTINCT(c.yjzhz))  as fba_goods_value";
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
         $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group);

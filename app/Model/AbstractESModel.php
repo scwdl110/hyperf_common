@@ -167,30 +167,104 @@ abstract class AbstractESModel implements BIModelInterface
         }
 
         $result = $this->esClient->query($sql);
+
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
             throw new RuntimeException('es 查询失败');
         }
-
+        $rt = [];
         if ($result['_shards']['successful'] > 0) {
-            if (!empty($group)) {
-                $aggregations = array_values($result['aggregations']);
-                $result = $aggregations[0]['buckets'];
+            if (empty($group)) {
+                if(!empty($result['aggregations'])){
+                    $val = array() ;
+                    foreach($result['aggregations'] as $k => $aggregations){
+                        $val[$k] = $aggregations['value'] ;
+                    }
+                    $rt[] = $val;
+                }
             } else {
-                $result = [];
-                foreach ($result['hits']['hits'] as $hits) {
-                    $result[] = $hits['_source'];
+                $group_num = explode(',' , $group) ;
+                if(count($group_num) == 1){
+                    foreach ($result['aggregations'] as $key1 => $value1) {
+                        foreach($value1['buckets'] as $k => $buckets){
+                            $key1_val = $buckets['key'] ;
+                            unset($buckets['key']) ;
+                            unset($buckets['doc_count']) ;
+                            $val = [] ;
+                            $key1_k =str_replace('.keyword','',$key1) ;
+                            $val[$key1_k] = $key1_val ;
+                            foreach($buckets as $k1=> $v1 ){
+                                $val[$k1] = $v1['value'] ;
+                            }
+                            $rt[] = $val;
+                        }
+                    }
+                }else if(count($group_num) == 2){
+                    foreach ($result['aggregations'] as $key1 => $value1) {
+                        foreach($value1['buckets'] as $k => $buckets){
+                            $key1_val = $buckets['key'] ;
+                            unset($buckets['key']) ;
+                            unset($buckets['doc_count']) ;
+                            foreach($buckets as $key2 => $value2){
+                                foreach($value2['buckets'] as $k_2=> $buckets2 ){
+                                    $key2_val = $buckets2['key'] ;
+                                    unset($buckets2['key']) ;
+                                    unset($buckets2['doc_count']) ;
+                                    $val = [] ;
+                                    $key1_k =str_replace('.keyword','',$key1) ;
+                                    $key2_k =str_replace('.keyword','',$key2) ;
+                                    $val[$key1_k] = $key1_val ;
+                                    $val[$key2_k] = $key2_val ;
+                                    foreach($buckets2 as $k2=> $v2 ){
+                                        $val[$k2] = $v2['value'] ;
+                                    }
+                                    $rt[] = $val;
+                                }
+                            }
+                        }
+                    }
+                }else if(count($group_num) == 3){
+                    foreach ($result['aggregations'] as $key1 => $value1) {
+                        foreach($value1['buckets'] as $k => $buckets){
+                            $key1_val = $buckets['key'] ;
+                            unset($buckets['key']) ;
+                            unset($buckets['doc_count']) ;
+                            foreach($buckets as $key2 => $value2){
+                                foreach($value2['buckets'] as $k_2=> $buckets2 ){
+                                    $key2_val = $buckets2['key'] ;
+                                    unset($buckets2['key']) ;
+                                    unset($buckets2['doc_count']) ;
+                                    foreach($buckets2 as $key3 => $value3){
+                                        foreach($value3['buckets'] as $k_3 =>$buckets3 ){
+                                            $key3_val = $buckets3['key'] ;
+                                            unset($buckets3['key']) ;
+                                            unset($buckets3['doc_count']) ;
+                                            $val = [] ;
+                                            $key1_k =str_replace('.keyword','',$key1) ;
+                                            $key2_k =str_replace('.keyword','',$key2) ;
+                                            $key3_k =str_replace('.keyword','',$key3) ;
+                                            $val[$key1_k] = $key1_val ;
+                                            $val[$key2_k] = $key2_val ;
+                                            $val[$key3_k] = $key3_val ;
+                                            foreach($buckets3 as $k3=> $v3 ){
+                                                $val[$k3] = $v3['value'] ;
+                                            }
+                                            $rt[] = $val;
+                                        }
+                                    }
+
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            if ($isCache) {
-                $this->getCache()->set($cacheKey, $result, $cacheTTL);
-            }
+            $this->getCache()->set($cacheKey, $rt, $cacheTTL);
         } else {
             $this->logger->error('查询返回异常响应', [$result, $sql, func_get_args()]);
         }
 
-        return $result;
+        return $rt;
     }
 
     public function getOne(
@@ -345,7 +419,7 @@ abstract class AbstractESModel implements BIModelInterface
             }
         }
 
-        return $sql ? ' (' . substr($sql, $adn ? 5: 4) . ') ' : '';
+        return $sql ? ' (' . substr($sql, $and ? 5: 4) . ') ' : '';
     }
 
     public static function escape(string $val): string
