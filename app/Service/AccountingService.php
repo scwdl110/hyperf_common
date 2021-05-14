@@ -451,8 +451,7 @@ class AccountingService extends BaseService
      * @return array
      */
 
-    public
-    function getUserName($request_data)
+    public function getUserName($request_data)
     {
         $rule = [
             'client_id' => 'required|string',
@@ -497,8 +496,7 @@ class AccountingService extends BaseService
      * @return array
      */
 
-    public
-    function bindUser($request_data)
+    public function bindUser($request_data)
     {
         $rule = [
             'ext_info' => 'required|json',

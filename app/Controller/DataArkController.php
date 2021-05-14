@@ -2,19 +2,22 @@
 
 namespace App\Controller;
 
+use Hyperf\Logger\LoggerFactory;
+use Hyperf\Utils\ApplicationContext;
+use Captainbi\Hyperf\Util\Result;
+
 class DataArkController extends AbstractController
 {
-    protected $user = [];
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->user = $this->request->getAttribute('userInfo');
-    }
-
     protected function init($type = 1)
     {
+        $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
+
+        if (env('APP_DATAARK_LOG', false)) {
+            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'default');
+            $logger->info('request body', [$req, $userInfo]);
+        }
+
         $searchKey = trim(strval($req['searchKey'] ?? ''));
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
@@ -31,12 +34,19 @@ class DataArkController extends AbstractController
         $deparmentData = $req['deparmentData'] ?? [];
         $offset = ($page - 1) * $limit;
 
+        $result = ['lists' => [], 'count' => 0];
+
         $where = '';
-        if (count($channelIds) > 1) {
-            $where = "report.user_id={$this->user['user_id']} AND report.channel_id IN (" . implode(',' , $channelIds) .')';
-        } else {
-            $where = "report.user_id={$this->user['user_id']} AND report.channel_id={$channelIds[0]}";
+        if (empty($channelIds)) {
+            return Result::success($result);
         }
+
+        if (count($channelIds) > 1) {
+            $where = "report.user_id={$userInfo['user_id']} AND report.channel_id IN (" . implode(',' , $channelIds) .')';
+        } else {
+            $where = "report.user_id={$userInfo['user_id']} AND report.channel_id={$channelIds[0]}";
+        }
+        $params['origin_where'] = $where;
 
         if(!empty($searchKey) && !empty($searchVal)){
             //匹配方式 ：eq -> 全匹配  like-模糊匹配
@@ -143,9 +153,15 @@ class DataArkController extends AbstractController
                 (int)$params['search_start_time'],
                 (int)$params['search_end_time']
             );
+            $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
+            $min_ym = date('Ym',$params['search_start_time']) ;
+            $max_ym = date('Ym',$params['search_end_time']) ;
         } else {
             $ors = [];
-            foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type']) as $times) {
+            foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type'], $params['search_start_time'], $params['search_end_time']) as $times) {
+
+                $min_ym = empty($min_ym) ? date('Ym',$times['start']) : ($min_ym > date('Ym',$times['start']) ? date('Ym',$times['start']) : $min_ym) ;
+                $max_ym = empty($max_ym) ? date('Ym',$times['end']) : ($max_ym < date('Ym',$times['end']) ? date('Ym',$times['end']) : $max_ym) ;
                 $ors[] = sprintf(
                     '(report.site_id in (%s) and report.create_time>=%d and report.create_time<=%d)',
                     $times['site_id'],
@@ -153,12 +169,12 @@ class DataArkController extends AbstractController
                     (int)$times['end']
                 );
             }
-
             if (empty($ors)) {
-                return json_encode([]);
+                return Result::success($result);
             }
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
+            $params['origin_where'] .= " AND ({$ors}) ";
         }
 
         $method = [
@@ -170,10 +186,11 @@ class DataArkController extends AbstractController
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
         $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
-        $amazonGoodsFinanceReportByOrderMD = new $className($this->user['dbhost'], $this->user['codeno']);
+        $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
         $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
-
-        return json_encode($amazonGoodsFinanceReportByOrderMD->{$method}(
+        $params['min_ym'] = $min_ym ;
+        $params['max_ym'] = $max_ym ;
+        $result = $amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,
             $params,
             $limit,
@@ -185,9 +202,15 @@ class DataArkController extends AbstractController
             $exchangeCode,
             $timeLine,
             $deparmentData,
-            $this->user['user_id'],
-            $this->user['admin_id']
-        ));
+            $userInfo['user_id'],
+            $userInfo['admin_id']
+        );
+
+        if (!isset($result['lists'])) {
+            $result = ['lists' => [], 'count' => 0];
+        }
+
+        return Result::success($result);
     }
 
     public function getUnGoodsDatas()
@@ -205,11 +228,11 @@ class DataArkController extends AbstractController
         return $this->init(2);
     }
 
-    protected function getSiteLocalTime(array $siteIds, int $timeType = 99): array
+    protected function getSiteLocalTime(array $siteIds, int $timeType = 99, $startTime, $endTime): array
     {
         $result = [[
-            'end' => 0,
-            'start' => 0,
+            'end' => (int)$endTime,
+            'start' => (int)$startTime,
             'site_id' => '0',
         ]];
 

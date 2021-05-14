@@ -7,7 +7,6 @@ use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
 {
@@ -28,7 +27,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         $this->logger = $logger;
 
         if ('' === $dbhost) {
-            $userInfo = ApplicationContext::getContainer()->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
+            $userInfo = \app\getUserInfo();
             $dbhost = $userInfo['dbhost'] ?? '';
             $codeno = $userInfo['codeno'] ?? '';
         }
@@ -148,7 +147,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
             }
         }
 
-        $sql = $this->lastSql = "SELECT {$data} FROM {$table}{$where}{$group}{$order}{$limit}";
+        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
         if ($this->logDryRun()) {
             return [];
         }
@@ -212,10 +211,11 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         $where = is_array($where) ? $this->sqls($where) : $where;
 
         if ($group) {
+            $data = $data ?: '1';
             $result = $this->getOne(
                 '',
                 "COUNT(*) AS num",
-                "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group} ORDER BY null) AS tmp",
+                "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
                 '',
                 '',
                 $isCache,
@@ -250,9 +250,13 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         }
     }
 
-    public function dryRun(bool $dryRun): void
+    public function dryRun(?bool $dryRun): bool
     {
-        $this->dryRun = $dryRun;
+        if (null !== $dryRun) {
+            $this->dryRun = $dryRun;
+        }
+
+        return $this->dryRun;
     }
 
     protected function logDryRun(): bool

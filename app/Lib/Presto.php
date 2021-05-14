@@ -130,7 +130,7 @@ class Presto
             $key2 = -1;
             if (null === $client) {
                 $retries = max(min(intval($config['retries'] ?? 3), 0), 20);
-                $client = self::createHttpClient($retries, $logger);
+                $client = self::createHttpClient($retries, $logger, $config['debug'] ?? false);
                 $key2 = self::getConnectionsKey($config, $logger, $client);
             }
 
@@ -159,7 +159,7 @@ class Presto
         return array_push(self::$connectionKeys, [$config, $logger, $client]) - 1;
     }
 
-    private static function createHttpClient(int $maxRetries, LoggerInterface $logger): ClientInterface
+    private static function createHttpClient(int $maxRetries, LoggerInterface $logger, bool $debug): ClientInterface
     {
         $handler = null;
         if (Coroutine::inCoroutine()) {
@@ -173,7 +173,7 @@ class Presto
         $stack = HandlerStack::create($handler);
 
         // 开发模式下，记录请求详情
-        if ('dev' === env('APP_ENV')) {
+        if ($debug || 'dev' === env('APP_ENV')) {
             $stack->push(Middleware::log($logger, new MessageFormatter(MessageFormatter::DEBUG), 'DEBUG'));
         }
 
@@ -201,7 +201,7 @@ class Presto
                     'response' => (string)$resp->getBody(),
                 ]);
             } else {
-                if ($execption) {
+                if ($exception) {
                     $logger->error('presto 请求异常', [
                         'exception' => $exception instanceof Throwable ? $exception->getMessage() : $exception
                     ]);
@@ -377,6 +377,8 @@ class Presto
         if ($stats) {
             $this->logger->debug('presto status', [$stats]);
         }
+
+        $this->logger->debug('presto data', [$datas]);
 
         return $datas;
     }

@@ -16,11 +16,11 @@ return [
     'mode' => SWOOLE_PROCESS,
     'servers' => [
         [
-            'name' => 'http',
-            'type' => Server::SERVER_HTTP,
-            'host' => '0.0.0.0',
-            'port' => 9502,
-            'sock_type' => SWOOLE_SOCK_TCP,
+            'name' => env('HYPERF_SERVER_NAME', 'http'),
+            'type' => (int)env('HYPERF_SERVER_TYPE', Server::SERVER_HTTP),
+            'host' => env('HYPERF_HOST', '0.0.0.0'),
+            'port' => (int)env('HYPERF_PORT', 9501),
+            'sock_type' => (int)env('HYPERF_SOCK_TYPE', SWOOLE_SOCK_TCP),
             'callbacks' => [
                 Event::ON_REQUEST => [Hyperf\HttpServer\Server::class, 'onRequest'],
             ],
@@ -40,7 +40,7 @@ return [
         'max_request' => 100000,
         'socket_buffer_size' => 2 * 1024 * 1024,
         'buffer_output_size' => 2 * 1024 * 1024,
-//        'daemonize' => 1
+        'daemonize' => (int)env('HYPERF_DAEMONIZE', 1),
     ],
     'callbacks' => [
         Event::ON_WORKER_START => [Hyperf\Framework\Bootstrap\WorkerStartCallback::class, 'onWorkerStart'],

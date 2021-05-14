@@ -12,6 +12,10 @@ return (function() {
         'schema' => env('PRESTO_SCHEMA_001', 'runtime'),
         // 请求 presto 遇到 503 服务器错误时，最多重试几次，上限为 20 次
         'retries' => env('PRESTO_RETRIES_001', 3),
+        // 开启 sql 日志记录
+        'logSql' => env('PRESTO_LOG_SQL_001', false),
+        // 开启 presto 调试模式，将记录请求与响应详情
+        'debug' => env('PRESTO_DEBUG_001', false),
     ];
 
     $cluster2 = [
@@ -20,6 +24,8 @@ return (function() {
         'catalog' => env('PRESTO_CATALOG_002', 'system'),
         'schema' => env('PRESTO_SCHEMA_002', 'runtime'),
         'retries' => env('PRESTO_RETRIES_002', 3),
+        'logSql' => env('PRESTO_LOG_SQL_002', false),
+        'debug' => env('PRESTO_DEBUG_002', false),
     ];
 
     $cluster3 = [
@@ -28,6 +34,8 @@ return (function() {
         'catalog' => env('PRESTO_CATALOG_003', 'system'),
         'schema' => env('PRESTO_SCHEMA_003', 'runtime'),
         'retries' => env('PRESTO_RETRIES_003', 3),
+        'logSql' => env('PRESTO_LOG_SQL_003', false),
+        'debug' => env('PRESTO_DEBUG_003', false),
     ];
 
     return [

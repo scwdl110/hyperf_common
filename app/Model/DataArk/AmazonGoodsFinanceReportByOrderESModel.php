@@ -3,6 +3,8 @@
 namespace App\Model\DataArk;
 
 use App\Model\AbstractESModel;
+use Hyperf\Logger\LoggerFactory;
+use Hyperf\Utils\ApplicationContext;
 
 class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 {
@@ -35,10 +37,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         int $adminId = 0
     ) {
         //没有按周期统计 ， 按指标展示
-        if ($datas['show_type'] == 2) {
-            $fields = $this->getGoodsFields($datas);
-        }
-
+        $fields = $this->getGoodsFields($datas);
         if (empty($fields)) {
             return [];
         }
@@ -59,73 +58,60 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $rt = array();
         $fields_arr = array();
         foreach ($fields as $field_name => $field) {
-            $fields_arr[] = $field . ' AS "' . $field_name . '"';
+            $fields_arr[] = $field . ' AS ' . $field_name ;
         }
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
-        $table = "f_dw_goods_day_report_{$this->dbhost} AS report" ;
-        $mod_where = "report.user_id_mod = '" . ($datas['user_id'] % 20) . "'";
+        $table = "dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report" ;
+        $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
         if (!empty($mod_where)) {
             $where .= ' AND ' . $mod_where;
         }
 
         $having = '';
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
-            if($datas['is_distinct_channel'] == 1){ //有区分店铺
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
-                    if($datas['count_periods'] == '4'){ //按季度
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
-                    }else if($datas['count_periods'] == '5') { //年
-                        $group = 'report.goods_' . $datas['count_dimension'] . '  , report.channel_id ,report.myear' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id,report.myear ';
-                    }else {
-                        $group = 'report.' . $datas['count_dimension'] . '_group, report.channel_id  ';
-                        $orderby = "report." . $datas['count_dimension'] . "_group, report.channel_id ";
-                    }
-
-                }else{
-                    $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
-                    $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lday';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lweek';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lmonth';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lquarter';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.myear';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.myear';
                 }
-            }else{  //不区分店铺
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
-                    if($datas['count_periods'] == '4'){ //按季度
-                        $group = 'report.goods_' . $datas['count_dimension'] . '  ,report.myear , report.mquarter ';
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear , report.mquarter ';
-                    }else if($datas['count_periods'] == '5') { //年
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.myear ';
-                    }else if($datas['count_periods'] == '3'){ //按月
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear ,report.mmonth' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.myear ,report.mmonth';
-                    }else if($datas['count_periods'] == '2'){  //按周
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.mweekyear ,report.mweek' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.mweekyear ,report.mweek';
-                    }else if($datas['count_periods'] == '1') {  //按天
-                        $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear ,report.mmonth ,report.mday' ;
-                        $orderby = 'report.goods_' . $datas['count_dimension'] . ',report.myear ,report.mmonth,report.mday';
-                    }
-                }else{
-                    $group = 'report.goods_' . $datas['count_dimension'] . ' ';
-                    $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension']) : ($orderby . ' , report.goods_'. $datas['count_dimension'] );
-                }
+            }else{
+                $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
+                $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
             }
-
             $where .= " AND report.goods_" . $datas['count_dimension'] . " != '' ";
         } else if ($datas['count_dimension'] == 'isku') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.goods_isku_id  , report.myear , report.mquarter ';
-                    $orderby = 'report.goods_isku_id  , report.myear , report.mquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.goods_isku_id  , report.myear' ;
-                    $orderby = 'report.goods_isku_id  , report.myear ';
-                }else {
-                    $group = "report.isku_group ";
-                    $orderby = "report.isku_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.goods_isku_id , report.lday';
+                    $orderby =  'report.goods_isku_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.goods_isku_id, report.lweek';
+                    $orderby =  'report.goods_isku_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.goods_isku_id, report.lmonth';
+                    $orderby =  'report.goods_isku_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.goods_isku_id , report.lquarter';
+                    $orderby =  'report.goods_isku_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.goods_isku_id , report.myear';
+                    $orderby =  'report.goods_isku_id , report.myear';
                 }
+
 
             }else{
                 $group = 'report.goods_isku_id ';
@@ -134,16 +120,23 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $where .= " AND report.goods_isku_id > 0";
         } else if ($datas['count_dimension'] == 'group') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.goods_group_id , report.myear , report.mquarter ';
-                    $orderby = 'report.goods_group_id ,report.myear , report.mquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.goods_group_id , report.myear' ;
-                    $orderby = 'report.goods_group_id , report.myear ';
-                }else {
-                    $group = 'report.group_id_group  ';
-                    $orderby = "report.group_id_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.goods_group_id , report.lday';
+                    $orderby =  'report.goods_group_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.goods_group_id, report.lweek';
+                    $orderby =  'report.goods_group_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.goods_group_id, report.lmonth';
+                    $orderby =  'report.goods_group_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.goods_group_id , report.lquarter';
+                    $orderby =  'report.goods_group_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.goods_group_id , report.myear';
+                    $orderby =  'report.goods_group_id , report.myear';
                 }
+
 
             }else{
                 $group = 'report.goods_group_id  ';
@@ -154,17 +147,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
 
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group = 'report.goods_product_category_name_1  , report.myear , report.mmonth  , report.mday';
-                    $orderby = 'report.goods_product_category_name_1 , report.myear , report.mmonth  , report.mday';
+                    $group = 'report.goods_product_category_name_1  , report.lday';
+                    $orderby = 'report.goods_product_category_name_1 , report.lday';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group = 'report.goods_product_category_name_1 , report.myear , report.mweek';
-                    $orderby = 'report.goods_product_category_name_1, report.myear , report.mweek';
+                    $group = 'report.goods_product_category_name_1 , report.lweek';
+                    $orderby = 'report.goods_product_category_name_1, report.lweek';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group = 'report.goods_product_category_name_1  , report.myear , report.mmonth';
-                    $orderby = 'report.goods_product_category_name_1 , report.myear , report.mmonth';
+                    $group = 'report.goods_product_category_name_1  , report.lmonth';
+                    $orderby = 'report.goods_product_category_name_1 , report.lmonth';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group = 'report.goods_product_category_name_1 , report.myear , report.mquarter';
-                    $orderby = 'report.goods_product_category_name_1  , report.myear , report.mquarter';
+                    $group = 'report.goods_product_category_name_1 , report.lquarter';
+                    $orderby = 'report.goods_product_category_name_1  , report.lquarter';
                 } else if ($datas['count_periods'] == '5' ) { //按年
                     $group = 'report.goods_product_category_name_1 , report.myear';
                     $orderby = 'report.goods_product_category_name_1  , report.myear';
@@ -178,15 +171,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.isku_head_id , report.myear , report.mquarter ';
-                    $orderby = 'report.isku_head_id ,report.myear , report.mquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.isku_head_id , report.myear' ;
-                    $orderby = 'report.isku_head_id , report.myear ';
-                }else {
-                    $group = 'report.isku_head_id_group  ';
-                    $orderby = "report.isku_head_id_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.isku_head_id , report.lday';
+                    $orderby =  'report.isku_head_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.isku_head_id, report.lweek';
+                    $orderby =  'report.isku_head_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.isku_head_id, report.lmonth';
+                    $orderby =  'report.isku_head_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.isku_head_id , report.lquarter';
+                    $orderby =  'report.isku_head_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.isku_head_id , report.myear';
+                    $orderby =  'report.isku_head_id , report.myear';
                 }
             }else{
                 $group = 'report.isku_head_id  ';
@@ -195,21 +194,71 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $where.= " AND report.isku_head_id > 0";
         }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                if($datas['count_periods'] == '4'){ //按季度
-                    $group = 'report.isku_developer_id , report.myear , report.mquarter ';
-                    $orderby = 'report.isku_developer_id ,report.myear , report.mquarter ';
-                }else if($datas['count_periods'] == '5') { //年
-                    $group = 'report.isku_developer_id , report.myear' ;
-                    $orderby = 'report.isku_developer_id , report.myear ';
-                }else {
-                    $group = 'report.isku_developer_id_group  ';
-                    $orderby = "report.isku_developer_id_group ";
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group =  'report.isku_developer_id , report.lday';
+                    $orderby =  'report.isku_developer_id , report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group =  'report.isku_developer_id, report.lweek';
+                    $orderby =  'report.isku_developer_id , report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group =  'report.isku_developer_id, report.lmonth';
+                    $orderby =  'report.isku_developer_id , report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group =  'report.isku_developer_id , report.lquarter';
+                    $orderby =  'report.isku_developer_id , report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group =  'report.isku_developer_id , report.myear';
+                    $orderby =  'report.isku_developer_id , report.myear';
                 }
             }else{
                 $group = 'report.isku_developer_id  ';
                 $orderby = empty($orderby) ? ('report.isku_developer_id ') : ($orderby . ' , report.isku_developer_id');
             }
             $where.= " AND report.isku_developer_id > 0";
+        }else if($datas['count_dimension'] == 'all_goods'){ //按全部商品维度统计
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group = 'report.lday';
+                    $orderby = 'report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group = 'report.lweek';
+                    $orderby = 'report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group = 'report.lmonth';
+                    $orderby = 'report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group = 'report.lquarter';
+                    $orderby = 'report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group = 'report.myear';
+                    $orderby = 'report.myear';
+                }
+            }else{
+                $group = 'report.user_id  ';
+            }
+        }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group = 'report.channel_id ,report.lday';
+                    $orderby = 'report.channel_id ,report.lday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group = 'report.channel_id ,report.lweek';
+                    $orderby = 'report.channel_id ,report.lweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group = 'report.channel_id ,report.lmonth';
+                    $orderby = 'report.channel_id ,report.lmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group = 'report.channel_id ,report.lquarter';
+                    $orderby = 'report.channel_id ,report.lquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group = 'report.channel_id ,report.myear';
+                    $orderby = 'report.channel_id ,report.myear';
+                }
+
+            }else{
+                $group = 'report.channel_id ';
+                $orderby = empty($orderby) ? ('report.channel_id ') : ($orderby . ' ,report.channel_id ');
+            }
         }
 
         if (!empty($where_detail)) {
@@ -220,14 +269,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $transport_modes = $where_detail['transport_mode'] ;
                 }
                 if(count($transport_modes) == 1){
-                    $where .= ' AND report."goods_Transport_mode" = ' . ($transport_modes[0] == 'FBM' ? 1 : 2);
+                    $where .= ' AND report.goods_transport_mode = ' . ($transport_modes[0] == 'FBM' ? 1 : 2);
                 }
             }
-            if(!empty($where_detail['is_care'])){
-                $where.= " AND report.goods_is_care = " . (intval($where_detail['is_care']) == 1 ? 1 : 0 );
+            if(!empty($where_detail['up_status'])){
+                $where.= " AND report.goods_up_status = " . (intval($where_detail['up_status']) == 1 ? 1 : 2 );
             }
             if(!empty($where_detail['is_new'])){
                 $where.= " AND report.goods_is_new = " . (intval($where_detail['is_new']) == 1 ? 1 : 0 );
+            }
+            if(!empty($where_detail['is_care'])){
+                $where.= " AND report.goods_is_care = " . (intval($where_detail['is_care']) == 1 ? 1 : 0 );
             }
             if (!empty($where_detail['group_id'])) {
                 if(is_array($where_detail['group_id'])){
@@ -280,52 +332,125 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $limit_num = $datas['limit_num'] ;
         }
         $count = 0;
-        if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
-            if($limit_num > 0 && $count > $limit_num){
-                $count = $limit_num ;
-            }
-        } else if ($count_tip == 1) {  //仅仅统计列表
-            if ($datas['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
-                }
-            }
-        } else {  //统计列表和总条数
-            if ($datas['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                    $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
-                }
-            }
-
-            if (empty($lists) or $datas['is_count'] == 1) {
-                $count = 0;
-            } else {
-                $count = $this->getTotalNum($where, $table, $group);
-                if($limit_num > 0 && $count > $limit_num){
-                    $count = $limit_num ;
-                }
+        if ($datas['is_count'] == 1){
+            $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
+            $lists = $this->select($where, $field_data, $table,2000,'' ,'channel_id');
+        }else{
+            $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+            if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
+                $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
             }
         }
+        if(empty($lists)){
+            $lists = array() ;
+        }
+        $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+        $logger->info('getListByGoods Elastic 【'.$count_tip.'】【'.$datas['is_count'].'】', [$this->getLastSql()]);
+        $logger->info('getListByGoods Elastic 结果【'.$count_tip.'】【'.$datas['is_count'].'】',$lists);
+
+
         if(!empty($lists) && $datas['show_type'] = 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
             array_multisort($sort_names,$order2,$lists);
         }
+        if(!empty($lists)){
+            //获取部分需要先获取出汇总数据再计算的值
+            $this->getOtherCountDatas($lists , $datas ,1) ;
+        }
 
         $rt['lists'] = empty($lists) ? array() : $lists;
         $rt['count'] = intval($count);
         return $rt;
     }
+
+    //获取部分需要先获取出汇总数据再计算的值
+    function getOtherCountDatas($lists = array() , $datas = array() , $count_dimension_type = 1 ){
+        $targets = explode(',', $datas['target']);
+        foreach($lists as $k=>$fields){
+            if (in_array('goods_conversion_rate', $targets)) { //订单商品数量转化率
+                $lists[$k]['goods_conversion_rate'] = empty($fields['goods_visitors']) ? 0 : round($fields['byorder_quantity_of_goods_ordered'] / $fields['goods_visitors'],2) ;
+            }
+
+
+            if (in_array('goods_buybox_rate', $targets)) { //购买按钮赢得率
+                $lists[$k]['goods_buybox_rate']  = empty($fields['goods_views_number']) ? 0 : round($fields['byorder_buy_button_winning_num'] / $fields['goods_views_number'],2) ;
+            }
+
+
+            if (in_array('sale_refund_rate', $targets)) {  //退款率
+                $lists[$k]['sale_refund_rate'] = empty($fields['sale_sales_volume']) ? 0 : round($fields['sale_return_goods_number'] / $fields['sale_sales_volume'],2) ;
+            }
+
+            if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
+                $lists[$k]['cost_profit_profit_rate'] = empty($fields['sale_sales_quota']) ? 0 : round($fields['cost_profit_profit'] / $fields['sale_sales_quota'],2) ;
+            }
+
+            if (in_array('amazon_fee_rate', $targets)) {  //亚马逊费用占比
+                $lists[$k]['amazon_fee_rate'] =  empty($fields['sale_sales_quota']) ? 0 : round($fields['amazon_fee'] / $fields['sale_sales_quota'],2) ;
+            }
+
+            if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
+                $lists[$k]['purchase_logistics_cost_rate'] =  empty($fields['sale_sales_quota']) ? 0 : round(($fields['purchase_logistics_purchase_cost'] + $fields['purchase_logistics_logistics_cost']) / $fields['sale_sales_quota'],2) ;
+            }
+
+            if (in_array('operate_fee_rate', $targets)) {  //运营费用占比
+                $lists[$k]['operate_fee_rate'] =  empty($fields['sale_sales_quota']) ? 0 : round($fields['operate_fee'] / $fields['sale_sales_quota'],2) ;
+            }
+
+
+            if (in_array('evaluation_fee_rate', $targets)) {  //测评费用占比
+                $lists[$k]['evaluation_fee_rate'] =  empty($fields['sale_sales_quota']) ? 0 : round($fields['evaluation_fee'] / $fields['sale_sales_quota'],2) ;
+            }
+
+            if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
+                if($count_dimension_type==1){
+                    $lists[$k]['cpc_cost_rate'] =  empty($fields['sale_sales_quota']) ? 0 : round($fields['cpc_cost'] / $fields['sale_sales_quota'],2) ;
+                }else{
+                    $lists[$k]['cpc_cost_rate'] =  empty($fields['sale_sales_dollars']) ? 0 : round($fields['cpc_cost'] / $fields['sale_sales_dollars'],2) ;
+                }
+            }
+
+            if (in_array('cpc_click_rate', $targets)) {  //cpc点击率
+                $lists[$k]['cpc_click_rate'] =  empty($fields['cpc_exposure']) ? 0 : round($fields['cpc_click_number'] / $fields['cpc_exposure'],2) ;
+            }
+
+            if (in_array('cpc_order_rate', $targets)) {  //cpc订单占比
+                if($count_dimension_type == 1){
+                    $lists[$k]['cpc_order_rate'] =  empty($fields['sale_sales_volume']) ? 0 : round($fields['cpc_order_number'] / $fields['sale_sales_volume'],2) ;
+                }else{
+                    $lists[$k]['cpc_order_rate'] =  empty($fields['bychannel_sales_volume']) ? 0 : round($fields['cpc_order_number'] / $fields['bychannel_sales_volume'],2) ;
+                }
+
+            }
+            if (in_array('cpc_click_conversion_rate', $targets)) {  //cpc点击转化率
+
+            }
+
+            if (in_array('cpc_turnover_rate', $targets)) {  //CPC成交额占比
+                $lists[$k]['cpc_turnover_rate'] = empty($fields['sale_sales_quota']) ? 0 : round($fields['cpc_turnover'] / $fields['sale_sales_quota'],2) ;
+            }
+
+            if (in_array('cpc_avg_click_cost', $targets)) {  //CPC平均点击花费
+                $lists[$k]['cpc_avg_click_cost'] = empty($fields['cpc_click_number']) ? 0 : round($fields['cpc_cost'] / $fields['cpc_click_number'],2) ;
+            }
+            if (in_array('cpc_acos', $targets)) {  // ACOS
+                $lists[$k]['cpc_acos'] =  empty($fields['cpc_turnover']) ? 0 : round($fields['cpc_cost'] / $fields['cpc_turnover'],2) ;
+            }
+
+            if (in_array('cpc_direct_sales_volume_rate', $targets)) {  // CPC直接销量占比
+                $lists[$k]['cpc_direct_sales_volume_rate'] = empty($fields['sale_sales_volume']) ? 0 : round($fields['cpc_direct_sales_volume'] / $fields['sale_sales_volume'],2) ;
+            }
+
+            if (in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量占比
+                $fields['cpc_indirect_sales_volume_rate'] = empty($fields['sale_sales_volume']) ? 0 : round($fields['cpc_indirect_sales_volume'] / $fields['sale_sales_volume'],2) ;
+            }
+
+        }
+    }
+
+
 
     protected function getTotalNum($where = '', $table = '', $group = '')
     {
@@ -353,26 +478,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         switch ($datas['count_dimension']){
             //商品级
             case "parent_asin":
-                if($datas['is_distinct_channel'] == '1'){
-                    $field_data = "max(report.channel_id) as channel_id,max(report.goods_parent_asin) as goods_parent_asin";
-                }else{
-                    $field_data = "max(report.goods_parent_asin) as goods_parent_asin";
-                }
+                $field_data = "(report.channel_id) as channel_id,max(report.goods_parent_asin) as goods_parent_asin";
                 break;
             case "asin":
-                if($datas['is_distinct_channel'] == '1'){
-                    $field_data = "max(report.channel_id) as channel_id,max(report.goods_asin) as goods_asin";
-                }else{
-                    $field_data = "max(report.goods_asin) as goods_asin";
-                }
+                $field_data = "(report.channel_id) as channel_id,max(report.goods_asin) as goods_asin";
                 break;
             case "sku":
-                if($datas['is_distinct_channel'] == '1'){
-                    $field_data = "max(report.amazon_goods_id) as amazon_goods_id";
-                }else{
-                    $field_data = "max(report.goods_sku) as goods_sku";
-                }
-
+                $field_data = "(report.amazon_goods_id) as amazon_goods_id";
                 break;
             case "isku":
                 $field_data = "max(report.goods_isku_id) as goods_isku_id";
@@ -381,24 +493,24 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $field_data = "max(report.goods_product_category_name_1) as goods_product_category_name_1";
                 break;
             case "group":
-                $field_data = "max(report.goods_group_id) as goods_group_id";
+                $field_data = "(report.goods_group_id) as goods_group_id";
                 break;
             case "head_id":
-                $field_data = "max(report.isku_head_id) as isku_head_id";
+                $field_data = "(report.isku_head_id) as isku_head_id";
                 break;
             case "developer_id":
-                $field_data = "max(report.isku_developer_id) as isku_developer_id";
+                $field_data = "(report.isku_developer_id) as isku_developer_id";
                 break;
                 //店铺级
             case "site_id":
-                $field_data = "max(report.site_id) as site_id";
+                $field_data = "(report.site_id) as site_id";
                 break;
             case "channel_id":
-                $field_data = "max(report.channel_id) as channel_id";
+                $field_data = "(report.channel_id) as channel_id";
                 break;
                 //运营人员
             case "operators":
-                $field_data = "max(report.goods_operation_user_admin_id) as goods_operation_user_admin_id";
+                $field_data = "(report.goods_operation_user_admin_id) as goods_operation_user_admin_id";
                 break;
 
             default:
@@ -409,41 +521,29 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             switch ($datas['count_dimension']){
                 //商品级
                 case "parent_asin":
-                    if($datas['is_distinct_channel'] == '1'){
-                        $channel_arr = array();
-                        foreach ($lists as $v){
-                            $channel_arr[$v['channel_id']][] = $v['goods_parent_asin'];
-                        }
-                        $where_tmp = array();
-                        foreach ($channel_arr as $key => $value){
-                            $where_tmp[] = " (report.channel_id = {$key} AND report.goods_parent_asin IN ( '".implode("','",$value)."' )) ";
-                        }
-                        $where .= " AND (".implode(" OR ",$where_tmp).")";
-                    }else{
-                        $where .=  " AND report.goods_parent_asin IN ( '".implode("','",array_column($lists,'goods_parent_asin'))."' )";
+                    $channel_arr = array();
+                    foreach ($lists as $v){
+                        $channel_arr[$v['channel_id']][] = $v['goods_parent_asin'];
                     }
+                    $where_tmp = array();
+                    foreach ($channel_arr as $key => $value){
+                        $where_tmp[] = " (report.channel_id = {$key} AND report.goods_parent_asin IN ( '".implode("','",$value)."' )) ";
+                    }
+                    $where .= " AND (".implode(" OR ",$where_tmp).")";
                     break;
                 case "asin":
-                    if($datas['is_distinct_channel'] == '1'){
-                        $channel_arr = array();
-                        foreach ($lists as $v){
-                            $channel_arr[$v['channel_id']][] = $v['goods_asin'];
-                        }
-                        $where_tmp = array();
-                        foreach ($channel_arr as $key => $value){
-                            $where_tmp[] = " (report.channel_id = {$key} AND report.goods_asin IN ( '".implode("','",$value)."' )) ";
-                        }
-                        $where .= " AND (".implode(" OR ",$where_tmp).")";
-                    }else{
-                        $where .=  " AND report.goods_asin IN ( '".implode("','",array_column($lists,'goods_asin'))."' )";
+                    $channel_arr = array();
+                    foreach ($lists as $v){
+                        $channel_arr[$v['channel_id']][] = $v['goods_asin'];
                     }
+                    $where_tmp = array();
+                    foreach ($channel_arr as $key => $value){
+                        $where_tmp[] = " (report.channel_id = {$key} AND report.goods_asin IN ( '".implode("','",$value)."' )) ";
+                    }
+                    $where .= " AND (".implode(" OR ",$where_tmp).")";
                     break;
                 case "sku":
-                    if($datas['is_distinct_channel'] == '1'){
-                        $where .=  " AND report.amazon_goods_id IN (".implode(",",array_column($lists,'amazon_goods_id')).")";
-                    }else{
-                        $where .=  " AND report.goods_sku IN ( '".implode("','",array_column($lists,'goods_sku'))."' ')";
-                    }
+                    $where .=  " AND report.amazon_goods_id IN (".implode(",",array_column($lists,'amazon_goods_id')).")";
                     break;
                 case "isku":
                     $where .=  " AND report.goods_isku_id IN (".implode(",",array_column($lists,'goods_isku_id')).")";
@@ -494,51 +594,31 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
             $table = "f_amazon_goods_finance_{$this->codeno} as g " ;
             if($datas['count_dimension'] == 'sku'){
-                if($datas['is_distinct_channel'] == 1){
-                    $fba_fields = $group = 'g.sku , g.channel_id' ;
-                }else{
-                    $fba_fields = $group = 'g.sku, g.fba_inventory_v3_id' ;
-                }
+                $fba_fields = $group = 'g.sku , g.channel_id' ;
             }else if($datas['count_dimension'] == 'asin'){
-                if($datas['is_distinct_channel'] == 1){
-                    $fba_fields = $group = 'g.asin , g.channel_id' ;
-                }else{
-                    $fba_fields = $group = 'g.asin ,g.fba_inventory_v3_id ' ;
-                }
+                $fba_fields = $group = 'g.asin , g.channel_id' ;
             }else if($datas['count_dimension'] == 'parent_asin'){
-                if($datas['is_distinct_channel'] == 1){
-                    $fba_fields = $group = 'g.parent_asin , g.channel_id' ;
-                }else{
-                    $fba_fields = $group = 'g.parent_asin ,g.fba_inventory_v3_id ' ;
-                }
+                $fba_fields = $group = 'g.parent_asin , g.channel_id' ;
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_fields = $group = 'g.isku_id ,g.fba_inventory_v3_id' ;
             }else if($datas['count_dimension'] == 'class1'){
                 $fba_fields = $group = 'g.product_category_name_1 ,g.fba_inventory_v3_id' ;
             }else if($datas['count_dimension'] == 'group'){ //分组
                 $fba_fields = $group = 'g.group_id ,g.fba_inventory_v3_id' ;
+            }else if($datas['count_dimension'] == 'all_goods'){
+                $fba_fields = $group = 'g.channel_id' ;
+            }else if($datas['count_dimension'] == 'goods_channel'){
+                $fba_fields = $group = 'g.channel_id' ;
             }
 
             $where_arr = array() ;
             foreach($lists as $list1){
                 if($datas['count_dimension'] == 'sku'){
-                    if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
-                    }else{
-                        $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']));
-                    }
+                    $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                 }else if($datas['count_dimension'] == 'asin'){
-                    if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
-                    }else{
-                        $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']));
-                    }
+                    $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                 }else if($datas['count_dimension'] == 'parent_asin'){
-                    if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
-                    }else{
-                        $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']));
-                    }
+                    $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                 }else if($datas['count_dimension'] == 'class1'){
                     $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ,  'site_id'=>$list1['site_id']) ;
                 }else if($datas['count_dimension'] == 'group'){
@@ -555,23 +635,16 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
 
             if($datas['count_dimension'] == 'sku' || $datas['count_dimension'] == 'asin' || $datas['count_dimension'] == 'parent_asin'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $whereDatas = array() ;
-                    foreach($where_arr as $wheres){
-                        $whereDatas[$wheres['channel_id']][] = $wheres[$datas['count_dimension']] ;
-                    }
-                    $where_strs = array() ;
-                    foreach($whereDatas as $cid => $wd){
-                        $str = "'" . implode("','" , $wd) . "'" ;
-                        $where_strs[] = '( g.channel_id = ' . $cid . ' AND g.'.$datas['count_dimension'] . ' IN (' . $str . '))' ;
-                    }
-                    $where_str = "(".implode(' OR ' , $where_strs).")" ;
-
-                }else{
-                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
-                    $str = "'" . implode("','" , $where_strs) . "'" ;
-                    $where_str = 'g.'.$datas['count_dimension'].' IN (' . $str . ') ' ;
+                $whereDatas = array() ;
+                foreach($where_arr as $wheres){
+                    $whereDatas[$wheres['channel_id']][] = $wheres[$datas['count_dimension']] ;
                 }
+                $where_strs = array() ;
+                foreach($whereDatas as $cid => $wd){
+                    $str = "'" . implode("','" , $wd) . "'" ;
+                    $where_strs[] = '( g.channel_id = ' . $cid . ' AND g.'.$datas['count_dimension'] . ' IN (' . $str . '))' ;
+                }
+                $where_str = "(".implode(' OR ' , $where_strs).")" ;
             }else if($datas['count_dimension'] == 'class1'){
                 $where_strs = array_unique(array_column($where_arr , 'goods_product_category_name_1')) ;
                 $str = "'" . implode("','" , $where_strs) . "'" ;
@@ -582,6 +655,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
                 $where_str = 'g.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else{
+                $where_str = '1=1' ;
             }
         }
         $where.= ' AND ' . $where_str." AND g.fba_inventory_v3_id > 0  AND g.\"Transport_mode\" = 2" ;
@@ -593,7 +668,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $where .= ' AND g.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
             }
             if ($datas['where_detail']['transport_mode'] && !empty(trim($datas['where_detail']['transport_mode']))){
-                $where .= ' AND g."Transport_mode" = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
+                $where .= ' AND g.Transport_mode = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
             }
             if ($datas['where_detail']['is_care'] && !empty(trim($datas['where_detail']['is_care']))){
                 $where .= ' AND g.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
@@ -609,23 +684,23 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
                 if($datas['count_dimension'] == 'sku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'parent_asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'class1'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'group'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'tags'){  //标签（需要刷数据）
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'head_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'developer_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'isku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',1,$fbaDatas);
                 }
 
             }
@@ -633,23 +708,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         foreach($lists as $k=>$list2){
             if($datas['count_dimension'] == 'sku'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['sku'] . '-' . $list2['channel_id']];
-                }else{
-                    $fba_data = $fbaDatas[$list2['sku']];
-                }
+                $fba_data = $fbaDatas[$list2['sku'] . '-' . $list2['channel_id']];
             }else if($datas['count_dimension'] == 'asin'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['asin'] . '-' . $list2['channel_id']];
-                }else{
-                    $fba_data = $fbaDatas[$list2['asin']];
-                }
+                $fba_data = $fbaDatas[$list2['asin'] . '-' . $list2['channel_id']];
             }else if($datas['count_dimension'] == 'parent_asin'){
-                if($datas['is_distinct_channel'] == 1) {
-                    $fba_data = $fbaDatas[$list2['parent_asin'] . '-' . $list2['channel_id']];
-                }else{
-                    $fba_data = $fbaDatas[$list2['parent_asin']];
-                }
+                $fba_data = $fbaDatas[$list2['parent_asin'] . '-' . $list2['channel_id']];
             }else if($datas['count_dimension'] == 'class1'){
                 $fba_data = $fbaDatas[$list2['class1']] ;
             }else if($datas['count_dimension'] == 'group'){
@@ -694,7 +757,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
     protected function handleGoodsFbaData($fba, $field, $is_distinct_channel = 0, $fbaDatas = array())
     {
-        if($is_distinct_channel == 1 && ($field == 'sku' || $field == 'asin' || $field == 'parent_asin')){
+        if($field == 'sku' || $field == 'asin' || $field == 'parent_asin'){
             $fbaDatas[$fba[$field].'-'.$fba['channel_id']] = $fba ;
         } else {
             $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
@@ -728,13 +791,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $fields = $this->getGoodsTheSameFields($datas,$fields);
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
+            $fields['time'] = "report.lday";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
+            $fields['time'] = "report.lweek";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
+            $fields['time'] = "report.lmonth";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
+            $fields['time'] = "report.lquarter";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
             $fields['time'] = "report.myear";
         }
@@ -744,8 +807,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
         if (in_array('goods_conversion_rate', $targets)) { //订单商品数量转化率
-            $fields['goods_conversion_rate'] = 'SUM ( report.byorder_quantity_of_goods_ordered ) / nullif(SUM ( report.byorder_user_sessions ) ,0)';
+            $fields['byorder_quantity_of_goods_ordered'] = 'SUM(byorder_quantity_of_goods_ordered)' ;
+            $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
+
         if (in_array('goods_rank', $targets)) { //大类目rank
             $fields['goods_rank'] = "min(nullif(report.goods_rank,0))";
         }
@@ -757,13 +822,16 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if (in_array('goods_buybox_rate', $targets)) { //购买按钮赢得率
-            $fields['goods_buybox_rate'] = " (SUM ( byorder_buy_button_winning_num ) * 1.0 /  nullif(SUM ( report.byorder_number_of_visits ) ,0) ) ";
+            $fields['byorder_buy_button_winning_num'] = "SUM(byorder_buy_button_winning_num)" ;
+            $fields['goods_views_number'] = " SUM ( report.byorder_number_of_visits ) ";
         }
         if (in_array('sale_sales_volume', $targets) || in_array('sale_refund_rate', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_direct_sales_volume_rate', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) { //销售量
             if ($datas['sale_datas_origin'] == '1') {
-                $fields['sale_sales_volume'] = " SUM ( report.byorder_sales_volume +  report.byorder_group_id ) ";
+                // $fields['sale_sales_volume'] = " SUM ( report.byorder_sales_volume +  report.byorder_group_id ) ";
+                $fields['sale_sales_volume'] = " SUM(script('', 'return doc.byorder_sales_volume.value + doc.byorder_group_id.value;')) ";
             } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['sale_sales_volume'] = " SUM ( report.report_sales_volume +  report.report_group_id ) ";
+                // $fields['sale_sales_volume'] = " SUM ( report.report_sales_volume +  report.report_group_id ) ";
+                $fields['sale_sales_volume'] = " SUM (script('', 'return doc.report_sales_volume.value + doc.report_group_id.value;')) ";
             }
         }
         if (in_array('sale_many_channel_sales_volume', $targets)) { //多渠道数量
@@ -790,13 +858,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('sale_refund', $targets)) {  //退款
             if ($datas['refund_datas_origin'] == '1') {
-                $fields['sale_refund'] = "SUM ( 0 - report.byorder_refund )";
+                $fields['sale_refund'] = "SUM(script('', 'return 0 - doc.byorder_refund.value;'))";
             } elseif ($datas['refund_datas_origin'] == '2') {
-                $fields['sale_refund'] = "SUM ( 0 - report.report_refund )";
+                $fields['sale_refund'] = "SUM(script('', 'return 0 - doc.report_refund.value;'))";
             }
         }
         if (in_array('sale_refund_rate', $targets)) {  //退款率
-            $fields['sale_refund_rate'] = $fields['sale_return_goods_number'] . " * 1.0 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
+
         }
 
         if (in_array('promote_discount', $targets)) {  //promote折扣
@@ -814,33 +882,44 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
 
+        $purchaseLogisticsPurchaseCostScript = '0';
         if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
             if ($datas['finance_datas_origin'] == 1) {
                 if ($datas['cost_count_type'] == '1') {
+                    $purchaseLogisticsPurchaseCostScript = 'doc.byorder_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM ( report.byorder_purchasing_cost ) ";
                 } else {
+                    $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM ( report.first_purchasing_cost ) ";
                 }
             } else {
                 if ($datas['cost_count_type'] == '1') {
+                    $purchaseLogisticsPurchaseCostScript = 'doc.report_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM ( report.report_purchasing_cost ) ";
                 } else {
+                    $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
                     $fields['purchase_logistics_purchase_cost'] = " SUM (report.first_purchasing_cost ) ";
                 }
             }
 
         }
+
+        $purchaseLogisticsLogisticsCostScript = '0';
         if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
             if ($datas['finance_datas_origin'] == 1) {
                 if ($datas['cost_count_type'] == '1') {
+                    $purchaseLogisticsLogisticsCostScript = 'doc.byorder_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM ( report.byorder_logistics_head_course ) ";
                 } else {
+                    $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM (  (report.first_logistics_head_course) ) ";
                 }
             } else {
                 if ($datas['cost_count_type'] == '1') {
+                    $purchaseLogisticsLogisticsCostScript = 'doc.report_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM ( report.report_logistics_head_course ) ";
                 } else {
+                    $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
                     $fields['purchase_logistics_logistics_cost'] = " SUM (  (report.first_logistics_head_course) ) ";
                 }
             }
@@ -848,36 +927,45 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                // $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
             } else {
-                $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                // $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
             }
 
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
-            $fields['cost_profit_profit_rate'] = $fields['cost_profit_profit'] . " /  nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
+
         }
 
+        $amazonFeeScript = '0';
         if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets) || in_array('cost_profit_total_income',$targets)) {  //亚马逊费用
             if ($datas['finance_datas_origin'] == '1') {
+                $amazonFeeScript = 'doc.byorder_goods_amazon_fee.value';
                 $fields['amazon_fee'] = 'SUM (report.byorder_goods_amazon_fee)';
             } elseif ($datas['finance_datas_origin'] == '2') {
+                $amazonFeeScript = 'doc.report_goods_amazon_fee.value';
                 $fields['amazon_fee'] = 'SUM (report.report_goods_amazon_fee)';
             }
         }
 
         if (in_array('amazon_sales_commission', $targets)) {  //亚马逊销售佣金
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_sales_commission'] = "SUM ( report.byorder_platform_sales_commission + report.byorder_reserved_field21) ";
+                // $fields['amazon_sales_commission'] = "SUM ( report.byorder_platform_sales_commission + report.byorder_reserved_field21) ";
+                $fields['amazon_sales_commission'] = "SUM(script('', 'return doc.byorder_platform_sales_commission.value + doc.byorder_reserved_field21.value;')) ";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_sales_commission'] = "SUM ( report.report_platform_sales_commission + report.report_reserved_field21 ) ";
+                // $fields['amazon_sales_commission'] = "SUM ( report.report_platform_sales_commission + report.report_reserved_field21 ) ";
+                $fields['amazon_sales_commission'] = "SUM(script('', 'return doc.report_platform_sales_commission.value + doc.report_reserved_field21.value;')) ";
             }
         }
         if (in_array('amazon_fba_delivery_fee', $targets)) {  //FBA代发货费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fba_delivery_fee'] = "SUM ( report.byorder_fba_generation_delivery_cost + report.byorder_fbaperorderfulfillmentfee + report.byorder_fbaweightbasedfee - report.byorder_profit)";
+                // $fields['amazon_fba_delivery_fee'] = "SUM ( report.byorder_fba_generation_delivery_cost + report.byorder_fbaperorderfulfillmentfee + report.byorder_fbaweightbasedfee - report.byorder_profit)";
+                $fields['amazon_fba_delivery_fee'] = "SUM(script('', 'return doc.byorder_fba_generation_delivery_cost.value + doc.byorder_fbaperorderfulfillmentfee.value + doc.byorder_fbaweightbasedfee.value - doc.byorder_profit.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fba_delivery_fee'] = "SUM ( report.report_fba_generation_delivery_cost + report.report_fbaperorderfulfillmentfee + report.report_fbaweightbasedfee - report.report_profit)";
+                // $fields['amazon_fba_delivery_fee'] = "SUM ( report.report_fba_generation_delivery_cost + report.report_fbaperorderfulfillmentfee + report.report_fbaweightbasedfee - report.report_profit)";
+                $fields['amazon_fba_delivery_fee'] = "SUM(script('', 'return doc.report_fba_generation_delivery_cost.value + doc.report_fbaperorderfulfillmentfee.value + doc.report_fbaweightbasedfee.value - doc.report_profit.value;'))";
             }
         }
         if (in_array('amazon_multi_channel_delivery_fee', $targets)) {  //多渠道配送费
@@ -889,9 +977,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('amazon_settlement_fee', $targets)) {  //结算费
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_settlement_fee'] = "SUM ( report.byorder_order_variableclosingfee + report.byorder_fixedclosingfee + report.byorder_refund_variableclosingfee )";
+                // $fields['amazon_settlement_fee'] = "SUM ( report.byorder_order_variableclosingfee + report.byorder_fixedclosingfee + report.byorder_refund_variableclosingfee )";
+                $fields['amazon_settlement_fee'] = "SUM(script('', 'return doc.byorder_order_variableclosingfee.value + doc.byorder_fixedclosingfee.value + doc.byorder_refund_variableclosingfee.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_settlement_fee'] = "SUM ( report.report_order_variableclosingfee + report.report_fixedclosingfee + report.report_refund_variableclosingfee )";
+                // $fields['amazon_settlement_fee'] = "SUM ( report.report_order_variableclosingfee + report.report_fixedclosingfee + report.report_refund_variableclosingfee )";
+                $fields['amazon_settlement_fee'] = "SUM(script('', 'return doc.report_order_variableclosingfee.value + doc.report_fixedclosingfee.value + doc.report_refund_variableclosingfee.value;'))";
             }
         }
         if (in_array('amazon_other_fee', $targets)) {  //其他亚马逊费用
@@ -924,9 +1014,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('amazon_fba_return_processing_fee', $targets)) {  //FBA退货处理费
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fba_return_processing_fee'] = "SUM ( report.byorder_fba_refund_treatment_fee + report.byorder_fbacustomerreturnperorderfee+report.byorder_fbacustomerreturnweightbasedfee)";
+                // $fields['amazon_fba_return_processing_fee'] = "SUM ( report.byorder_fba_refund_treatment_fee + report.byorder_fbacustomerreturnperorderfee+report.byorder_fbacustomerreturnweightbasedfee)";
+                $fields['amazon_fba_return_processing_fee'] = "SUM(script('', 'return doc.byorder_fba_refund_treatment_fee.value + doc.byorder_fbacustomerreturnperorderfee.value + doc.byorder_fbacustomerreturnweightbasedfee.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fba_return_processing_fee'] = "SUM ( report.report_fba_refund_treatment_fee + report.report_fbacustomerreturnperorderfee + report.report_fbacustomerreturnweightbasedfee)";
+                // $fields['amazon_fba_return_processing_fee'] = "SUM ( report.report_fba_refund_treatment_fee + report.report_fbacustomerreturnperorderfee + report.report_fbacustomerreturnweightbasedfee)";
+                $fields['amazon_fba_return_processing_fee'] = "SUM(script('', 'return doc.report_fba_refund_treatment_fee.value + doc.report_fbacustomerreturnperorderfee.value + doc.report_fbacustomerreturnweightbasedfee.value;'))";
             }
         }
         if (in_array('amazon_fba_monthly_storage_fee', $targets)) {  //FBA月仓储费
@@ -944,17 +1036,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('amazon_fee_rate', $targets)) {  //亚马逊费用占比
-            $fields['amazon_fee_rate'] = '(' . $fields['amazon_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
 
         if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
-            $fields['purchase_logistics_cost_rate'] = '(' . $fields['purchase_logistics_purchase_cost'] . ' + ' . $fields['purchase_logistics_logistics_cost'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
+
         }
         if (in_array('operate_fee', $targets) || in_array('operate_fee_rate', $targets)) {  //运营费用
-            $fields['operate_fee'] = "SUM ( 0- report.byorder_reserved_field16 ) ";
+            // $fields['operate_fee'] = "SUM(0 - report.byorder_reserved_field16) ";
+            $fields['operate_fee'] = "SUM(script('', 'return 0 - doc.byorder_reserved_field16.value;')) ";
         }
         if (in_array('operate_fee_rate', $targets)) {  //运营费用占比
-            $fields['operate_fee_rate'] = '(' . $fields['operate_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
+
         }
         if (in_array('evaluation_fee', $targets) || in_array('evaluation_fee_rate', $targets)) {  //测评费用
             if ($datas['finance_datas_origin'] == '1') {
@@ -964,64 +1056,75 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('evaluation_fee_rate', $targets)) {  //测评费用占比
-            $fields['evaluation_fee_rate'] = '(' . $fields['evaluation_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
+
+        }
+
+        if (in_array('cpc_sp_cost', $targets)) {  //CPC_SP花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost) ";
+            }
+        }
+        if (in_array('cpc_sd_cost', $targets)) {  //CPC_SD花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost) ";
+            }
         }
 
         if (in_array('cpc_cost', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_avg_click_cost', $targets) || in_array('cpc_acos', $targets)) {  //CPC花费
-            $fields['cpc_cost'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost ) ";
+            // $fields['cpc_cost'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost ) ";
+            $fields['cpc_cost'] = " SUM(script('', 'return doc.byorder_cpc_cost.value + doc.byorder_cpc_sd_cost.value;')) ";
         }
         if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
-            $fields['cpc_cost_rate'] = '(' . $fields['cpc_cost'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
+
         }
         if (in_array('cpc_exposure', $targets) || in_array('cpc_click_rate', $targets)) {  //CPC曝光量
-            $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 )";
+            // $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 )";
+            $fields['cpc_exposure'] = "SUM(script('', 'return doc.byorder_reserved_field1.value + doc.byorder_reserved_field2.value;'))";
         }
         if (in_array('cpc_click_number', $targets) || in_array('cpc_click_rate', $targets) || in_array('cpc_click_conversion_rate', $targets) || in_array('cpc_avg_click_cost', $targets)) {  //CPC点击次数
-            $fields['cpc_click_number'] = "SUM ( report.byorder_cpc_sd_clicks +report.byorder_cpc_sp_clicks )";
+            // $fields['cpc_click_number'] = "SUM ( report.byorder_cpc_sd_clicks +report.byorder_cpc_sp_clicks )";
+            $fields['cpc_click_number'] = "SUM(script('', 'return doc.byorder_cpc_sd_clicks.value + doc.byorder_cpc_sp_clicks.value;'))";
         }
         if (in_array('cpc_click_rate', $targets)) {  //CPC点击率
-            $fields['cpc_click_rate'] = '('.$fields['cpc_click_number'].')' . " / nullif( " . $fields['cpc_exposure'] . " , 0 ) ";
+
         }
         if (in_array('cpc_order_number', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_click_conversion_rate', $targets)) {  //CPC订单数
-            $fields['cpc_order_number'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" ) ';
+            // $fields['cpc_order_number'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" ) ';
+            $fields['cpc_order_number'] = "SUM(script('', 'return doc.byorder_sp_attributedconversions7d.value + doc.byorder_sd_attributedconversions7d.value;')) ";
         }
         if (in_array('cpc_order_rate', $targets)) {  //cpc订单占比
-            if ($datas['sale_datas_origin'] == '1') {
-                $fields['cpc_order_rate'] = '(' . $fields['cpc_order_number'] . ") / nullif( SUM(report.byorder_sales_volume+report.byorder_group_id ) , 0 )  ";
-            }else{
-                $fields['cpc_order_rate'] = '(' . $fields['cpc_order_number'] . ") / nullif( SUM(report.report_sales_volume +report.report_group_id  ) , 0 ) ";
-            }
 
         }
         if (in_array('cpc_click_conversion_rate', $targets)) {  //cpc点击转化率
-            $fields['cpc_click_conversion_rate'] = '('.$fields['cpc_order_number'] . ") / nullif( " . $fields['cpc_click_number'] . " , 0 ) ";
         }
         if (in_array('cpc_turnover', $targets) || in_array('cpc_turnover_rate', $targets) || in_array('cpc_acos', $targets)) {  //CPC成交额
-            $fields['cpc_turnover'] = 'SUM ( report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d"  )';
+            // $fields['cpc_turnover'] = 'SUM ( report.byorder_sp_attributedsales7d + report.byorder_sd_attributedsales7d  )';
+            $fields['cpc_turnover'] = "SUM(script('', 'return doc.byorder_sp_attributedsales7d.value + doc.byorder_sd_attributedsales7d.value;'))";
         }
         if (in_array('cpc_turnover_rate', $targets)) {  //CPC成交额占比
-            $fields['cpc_turnover_rate'] = '(' . $fields['cpc_turnover'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
         if (in_array('cpc_avg_click_cost', $targets)) {  //CPC平均点击花费
-            $fields['cpc_avg_click_cost'] = '('.$fields['cpc_cost'] . ") / nullif( " . $fields['cpc_click_number'] . " , 0 ) ";
         }
         if (in_array('cpc_acos', $targets)) {  // ACOS
-            $fields['cpc_acos'] = '('.$fields['cpc_cost'] . ") / nullif( " . $fields['cpc_turnover'] . " , 0 ) ";
         }
         if (in_array('cpc_direct_sales_volume', $targets) || in_array('cpc_direct_sales_volume_rate', $targets)) {  //CPC直接销量
-            $fields['cpc_direct_sales_volume'] = 'SUM ( report."byorder_sd_attributedConversions7dSameSKU" + report."byorder_sp_attributedConversions7dSameSKU" )';
+            // $fields['cpc_direct_sales_volume'] = 'SUM ( report."byorder_sd_attributedConversions7dSameSKU" + report."byorder_sp_attributedConversions7dSameSKU" )';
+            $fields['cpc_direct_sales_volume'] = "SUM(script('', 'return doc.byorder_sd_attributedconversions7dsamesku.value + doc.byorder_sp_attributedconversions7dsamesku.value;'))";
         }
         if (in_array('cpc_direct_sales_quota', $targets)) {  //CPC直接销售额
-            $fields['cpc_direct_sales_quota'] = 'SUM ( report."byorder_sd_attributedSales7dSameSKU" + report."byorder_sp_attributedSales7dSameSKU" )';
+            // $fields['cpc_direct_sales_quota'] = 'SUM ( report."byorder_sd_attributedSales7dSameSKU" + report."byorder_sp_attributedSales7dSameSKU" )';
+            $fields['cpc_direct_sales_quota'] = "SUM(script('', 'return doc.byorder_sd_attributedsales7dsamesku.value + doc.byorder_sp_attributedsales7dsamesku.value;'))";
         }
         if (in_array('cpc_direct_sales_volume_rate', $targets)) {  // CPC直接销量占比
-            $fields['cpc_direct_sales_volume_rate'] = '(' . $fields['cpc_direct_sales_volume'] . ") / nullif( " . $fields['sale_sales_volume'] . " , 0 ) ";
+
         }
         if (in_array('cpc_indirect_sales_volume', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量
-            $fields['cpc_indirect_sales_volume'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" - report."byorder_sd_attributedConversions7dSameSKU" - report."byorder_sp_attributedConversions7dSameSKU" ) ';
+            // $fields['cpc_indirect_sales_volume'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" - report."byorder_sd_attributedConversions7dSameSKU" - report."byorder_sp_attributedConversions7dSameSKU" ) ';
+            $fields['cpc_indirect_sales_volume'] = "SUM(script('', 'return doc.byorder_sp_attributedconversions7d.value + doc.byorder_sd_attributedconversions7d.value - doc.byorder_sd_attributedconversions7dsamesku.value - doc.byorder_sp_attributedconversions7dsamesku.value;')) ";
         }
         if (in_array('cpc_indirect_sales_quota', $targets)) {  //CPC间接销售额
-            $fields['cpc_indirect_sales_quota'] = 'SUM (report."byorder_sd_attributedSales7d" + report."byorder_sp_attributedSales7d"  - report."byorder_sd_attributedSales7dSameSKU" - report."byorder_sp_attributedSales7dSameSKU"  )';
+            // $fields['cpc_indirect_sales_quota'] = 'SUM (report."byorder_sd_attributedSales7d" + report."byorder_sp_attributedSales7d"  - report."byorder_sd_attributedSales7dSameSKU" - report."byorder_sp_attributedSales7dSameSKU"  )';
+            $fields['cpc_indirect_sales_quota'] = "SUM(script('', 'return doc.byorder_sd_attributedsales7d.value + doc.byorder_sp_attributedsales7d.value - doc.byorder_sd_attributedsales7dsamesku.value - doc.byorder_sp_attributedsales7dsamesku.value;'))";
         }
         if (in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量占比
             $fields['cpc_indirect_sales_volume_rate'] = '(' . $fields['cpc_indirect_sales_volume'] . ") / nullif( " . $fields['sale_sales_volume'] . " , 0 ) ";
@@ -1029,9 +1132,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if (in_array('other_vat_fee', $targets)) { //VAT
             if($datas['finance_datas_origin'] == 1){
-                $fields['other_vat_fee'] = "SUM(0-report.byorder_reserved_field17)";
+                // $fields['other_vat_fee'] = "SUM(0-report.byorder_reserved_field17)";
+                $fields['other_vat_fee'] = "SUM(script('', 'return 0 - doc.byorder_reserved_field17.value;'))";
             }else{
-                $fields['other_vat_fee'] = "SUM(0-report.report_reserved_field17)";
+                // $fields['other_vat_fee'] = "SUM(0-report.report_reserved_field17)";
+                $fields['other_vat_fee'] = "SUM(script('', 'return 0 - doc.report_reserved_field17.value;'))";
             }
         }
 
@@ -1054,15 +1159,19 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if (in_array('cost_profit_total_pay', $targets) ) {   //总支出
             if ($datas['finance_datas_origin'] == '1') {
                 if($datas['cost_count_type'] == '1'){
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.byorder_purchasing_cost +  report.byorder_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
+                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.byorder_purchasing_cost +  report.byorder_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.byorder_refund.value + doc.byorder_promote_discount.value + doc.byorder_cpc_cost.value + doc.byorder_cpc_sd_cost.value + doc.byorder_purchasing_cost.value + doc.byorder_logistics_head_course.value + doc.byorder_reserved_field10.value - doc.byorder_reserved_field16.value - doc.byorder_reserved_field17.value;'))" ;
                 }else{
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
+                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.byorder_refund.value + doc.byorder_promote_discount.value + doc.byorder_cpc_cost.value + doc.byorder_cpc_sd_cost.value + doc.first_purchasing_cost.value + doc.first_logistics_head_course.value + doc.byorder_reserved_field10.value - doc.byorder_reserved_field16.value - doc.byorder_reserved_field17.value;'))" ;
                 }
             } else {
                 if($datas['cost_count_type'] == '1'){
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.report_purchasing_cost +  report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
+                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.report_purchasing_cost +  report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.report_refund.value + doc.report_promote_discount.value + doc.report_cpc_cost.value + doc.report_cpc_sd_cost.value + doc.report_purchasing_cost.value + doc.report_logistics_head_course.value + doc.report_reserved_field10.value - doc.report_reserved_field16.value - doc.report_reserved_field17.value;'))" ;
                 }else{
-                    $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
+                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.byorder_refund.value + doc.report_promote_discount.value + doc.report_cpc_cost.value + doc.report_cpc_sd_cost.value + doc.first_purchasing_cost.value + doc.first_logistics_head_course.value + doc.report_reserved_field10.value - doc.report_reserved_field16.value - doc.report_reserved_field17.value;'))" ;
                 }
             }
         }
@@ -1075,9 +1184,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
 
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['cost_profit_total_income'] = $fields['cost_profit_total_income'] . " + SUM(report.byorder_refund_promote_discount)";
+                // $fields['cost_profit_total_income'] = $fields['cost_profit_total_income'] . " + SUM(report.byorder_refund_promote_discount)";
+                $fields['cost_profit_total_income'] = "SUM(script('', 'return doc.byorder_refund_promote_discount.value + doc.byorder_sales_quota.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['cost_profit_total_income'] =  $fields['cost_profit_total_income'] ." + SUM(report.report_refund_promote_discount)";
+                // $fields['cost_profit_total_income'] =  $fields['cost_profit_total_income'] ." + SUM(report.report_refund_promote_discount)";
+                $fields['cost_profit_total_income'] =  "SUM(script('', 'return doc.report_refund_promote_discount.value + doc.report_sales_quota.value;'))";
             }
 
         }
@@ -1094,68 +1205,57 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
             $fields['goods_price_min'] = 'min(report.goods_price)';
             $fields['goods_price_max'] = 'max(report.goods_price)';
-            $fields['min_transport_mode'] = ' min(report."goods_Transport_mode") ' ;
-            $fields['max_transport_mode'] = ' max(report."goods_Transport_mode") ' ;
+            $fields['min_transport_mode'] = ' min(report.goods_transport_mode) ' ;
+            $fields['max_transport_mode'] = ' max(report.goods_transport_mode) ' ;
         }
 
         if ($datas['count_dimension'] == 'parent_asin') {
-            $fields['parent_asin'] = "max(report.goods_parent_asin)";
-            if($datas['is_distinct_channel'] == '1'){
-                $fields['channel_id'] = 'max(report.channel_id)';
-                $fields['site_id'] = 'max(report.site_id)';
-            }
-            if($_REQUEST['is_bi_request']  == 1){
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-            }
+
+
+            $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
+            $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'asin') {
-            $fields['asin'] = "max(report.goods_asin)";
-            if($datas['is_distinct_channel'] == '1'){
-                $fields['parent_asin'] = "max(report.goods_parent_asin)";
-                $fields['channel_id'] = 'max(report.channel_id)';
-                $fields['site_id'] = 'max(report.site_id)';
 
-            }
-            if($_REQUEST['is_bi_request'] == 1){
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-            }
+            $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         }else if ($datas['count_dimension'] == 'sku') {
-            $fields['sku'] = "max(report.goods_sku)";
-            if($datas['is_distinct_channel'] == '1'){
-
-                $fields['asin'] = "max(report.goods_asin)";
-                $fields['parent_asin'] = "max(report.goods_parent_asin)";
-
-                $fields['goods_product_category_name_1'] = 'max(report.goods_product_category_name_1)';
-                $fields['goods_product_category_name_2'] = 'max(report.goods_product_category_name_2)';
-                $fields['goods_product_category_name_3'] = 'max(report.goods_product_category_name_3)';
-                $fields['goods_is_care']                 = 'max(report.goods_is_care)';
-                $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
-                $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
-                $fields['isku_id']                       = 'max(report.goods_isku_id)';
-
-                $fields['channel_id'] = 'max(report.channel_id)';
-                $fields['site_id'] = 'max(report.site_id)';
-
-                $fields['class1'] = 'max(report.goods_product_category_name_1)';
-                $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
-            }
+            $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['isku_id']                       = 'max(report.goods_isku_id)';
+            $fields['channel_id'] = 'max(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+            $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
+            $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
+            $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         } else if ($datas['count_dimension'] == 'isku') {
             $fields['isku_id'] = 'max(report.goods_isku_id)';
         }else if ($datas['count_dimension'] == 'class1') {
-            $fields['class1'] = 'max(report.goods_product_category_name_1)';
+
             $fields['class1_id'] = 'max(report.goods_product_category_id_1)';
         } else if ($datas['count_dimension'] == 'group') {
             $fields['group_id'] = 'max(report.goods_group_id)';
-            $fields['group'] = 'max(report.goods_group_name)';
+
         } else if ($datas['count_dimension'] == 'head_id') {
             $fields['head_id'] = 'max(report.isku_head_id)';
         } else if ($datas['count_dimension'] == 'developer_id') {
             $fields['developer_id'] = 'max(report.isku_developer_id)';
+        } elseif($datas['count_dimension'] == 'all_goods') {
+            $fields['channel_id'] = '(report.channel_id)';
+        } else if($datas['count_dimension'] == 'goods_channel'){
+            $fields['channel_id'] = '(report.channel_id)';
         }
 
         return $fields;
@@ -1306,9 +1406,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             return [];
         }
 
-        $table = "f_dw_channel_day_report_{$this->dbhost} AS report";
+        $table = "dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report";
 
-        $where .= " AND report.user_id_mod = '" . ($params['user_id'] % 20) . "'";
+        $where .= " AND report.user_id_mod = " . ($params['user_id'] % 20);
 
         $orderby = '';
         if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
@@ -1321,7 +1421,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $rt = $fields_arr = [];
         foreach ($fields as $field_name => $field) {
-            $fields_arr[] = $field . ' AS "' . $field_name . '"';
+            $fields_arr[] = $field . ' AS ' . $field_name ;
         }
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
@@ -1333,15 +1433,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if ($params['count_dimension'] == 'channel_id') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
-                if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.channel_id , report.myear , report.mquarter ';
-                    $orderby = 'report.channel_id , report.myear , report.mquarter ';
-                }else if($params['count_periods'] == '5') { //年
-                    $group = 'report.channel_id , report.myear' ;
-                    $orderby = 'report.channel_id , report.myear ';
-                }else{
-                    $group = 'report.channel_id_group ';
-                    $orderby = 'report.channel_id_group ';
+                if ($params['count_periods'] == '1' ) { //按天
+                    $group = 'report.channel_id , report.lday';
+                    $orderby = 'report.channel_id ,report.lday';
+                } else if ($params['count_periods'] == '2' ) { //按周
+                    $group = 'report.channel_id ,report.lweek';
+                    $orderby = 'report.channel_id ,report.lweek';
+                } else if ($params['count_periods'] == '3' ) { //按月
+                    $group = 'report.channel_id ,report.lmonth';
+                    $orderby = 'report.channel_id ,report.lmonth';
+                } else if ($params['count_periods'] == '4' ) {  //按季
+                    $group = 'report.channel_id ,report.lquarter';
+                    $orderby = 'report.channel_id ,report.lquarter';
+                } else if ($params['count_periods'] == '5' ) { //按年
+                    $group = 'report.channel_id ,report.myear';
+                    $orderby = 'report.channel_id ,report.myear';
                 }
             }else{
                 $group = 'report.channel_id ';
@@ -1350,35 +1456,70 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         } else if ($params['count_dimension'] == 'site_id') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
-                if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.site_id , report.myear , report.mquarter ';
-                    $orderby = 'report.site_id , report.myear , report.mquarter ';
-                }else if($params['count_periods'] == '5') { //年
-                    $group = 'report.site_id , report.myear' ;
-                    $orderby = 'report.site_id , report.myear ';
-                }else {
-                    $group = 'report.site_id_group ';
-                    $orderby = 'report.site_id_group ';
+                if ($params['count_periods'] == '1' ) { //按天
+                    $group = 'report.site_id , report.lday';
+                    $orderby = 'report.site_id ,report.lday';
+                } else if ($params['count_periods'] == '2' ) { //按周
+                    $group = 'report.site_id ,report.lweek';
+                    $orderby = 'report.site_id ,report.lweek';
+                } else if ($params['count_periods'] == '3' ) { //按月
+                    $group = 'report.site_id ,report.lmonth';
+                    $orderby = 'report.site_id ,report.lmonth';
+                } else if ($params['count_periods'] == '4' ) {  //按季
+                    $group = 'report.site_id ,report.lquarter';
+                    $orderby = 'report.site_id ,report.lquarter';
+                } else if ($params['count_periods'] == '5' ) { //按年
+                    $group = 'report.site_id ,report.myear';
+                    $orderby = 'report.site_id ,report.myear';
                 }
-            }else{
+            }
+            else{
                 $group = 'report.site_id ';
                 $orderby = empty($orderby) ? 'report.site_id ' : ($orderby . ' , report.site_id ');
             }
+
         } else if ($params['count_dimension'] == 'site_group') {
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
-                if($params['count_periods'] == '4'){ //按季度
-                    $group = 'report.area_id , report.myear , report.mquarter ';
-                    $orderby = 'report.area_id , report.myear , report.mquarter ';
-                }else if($params['count_periods'] == '5') { //年
-                    $group = 'report.area_id , report.myear' ;
-                    $orderby = 'report.area_id , report.myear ';
-                }else {
-                    $orderby = 'report.area_id_group ';
-                    $group = 'report.area_id_group ';
+                if ($params['count_periods'] == '1' ) { //按天
+                    $group = 'report.area_id , report.lday';
+                    $orderby = 'report.area_id ,report.lday';
+                } else if ($params['count_periods'] == '2' ) { //按周
+                    $group = 'report.area_id ,report.lweek';
+                    $orderby = 'report.area_id ,report.lweek';
+                } else if ($params['count_periods'] == '3' ) { //按月
+                    $group = 'report.area_id ,report.lmonth';
+                    $orderby = 'report.area_id ,report.lmonth';
+                } else if ($params['count_periods'] == '4' ) {  //按季
+                    $group = 'report.area_id ,report.lquarter';
+                    $orderby = 'report.area_id ,report.lquarter';
+                } else if ($params['count_periods'] == '5' ) { //按年
+                    $group = 'report.area_id ,report.myear';
+                    $orderby = 'report.area_id ,report.myear';
                 }
             }else{
                 $group = 'report.area_id ';
                 $orderby = empty($orderby) ? 'report.area_id ' : ($orderby . ' , report.area_id ');
+            }
+        }else if($params['count_dimension'] == 'all_channels') { //按全部店铺维度统计
+            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+                if ($params['count_periods'] == '1') { //按天
+                    $group = 'report.lday';
+                    $orderby = 'report.lday';
+                } else if ($params['count_periods'] == '2') { //按周
+                    $group = 'report.lweek';
+                    $orderby = 'report.lweek';
+                } else if ($params['count_periods'] == '3') { //按月
+                    $group = 'report.lmonth';
+                    $orderby = 'report.lmonth';
+                } else if ($params['count_periods'] == '4') {  //按季
+                    $group = 'report.lquarter';
+                    $orderby = 'report.lquarter';
+                } else if ($params['count_periods'] == '5') { //按年
+                    $group = 'report.myear';
+                    $orderby = 'report.myear';
+                }
+            } else {
+                $group = 'report.user_id  ';
             }
         }
 
@@ -1405,52 +1546,34 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
-        $limit_num = 0 ;
-        if($params['show_type'] == 2 && $params['limit_num'] > 0 ){
-            $limit_num = $params['limit_num'] ;
+
+        if ($params['is_count'] == 1){
+            $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
+            $lists = $this->select($where, $field_data, $table,2000,'' ,'channel_id');
+        }else{
+            $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+
         }
-        if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
-            if($limit_num > 0 && $count > $limit_num){
-                $count = $limit_num ;
-            }
-        } else if ($count_tip == 1) {  //仅仅统计列表
-            if ($params['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table, $limit);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
-                }
-            }
-        } else {  //统计列表和总条数
-            if ($params['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table, $limit);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
-                }
-            }
-            if (empty($lists)) {
-                $count = 0;
-            } else {
-                $count = $this->getTotalNum($where, $table, $group);
-                if($limit_num > 0 && $count > $limit_num){
-                    $count = $limit_num ;
-                }
-            }
+        $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+        $logger->info('getListByUnGoods Elastic 【'.$count_tip.'】【'.$params['is_count'].'】【'.$group.'】【'.$orderby.'】', [$this->getLastSql()]);
+        $logger->info('getListByUnGoods Elastic 结果 【'.$count_tip.'】【'.$params['is_count'].'】【'.$group.'】【'.$orderby.'】', $lists);
+
+        if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+            $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
         }
+
         if(!empty($lists) && $params['show_type'] = 2 && $params['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$params['sort_target']]) && !empty($params['sort_target']) && !empty($params['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC ;
             array_multisort($sort_names,$order2,$lists);
         }
+        if(!empty($lists)){
+            //获取部分需要先获取出汇总数据再计算的值
+            $this->getOtherCountDatas($lists , $params ,2) ;
+        }
         $rt['lists'] = empty($lists) ? [] : $lists;
-        $rt['count'] = (int)$count;
+        $rt['count'] = 0;
         return $rt;
     }
 
@@ -1463,8 +1586,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if ($datas['count_dimension'] === 'channel_id') {
             $fields['site_id'] = 'max(report.site_id)';
-            $fields['channel_id'] = 'max(report.channel_id)';
-            $fields['operators'] = 'max(report.operation_user_admin_name)';
+            $fields['channel_id'] = '(report.channel_id)';
             $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
@@ -1473,18 +1595,22 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
+            $fields['time'] = "report.lday";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
+            $fields['time'] = "report.lweek";
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
+            $fields['time'] = "report.lmonth";
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
+            $fields['time'] = "report.lquarter";
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
             $fields['time'] = "report.myear";
         }
 
-        $targets = explode(',', $datas['target']);
+        if (is_array($datas['target'])) {
+            $targets = $datas['target'];
+        } else {
+            $targets = explode(',', $datas['target']);
+        }
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
@@ -1493,9 +1619,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('sale_sales_volume', $targets) || in_array('sale_refund_rate', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_direct_sales_volume_rate', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) { //销售量
             if ($datas['sale_datas_origin'] == '1') {
-                $fields['sale_sales_volume'] = " SUM ( report.byorder_sales_volume +  report.byorder_group_id ) ";
+                // $fields['sale_sales_volume'] = " SUM ( report.byorder_sales_volume +  report.byorder_group_id ) ";
+                $fields['sale_sales_volume'] = " SUM(script('', 'return doc.byorder_sales_volume.value + doc.byorder_group_id.value;')) ";
             } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['sale_sales_volume'] = " SUM ( report.report_sales_volume + report.report_group_id ) ";
+                // $fields['sale_sales_volume'] = " SUM ( report.report_sales_volume + report.report_group_id ) ";
+                $fields['sale_sales_volume'] = " SUM(script('', 'return doc.report_sales_volume.value + doc.report_group_id.value;')) ";
             }
         }
         if (in_array('sale_many_channel_sales_volume', $targets)) { //多渠道数量
@@ -1532,13 +1660,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('sale_refund', $targets)) {  //退款
             if ($datas['refund_datas_origin'] == '1') {
-                $fields['sale_refund'] = "SUM ( 0 - report.byorder_refund )";
+                // $fields['sale_refund'] = "SUM ( 0 - report.byorder_refund )";
+                $fields['sale_refund'] = "SUM(script('', 'return 0 - doc.byorder_refund.value;'))";
             } elseif ($datas['refund_datas_origin'] == '2') {
-                $fields['sale_refund'] = "SUM ( 0 - report.report_refund )";
+                // $fields['sale_refund'] = "SUM ( 0 - report.report_refund )";
+                $fields['sale_refund'] = "SUM(script('', 'return 0 - doc.report_refund.value;'))";
             }
         }
         if (in_array('sale_refund_rate', $targets)) {  //退款率
-            $fields['sale_refund_rate'] = '('.$fields['sale_return_goods_number'] . ") * 1.0 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
+
         }
 
         if (in_array('promote_discount', $targets)) {  //promote折扣
@@ -1558,13 +1688,28 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if (in_array('promote_store_fee', $targets)) { //店铺促销费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['promote_store_fee'] = 'SUM(report.byorder_refund_promote_discount + report.byorder_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee)';
+                // $fields['promote_store_fee'] = 'SUM(report.byorder_refund_promote_discount + report.byorder_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee)';
+                $fields['promote_store_fee'] = "SUM(script('', 'return doc.byorder_refund_promote_discount.value + doc.byorder_promote_discount.value + doc.bychannel_coupon_redemption_fee.value + doc.bychannel_run_lightning_deal_fee.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['promote_store_fee'] = 'SUM(report.report_refund_promote_discount + report.report_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee)';
+                // $fields['promote_store_fee'] = 'SUM(report.report_refund_promote_discount + report.report_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee)';
+                $fields['promote_store_fee'] = "SUM(script('', 'return doc.report_refund_promote_discount.value + doc.report_promote_discount.value + doc.bychannel_coupon_redemption_fee.value + doc.bychannel_run_lightning_deal_fee.value;'))";
             }
         }
 
-        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
+        if ($datas['finance_datas_origin'] == '1') {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsPurchaseCostScript = 'doc.byorder_purchasing_cost.value';
+            } else {
+                $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
+            }
+        } else {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsPurchaseCostScript = 'doc.report_purchasing_cost.value';
+            } else {
+                $purchaseLogisticsPurchaseCostScript = 'doc.first_purchasing_cost.value';
+            }
+        }
+        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //采购成本
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['cost_count_type'] == '1') {
                     $fields['purchase_logistics_purchase_cost'] = " SUM ( report.byorder_purchasing_cost ) ";
@@ -1580,7 +1725,21 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
 
         }
-        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
+
+        if ($datas['finance_datas_origin'] == '1') {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsLogisticsCostScript = 'doc.byorder_logistics_head_course.value';
+            } else {
+                $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
+            }
+        } else {
+            if ($datas['cost_count_type'] == '1') {
+                $purchaseLogisticsLogisticsCostScript = 'doc.report_logistics_head_course.value';
+            } else {
+                $purchaseLogisticsLogisticsCostScript = 'doc.first_logistics_head_course.value';
+            }
+        }
+        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets) ) {  // 物流/头程
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['cost_count_type'] == '1') {
                     $fields['purchase_logistics_logistics_cost'] = " SUM ( report.byorder_logistics_head_course ) ";
@@ -1596,21 +1755,25 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
 
-        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
+        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //毛利润
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
             } else {
-                $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                // $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
             }
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
-            $fields['cost_profit_profit_rate'] = "({$fields['cost_profit_profit']}) / nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
         if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets)) {  //亚马逊费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fee'] = 'SUM(report.byorder_channel_amazon_order_fee + report.byorder_channel_amazon_refund_fee + report.byorder_channel_amazon_storage_fee + report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee)';
+                // $fields['amazon_fee'] = 'SUM(report.byorder_channel_amazon_order_fee + report.byorder_channel_amazon_refund_fee + report.byorder_channel_amazon_storage_fee + report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee)';
+                $fields['amazon_fee'] = "SUM(script('', 'return doc.byorder_channel_amazon_order_fee.value + doc.byorder_channel_amazon_refund_fee.value + doc.byorder_channel_amazon_storage_fee.value + doc.byorder_channel_amazon_other_fee.value + doc.bychannel_channel_amazon_order_fee.value + doc.bychannel_channel_amazon_refund_fee.value + doc.bychannel_channel_amazon_storage_fee.value + doc.bychannel_channel_amazon_other_fee.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fee'] = 'SUM(report.report_channel_amazon_order_fee + report.report_channel_amazon_refund_fee + report.report_channel_amazon_storage_fee + report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee)';
+                // $fields['amazon_fee'] = 'SUM(report.report_channel_amazon_order_fee + report.report_channel_amazon_refund_fee + report.report_channel_amazon_storage_fee + report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee)';
+                $fields['amazon_fee'] = "SUM(script('', 'return doc.report_channel_amazon_order_fee.value + doc.report_channel_amazon_refund_fee.value + doc.report_channel_amazon_storage_fee.value + doc.report_channel_amazon_other_fee.value + doc.bychannel_channel_amazon_order_fee.value + doc.bychannel_channel_amazon_refund_fee.value + doc.bychannel_channel_amazon_storage_fee.value + doc.bychannel_channel_amazon_other_fee.value;'))";
             }
         }
         if (in_array('amazon_sales_commission', $targets)) {  //亚马逊销售佣金
@@ -1622,9 +1785,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('amazon_fba_delivery_fee', $targets)) {  //FBA代发货费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fba_delivery_fee'] = "SUM ( report.byorder_fba_generation_delivery_cost + report.byorder_fbaperorderfulfillmentfee + report.byorder_fbaweightbasedfee - report.byorder_profit)";
+                // $fields['amazon_fba_delivery_fee'] = "SUM ( report.byorder_fba_generation_delivery_cost + report.byorder_fbaperorderfulfillmentfee + report.byorder_fbaweightbasedfee - report.byorder_profit)";
+                $fields['amazon_fba_delivery_fee'] = "SUM(script('', 'return doc.byorder_fba_generation_delivery_cost.value + doc.byorder_fbaperorderfulfillmentfee.value + doc.byorder_fbaweightbasedfee.value - doc.byorder_profit.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fba_delivery_fee'] = "SUM ( report.report_fba_generation_delivery_cost + report.report_fbaperorderfulfillmentfee + report.report_fbaweightbasedfee - report.report_profit)";
+                // $fields['amazon_fba_delivery_fee'] = "SUM ( report.report_fba_generation_delivery_cost + report.report_fbaperorderfulfillmentfee + report.report_fbaweightbasedfee - report.report_profit)";
+                $fields['amazon_fba_delivery_fee'] = "SUM(script('', 'return doc.report_fba_generation_delivery_cost.value + doc.report_fbaperorderfulfillmentfee.value + doc.report_fbaweightbasedfee.value - doc.report_profit.value;'))";
             }
         }
         if (in_array('amazon_multi_channel_delivery_fee', $targets)) {  //多渠道配送费
@@ -1636,16 +1801,20 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('amazon_settlement_fee', $targets)) {  //结算费
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_settlement_fee'] = "SUM ( report.byorder_order_variableclosingfee + report.byorder_fixedclosingfee + report.byorder_refund_variableclosingfee )";
+                // $fields['amazon_settlement_fee'] = "SUM ( report.byorder_order_variableclosingfee + report.byorder_fixedclosingfee + report.byorder_refund_variableclosingfee )";
+                $fields['amazon_settlement_fee'] = "SUM(script('', 'return doc.byorder_order_variableclosingfee.value + doc.byorder_fixedclosingfee.value + doc.byorder_refund_variableclosingfee.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_settlement_fee'] = "SUM ( report.report_order_variableclosingfee + report.report_fixedclosingfee + report.report_refund_variableclosingfee )";
+                // $fields['amazon_settlement_fee'] = "SUM ( report.report_order_variableclosingfee + report.report_fixedclosingfee + report.report_refund_variableclosingfee )";
+                $fields['amazon_settlement_fee'] = "SUM(script('', 'return doc.report_order_variableclosingfee.value + doc.report_fixedclosingfee.value + doc.report_refund_variableclosingfee.value;'))";
             }
         }
         if (in_array('amazon_other_fee', $targets)) {  //其他亚马逊费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_other_fee'] = "SUM ( report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee ) ";
+                // $fields['amazon_other_fee'] = "SUM ( report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee ) ";
+                $fields['amazon_other_fee'] = "SUM(script('', 'return doc.byorder_channel_amazon_other_fee.value + doc.bychannel_channel_amazon_other_fee.value;')) ";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_other_fee'] = "SUM ( report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee ) ";
+                // $fields['amazon_other_fee'] = "SUM ( report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee ) ";
+                $fields['amazon_other_fee'] = "SUM(script('', 'return doc.report_channel_amazon_other_fee.value + doc.bychannel_channel_amazon_other_fee.value;')) ";
             }
         }
         if (in_array('amazon_return_shipping_fee', $targets)) {  //返还运费
@@ -1671,9 +1840,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         if (in_array('amazon_fba_return_processing_fee', $targets)) {  //FBA退货处理费
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fba_return_processing_fee'] = "SUM ( report.byorder_fba_refund_treatment_fee + report.byorder_fbacustomerreturnperorderfee+report.byorder_fbacustomerreturnweightbasedfee)";
+                // $fields['amazon_fba_return_processing_fee'] = "SUM ( report.byorder_fba_refund_treatment_fee + report.byorder_fbacustomerreturnperorderfee+report.byorder_fbacustomerreturnweightbasedfee)";
+                $fields['amazon_fba_return_processing_fee'] = "SUM(script('', 'return doc.byorder_fba_refund_treatment_fee.value + doc.byorder_fbacustomerreturnperorderfee.value + doc.byorder_fbacustomerreturnweightbasedfee.value;'))";
             } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fba_return_processing_fee'] = "SUM ( report.report_fba_refund_treatment_fee + report.report_fbacustomerreturnperorderfee + report.report_fbacustomerreturnweightbasedfee)";
+                // $fields['amazon_fba_return_processing_fee'] = "SUM ( report.report_fba_refund_treatment_fee + report.report_fbacustomerreturnperorderfee + report.report_fbacustomerreturnweightbasedfee)";
+                $fields['amazon_fba_return_processing_fee'] = "SUM(script('', 'return doc.report_fba_refund_treatment_fee.value + doc.report_fbacustomerreturnperorderfee.value + doc.report_fbacustomerreturnweightbasedfee.value;'))";
             }
         }
         if (in_array('amazon_fba_monthly_storage_fee', $targets)) {  //FBA月仓储费
@@ -1684,18 +1855,18 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('amazon_fee_rate', $targets)) {  //亚马逊费用占比
-            $fields['amazon_fee_rate'] = "({$fields['amazon_fee']}) / nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
 
 
         if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
-            $fields['purchase_logistics_cost_rate'] = "({$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}) / nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
         if (in_array('operate_fee', $targets) || in_array('operate_fee_rate', $targets)) {  //运营费用
             $fields['operate_fee'] = "SUM ( report.bychannel_operating_fee ) ";
         }
         if (in_array('operate_fee_rate', $targets)) {  //运营费用占比
-            $fields['operate_fee_rate'] = "({$fields['operate_fee']})/nullif({$fields['sale_sales_quota']}, 0)";
+
         }
         if (in_array('evaluation_fee', $targets) || in_array('evaluation_fee_rate', $targets)) {  //测评费用
             if ($datas['finance_datas_origin'] == '1'){
@@ -1705,20 +1876,23 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
         }
         if (in_array('evaluation_fee_rate', $targets)) {  //测评费用占比
-            $fields['evaluation_fee_rate'] = "({$fields['evaluation_fee']})/nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
 
         if (in_array('other_vat_fee', $targets)) {//VAT
             if($datas['finance_datas_origin'] == 1){
-                $fields['other_vat_fee'] = "SUM(0-report.byorder_reserved_field17)";
+                // $fields['other_vat_fee'] = "SUM(0-report.byorder_reserved_field17)";
+                $fields['other_vat_fee'] = "SUM(script('', 'return 0 - doc.byorder_reserved_field17.value;'))";
             }else{
-                $fields['other_vat_fee'] = "SUM(0-report.report_reserved_field17)";
+                // $fields['other_vat_fee'] = "SUM(0-report.report_reserved_field17)";
+                $fields['other_vat_fee'] = "SUM(script('', 'return 0 - doc.report_reserved_field17.value;'))";
             }
 
         }
 
         if (in_array('other_other_fee', $targets)) { //其他
-            $fields['other_other_fee'] = "SUM(report.bychannel_loan_payment  + report.bychannel_review_enrollment_fee)";
+            // $fields['other_other_fee'] = "SUM(report.bychannel_loan_payment  + report.bychannel_review_enrollment_fee)";
+            $fields['other_other_fee'] = "SUM(script('', 'return doc.bychannel_loan_payment.value + doc.bychannel_review_enrollment_fee.value;'))";
         }
 
         if (in_array('other_review_enrollment_fee', $targets)) { //早期评论者计划
@@ -1726,63 +1900,84 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if (in_array('cpc_ad_settlement', $targets)) { //广告结款
-            $fields['cpc_ad_settlement'] = "SUM(report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund)";
+            // $fields['cpc_ad_settlement'] = "SUM(report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund)";
+            $fields['cpc_ad_settlement'] = "SUM(script('', 'return doc.bychannel_product_ads_payment_eventlist_charge.value + doc.bychannel_product_ads_payment_eventlist_refund.value;'))";
+        }
+
+        if (in_array('cpc_sp_cost', $targets)) {  //CPC_SP花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost) ";
+            }
+        }
+        if (in_array('cpc_sd_cost', $targets)) {  //CPC_SD花费
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost) ";
+            }
         }
 
         if (in_array('cpc_cost', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_avg_click_cost', $targets) || in_array('cpc_acos', $targets)) {  //CPC花费
-            $fields['cpc_cost'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0) ) ";
+            // $fields['cpc_cost'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0) ) ";
+            $fields['cpc_cost'] = " SUM(script('', 'def xcost = doc.containsKey(\"bychannel_cpc_sb_cost\") ? (doc.bychannel_cpc_sb_cost.value ?: 0) : 0; return doc.byorder_cpc_cost.value + doc.byorder_cpc_sd_cost.value - xcost;')) ";
         }
         if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
-            $fields['cpc_cost_rate'] = "({$fields['cpc_cost']})/nullif({$fields['sale_sales_dollars']}, 0) ";
+
         }
         if (in_array('cpc_exposure', $targets) || in_array('cpc_click_rate', $targets)) {  //CPC曝光量
-            $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3)";
+            // $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3)";
+            $fields['cpc_exposure'] = "SUM(script('', 'return doc.byorder_reserved_field1.value + doc.byorder_reserved_field2.value + doc.bychannel_reserved_field3.value;'))";
         }
         if (in_array('cpc_click_number', $targets) || in_array('cpc_click_rate', $targets) || in_array('cpc_click_conversion_rate', $targets) || in_array('cpc_avg_click_cost', $targets)) {  //CPC点击次数
-            $fields['cpc_click_number'] = "SUM ( report.byorder_cpc_sd_clicks +report.byorder_cpc_sp_clicks + report.bychannel_reserved_field4)";
+            // $fields['cpc_click_number'] = "SUM ( report.byorder_cpc_sd_clicks +report.byorder_cpc_sp_clicks + report.bychannel_reserved_field4)";
+            $fields['cpc_click_number'] = "SUM(script('', 'return doc.byorder_cpc_sd_clicks.value + doc.byorder_cpc_sp_clicks.value + doc.bychannel_reserved_field4.value;'))";
         }
         if (in_array('cpc_click_rate', $targets)) {  //CPC点击率
-            $fields['cpc_click_rate'] = "({$fields['cpc_click_number']})/nullif({$fields['cpc_exposure']}, 0) ";
+
         }
         // 注！此处将字段名用引号包起来是为避免报错，有些数据库会自动将字段大小写转换，会导致报字段不存在的错误
         if (in_array('cpc_order_number', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_click_conversion_rate', $targets)) {  //CPC订单数
-            $fields['cpc_order_number'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" + report.bychannel_reserved_field7 ) ';
+            // $fields['cpc_order_number'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" + report.bychannel_reserved_field7 ) ';
+            $fields['cpc_order_number'] = "SUM(script('', 'return doc.byorder_sp_attributedconversions7d.value + doc.byorder_sd_attributedconversions7d.value + doc.bychannel_reserved_field7.value;')) ";
         }
         if (in_array('cpc_order_rate', $targets)) {  //cpc订单占比
-            $fields['cpc_order_rate'] = "({$fields['cpc_order_number']})/nullif(SUM(report.bychannel_sales_volume), 0) ";
+            $fields['bychannel_sales_volume'] = "SUM(report.bychannel_sales_volume)" ;
         }
         if (in_array('cpc_click_conversion_rate', $targets)) {  //cpc点击转化率
             $fields['cpc_click_conversion_rate'] = "({$fields['cpc_order_number']})/nullif({$fields['cpc_click_number']}, 0) ";
         }
         if (in_array('cpc_turnover', $targets) || in_array('cpc_turnover_rate', $targets) || in_array('cpc_acos', $targets)) {  //CPC成交额
-            $fields['cpc_turnover'] = 'SUM ( report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )';
+            // $fields['cpc_turnover'] = 'SUM ( report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )';
+            $fields['cpc_turnover'] = "SUM(script('', 'return doc.byorder_sp_attributedsales7d.value + doc.byorder_sd_attributedsales7d.value + doc.bychannel_reserved_field5.value;'))";
         }
         if (in_array('cpc_turnover_rate', $targets)) {  //CPC成交额占比
-            $fields['cpc_turnover_rate'] = "({$fields['cpc_turnover']})/nullif({$fields['sale_sales_quota']}, 0) ";
+
         }
         if (in_array('cpc_avg_click_cost', $targets)) {  //CPC平均点击花费
-            $fields['cpc_avg_click_cost'] = "({$fields['cpc_cost']})/nullif({$fields['cpc_click_number']}, 0) ";
+
         }
         if (in_array('cpc_acos', $targets)) {  // ACOS
-            $fields['cpc_acos'] = "({$fields['cpc_cost']})/nullif({$fields['cpc_turnover']}, 0) ";
+
         }
         if (in_array('cpc_direct_sales_volume', $targets) || in_array('cpc_direct_sales_volume_rate', $targets)) {  //CPC直接销量
-            $fields['cpc_direct_sales_volume'] = 'SUM ( report."byorder_sd_attributedConversions7dSameSKU" + report."byorder_sp_attributedConversions7dSameSKU" + report.bychannel_reserved_field8 )';
+            // $fields['cpc_direct_sales_volume'] = 'SUM ( report."byorder_sd_attributedConversions7dSameSKU" + report."byorder_sp_attributedConversions7dSameSKU" + report.bychannel_reserved_field8 )';
+            $fields['cpc_direct_sales_volume'] = "SUM(script('', 'return doc.byorder_sd_attributedconversions7dsamesku.value + doc.byorder_sp_attributedconversions7dsamesku.value + doc.bychannel_reserved_field8.value;'))";
         }
         if (in_array('cpc_direct_sales_quota', $targets)) {  //CPC直接销售额
-            $fields['cpc_direct_sales_quota'] = 'SUM ( report."byorder_sd_attributedSales7dSameSKU" + report."byorder_sp_attributedSales7dSameSKU" + report."bychannel_reserved_field6" )';
+            // $fields['cpc_direct_sales_quota'] = 'SUM ( report."byorder_sd_attributedSales7dSameSKU" + report."byorder_sp_attributedSales7dSameSKU" + report."bychannel_reserved_field6" )';
+            $fields['cpc_direct_sales_quota'] = "SUM(script('', 'return doc.byorder_sd_attributedsales7dsamesku.value + doc.byorder_sp_attributedsales7dsamesku.value + doc.bychannel_reserved_field6.value;'))";
         }
         if (in_array('cpc_direct_sales_volume_rate', $targets)) {  // CPC直接销量占比
-            $fields['cpc_direct_sales_volume_rate'] = "({$fields['cpc_direct_sales_volume']})/nullif({$fields['sale_sales_volume']}, 0) ";
+
         }
         if (in_array('cpc_indirect_sales_volume', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量
-            $fields['cpc_indirect_sales_volume'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" + report.bychannel_reserved_field7 - report."byorder_sd_attributedConversions7dSameSKU" - report."byorder_sp_attributedConversions7dSameSKU" - report.bychannel_reserved_field8) ';
+            // $fields['cpc_indirect_sales_volume'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" + report.bychannel_reserved_field7 - report."byorder_sd_attributedConversions7dSameSKU" - report."byorder_sp_attributedConversions7dSameSKU" - report.bychannel_reserved_field8) ';
+            $fields['cpc_indirect_sales_volume'] = "SUM(script('', 'return doc.byorder_sp_attributedconversions7d.value + doc.byorder_sd_attributedconversions7d.value + doc.bychannel_reserved_field7.value - doc.byorder_sd_attributedconversions7dsamesku.value - doc.byorder_sp_attributedconversions7dsamesku.value - doc.bychannel_reserved_field8.value;'))";
         }
         if (in_array('cpc_indirect_sales_quota', $targets)) {  //CPC间接销售额
-            $fields['cpc_indirect_sales_quota'] = 'SUM (report."byorder_sd_attributedSales7d" + report."byorder_sp_attributedSales7d" + report.bychannel_reserved_field5 - report."byorder_sd_attributedSales7dSameSKU" - report."byorder_sp_attributedSales7dSameSKU" - report.bychannel_reserved_field6 )';
+            // $fields['cpc_indirect_sales_quota'] = 'SUM (report."byorder_sd_attributedSales7d" + report."byorder_sp_attributedSales7d" + report.bychannel_reserved_field5 - report."byorder_sd_attributedSales7dSameSKU" - report."byorder_sp_attributedSales7dSameSKU" - report.bychannel_reserved_field6 )';
+            $fields['cpc_indirect_sales_quota'] = "SUM(script('', 'return doc.byorder_sd_attributedsales7d.value + doc.byorder_sp_attributedSales7d.value + doc.bychannel_reserved_field5.value - doc.byorder_sd_attributedsales7dsamesku.value - doc.byorder_sp_attributedsales7dsamesku.value - doc.bychannel_reserved_field6.value;'))";
         }
         if (in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量占比
-            $fields['cpc_indirect_sales_volume_rate'] = "({$fields['cpc_indirect_sales_volume']})/nullif({$fields['sale_sales_volume']}, 0) ";
+
         }
 
         if (in_array('fba_goods_value', $targets)) {  //在库总成本
@@ -1803,31 +1998,38 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if (in_array('promote_coupon', $targets)) { //coupon优惠券
-            $fields['promote_coupon'] = 'SUM(report.bychannel_coupon_redemption_fee + report."bychannel_coupon_payment_eventList_tax")';
+            // $fields['promote_coupon'] = 'SUM(report.bychannel_coupon_redemption_fee + report."bychannel_coupon_payment_eventList_tax")';
+            $fields['promote_coupon'] = "SUM(script('', 'return doc.bychannel_coupon_redemption_fee.value + doc.bychannel_coupon_payment_eventList_tax.value;'))";
         }
         if (in_array('promote_run_lightning_deal_fee', $targets)) {  //RunLightningDealFee';
             $fields['promote_run_lightning_deal_fee'] = 'SUM(report.bychannel_run_lightning_deal_fee)';
         }
         if (in_array('amazon_order_fee', $targets)) {  //亚马逊-订单费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_order_fee'] = 'SUM(report.byorder_channel_amazon_order_fee + report.bychannel_channel_amazon_order_fee)';
+                // $fields['amazon_order_fee'] = 'SUM(report.byorder_channel_amazon_order_fee + report.bychannel_channel_amazon_order_fee)';
+                $fields['amazon_order_fee'] = "SUM(script('', 'return doc.byorder_channel_amazon_order_fee.value + doc.bychannel_channel_amazon_order_fee.value;'))";
             } else {
-                $fields['amazon_order_fee'] = 'SUM(report.report_channel_amazon_order_fee + report.bychannel_channel_amazon_order_fee)';
+                // $fields['amazon_order_fee'] = 'SUM(report.report_channel_amazon_order_fee + report.bychannel_channel_amazon_order_fee)';
+                $fields['amazon_order_fee'] = "SUM(script('', 'return doc.report_channel_amazon_order_fee.value + doc.bychannel_channel_amazon_order_fee.value;'))";
 
             }
         }
         if (in_array('amazon_refund_fee', $targets)) { //亚马逊-退货退款费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_refund_fee'] = 'SUM(report.byorder_channel_amazon_refund_fee + report.bychannel_channel_amazon_refund_fee)';
+                // $fields['amazon_refund_fee'] = 'SUM(report.byorder_channel_amazon_refund_fee + report.bychannel_channel_amazon_refund_fee)';
+                $fields['amazon_refund_fee'] = "SUM(script('', 'return doc.byorder_channel_amazon_refund_fee.value + doc.bychannel_channel_amazon_refund_fee.value;'))";
             } else {
-                $fields['amazon_refund_fee'] = 'SUM(report.report_channel_amazon_refund_fee + report.bychannel_channel_amazon_refund_fee)';
+                // $fields['amazon_refund_fee'] = 'SUM(report.report_channel_amazon_refund_fee + report.bychannel_channel_amazon_refund_fee)';
+                $fields['amazon_refund_fee'] = "SUM(script('', 'return doc.report_channel_amazon_refund_fee.value + doc.bychannel_channel_amazon_refund_fee.value;'))";
             }
         }
         if (in_array('amazon_stock_fee', $targets)) { //亚马逊-库存费用
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_stock_fee'] = 'SUM(report.byorder_channel_amazon_storage_fee + report.bychannel_channel_amazon_storage_fee)';
+                // $fields['amazon_stock_fee'] = 'SUM(report.byorder_channel_amazon_storage_fee + report.bychannel_channel_amazon_storage_fee)';
+                $fields['amazon_stock_fee'] = "SUM(script('', 'return doc.byorder_channel_amazon_storage_fee.value + doc.bychannel_channel_amazon_storage_fee.value;'))";
             } else {
-                $fields['amazon_stock_fee'] = 'SUM(report.report_channel_amazon_storage_fee + report.bychannel_channel_amazon_storage_fee)';
+                // $fields['amazon_stock_fee'] = 'SUM(report.report_channel_amazon_storage_fee + report.bychannel_channel_amazon_storage_fee)';
+                $fields['amazon_stock_fee'] = "SUM(script('', 'return doc.report_channel_amazon_storage_fee.value + doc.bychannel_channel_amazon_storage_fee.value;'))";
             }
         }
         if (in_array('amazon_long_term_storage_fee', $targets)) { //FBA长期仓储费
@@ -1840,9 +2042,38 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if (in_array('goods_adjust_fee', $targets)) { //商品调整费用
 
             if ($datas['finance_datas_origin'] == '1') {
-                $fields['goods_adjust_fee'] = 'SUM(report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
+                // $fields['goods_adjust_fee'] = 'SUM(report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
+                $fields['goods_adjust_fee'] = "SUM(script('', 'return doc.byorder_channel_goods_adjustment_fee.value + doc.bychannel_channel_goods_adjustment_fee.value;'))";
             } else {
-                $fields['goods_adjust_fee'] = 'SUM(report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
+                // $fields['goods_adjust_fee'] = 'SUM(report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
+                $fields['goods_adjust_fee'] = "SUM(script('', 'return doc.report_channel_goods_adjustment_fee.value + doc.bychannel_channel_goods_adjustment_fee.value;'))";
+            }
+
+        }
+
+        if (in_array('cost_profit_total_income', $targets)) {  //总收入
+            if ($datas['sale_datas_origin'] == '1') {
+                $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
+            } elseif ($datas['sale_datas_origin'] == '2') {
+                $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota )";
+            }
+        }
+
+        if (in_array('cost_profit_total_pay', $targets)) {  //总支出
+            if($datas['sale_datas_origin'] == '1'){
+                if ($datas['finance_datas_origin'] == '1') {
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.byorder_sales_quota.value;'))";
+                } else {
+
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.byorder_sales_quota.value ;'))";
+                }
+            }else{
+                if ($datas['finance_datas_origin'] == '1') {
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.report_sales_quota.value;'))";
+                } else {
+
+                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - doc.report_sales_quota.value;'))";
+                }
             }
 
         }
@@ -1900,13 +2131,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'site_id'){
                 $where_strs = array_unique(array_column($where_arr , 'site_id')) ;
                 $where_str = 'c.site_id IN (' . implode(',' , $where_strs) . ")" ;
+            }else{
+                $where_str = '1=1' ;
             }
         }
 
         $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelMySQLModel([], $this->dbhost, $this->codeno);
         $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
         $where.= ' AND ' . $where_str ;
-        $fba_fields .= " , SUM ( DISTINCT (c.yjzhz) )  as fba_goods_value";
+        $fba_fields .= " , SUM(DISTINCT(c.yjzhz))  as fba_goods_value";
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
         $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group);
@@ -1955,543 +2188,5 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         return $lists;
     }
 
-    /**
-     * 获取运营人员维度统计列表
-     * @param string $where
-     * @param array $datas
-     * @param string $limit
-     * @param string $sort
-     * @param string $order
-     * @param int $count_tip
-     * @param array $channel_arr
-     * @return array
-     * @author: LWZ
-     */
-    public function getListByOperators(
-        $where = '',
-        $datas = [],
-        $limit = '',
-        $sort = '',
-        $order = '',
-        $count_tip = 0,
-        array $channel_arr = [],
-        array $currencyInfo = [],
-        $exchangeCode = '1',
-        array $timeLine = [],
-        array $deparmentData = [],
-        int $userId = 0,
-        int $adminId = 0
-    ) {
-        //没有按周期统计 ， 按指标展示
-        if ($datas['show_type'] == 2) {
-            $fields = $this->getOperatorsFields($datas);
-        }
-        if (empty($fields)) {
-            return array();
-        }
-        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
-        if (empty($where_detail)) {
-            $where_detail = array();
-        }
-        $orderby = '';
-        if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
-            $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
-        }
 
-        if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
-            $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
-        }
-
-        $rt = array();
-        $fields_arr = array();
-        foreach ($fields as $field_name => $field) {
-            $fields_arr[] = $field . ' AS "' . $field_name . '"';
-        }
-
-
-        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
-
-        $table = "f_dw_operation_day_report_{$this->dbhost} AS report" ;
-
-        $mod_where = "report.user_id_mod = '" . ($datas['user_id'] % 20) . "'";
-        if (!empty($mod_where)) {
-            $where .= ' AND ' . $mod_where;
-        }
-
-        if (!empty($where_detail['operators_id'])) {
-            if(is_array($where_detail['operators_id'])){
-                $operators_str = implode(',', $where_detail['operators_id']);
-            }else{
-                $operators_str = $where_detail['operators_id'] ;
-            }
-            $where .= " AND report.goods_operation_user_admin_id  IN ( " . $operators_str . " ) ";
-        }
-
-        if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-            if($datas['count_periods'] == '4'){ //按季度
-                $group = 'report.goods_operation_user_admin_id , report.myear , report.mquarter ';
-                $orderby = 'report.goods_operation_user_admin_id ,report.myear , report.mquarter ';
-            }else if($datas['count_periods'] == '5') { //年
-                $group = 'report.goods_operation_user_admin_id , report.myear' ;
-                $orderby = 'report.goods_operation_user_admin_id , report.myear ';
-            }else {
-                $group = 'report.goods_operation_user_admin_id_group  ';
-                $orderby = "report.goods_operation_user_admin_id_group ";
-            }
-
-        }else{
-            $group = 'report.goods_operation_user_admin_id  ';
-            $orderby = empty($orderby) ? ('report.goods_operation_user_admin_id ') : ($orderby . ' , report.goods_operation_user_admin_id');
-        }
-        $having = '';
-        $where .= " AND report.goods_operation_user_admin_id > 0";
-
-        if (!empty($where_detail)) {
-            $target_wheres = $where_detail['target'];
-            if (!empty($target_wheres)) {
-                foreach ($target_wheres as $target_where) {
-                    if(!empty($fields[$target_where['key']])){
-                        $where_value = $target_where['value'];
-                        if (strpos($where_value, '%') !== false) {
-                            $where_value = round($where_value / 100, 4);
-                        }
-                        if (empty($having)) {
-                            $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
-                        } else {
-                            $having .= ' AND (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!empty($having)) {
-            $group .= " having " . $having;
-        }
-
-        $group = str_replace("{:RATE}", $exchangeCode, $group);
-        $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
-        $limit_num = 0 ;
-        if($datas['show_type'] == 2 && $datas['limit_num'] > 0 ){
-            $limit_num = $datas['limit_num'] ;
-        }
-        if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
-            if($limit_num > 0 && $count > $limit_num){
-                $count = $limit_num ;
-            }
-        } else if ($count_tip == 1) {  //仅仅统计列表
-            if ($datas['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table, $limit);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-
-            }
-        } else {  //统计列表和总条数
-            if ($datas['is_count'] == 1){
-                $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                $lists = $this->select($where, $field_data, $table, $limit);
-            }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-
-            }
-            if (empty($lists)) {
-                $count = 0;
-            } else {
-                $count = $this->getTotalNum($where, $table, $group);
-                if($limit_num > 0 && $count > $limit_num){
-                    $count = $limit_num ;
-                }
-            }
-        }
-        if(!empty($lists) && $datas['show_type'] = 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
-            //根据字段对数组$lists进行排列
-            $sort_names = array_column($lists,$sort);
-            $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
-            array_multisort($sort_names,$order2,$lists);
-        }
-
-        $rt['lists'] = empty($lists) ? array() : $lists;
-        $rt['count'] = intval($count);
-        return $rt;
-    }
-
-    //获取运营人员维度指标字段
-    private function getOperatorsFields($datas = array())
-    {
-        $fields = array();
-        $fields['user_id'] = 'max(report.user_id)';
-        $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
-
-        if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth, report.mday)";
-        } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
-            $fields['time'] = "concat_ws('-', report.mweekyear, report.mweek)";
-        } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
-            $fields['time'] = "concat_ws('-', report.myear, report.mmonth)";
-        } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
-            $fields['time'] = "concat_ws('-', report.myear, report.mquarter)";
-        } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
-            $fields['time'] = "report.myear";
-        }
-
-        $targets = explode(',', $datas['target']);
-        if (in_array('goods_visitors', $targets)) {  // 买家访问次数
-            $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
-        }
-        if (in_array('goods_conversion_rate', $targets)) { //订单商品数量转化率
-            $fields['goods_conversion_rate'] = 'SUM ( report.byorder_quantity_of_goods_ordered ) / nullif(SUM ( report.byorder_user_sessions ) ,0)';
-        }
-
-        if (in_array('sale_sales_volume', $targets) || in_array('sale_refund_rate', $targets)  || in_array('cpc_direct_sales_volume_rate', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) { //销售量
-            if ($datas['sale_datas_origin'] == '1') {
-                $fields['sale_sales_volume'] = " SUM ( report.byorder_sales_volume +  report.byorder_group_id ) ";
-            } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['sale_sales_volume'] = " SUM ( report.report_sales_volume +  report.report_group_id ) ";
-            }
-        }
-        if (in_array('sale_many_channel_sales_volume', $targets)) { //多渠道数量
-            if ($datas['sale_datas_origin'] == '1') {
-                $fields['sale_many_channel_sales_volume'] = "SUM ( report.byorder_group_id )";
-            } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['sale_many_channel_sales_volume'] = "SUM ( report.report_group_id )";
-            }
-        }
-        if (in_array('sale_sales_quota', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('amazon_fee_rate', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('operate_fee_rate', $targets) || in_array('evaluation_fee_rate', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_turnover_rate', $targets)) {  //商品销售额
-            if ($datas['sale_datas_origin'] == '1') {
-                $fields['sale_sales_quota'] = "SUM ( report.byorder_sales_quota )";
-            } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['sale_sales_quota'] = "SUM ( report.report_sales_quota )";
-            }
-        }
-
-        if (in_array('sale_return_goods_number', $targets) || in_array('sale_refund_rate', $targets)) {  //退款量
-            if ($datas['refund_datas_origin'] == '1') {
-                $fields['sale_return_goods_number'] = "SUM (report.byorder_refund_num )";
-            } elseif ($datas['refund_datas_origin'] == '2') {
-                $fields['sale_return_goods_number'] = "SUM (report.report_refund_num )";
-            }
-        }
-        if (in_array('sale_refund', $targets)) {  //退款
-            if ($datas['refund_datas_origin'] == '1') {
-                $fields['sale_refund'] = "SUM ( 0 - report.byorder_refund )";
-            } elseif ($datas['refund_datas_origin'] == '2') {
-                $fields['sale_refund'] = "SUM ( 0 - report.report_refund )";
-            }
-        }
-        if (in_array('sale_refund_rate', $targets)) {  //退款率
-            $fields['sale_refund_rate'] = $fields['sale_return_goods_number'] . " * 1.0 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
-        }
-
-        if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets)) {  //亚马逊费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 1 THEN report.byorder_goods_amazon_fee ELSE ( report.byorder_channel_amazon_order_fee + report.byorder_channel_amazon_refund_fee + report.byorder_channel_amazon_storage_fee + report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee) END)';
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 1 THEN report.report_goods_amazon_fee ELSE ( report.report_channel_amazon_order_fee + report.report_channel_amazon_refund_fee + report.report_channel_amazon_storage_fee + report.report_channel_amazon_other_fee +    report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee  ) END )';
-            }
-
-        }
-
-        if (in_array('amazon_fee_rate', $targets)) {  //亚马逊费用占比
-            $fields['amazon_fee_rate'] = '(' . $fields['amazon_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-
-        if (in_array('amazon_order_fee', $targets)) {  //亚马逊-订单费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_order_fee'] = 'SUM(report.byorder_channel_amazon_order_fee + report.bychannel_channel_amazon_order_fee)';
-            } else {
-                $fields['amazon_order_fee'] = 'SUM(report.report_channel_amazon_order_fee + report.bychannel_channel_amazon_order_fee)';
-
-            }
-        }
-
-        if (in_array('amazon_sales_commission', $targets)) {  //亚马逊销售佣金
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_sales_commission'] = "SUM ( report.byorder_platform_sales_commission ) ";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_sales_commission'] = "SUM ( report.report_platform_sales_commission ) ";
-            }
-        }
-
-        if (in_array('amazon_fba_delivery_fee', $targets)) {  //FBA代发货费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fba_delivery_fee'] = "SUM ( report.byorder_fba_generation_delivery_cost + report.byorder_fbaperorderfulfillmentfee + report.byorder_fbaweightbasedfee - report.byorder_profit)";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fba_delivery_fee'] = "SUM ( report.report_fba_generation_delivery_cost + report.report_fbaperorderfulfillmentfee + report.report_fbaweightbasedfee - report.report_profit)";
-            }
-        }
-
-        if (in_array('amazon_multi_channel_delivery_fee', $targets)) {  //多渠道配送费
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_multi_channel_delivery_fee'] = "SUM ( report.byorder_profit ) ";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_multi_channel_delivery_fee'] = "SUM ( report.report_profit ) ";
-            }
-        }
-
-        if (in_array('amazon_settlement_fee', $targets)) {  //结算费
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_settlement_fee'] = "SUM ( report.byorder_order_variableclosingfee + report.byorder_fixedclosingfee + report.byorder_refund_variableclosingfee )";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_settlement_fee'] = "SUM ( report.report_order_variableclosingfee + report.report_fixedclosingfee + report.report_refund_variableclosingfee )";
-            }
-        }
-
-        if (in_array('amazon_refund_fee', $targets)) { //亚马逊-退货退款费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_refund_fee'] = 'SUM(report.byorder_channel_amazon_refund_fee + report.bychannel_channel_amazon_refund_fee)';
-            } else {
-                $fields['amazon_refund_fee'] = 'SUM(report.report_channel_amazon_refund_fee + report.bychannel_channel_amazon_refund_fee)';
-            }
-        }
-        if (in_array('amazon_fba_return_processing_fee', $targets)) {  //FBA退货处理费
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fba_return_processing_fee'] = "SUM ( report.byorder_fba_refund_treatment_fee + report.byorder_fbacustomerreturnperorderfee+report.byorder_fbacustomerreturnweightbasedfee)";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fba_return_processing_fee'] = "SUM ( report.report_fba_refund_treatment_fee + report.report_fbacustomerreturnperorderfee + report.report_fbacustomerreturnweightbasedfee)";
-            }
-        }
-        if (in_array('amazon_return_sale_commission', $targets)) {  //返还亚马逊销售佣金
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_return_sale_commission'] = "SUM ( report.byorder_return_and_return_sales_commission )";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_return_sale_commission'] = "SUM ( report.report_return_and_return_sales_commission )";
-            }
-        }
-
-        if (in_array('amazon_return_shipping_fee', $targets)) {  //返还运费
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_return_shipping_fee'] = "SUM ( report.byorder_returnshipping )";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_return_shipping_fee'] = "SUM ( report.report_returnshipping )";
-            }
-        }
-
-        if (in_array('amazon_refund_deducted_commission', $targets)) {  //退款扣除佣金
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_refund_deducted_commission'] = "SUM ( report.byorder_return_and_return_commission )";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_refund_deducted_commission'] = "SUM ( report.report_return_and_return_commission )";
-            }
-        }
-
-        if (in_array('amazon_stock_fee', $targets)) { //亚马逊-库存费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_stock_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.bychannel_channel_amazon_storage_fee + report.byorder_channel_amazon_storage_fee) ELSE report.byorder_estimated_monthly_storage_fee END )';
-            } else {
-                $fields['amazon_stock_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.bychannel_channel_amazon_storage_fee + report.report_channel_amazon_storage_fee) ELSE report.report_estimated_monthly_storage_fee END )';
-            }
-        }
-
-        if (in_array('amazon_fba_monthly_storage_fee', $targets)) {  //FBA月仓储费
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_fba_monthly_storage_fee'] = "SUM ( CASE WHEN report.goods_operation_pattern = 2 THEN report.bychannel_fba_storage_fee ELSE report.byorder_estimated_monthly_storage_fee END  )";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_fba_monthly_storage_fee'] = "SUM ( CASE WHEN report.goods_operation_pattern = 2 THEN report.bychannel_fba_storage_fee ELSE report.report_estimated_monthly_storage_fee  END )";
-            }
-        }
-
-        if (in_array('amazon_long_term_storage_fee', $targets)) { //FBA长期仓储费
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_long_term_storage_fee'] = 'SUM(report.byorder_long_term_storage_fee + report.bychannel_fba_long_term_storage_fee)';
-            } else {
-                $fields['amazon_long_term_storage_fee'] = 'SUM(report.report_long_term_storage_fee + report.bychannel_fba_long_term_storage_fee)';
-            }
-        }
-
-        if (in_array('amazon_other_fee', $targets)) {  //其他亚马逊费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['amazon_other_fee'] = "SUM ( CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee ) ELSE report.byorder_goods_amazon_other_fee END ) ";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['amazon_other_fee'] = "SUM (CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee) ELSE report.report_goods_amazon_other_fee END   ) ";
-            }
-        }
-
-        if (in_array('promote_discount', $targets)) {  //promote折扣
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['promote_discount'] = "SUM(report.byorder_promote_discount)";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['promote_discount'] = "SUM(report.report_promote_discount)";
-            }
-        }
-
-        if (in_array('promote_refund_discount', $targets)) {  //退款返还promote折扣
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['promote_refund_discount'] = "SUM(report.byorder_refund_promote_discount)";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['promote_refund_discount'] = "SUM(report.report_refund_promote_discount)";
-            }
-        }
-
-        if (in_array('promote_store_fee', $targets)) { //店铺促销费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['promote_store_fee'] = 'SUM(report.byorder_refund_promote_discount + report.byorder_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee)';
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                $fields['promote_store_fee'] = 'SUM(report.report_refund_promote_discount + report.report_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee)';
-            }
-        }
-
-        if (in_array('promote_coupon', $targets)) { //coupon优惠券
-            $fields['promote_coupon'] = 'SUM(report.bychannel_coupon_redemption_fee + report."bychannel_coupon_payment_eventList_tax")';
-        }
-        if (in_array('promote_run_lightning_deal_fee', $targets)) {  //RunLightningDealFee';
-            $fields['promote_run_lightning_deal_fee'] = 'SUM(report.bychannel_run_lightning_deal_fee)';
-        }
-
-        if (in_array('cpc_ad_fee', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_avg_click_cost', $targets) || in_array('cpc_acos', $targets)) {  //广告费用
-            $fields['cpc_ad_fee'] = " SUM ( CASE WHEN report.goods_operation_pattern = 2 THEN (report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund) ELSE (report.byorder_cpc_cost + report.byorder_cpc_sd_cost) END ) ";
-        }
-        if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
-            $fields['cpc_cost_rate'] = '(' . $fields['cpc_ad_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-        if (in_array('cpc_exposure', $targets) || in_array('cpc_click_rate', $targets)) {  //CPC曝光量
-            $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3 )";
-        }
-        if (in_array('cpc_click_number', $targets) || in_array('cpc_click_rate', $targets) || in_array('cpc_click_conversion_rate', $targets) || in_array('cpc_avg_click_cost', $targets)) {  //CPC点击次数
-            $fields['cpc_click_number'] = "SUM ( report.byorder_cpc_sd_clicks +report.byorder_cpc_sp_clicks + report.bychannel_reserved_field4 )";
-        }
-        if (in_array('cpc_click_rate', $targets)) {  //CPC点击率
-            $fields['cpc_click_rate'] = '('.$fields['cpc_click_number'].')' . " / nullif( " . $fields['cpc_exposure'] . " , 0 ) ";
-        }
-        if (in_array('cpc_order_number', $targets) ||  in_array('cpc_click_conversion_rate', $targets)) {  //CPC订单数
-            $fields['cpc_order_number'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" + report.bychannel_reserved_field7 ) ';
-        }
-
-        if (in_array('cpc_click_conversion_rate', $targets)) {  //cpc点击转化率
-            $fields['cpc_click_conversion_rate'] = '('.$fields['cpc_order_number'] . ") / nullif( " . $fields['cpc_click_number'] . " , 0 ) ";
-        }
-
-        if (in_array('cpc_turnover', $targets) || in_array('cpc_turnover_rate', $targets) || in_array('cpc_acos', $targets)) {  //CPC成交额
-            $fields['cpc_turnover'] = 'SUM ( report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5" )';
-        }
-
-        if (in_array('cpc_turnover_rate', $targets)) {  //CPC成交额占比
-            $fields['cpc_turnover_rate'] = '(' . $fields['cpc_turnover'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-        if (in_array('cpc_avg_click_cost', $targets)) {  //CPC平均点击花费
-            $fields['cpc_avg_click_cost'] = '('.$fields['cpc_ad_fee'] . ") / nullif( " . $fields['cpc_click_number'] . " , 0 ) ";
-        }
-        if (in_array('cpc_acos', $targets)) {  // ACOS
-            $fields['cpc_acos'] = '('.$fields['cpc_ad_fee'] . ") / nullif( " . $fields['cpc_turnover'] . " , 0 ) ";
-        }
-        if (in_array('cpc_direct_sales_volume', $targets) || in_array('cpc_direct_sales_volume_rate', $targets)) {  //CPC直接销量
-            $fields['cpc_direct_sales_volume'] = 'SUM ( report."byorder_sd_attributedConversions7dSameSKU" + report."byorder_sp_attributedConversions7dSameSKU" + report.bychannel_reserved_field8  )';
-        }
-        if (in_array('cpc_direct_sales_quota', $targets)) {  //CPC直接销售额
-            $fields['cpc_direct_sales_quota'] = 'SUM ( report."byorder_sd_attributedSales7dSameSKU" + report."byorder_sp_attributedSales7dSameSKU" + report."bychannel_reserved_field6" )';
-        }
-        if (in_array('cpc_direct_sales_volume_rate', $targets)) {  // CPC直接销量占比
-            $fields['cpc_direct_sales_volume_rate'] = '(' . $fields['cpc_direct_sales_volume'] . ") / nullif( " . $fields['sale_sales_volume'] . " , 0 ) ";
-        }
-
-        if (in_array('cpc_indirect_sales_volume', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量
-            $fields['cpc_indirect_sales_volume'] = 'SUM ( report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" + report.bychannel_reserved_field7 - report."byorder_sd_attributedConversions7dSameSKU" - report."byorder_sp_attributedConversions7dSameSKU" - report.bychannel_reserved_field8) ';
-        }
-
-        if (in_array('cpc_indirect_sales_quota', $targets)) {  //CPC间接销售额
-            $fields['cpc_indirect_sales_quota'] = 'SUM (report."byorder_sd_attributedSales7d" + report."byorder_sp_attributedSales7d" + report.bychannel_reserved_field5 - report."byorder_sd_attributedSales7dSameSKU" - report."byorder_sp_attributedSales7dSameSKU" - report.bychannel_reserved_field6 )';
-        }
-        if (in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量占比
-            $fields['cpc_indirect_sales_volume_rate'] = '(' . $fields['cpc_indirect_sales_volume'] . ") / nullif( " . $fields['sale_sales_volume'] . " , 0 ) ";
-        }
-
-        if (in_array('goods_adjust_fee', $targets)) { //商品调整费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['goods_adjust_fee'] = 'SUM(report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
-            } else {
-                $fields['goods_adjust_fee'] = 'SUM(report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
-            }
-        }
-
-        if (in_array('evaluation_fee', $targets) || in_array('evaluation_fee_rate', $targets)) {  //测评费用
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['evaluation_fee'] = "SUM ( report.byorder_reserved_field10 ) ";
-            }else{
-                $fields['evaluation_fee'] = "SUM ( report.report_reserved_field10 ) ";
-            }
-        }
-        if (in_array('evaluation_fee_rate', $targets)) {  //测评费用占比
-            $fields['evaluation_fee_rate'] = '(' . $fields['evaluation_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-
-
-        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
-            if ($datas['finance_datas_origin'] == '1') {
-                if ($datas['cost_count_type'] == '1') {
-                    $fields['purchase_logistics_purchase_cost'] = " SUM ( report.byorder_purchasing_cost ) ";
-                } else {
-                    $fields['purchase_logistics_purchase_cost'] = " SUM ((report.first_purchasing_cost) ) ";
-                }
-            } else {
-                if ($datas['cost_count_type'] == '1') {
-                    $fields['purchase_logistics_purchase_cost'] = " SUM ( report.report_purchasing_cost ) ";
-                } else {
-                    $fields['purchase_logistics_purchase_cost'] = " SUM ((report.first_purchasing_cost) ) ";
-                }
-            }
-
-        }
-
-        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
-            if ($datas['finance_datas_origin'] == 1) {
-                if ($datas['cost_count_type'] == '1') {
-                    $fields['purchase_logistics_logistics_cost'] = " SUM ( report.byorder_logistics_head_course ) ";
-                } else {
-                    $fields['purchase_logistics_logistics_cost'] = " SUM (  (report.first_logistics_head_course) ) ";
-                }
-            } else {
-                if ($datas['cost_count_type'] == '1') {
-                    $fields['purchase_logistics_logistics_cost'] = " SUM ( report.report_logistics_head_course ) ";
-                } else {
-                    $fields['purchase_logistics_logistics_cost'] = " SUM (  (report.first_logistics_head_course) ) ";
-                }
-            }
-        }
-
-        if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
-            $fields['purchase_logistics_cost_rate'] = '(' . $fields['purchase_logistics_purchase_cost'] . ' + ' . $fields['purchase_logistics_logistics_cost'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-
-        if (in_array('operate_fee', $targets) || in_array('operate_fee_rate', $targets)) {  //运营费用
-            $fields['operate_fee'] = "SUM ( 0- report.byorder_reserved_field16 + report.bychannel_operating_fee ) ";
-        }
-        if (in_array('operate_fee_rate', $targets)) {  //运营费用占比
-            $fields['operate_fee_rate'] = '(' . $fields['operate_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-
-        if (in_array('other_vat_fee', $targets)) {//VAT
-            if($datas['finance_datas_origin'] == 1){
-                $fields['other_vat_fee'] = "SUM(0-report.byorder_reserved_field17)";
-            }else{
-                $fields['other_vat_fee'] = "SUM(0-report.report_reserved_field17)";
-            }
-
-        }
-
-        if (in_array('other_other_fee', $targets)) { //其他
-            $fields['other_other_fee'] = "SUM(report.bychannel_loan_payment  + report.bychannel_review_enrollment_fee)";
-        }
-
-        if (in_array('other_review_enrollment_fee', $targets)) { //早期评论者计划
-            $fields['other_review_enrollment_fee'] = "SUM(report.bychannel_review_enrollment_fee)";
-        }
-
-        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
-            $purchase_logistics = $fields['purchase_logistics_purchase_cost'] . ' + ' . $fields['purchase_logistics_logistics_cost'];
-            if ($datas['finance_datas_origin'] == '1') {
-                $fields['cost_profit_profit'] = "SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.byorder_goods_profit ) END )+ $purchase_logistics";
-            } else {
-                $fields['cost_profit_profit'] = "SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.report_goods_profit ) END  ) + $purchase_logistics";
-            }
-
-        }
-        if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
-            $fields['cost_profit_profit_rate'] = "(" . $fields['cost_profit_profit'] . ")" . " /  nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-
-        $this->getUnTimeFields($fields,$datas,$targets,3);
-
-        return $fields;
-    }
 }
