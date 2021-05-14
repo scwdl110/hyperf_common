@@ -89,8 +89,7 @@ class AccountingService extends BaseService
             'date' => 'required|date',
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
-            'shop_name' => 'string|filled',
-            'shop_id' => 'integer|filled',
+            'shop_ids' => 'string|filled',
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -116,6 +115,10 @@ class AccountingService extends BaseService
         if ($userAdmin->is_master != 1) {
             $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
             $shopListInfoquery->whereIn('id', $ids);
+        }
+
+        if (isset($request_data['shop_ids'])) {
+            $shopListInfoquery->whereIn('id', $request_data['shop_ids']);
         }
 
         $count = $shopListInfoquery->count();
