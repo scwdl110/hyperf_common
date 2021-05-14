@@ -88,7 +88,9 @@ class AccountingService extends BaseService
         $rule = [
             'date' => 'required|date',
             'offset' => 'integer|filled',
-            'limit' => 'integer|filled'
+            'limit' => 'integer|filled',
+            'shop_name' => 'string|filled',
+            'shop_id' => 'integer|filled',
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -160,7 +162,8 @@ class AccountingService extends BaseService
         ")->where([
                 ['channel_id', '=', $list['id']],
                 ['create_time', '>=', $begin_time],
-                ['create_time', '<', $end_time]
+                ['create_time', '<', $end_time],
+                ['user_id', '=', $userInfo['user_id']]
             ])->get());
 
             //$Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
@@ -204,7 +207,8 @@ class AccountingService extends BaseService
         ")->where([
                 ['channel_id', '=', $list['id']],
                 ['create_time', '>=', $begin_time],
-                ['create_time', '<', $end_time]
+                ['create_time', '<', $end_time],
+                ['user_id', '=', $userInfo['user_id']]
             ])->get());
 
             //促销费用
