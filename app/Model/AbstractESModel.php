@@ -419,7 +419,7 @@ abstract class AbstractESModel implements BIModelInterface
             }
         }
 
-        return $sql ? ' (' . substr($sql, $adn ? 5: 4) . ') ' : '';
+        return $sql ? ' (' . substr($sql, $and ? 5: 4) . ') ' : '';
     }
 
     public static function escape(string $val): string
