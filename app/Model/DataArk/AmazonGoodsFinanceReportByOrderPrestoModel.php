@@ -267,23 +267,23 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if($datas['is_distinct_channel'] == 1) { //有区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                     if ($datas['count_periods'] == '1' ) { //按天
-                        $group = 'report.channel_id , report.myear , report.mmonth  , report.mday';
-                        $orderby = 'report.channel_id ,report.myear , report.mmonth  , report.mday';
+                        $group = ' report.myear , report.mmonth  , report.mday';
+                        $orderby = 'report.myear , report.mmonth  , report.mday';
                     } else if ($datas['count_periods'] == '2' ) { //按周
-                        $group = 'report.channel_id ,report.mweekyear , report.mweek';
-                        $orderby = 'report.channel_id ,report.mweekyear , report.mweek';
+                        $group = 'report.mweekyear , report.mweek';
+                        $orderby = 'report.mweekyear , report.mweek';
                     } else if ($datas['count_periods'] == '3' ) { //按月
-                        $group = 'report.channel_id ,report.myear , report.mmonth';
-                        $orderby = 'report.channel_id ,report.myear , report.mmonth';
+                        $group = 'report.myear , report.mmonth';
+                        $orderby = 'report.myear , report.mmonth';
                     } else if ($datas['count_periods'] == '4' ) {  //按季
-                        $group = 'report.channel_id ,report.myear , report.mquarter';
-                        $orderby = 'report.channel_id ,report.myear , report.mquarter';
+                        $group = 'report.myear , report.mquarter';
+                        $orderby = 'report.myear , report.mquarter';
                     } else if ($datas['count_periods'] == '5' ) { //按年
-                        $group = 'report.channel_id ,report.myear';
-                        $orderby = 'report.channel_id ,report.myear';
+                        $group = 'report.myear';
+                        $orderby = 'report.myear';
                     }
                 }else{
-                    $group = 'report.channel_id ,report.user_id  ';
+                    $group = 'report.user_id  ';
                 }
             }else{
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
@@ -3993,7 +3993,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }
 
-        if (in_array('cost_profit_total_income', $targets)) {  //总收入
+        if (in_array('cost_profit_total_income', $targets) || in_array('cost_profit_total_pay', $targets)  ) {  //总收入
             if ($datas['sale_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
@@ -5111,7 +5111,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
         $where.= ' AND ' . $where_str ;
         if ($datas['currency_code'] == 'ORIGIN') {
-            $fba_fields .= " , SUM ( DISTINCT (c.yjzhz) )  as fba_goods_value";
+            $fba_fields .= " , SUM (DISTINCT(c.yjzhz))  as fba_goods_value";
         } else {
             $fba_fields .= " , SUM (DISTINCT(c.yjzhz / COALESCE(rates.rate ,1) * {:RATE}))  as fba_goods_value";
         }
