@@ -118,7 +118,7 @@ class AccountingService extends BaseService
         }
 
         if (isset($request_data['shop_ids'])) {
-            $shopListInfoquery->whereIn('id', explode(",",$request_data['shop_ids']));
+            $shopListInfoquery->whereIn('id', $request_data['shop_ids']);
         }
 
         $count = $shopListInfoquery->count();
