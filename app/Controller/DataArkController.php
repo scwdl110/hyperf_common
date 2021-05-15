@@ -114,6 +114,13 @@ class DataArkController extends AbstractController
                 }else{
                     $where .= " AND report.operation_user_admin_name like '%" . $searchVal . "%'" ;
                 }
+            }else if($searchKey == 'title')
+            {
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_title = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_title like '%" . $searchVal . "%'";
+                }
             }
 
         } else if (!empty($searchVal)) {
