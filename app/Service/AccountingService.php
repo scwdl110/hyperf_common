@@ -118,7 +118,7 @@ class AccountingService extends BaseService
         }
 
         if (isset($request_data['shop_ids'])) {
-            $shopListInfoquery->whereIn('id', explode(",",$request_data['shop_ids']));
+            $shopListInfoquery->whereIn('id', explode(",", $request_data['shop_ids']));
         }
 
         $count = $shopListInfoquery->count();
@@ -328,6 +328,11 @@ class AccountingService extends BaseService
         }
 
         isset($request_data['date_time']) && $shopListInfoquery->where([['modified_time', '>', $request_data['date_time']]]);
+
+        $shopListInfoquery->where(
+            ['channel_type', '=', 2],
+            ['status', '=', 1]
+        );
 
         $count = $shopListInfoquery->count();
 
