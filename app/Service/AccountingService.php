@@ -329,10 +329,10 @@ class AccountingService extends BaseService
 
         isset($request_data['date_time']) && $shopListInfoquery->where([['modified_time', '>', $request_data['date_time']]]);
 
-        $shopListInfoquery->where(
+        $shopListInfoquery->where([
             ['channel_type', '=', 2],
             ['status', '=', 1]
-        );
+        ]);
 
         $count = $shopListInfoquery->count();
 
