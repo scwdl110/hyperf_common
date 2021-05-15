@@ -142,9 +142,9 @@ class AccountingService extends BaseService
           	ifnull( sum( sales_quota * ( reserved_field11 / sales_volume )), 0 ) AS fba_sales_quota,
 	        ifnull( sum( sales_quota ) - sum( sales_quota * ( reserved_field11 / sales_volume )), 0 ) AS fbm_sales_quota,
             ifnull(sum(promote_discount),0) as promote_discount,
-            ifnull(sum(cpc_sb_cost),0) as cpc_sb_cost ,
+            ifnull(sum(refund_promote_discount),0) as cpc_sb_cost ,
             ifnull(sum(platform_sales_commission),0) as platform_sales_commission,
-            ifnull(sum(fba_generation_delivery_cost),0) as fba_generation_delivery_cost,
+            ifnull(sum(fba_generation_delivery_cost - profit),0) as fba_generation_delivery_cost,
             ifnull(sum(profit),0) as profit,
             ifnull(sum(return_and_return_commission),0) as  return_and_return_commission,
             ifnull(sum(fba_refund_treatment_fee),0) as fba_refund_treatment_fee,
@@ -165,12 +165,12 @@ class AccountingService extends BaseService
             ifnull(sum(logistics_head_course) - sum(reserved_field13),0) as fbm,
             ifnull(sum(reversal_reimbursement),0) as reversal_reimbursement,
             ifnull(sum(order_variableclosingfee + fixedclosingfee + refund_variableclosingfee + platform_sales_commission + fba_generation_delivery_cost + fbaperorderfulfillmentfee +  fbaweightbasedfee +  profit +  returnshipping +  return_and_return_sales_commission +  return_and_return_commission +  fba_refund_treatment_fee +  fbacustomerreturnperorderfee +  fbacustomerreturnweightbasedfee +  long_term_storage_fee +  estimated_monthly_storage_fee +  gift_wrap +  restocking_fee +  shipping_charge +  shipping_charge_charge_back +  shipping_tax +  tax +  gift_wrap_tax +  refund_shipping_charge +  refund_shipping_charge_charge_back +  refund_shipping_tax +  refund_tax +  marketplace_facilitator_tax_shipping +  marketplace_facilitator_tax_principal +  order_lowvaluegoods_other +  order_giftwrapchargeback +  order_shippinghb +  salestaxcollectionfee +  costofpointsgranted +  order_codchargeback +  amazonexclusivesfee +  giftwrapcommission +  order_paymentmethodfee +  cod_tax +  refund_lowvaluegoods_other +  marketplacefacilitatortax_restockingfee +  goodwill +  refund_paymentmethodfee +  refund_codchargeback +  refund_shippinghb +  refund_giftwrapchargeback +  costofpointsreturned +  pointsadjusted +  reserved_field3 +  reserved_field4 +  reserved_field6 +  reserved_field7 +  reserved_field8 +  reserved_field14 +  reserved_field15 +  reserved_field18 +  reserved_field19 +  reserved_field20 +  reserved_field21 +  ware_house_lost +  ware_house_damage +  ware_house_lost_manual +  ware_house_damage_exception +  reversal_reimbursement +  compensated_clawback +  customer_damage +  free_replacement_refund_items +  removal_order_lost +  incorrect_fees_items +  missing_from_inbound_clawback +  missing_from_inbound +  inbound_carrier_damage +  multichannel_order_lost +  payment_retraction_items +  cpc_sb_sales_quota +  cpc_sb_cost +  refund_rate +  profit_margin),0) as amazon_fee,
-            ifnull(sum(gift_wrap + tax),0) AS other_amazon_fee,
+            ifnull(sum(gift_wrap + shipping_charge + shipping_charge_charge_back + shipping_tax + tax + gift_wrap_tax + refund_shipping_charge + refund_shipping_charge_charge_back + refund_shipping_tax + refund_tax + marketplace_facilitator_tax_shipping + marketplace_facilitator_tax_principal + order_lowvaluegoods_other + order_giftwrapchargeback + order_shippinghb + salestaxcollectionfee + costofpointsgranted + order_codchargeback + amazonexclusivesfee + giftwrapcommission + order_paymentmethodfee + cod_tax + refund_lowvaluegoods_other + marketplacefacilitatortax_restockingfee + goodwill + refund_paymentmethodfee + refund_codchargeback + refund_shippinghb + refund_giftwrapchargeback + costofpointsreturned + pointsadjusted + reserved_field3 + reserved_field4 + reserved_field6 + reserved_field7 + reserved_field8 + reserved_field14 + reserved_field15 + reserved_field18 + cpc_sb_sales_quota + cpc_sb_cost + refund_rate + profit_margin),0) AS other_amazon_fee,
             ifnull(sum(ware_house_lost + ware_house_damage + ware_house_lost_manual + ware_house_damage_exception + reversal_reimbursement + disposal_fee + free_replacement_refund_items + removal_order_lost + incorrect_fees_items + missing_from_inbound_clawback + missing_from_inbound + inbound_carrier_damage + multichannel_order_lost + payment_retraction_items + reserved_field19),0) AS fee_adjustment
         ")->where([
                 ['channel_id', '=', $list['id']],
                 ['create_time', '>=', $begin_time],
-                ['create_time', '<', $end_time],
+                ['create_time', '<=', $end_time],
                 ['user_id', '=', $userInfo['user_id']]
             ])->get());
 
@@ -210,12 +210,12 @@ class AccountingService extends BaseService
             ifnull(sum(return_postage_billing_postage),0) as return_postage_billing_postage,
             ifnull(sum(fba_per_unit_fulfillment_fee),0) as fba_per_unit_fulfillment_fee,
             ifnull(sum(product_ads_payment_eventlist_charge + product_ads_payment_eventlist_refund),0) as cpc_cost,
-            ifnull(sum(subscription + reserved_field1),0) AS other_amazon_fee,
+            ifnull(sum(subscription + reserved_field1 + reserved_field10),0) AS other_amazon_fee,
             ifnull(sum(charge_back_recovery + cs_error_non_itemized + return_postage_billing_postage + re_evaluation + subscription_fee_correction + incorrect_fees_non_itemized + buyer_recharge + multichannel_order_late + non_subscription_fee_adj + fba_per_unit_fulfillment_fee + misc_adjustment),0) AS fee_adjustment
         ")->where([
                 ['channel_id', '=', $list['id']],
                 ['create_time', '>=', $begin_time],
-                ['create_time', '<', $end_time],
+                ['create_time', '<=', $end_time],
                 ['user_id', '=', $userInfo['user_id']]
             ])->get());
 
