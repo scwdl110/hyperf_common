@@ -719,9 +719,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
                     }
                 }else if($datas['count_dimension'] == 'class1'){
-                    $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ,  'site_id'=>$list1['site_id']) ;
+                    $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ) ;
                 }else if($datas['count_dimension'] == 'group'){
-                    $where_arr[] = array('group_id'=>$list1['group_id'] ,  'site_id'=>$list1['site_id']) ;
+                    $where_arr[] = array('group_id'=>$list1['group_id']) ;
                 }else if($datas['count_dimension'] == 'tags'){  //标签
                     $where_arr[] = array('tags_id'=>$list1['tags_id']) ;
                 }else if($datas['count_dimension'] == 'head_id'){  //负责人
