@@ -121,6 +121,11 @@ class AccountingService extends BaseService
             $shopListInfoquery->whereIn('id', explode(",", $request_data['shop_ids']));
         }
 
+        $shopListInfoquery->where([
+            ['channel_type', '=', 2],
+            ['status', '=', 1]
+        ]);
+
         $count = $shopListInfoquery->count();
 
         $shopListId = $this->getArray($shopListInfoquery->orderBy('id', 'asc')->offset($request_data['offset'])->limit($request_data['limit'])->get());
