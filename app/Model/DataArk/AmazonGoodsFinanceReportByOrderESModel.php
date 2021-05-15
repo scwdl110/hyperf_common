@@ -1155,43 +1155,36 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if (in_array('fba_special_purpose', $targets)) {  //FBA专用
             $fields['fba_special_purpose'] = '1';
         }
+        $TotalIncomeScript = '0' ;
+        if (in_array('cost_profit_total_income', $targets) ||  in_array('cost_profit_total_pay', $targets)) {   //总收入
+            if ($datas['finance_datas_origin'] == '1') {
+                if ($datas['sale_datas_origin'] == '1') {
+                    $fields['cost_profit_total_income'] = "SUM(script('', 'return doc.byorder_refund_promote_discount.value + doc.byorder_sales_quota.value;'))";
+                    $TotalIncomeScript =  ' doc.byorder_refund_promote_discount.value + doc.byorder_sales_quota.value' ;
+                }else{
+                    $fields['cost_profit_total_income'] = "SUM(script('', 'return doc.byorder_refund_promote_discount.value + doc.report_sales_quota.value;'))";
+                    $TotalIncomeScript =  'doc.byorder_refund_promote_discount.value + doc.report_sales_quota.value' ;
+                }
+            } elseif ($datas['finance_datas_origin'] == '2') {
+                if ($datas['sale_datas_origin'] == '1') {
+                    $fields['cost_profit_total_income'] = "SUM(script('', 'return doc.report_refund_promote_discount.value + doc.byorder_sales_quota.value;'))";
+                    $TotalIncomeScript =  ' doc.report_refund_promote_discount.value + doc.byorder_sales_quota.value ' ;
+                }else{
+                    $fields['cost_profit_total_income'] = "SUM(script('', 'return doc.report_refund_promote_discount.value + doc.report_sales_quota.value;'))";
+                    $TotalIncomeScript =  ' doc.report_refund_promote_discount.value + doc.report_sales_quota.value ' ;
+                }
+            }
+
+        }
 
         if (in_array('cost_profit_total_pay', $targets) ) {   //总支出
             if ($datas['finance_datas_origin'] == '1') {
-                if($datas['cost_count_type'] == '1'){
-                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.byorder_purchasing_cost +  report.byorder_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
-                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.byorder_refund.value + doc.byorder_promote_discount.value + doc.byorder_cpc_cost.value + doc.byorder_cpc_sd_cost.value + doc.byorder_purchasing_cost.value + doc.byorder_logistics_head_course.value + doc.byorder_reserved_field10.value - doc.byorder_reserved_field16.value - doc.byorder_reserved_field17.value;'))" ;
-                }else{
-                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.byorder_promote_discount + report.byorder_cpc_cost + report.byorder_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.byorder_reserved_field10 - report.byorder_reserved_field16 -report.byorder_reserved_field17)" ;
-                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.byorder_refund.value + doc.byorder_promote_discount.value + doc.byorder_cpc_cost.value + doc.byorder_cpc_sd_cost.value + doc.first_purchasing_cost.value + doc.first_logistics_head_course.value + doc.byorder_reserved_field10.value - doc.byorder_reserved_field16.value - doc.byorder_reserved_field17.value;'))" ;
-                }
+                $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} - {$TotalIncomeScript}; '))";
             } else {
-                if($datas['cost_count_type'] == '1'){
-                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.report_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.report_purchasing_cost +  report.report_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
-                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.report_refund.value + doc.report_promote_discount.value + doc.report_cpc_cost.value + doc.report_cpc_sd_cost.value + doc.report_purchasing_cost.value + doc.report_logistics_head_course.value + doc.report_reserved_field10.value - doc.report_reserved_field16.value - doc.report_reserved_field17.value;'))" ;
-                }else{
-                    // $fields['cost_profit_total_pay'] = $fields['amazon_fee'] . "+" . "SUM ( 0 - report.byorder_refund + report.report_promote_discount + report.report_cpc_cost + report.report_cpc_sd_cost +  report.first_purchasing_cost + report.first_logistics_head_course + report.report_reserved_field10 - report.report_reserved_field16 -report.report_reserved_field17)" ;
-                    $fields['cost_profit_total_pay'] = "SUM(script('', 'return {$amazonFeeScript} + -doc.byorder_refund.value + doc.report_promote_discount.value + doc.report_cpc_cost.value + doc.report_cpc_sd_cost.value + doc.first_purchasing_cost.value + doc.first_logistics_head_course.value + doc.report_reserved_field10.value - doc.report_reserved_field16.value - doc.report_reserved_field17.value;'))" ;
-                }
+                $fields['cost_profit_total_pay'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} -$TotalIncomeScript;'))";
             }
         }
 
-        if (in_array('cost_profit_total_income', $targets) ) {   //总收入
-            if ($datas['sale_datas_origin'] == '1') {
-                $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
-            } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota )";
-            }
-
-            if ($datas['finance_datas_origin'] == '1') {
-                // $fields['cost_profit_total_income'] = $fields['cost_profit_total_income'] . " + SUM(report.byorder_refund_promote_discount)";
-                $fields['cost_profit_total_income'] = "SUM(script('', 'return doc.byorder_refund_promote_discount.value + doc.byorder_sales_quota.value;'))";
-            } elseif ($datas['finance_datas_origin'] == '2') {
-                // $fields['cost_profit_total_income'] =  $fields['cost_profit_total_income'] ." + SUM(report.report_refund_promote_discount)";
-                $fields['cost_profit_total_income'] =  "SUM(script('', 'return doc.report_refund_promote_discount.value + doc.report_sales_quota.value;'))";
-            }
-
-        }
         $this->getUnTimeFields($fields,$datas,$targets);
 
         return $fields;
