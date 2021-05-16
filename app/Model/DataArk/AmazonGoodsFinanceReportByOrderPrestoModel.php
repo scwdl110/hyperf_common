@@ -35,7 +35,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $timeLine = [],
         array $deparmentData = [],
         int $userId = 0,
-        int $adminId = 0
+        int $adminId = 0 ,
+        array $rateInfo = []
     ) {
         //没有按周期统计 ， 按指标展示
         if ($datas['show_type'] == 2) {
@@ -809,6 +810,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $goods_finance_md->dryRun(env('APP_TEST_RUNNING', false));
         $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
         $fbaDatas = array() ;
+
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
                 if($datas['count_dimension'] == 'sku'){
@@ -900,25 +902,83 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($is_distinct_channel == 1 && ($field == 'sku' || $field == 'asin' || $field == 'parent_asin')){
             $fbaDatas[$fba[$field].'-'.$fba['channel_id']] = $fba ;
         } else {
-            $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_stock'])){
+                $fbaDatas[$fba[$field]]['fba_sales_stock'] = $fba['fba_sales_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['fba_sales_day'] = ($fbaDatas[$fba[$field]]['fba_sales_day'] > $fba['fba_sales_day']) ? $fbaDatas[$fba[$field]]['fba_sales_day'] : $fba['fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['fba_sales_day'] = $fba['fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_day'] = ($fbaDatas[$fba[$field]]['fba_sales_day'] > $fba['fba_sales_day']) ? $fbaDatas[$fba[$field]]['fba_sales_day'] : $fba['fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['max_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_fba_sales_day'] > $fba['max_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_fba_sales_day'] : $fba['max_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['max_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['max_fba_sales_day'] = $fba['max_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_fba_sales_day'] > $fba['max_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_fba_sales_day'] : $fba['max_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['min_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_fba_sales_day'] < $fba['min_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_fba_sales_day'] : $fba['min_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['min_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['min_fba_sales_day'] = $fba['min_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_fba_sales_day'] < $fba['min_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_fba_sales_day'] : $fba['min_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] > $fba['max_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] : $fba['max_egt0_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = $fba['max_egt0_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] > $fba['max_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] : $fba['max_egt0_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] < $fba['min_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] : $fba['min_egt0_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = $fba['min_egt0_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] < $fba['min_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] : $fba['min_egt0_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['fba_reserve_stock'] += $fba['fba_reserve_stock'] ;
-            $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] += $fba['fba_recommended_replenishment'] ;
-            $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] < $fba['max_fba_recommended_replenishment']) ? $fba['max_fba_recommended_replenishment']:$fbaDatas[$fba[$field]]['max_fba_recommended_replenishment']   ;
-            $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] < $fba['min_fba_recommended_replenishment']) ? $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] : $fba['min_fba_recommended_replenishment'] ;
-            $fbaDatas[$fba[$field]]['fba_special_purpose'] += $fba['fba_special_purpose'] ;
-            $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['max_fba_special_purpose'] > $fba['max_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['max_fba_special_purpose'] : $fba['max_fba_special_purpose'] ;
-            $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['min_fba_special_purpose'] < $fba['min_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['min_fba_special_purpose'] : $fba['min_fba_special_purpose'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_reserve_stock'])){
+                $fbaDatas[$fba[$field]]['fba_reserve_stock'] = $fba['fba_reserve_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_reserve_stock'] += $fba['fba_reserve_stock'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] = $fba['fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] += $fba['fba_recommended_replenishment'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = $fba['max_fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] < $fba['max_fba_recommended_replenishment']) ? $fba['max_fba_recommended_replenishment']:$fbaDatas[$fba[$field]]['max_fba_recommended_replenishment']   ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = $fba['min_fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] < $fba['min_fba_recommended_replenishment']) ? $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] : $fba['min_fba_recommended_replenishment'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['fba_special_purpose'] = $fba['fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_special_purpose'] += $fba['fba_special_purpose'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['max_fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = $fba['max_fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['max_fba_special_purpose'] > $fba['max_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['max_fba_special_purpose'] : $fba['max_fba_special_purpose'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['min_fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = $fba['min_fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['min_fba_special_purpose'] < $fba['min_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['min_fba_special_purpose'] : $fba['min_fba_special_purpose'] ;
+            }
         }
 
         return $fbaDatas;
@@ -2995,7 +3055,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $timeLine = [],
         array $deparmentData = [],
         int $userId = 0,
-        int $adminId = 0
+        int $adminId = 0 ,
+        array $rateInfo = []
     ) {
         $fields = [];
         //没有按周期统计 ， 按指标展示
@@ -5177,7 +5238,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $timeLine = [],
         array $deparmentData = [],
         int $userId = 0,
-        int $adminId = 0
+        int $adminId = 0 ,
+        array $rateInfo = []
     ) {
         //没有按周期统计 ， 按指标展示
         if ($datas['show_type'] == 2) {

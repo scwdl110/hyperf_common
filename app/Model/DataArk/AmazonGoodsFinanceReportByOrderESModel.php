@@ -5,9 +5,16 @@ namespace App\Model\DataArk;
 use App\Model\AbstractESModel;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
-
+use App\Service\CommonService;
+use Hyperf\Di\Annotation\Inject;
 class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 {
+    /**
+     * @Inject()
+     * @var CommonService
+     */
+    protected $commonService;
+
     protected $table = 'f_amazon_goods_finance_report_by_order_';
 
     /**
@@ -34,7 +41,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         array $timeLine = [],
         array $deparmentData = [],
         int $userId = 0,
-        int $adminId = 0
+        int $adminId = 0 ,
+        array $rateInfo = []
     ) {
         //没有按周期统计 ， 按指标展示
         $fields = $this->getGoodsFields($datas);
@@ -338,7 +346,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }else{
             $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
             if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr ) ;
             }
         }
         if(empty($lists)){
@@ -579,7 +587,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         return $where;
     }
 
-    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
+    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array() )
     {
         if(empty($lists)){
             return $lists ;
@@ -631,6 +639,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $where_arr[] = array('developer_id'=>$list1['developer_id']) ;
                 }else if($datas['count_dimension'] == 'isku'){ //开发人
                     $where_arr[] = array('isku_id'=>$list1['isku_id']) ;
+                }else{
+                    $where_arr[] = array('channel_id' => $list1['channel_id']);
                 }
             }
 
@@ -655,7 +665,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
                 $where_str = 'g.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
-            }else{
+            }else if($datas['count_dimension'] == 'all_goods' || $datas['count_dimension'] == 'goods_channel'){
+                $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
+                $where_str = 'g.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
+            } else{
                 $where_str = '1=1' ;
             }
         }
@@ -701,6 +714,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'isku'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'all_goods'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'goods_channel'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
                 }
 
             }
@@ -725,6 +742,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fba_data = $fbaDatas[$list2['developer_id']] ;
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_data = $fbaDatas[$list2['isku_id']] ;
+            }else if($datas['count_dimension'] == 'all_goods'){
+                $fba_data = $fbaDatas[$list2['channel_id']] ;
+            }else if($datas['count_dimension'] == 'goods_channel'){
+                $fba_data = $fbaDatas[$list2['channel_id']] ;
             }
 
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
@@ -757,28 +778,86 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
     protected function handleGoodsFbaData($fba, $field, $is_distinct_channel = 0, $fbaDatas = array())
     {
-        if($field == 'sku' || $field == 'asin' || $field == 'parent_asin'){
+        if($is_distinct_channel == 1 && ($field == 'sku' || $field == 'asin' || $field == 'parent_asin')){
             $fbaDatas[$fba[$field].'-'.$fba['channel_id']] = $fba ;
         } else {
-            $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_stock'])){
+                $fbaDatas[$fba[$field]]['fba_sales_stock'] = $fba['fba_sales_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['fba_sales_day'] = ($fbaDatas[$fba[$field]]['fba_sales_day'] > $fba['fba_sales_day']) ? $fbaDatas[$fba[$field]]['fba_sales_day'] : $fba['fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['fba_sales_day'] = $fba['fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_day'] = ($fbaDatas[$fba[$field]]['fba_sales_day'] > $fba['fba_sales_day']) ? $fbaDatas[$fba[$field]]['fba_sales_day'] : $fba['fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['max_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_fba_sales_day'] > $fba['max_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_fba_sales_day'] : $fba['max_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['max_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['max_fba_sales_day'] = $fba['max_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_fba_sales_day'] > $fba['max_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_fba_sales_day'] : $fba['max_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['min_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_fba_sales_day'] < $fba['min_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_fba_sales_day'] : $fba['min_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['min_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['min_fba_sales_day'] = $fba['min_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_fba_sales_day'] < $fba['min_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_fba_sales_day'] : $fba['min_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] > $fba['max_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] : $fba['max_egt0_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = $fba['max_egt0_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] > $fba['max_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] : $fba['max_egt0_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] < $fba['min_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] : $fba['min_egt0_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = $fba['min_egt0_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] < $fba['min_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] : $fba['min_egt0_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['fba_reserve_stock'] += $fba['fba_reserve_stock'] ;
-            $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] += $fba['fba_recommended_replenishment'] ;
-            $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] < $fba['max_fba_recommended_replenishment']) ? $fba['max_fba_recommended_replenishment']:$fbaDatas[$fba[$field]]['max_fba_recommended_replenishment']   ;
-            $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] < $fba['min_fba_recommended_replenishment']) ? $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] : $fba['min_fba_recommended_replenishment'] ;
-            $fbaDatas[$fba[$field]]['fba_special_purpose'] += $fba['fba_special_purpose'] ;
-            $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['max_fba_special_purpose'] > $fba['max_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['max_fba_special_purpose'] : $fba['max_fba_special_purpose'] ;
-            $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['min_fba_special_purpose'] < $fba['min_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['min_fba_special_purpose'] : $fba['min_fba_special_purpose'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_reserve_stock'])){
+                $fbaDatas[$fba[$field]]['fba_reserve_stock'] = $fba['fba_reserve_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_reserve_stock'] += $fba['fba_reserve_stock'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] = $fba['fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] += $fba['fba_recommended_replenishment'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = $fba['max_fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] < $fba['max_fba_recommended_replenishment']) ? $fba['max_fba_recommended_replenishment']:$fbaDatas[$fba[$field]]['max_fba_recommended_replenishment']   ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = $fba['min_fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] < $fba['min_fba_recommended_replenishment']) ? $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] : $fba['min_fba_recommended_replenishment'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['fba_special_purpose'] = $fba['fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_special_purpose'] += $fba['fba_special_purpose'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['max_fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = $fba['max_fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['max_fba_special_purpose'] > $fba['max_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['max_fba_special_purpose'] : $fba['max_fba_special_purpose'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['min_fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = $fba['min_fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['min_fba_special_purpose'] < $fba['min_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['min_fba_special_purpose'] : $fba['min_fba_special_purpose'] ;
+            }
         }
 
         return $fbaDatas;
@@ -1387,7 +1466,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         array $timeLine = [],
         array $deparmentData = [],
         int $userId = 0,
-        int $adminId = 0
+        int $adminId = 0 ,
+        array $rateInfo = []
     ) {
         $fields = [];
         //没有按周期统计 ， 按指标展示
@@ -1552,7 +1632,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $logger->info('getListByUnGoods Elastic 结果 【'.$count_tip.'】【'.$params['is_count'].'】【'.$group.'】【'.$orderby.'】', $lists);
 
         if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-            $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
+            $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr,  $rateInfo) ;
         }
 
         if(!empty($lists) && $params['show_type'] = 2 && $params['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$params['sort_target']]) && !empty($params['sort_target']) && !empty($params['sort_order'])){
@@ -2086,7 +2166,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1')
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $rateInfo = [])
     {
         if(empty($lists)){
             return $lists ;
@@ -2101,7 +2181,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 }
             }
             if($datas['count_dimension'] == 'channel_id'){
-                $fba_fields = $group = 'c.channel_id' ;
+                $fba_fields =  'max(c.site_id) as site_id  , c.channel_id' ;
+                $group =  'c.channel_id' ;
             }else if($datas['count_dimension'] == 'site_id'){
                 $fba_fields = $group = 'c.site_id' ;
             }
@@ -2111,10 +2192,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $where_arr[] = array( 'channel_id'=>$list1['channel_id'] , 'site_id'=>$list1['site_id']) ;
                 }else if($datas['count_dimension'] == 'site_id'){
                     $where_arr[] = array('site_id'=>$list1['site_id']) ;
-                }else if($datas['count_dimension'] == 'department'){
-                    $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
-                }else if($datas['count_dimension'] == 'admin_id'){
-                    $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
                 }
             }
 
@@ -2134,7 +2211,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $where.= ' AND ' . $where_str ;
         $fba_fields .= " , SUM(DISTINCT(c.yjzhz))  as fba_goods_value";
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
-        $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
+
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group);
 
         $fbaDatas = array() ;
@@ -2143,16 +2220,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fbaDatas[$fba['channel_id']] = $fba ;
             }else if($datas['count_dimension'] == 'site_id'){
                 $fbaDatas[$fba['site_id']] = $fba ;
-            }else if($datas['count_dimension'] == 'department'){
-                $fbaDatas[$fba['user_department_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_stock']+= $fba['fba_stock'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
-            }else if($datas['count_dimension'] == 'admin_id'){
-                $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
-                $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
             }
         }
         foreach($lists as $k=>$list2){
@@ -2160,13 +2227,20 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fba_data = $fbaDatas[$list2['channel_id']] ;
             }else if($datas['count_dimension'] == 'site_id'){
                 $fba_data = $fbaDatas[$list2['site_id']] ;
-            }else if($datas['count_dimension'] == 'department'){
-                $fba_data = $fbaDatas[$list2['user_department_id']] ;
-            }else if($datas['count_dimension'] == 'admin_id'){
-                $fba_data = $fbaDatas[$list2['admin_id']] ;
             }
             if (!empty($fields['fba_goods_value'])) {  //在库总成本
-                $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
+                if($datas['currency_code'] == 'ORIGIN' ){
+                    $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
+                }else{
+                    if(empty($fba_data)){
+                        $lists[$k]['fba_goods_value'] = null ;
+                    }else{
+                        $currency_code = $this->commonService->getCurrencyBySiteId($fba_data['site_id']) ;
+                        $lists[$k]['fba_goods_value'] =   round($this->commonService->currencyExchange($fba_data['fba_goods_value'] , $currency_code , $datas['currency_code'] , $rateInfo),2) ;
+                    }
+
+                }
+
             }
             if (!empty($fields['fba_stock'])) {  //FBA 库存
                 $lists[$k]['fba_stock'] = empty($fba_data) ? null : $fba_data['fba_stock'] ;
