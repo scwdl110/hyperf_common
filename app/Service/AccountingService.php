@@ -373,7 +373,7 @@ class AccountingService extends BaseService
     public function getExchangeRateList($request_data)
     {
         $rule = [
-            'id' => 'integer|filled',
+            'site_id' => 'integer|filled',
             'name' => 'string|filled'
         ];
 
@@ -383,12 +383,12 @@ class AccountingService extends BaseService
             return $res;
         }
 
-        $request_data['id'] = $request_data['id'] ?? '';
+        $request_data['site_id'] = $request_data['site_id'] ?? '';
         $request_data['name'] = $request_data['name'] ?? '';
 
         $userInfo = $this->getUserInfo();
 
-        $info = $this->getExchangeRate($userInfo['user_id'], $request_data['id'], $request_data['name']);
+        $info = $this->getExchangeRate($userInfo['user_id'], $request_data['site_id'], $request_data['name']);
 
         $data = [
             'code' => 1,
@@ -403,7 +403,7 @@ class AccountingService extends BaseService
     }
 
 
-    public function getExchangeRate($user_id, $id = '', $name = '')
+    public function getExchangeRate($user_id, $site_id = '', $name = '')
     {
         $financeCurrencyList = $this->getArray(FinanceCurrencyModel::selectRaw(
             "id ,custom_usd_exchang_rate AS usd_exchang_rate,
@@ -441,9 +441,9 @@ class AccountingService extends BaseService
             $i++;
         }
 
-        if ($id != '') {
+        if ($site_id != '') {
             foreach ($infos as $info_key => $info) {
-                if (strstr(strval($info['id']), strval($id)) == false) {
+                if (strstr(strval($info['site_id']), strval($site_id)) == false) {
                     unset($infos[$info_key]);
                 }
             }
