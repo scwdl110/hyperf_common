@@ -373,7 +373,7 @@ class AccountingService extends BaseService
     public function getExchangeRateList($request_data)
     {
         $rule = [
-            'site_id' => 'integer|filled',
+            'site_id' => 'string|filled',
             'name' => 'string|filled'
         ];
 
@@ -442,13 +442,18 @@ class AccountingService extends BaseService
         }
 
         if ($site_id != '') {
-            foreach ($infos as $info_key => $info) {
-                if (strstr(strval($info['site_id']), strval($site_id)) == false) {
-                    unset($infos[$info_key]);
+            $tmp = array();
+            $site_ids = explode(",", $site_id);
+            foreach ($site_ids as $site_id) {
+                foreach ($infos as $info_key => $info) {
+                    if (intval($info['site_id']) == intval($site_id)) {
+                        $tmp[$info_key] = $infos[$info_key];
+                        continue;
+                    }
                 }
             }
+            $infos = $tmp;
         }
-
 
         if ($name != '') {
             foreach ($infos as $info_key => $info) {
