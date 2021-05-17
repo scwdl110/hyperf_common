@@ -1495,6 +1495,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['cpc_indirect_sales_quota'] = 'SUM (report."byorder_sd_attributedSales7d" / COALESCE(rates.rate ,1) * {:RATE}  + report."byorder_sp_attributedSales7d" / COALESCE(rates.rate ,1) * {:RATE} - report."byorder_sd_attributedSales7dSameSKU" / COALESCE(rates.rate ,1) * {:RATE}  - report."byorder_sp_attributedSales7dSameSKU" / COALESCE(rates.rate ,1) * {:RATE}  )';
             }
         }
+        if (in_array('cpc_sales_quota', $targets)) {  //CPC销售额=CPC直接销售额+CPC间接销售额
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $fields['cpc_sales_quota'] = 'SUM ( report."byorder_sd_attributedSales7d" + report."byorder_sp_attributedSales7d")';
+            } else {
+                $fields['cpc_sales_quota'] = 'SUM (report."byorder_sd_attributedSales7d" / COALESCE(rates.rate ,1) * {:RATE}  + report."byorder_sp_attributedSales7d" / COALESCE(rates.rate ,1) * {:RATE}) ';
+            }
+        }
+
         if (in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量占比
             $fields['cpc_indirect_sales_volume_rate'] = '(' . $fields['cpc_indirect_sales_volume'] . ") / nullif( " . $fields['sale_sales_volume'] . " , 0 ) ";
         }
