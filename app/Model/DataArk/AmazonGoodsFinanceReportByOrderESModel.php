@@ -1288,6 +1288,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['site_id'] = 'max(report.site_id)';
 
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
@@ -1298,6 +1299,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $fields['site_id'] = 'max(report.site_id)';
 
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
@@ -1305,6 +1307,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['isku_id']                       = 'max(report.goods_isku_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
