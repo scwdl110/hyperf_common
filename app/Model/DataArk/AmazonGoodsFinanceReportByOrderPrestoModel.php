@@ -5199,6 +5199,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         foreach($lists as $k=>$list2){
+           /* 此方法需要校验$fbaDatas数组KEY是否存在，如果数据不存在会报错。改为下面代码
             if($datas['count_dimension'] == 'channel_id'){
                 $fba_data = $fbaDatas[$list2['channel_id']] ;
             }else if($datas['count_dimension'] == 'site_id'){
@@ -5207,6 +5208,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_data = $fbaDatas[$list2['user_department_id']] ;
             }else if($datas['count_dimension'] == 'admin_id'){
                 $fba_data = $fbaDatas[$list2['admin_id']] ;
+            }*/
+            $fba_data=[];
+            $countDimension= isset($datas['count_dimension']) ? $datas['count_dimension']:'';
+            switch ($countDimension) {
+                case 'channel_id':
+                case 'site_id':
+                case 'admin_id':
+                case 'department':
+                    $tmpKey = $countDimension == 'department' ? 'user_department_id' : $countDimension;
+                    if (isset($list2[$tmpKey]) && array_key_exists($list2[$tmpKey], $fbaDatas)) {
+                        $fba_data = $fbaDatas[$list2[$tmpKey]];
+                    }
+                    break;
+                default:
+                    break;
             }
             if (!empty($fields['fba_goods_value'])) {  //在库总成本
                 $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
