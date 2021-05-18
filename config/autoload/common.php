@@ -4,7 +4,7 @@ return [
         "rmb_exchang_rate" => array("id" => 1, "site_id" => 10, "name" => "人民币", "code" => "CNY", "symbol" => "￥"),
         "usd_exchang_rate" => array("id" => 2, "site_id" => 1, "name" => "美元", "code" => "USD", "symbol" => "$",),
         "gbp_exchang_rate" => array("id" => 3, "site_id" => 9, "name" => "英镑", "code" => "GBP", "symbol" => "£"),
-        "eur_exchang_rate" => array("id" => 4, "site_id" => 4, "name" => "欧元", "code" => "EUR", "symbol" => "€"),
+        "eur_exchang_rate" => array("id" => 4, "site_id" => array(4, 5, 6, 8, 16), "name" => "欧元", "code" => "EUR", "symbol" => "€"),
         "tr_exchang_rate" => array("id" => 5, "site_id" => 14, "name" => "新土耳其里拉", "code" => "TRY", "symbol" => "₺"),
         "au_exchang_rate" => array("id" => 6, "site_id" => 12, "name" => "澳币", "code" => "AUD", "symbol" => "A$"),
         "jpy_exchang_rate" => array("id" => 7, "site_id" => 11, "name" => "日元", "code" => "JPY", "symbol" => "¥"),
