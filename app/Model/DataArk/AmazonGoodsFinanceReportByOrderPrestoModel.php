@@ -814,25 +814,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
                 if($datas['count_dimension'] == 'sku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'parent_asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'class1'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'group'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'tags'){  //标签（需要刷数据）
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'head_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'developer_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'isku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'all_goods'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'goods_channel'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
                 }
-
             }
         }
 
