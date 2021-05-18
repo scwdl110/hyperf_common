@@ -49,4 +49,11 @@ class SwaggerController extends BaseController
         $openapi = file_get_contents(BASE_PATH."/api_document.json");
         return $this->response->withHeader('Content-Type', 'application/x-yaml')->withContent($openapi);
     }
+
+    /**
+     * @RequestMapping(path="/finance/ping", methods="get,post")
+     */
+    public function ping(){
+        return "success";
+    }
 }
