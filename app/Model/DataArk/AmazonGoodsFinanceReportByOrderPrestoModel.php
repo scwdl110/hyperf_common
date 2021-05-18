@@ -79,12 +79,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "{$this->table_goods_week_report} AS report" ;
-            $where = $ym_where   . (empty($where) ? "" : " AND " . $where) ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $where = $ym_where . (empty($where) ? "" : " AND " . $where) ;
+            $where = $ym_where . " AND report.available = 1 " . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report} AS report" ;
         }else if($datas['cost_count_type'] == 2 ){
-            $where = $ym_where .  (empty($where) ? "" : " AND " . $where) ;
+            $where = $ym_where . " AND report.available = 1 "  . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report} AS report" ;
         }else{
             return [];
@@ -3086,13 +3086,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $table = "{$this->table_channel_week_report} AS report" ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
             $table = "{$this->table_channel_month_report} AS report" ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['cost_count_type'] == 2 ){
             $table = "{$this->table_channel_month_report} AS report" ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         } else {
             return [];
         }
+
 
         //部门维度统计
         if ($params['count_dimension'] == 'department') {
@@ -5286,10 +5290,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_day_report} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_week_report} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_month_report} AS report";
         }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_month_report} AS report";
         } else {
             return [];
