@@ -177,8 +177,8 @@ class AccountingService extends BaseService
             //$Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
 
             foreach ($rateList as $rate) {
-                if ($list['site_id'] == $rate['site_id']) {
-                    $info['currency_id'] = $rate['site_id'];
+                if ((is_array($rate['site_id']) && in_array($list['site_id'], $rate['site_id'])) || $list['site_id'] == $rate['site_id']) {
+                    $info['currency_id'] = $list['site_id'];
                     $info['exchang_rate'] = $rate['exchang_rate'];
                 }
             }
