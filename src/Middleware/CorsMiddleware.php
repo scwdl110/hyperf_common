@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\Middleware;
 
+use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\Utils\Context;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -22,8 +23,8 @@ class CorsMiddleware implements MiddlewareInterface
 
         Context::set(ResponseInterface::class, $response);
 
-        if ($request->getMethod() == 'OPTIONS') {
-            return $response;
+        if ($request->getMethod() == 'OPTIONS' || strpos($request->url(),"/ping") !== false) {
+            return $response->withBody(new SwooleStream('success'));
         }
 
         return $handler->handle($request);
