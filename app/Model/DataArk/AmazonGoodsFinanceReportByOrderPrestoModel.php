@@ -79,12 +79,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "{$this->table_goods_week_report} AS report" ;
-            $where = $ym_where   . (empty($where) ? "" : " AND " . $where) ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $where = $ym_where . (empty($where) ? "" : " AND " . $where) ;
+            $where = $ym_where . " AND report.available = 1 " . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report} AS report" ;
         }else if($datas['cost_count_type'] == 2 ){
-            $where = $ym_where .  (empty($where) ? "" : " AND " . $where) ;
+            $where = $ym_where . " AND report.available = 1 "  . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report} AS report" ;
         }else{
             return [];
@@ -814,25 +814,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
                 if($datas['count_dimension'] == 'sku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'sku',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'parent_asin'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'class1'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'group'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'tags'){  //标签（需要刷数据）
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'head_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'developer_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'isku'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'all_goods'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'goods_channel'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
                 }
-
             }
         }
 
@@ -3091,13 +3094,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $table = "{$this->table_channel_week_report} AS report" ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
             $table = "{$this->table_channel_month_report} AS report" ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['cost_count_type'] == 2 ){
             $table = "{$this->table_channel_month_report} AS report" ;
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         } else {
             return [];
         }
+
 
         //部门维度统计
         if ($params['count_dimension'] == 'department') {
@@ -5307,10 +5314,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_day_report} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_week_report} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_month_report} AS report";
         }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
+            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_month_report} AS report";
         } else {
             return [];
