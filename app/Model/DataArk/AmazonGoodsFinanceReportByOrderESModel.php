@@ -3,11 +3,19 @@
 namespace App\Model\DataArk;
 
 use App\Model\AbstractESModel;
+use base;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
-
+use App\Service\CommonService;
+use Hyperf\Di\Annotation\Inject;
 class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 {
+    /**
+     * @Inject()
+     * @var CommonService
+     */
+    protected $commonService;
+
     protected $table = 'f_amazon_goods_finance_report_by_order_';
 
     /**
@@ -34,7 +42,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         array $timeLine = [],
         array $deparmentData = [],
         int $userId = 0,
-        int $adminId = 0
+        int $adminId = 0 ,
+        array $rateInfo = []
     ) {
         //没有按周期统计 ， 按指标展示
         $fields = $this->getGoodsFields($datas);
@@ -48,11 +57,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
-            $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+            $orderby = '(' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
-            $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+            $orderby =  ' (' . $fields[$sort] . ' ) ' . $order;
         }
 
         $rt = array();
@@ -63,7 +72,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
-        $table = "dws_dataark_f_dw_channel_day_report_{$this->dbhost} AS report" ;
+        $table = "dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS report" ;
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
         if (!empty($mod_where)) {
             $where .= ' AND ' . $mod_where;
@@ -73,168 +82,165 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lday';
-                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lday';
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.lday';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.lday';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lweek';
-                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lweek';
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.lweek';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.lweek';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lmonth';
-                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lmonth';
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.lmonth';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.lmonth';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.lquarter';
-                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.lquarter';
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id , report.lquarter';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.lquarter';
                 } else if ($datas['count_periods'] == '5' ) { //按年
-                    $group =  'report.goods_' . $datas['count_dimension'] . ' , report.myear';
-                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.myear';
+                    $group =  'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id  , report.myear';
+                    $orderby =  'report.goods_' . $datas['count_dimension'] . ' , report.channel_id  ,report.myear';
                 }
             }else{
                 $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
                 $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
             }
             $where .= " AND report.goods_" . $datas['count_dimension'] . " != '' ";
-        } else if ($datas['count_dimension'] == 'isku') {
+        } else if ($datas['count_dimension'] == 'isku') {  //ISKU 涉及不同汇率问题， 需要单独站点相加，再聚合计算 , 无法排序
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group =  'report.goods_isku_id , report.lday';
-                    $orderby =  'report.goods_isku_id , report.lday';
+                    $group =  'report.goods_isku_id  , report.lday ,report.site_id';
+                    $orderby =  'report.goods_isku_id , report.lday ,report.site_id ';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group =  'report.goods_isku_id, report.lweek';
-                    $orderby =  'report.goods_isku_id , report.lweek';
+                    $group =  'report.goods_isku_id , report.lweek,report.site_id ';
+                    $orderby =  'report.goods_isku_id , report.lweek ,report.site_id ';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group =  'report.goods_isku_id, report.lmonth';
-                    $orderby =  'report.goods_isku_id , report.lmonth';
+                    $group =  'report.goods_isku_id, report.lmonth ,report.site_id';
+                    $orderby =  'report.goods_isku_id , report.lmonth ,report.site_id';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group =  'report.goods_isku_id , report.lquarter';
-                    $orderby =  'report.goods_isku_id , report.lquarter';
+                    $group =  'report.goods_isku_id , report.lquarter ,report.site_id';
+                    $orderby =  'report.goods_isku_id , report.lquarter ,report.site_id';
                 } else if ($datas['count_periods'] == '5' ) { //按年
-                    $group =  'report.goods_isku_id , report.myear';
-                    $orderby =  'report.goods_isku_id , report.myear';
+                    $group =  'report.goods_isku_id , report.myear ,report.site_id';
+                    $orderby =  'report.goods_isku_id , report.myear ,report.site_id';
                 }
-
-
             }else{
-                $group = 'report.goods_isku_id ';
-                $orderby = empty($orderby) ? ('report.goods_isku_id ') : ($orderby . ' , report.goods_isku_id ');
+                $group = 'report.goods_isku_id ,report.site_id';
+                $orderby = empty($orderby) ? ('report.goods_isku_id ,report.site_id') : ($orderby . ' , report.goods_isku_id,report.site_id');
             }
             $where .= " AND report.goods_isku_id > 0";
-        } else if ($datas['count_dimension'] == 'group') {
+        } else if ($datas['count_dimension'] == 'group') {  //分组 涉及不同汇率问题， 需要单独站点相加，再聚合计算 , 无法排序
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group =  'report.goods_group_id , report.lday';
-                    $orderby =  'report.goods_group_id , report.lday';
+                    $group =  'report.goods_group_id , report.lday ,report.site_id';
+                    $orderby =  'report.goods_group_id , report.lday ,report.site_id';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group =  'report.goods_group_id, report.lweek';
-                    $orderby =  'report.goods_group_id , report.lweek';
+                    $group =  'report.goods_group_id, report.lweek ,report.site_id';
+                    $orderby =  'report.goods_group_id , report.lweek ,report.site_id';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group =  'report.goods_group_id, report.lmonth';
-                    $orderby =  'report.goods_group_id , report.lmonth';
+                    $group =  'report.goods_group_id, report.lmonth ,report.site_id';
+                    $orderby =  'report.goods_group_id , report.lmonth ,report.site_id';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group =  'report.goods_group_id , report.lquarter';
-                    $orderby =  'report.goods_group_id , report.lquarter';
+                    $group =  'report.goods_group_id , report.lquarter ,report.site_id';
+                    $orderby =  'report.goods_group_id , report.lquarter ,report.site_id';
                 } else if ($datas['count_periods'] == '5' ) { //按年
-                    $group =  'report.goods_group_id , report.myear';
-                    $orderby =  'report.goods_group_id , report.myear';
+                    $group =  'report.goods_group_id , report.myear ,report.site_id';
+                    $orderby =  'report.goods_group_id , report.myear ,report.site_id';
                 }
 
-
             }else{
-                $group = 'report.goods_group_id  ';
-                $orderby = empty($orderby) ? ('report.goods_group_id ') : ($orderby . ' , report.goods_group_id');
+                $group = 'report.goods_group_id ,report.site_id ';
+                $orderby = empty($orderby) ? ('report.goods_group_id ,report.site_id ') : ($orderby . ' , report.goods_group_id ,report.site_id');
             }
             $where .= " AND report.goods_group_id > 0";
-        } else if ($datas['count_dimension'] == 'class1') {
+        } else if ($datas['count_dimension'] == 'class1') { //分类 涉及不同汇率问题， 需要单独站点相加，再聚合计算 , 无法排序
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
 
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group = 'report.goods_product_category_name_1  , report.lday';
-                    $orderby = 'report.goods_product_category_name_1 , report.lday';
+                    $group = 'report.goods_product_category_name_1  , report.lday,report.site_id';
+                    $orderby = 'report.goods_product_category_name_1 , report.lday,report.site_id';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group = 'report.goods_product_category_name_1 , report.lweek';
-                    $orderby = 'report.goods_product_category_name_1, report.lweek';
+                    $group = 'report.goods_product_category_name_1 , report.lweek,report.site_id';
+                    $orderby = 'report.goods_product_category_name_1, report.lweek,report.site_id';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group = 'report.goods_product_category_name_1  , report.lmonth';
-                    $orderby = 'report.goods_product_category_name_1 , report.lmonth';
+                    $group = 'report.goods_product_category_name_1  , report.lmonth,report.site_id';
+                    $orderby = 'report.goods_product_category_name_1 , report.lmonth,report.site_id';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group = 'report.goods_product_category_name_1 , report.lquarter';
-                    $orderby = 'report.goods_product_category_name_1  , report.lquarter';
+                    $group = 'report.goods_product_category_name_1 , report.lquarter,report.site_id';
+                    $orderby = 'report.goods_product_category_name_1  , report.lquarter,report.site_id';
                 } else if ($datas['count_periods'] == '5' ) { //按年
-                    $group = 'report.goods_product_category_name_1 , report.myear';
-                    $orderby = 'report.goods_product_category_name_1  , report.myear';
+                    $group = 'report.goods_product_category_name_1 , report.myear,report.site_id';
+                    $orderby = 'report.goods_product_category_name_1  , report.myear,report.site_id';
                 }
 
             }else{
-                $group = 'report.goods_product_category_name_1 ';
-                $orderby = empty($orderby) ? ('max(report.goods_product_category_name_1) ') : ($orderby . ' , max(report.goods_product_category_name_1) ');
+                $group = 'report.goods_product_category_name_1,report.site_id ';
+                $orderby = empty($orderby) ? ('max(report.goods_product_category_name_1,report.site_id) ') : ($orderby . ' , max(report.goods_product_category_name_1,report.site_id) ');
             }
             $where .= " AND report.goods_product_category_name_1 != ''";
 
-        } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
+        } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计 涉及不同汇率问题， 需要单独站点相加，再聚合计算 , 无法排序
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group =  'report.isku_head_id , report.lday';
-                    $orderby =  'report.isku_head_id , report.lday';
+                    $group =  'report.isku_head_id , report.lday ,report.site_id';
+                    $orderby =  'report.isku_head_id , report.lday,report.site_id';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group =  'report.isku_head_id, report.lweek';
-                    $orderby =  'report.isku_head_id , report.lweek';
+                    $group =  'report.isku_head_id, report.lweek,report.site_id';
+                    $orderby =  'report.isku_head_id , report.lweek,report.site_id';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group =  'report.isku_head_id, report.lmonth';
-                    $orderby =  'report.isku_head_id , report.lmonth';
+                    $group =  'report.isku_head_id, report.lmonth,report.site_id';
+                    $orderby =  'report.isku_head_id , report.lmonth,report.site_id';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group =  'report.isku_head_id , report.lquarter';
-                    $orderby =  'report.isku_head_id , report.lquarter';
+                    $group =  'report.isku_head_id , report.lquarter,report.site_id';
+                    $orderby =  'report.isku_head_id , report.lquarter,report.site_id';
                 } else if ($datas['count_periods'] == '5' ) { //按年
-                    $group =  'report.isku_head_id , report.myear';
-                    $orderby =  'report.isku_head_id , report.myear';
+                    $group =  'report.isku_head_id , report.myear,report.site_id';
+                    $orderby =  'report.isku_head_id , report.myear,report.site_id';
                 }
             }else{
-                $group = 'report.isku_head_id  ';
-                $orderby = empty($orderby) ? ('report.isku_head_id ') : ($orderby . ' , report.isku_head_id');
+                $group = 'report.isku_head_id ,report.site_id ';
+                $orderby = empty($orderby) ? ('report.isku_head_id,report.site_id ') : ($orderby . ' , report.isku_head_id,report.site_id');
             }
             $where.= " AND report.isku_head_id > 0";
-        }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
+        }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计 涉及不同汇率问题， 需要单独站点相加，再聚合计算 , 无法排序
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group =  'report.isku_developer_id , report.lday';
-                    $orderby =  'report.isku_developer_id , report.lday';
+                    $group =  'report.isku_developer_id , report.lday,report.site_id';
+                    $orderby =  'report.isku_developer_id , report.lday,report.site_id';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group =  'report.isku_developer_id, report.lweek';
-                    $orderby =  'report.isku_developer_id , report.lweek';
+                    $group =  'report.isku_developer_id, report.lweek,report.site_id';
+                    $orderby =  'report.isku_developer_id , report.lweek,report.site_id';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group =  'report.isku_developer_id, report.lmonth';
-                    $orderby =  'report.isku_developer_id , report.lmonth';
+                    $group =  'report.isku_developer_id, report.lmonth,report.site_id';
+                    $orderby =  'report.isku_developer_id , report.lmonth,report.site_id';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group =  'report.isku_developer_id , report.lquarter';
-                    $orderby =  'report.isku_developer_id , report.lquarter';
+                    $group =  'report.isku_developer_id , report.lquarter,report.site_id';
+                    $orderby =  'report.isku_developer_id , report.lquarter,report.site_id';
                 } else if ($datas['count_periods'] == '5' ) { //按年
-                    $group =  'report.isku_developer_id , report.myear';
-                    $orderby =  'report.isku_developer_id , report.myear';
+                    $group =  'report.isku_developer_id , report.myear,report.site_id';
+                    $orderby =  'report.isku_developer_id , report.myear,report.site_id';
                 }
             }else{
-                $group = 'report.isku_developer_id  ';
-                $orderby = empty($orderby) ? ('report.isku_developer_id ') : ($orderby . ' , report.isku_developer_id');
+                $group = 'report.isku_developer_id,report.site_id  ';
+                $orderby = empty($orderby) ? ('report.isku_developer_id,report.site_id ') : ($orderby . ' , report.isku_developer_id,report.site_id');
             }
             $where.= " AND report.isku_developer_id > 0";
         }else if($datas['count_dimension'] == 'all_goods'){ //按全部商品维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
-                    $group = 'report.lday';
-                    $orderby = 'report.lday';
+                    $group = 'report.lday,report.channel_id';
+                    $orderby = 'report.lday,report.channel_id';
                 } else if ($datas['count_periods'] == '2' ) { //按周
-                    $group = 'report.lweek';
-                    $orderby = 'report.lweek';
+                    $group = 'report.lweek,report.channel_id';
+                    $orderby = 'report.lweek,report.channel_id';
                 } else if ($datas['count_periods'] == '3' ) { //按月
-                    $group = 'report.lmonth';
-                    $orderby = 'report.lmonth';
+                    $group = 'report.lmonth,report.channel_id';
+                    $orderby = 'report.lmonth,report.channel_id';
                 } else if ($datas['count_periods'] == '4' ) {  //按季
-                    $group = 'report.lquarter';
-                    $orderby = 'report.lquarter';
+                    $group = 'report.lquarter,report.channel_id';
+                    $orderby = 'report.lquarter,report.channel_id';
                 } else if ($datas['count_periods'] == '5' ) { //按年
-                    $group = 'report.myear';
-                    $orderby = 'report.myear';
+                    $group = 'report.myear,report.channel_id';
+                    $orderby = 'report.myear,report.channel_id';
                 }
             }else{
-                $group = 'report.user_id  ';
+                $group = 'report.user_id ,report.channel_id  ';
             }
         }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
@@ -334,12 +340,12 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $count = 0;
         if ($datas['is_count'] == 1){
             $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-            $lists = $this->select($where, $field_data, $table,2000,'' ,'channel_id');
+            $field_data['site_id'] = 'report.site_id' ;
+            $field_data['site_country_id'] = 'report.site_id' ;
+            $lists = $this->select($where, $field_data, $table,2000,'' ,'site_id');
         }else{
             $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-            if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
-                $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
-            }
+
         }
         if(empty($lists)){
             $lists = array() ;
@@ -356,8 +362,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             array_multisort($sort_names,$order2,$lists);
         }
         if(!empty($lists)){
+            //部分数据指标先对不同站点进行汇率换算汇总
+            $lists = $this->countRateCount($lists , $datas , $rateInfo) ;
+
             //获取部分需要先获取出汇总数据再计算的值
-            $this->getOtherCountDatas($lists , $datas ,1) ;
+            $lists = $this->getOtherCountDatas($lists , $datas ,1) ;
+
+            if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) ) && $datas['is_count'] == 0 ){
+                $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr ) ;
+            }
         }
 
         $rt['lists'] = empty($lists) ? array() : $lists;
@@ -425,7 +438,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
             }
             if (in_array('cpc_click_conversion_rate', $targets)) {  //cpc点击转化率
-
+                $lists[$k]['cpc_turnover_rate'] = empty($fields['cpc_click_number']) ? 0 : round($fields['cpc_order_number'] / $fields['cpc_click_number'],2) ;
             }
 
             if (in_array('cpc_turnover_rate', $targets)) {  //CPC成交额占比
@@ -444,10 +457,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }
 
             if (in_array('cpc_indirect_sales_volume_rate', $targets)) {  //CPC间接销量占比
-                $fields['cpc_indirect_sales_volume_rate'] = empty($fields['sale_sales_volume']) ? 0 : round($fields['cpc_indirect_sales_volume'] / $fields['sale_sales_volume'],2) ;
+                $lists[$k]['cpc_indirect_sales_volume_rate'] = empty($fields['sale_sales_volume']) ? 0 : round($fields['cpc_indirect_sales_volume'] / $fields['sale_sales_volume'],2) ;
             }
 
         }
+        return $lists ;
     }
 
 
@@ -567,10 +581,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 case "channel_id":
                     $where .=  " AND report.channel_id IN (".implode(",",array_column($lists,'channel_id')).")";
                     break;
-                    //运营人员
-                case "operators":
-                    $where .=  " AND report.goods_operation_user_admin_id IN (".implode(",",array_column($lists,'goods_operation_user_admin_id')).")";
-                    break;
+
 
                 default:
                     return $where;
@@ -579,7 +590,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         return $where;
     }
 
-    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
+    protected function getGoodsFbaDataTmp($lists = array() , $fields = array() , $datas = array(),$channel_arr = array() )
     {
         if(empty($lists)){
             return $lists ;
@@ -620,9 +631,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 }else if($datas['count_dimension'] == 'parent_asin'){
                     $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
                 }else if($datas['count_dimension'] == 'class1'){
-                    $where_arr[] = array('goods_product_category_name_1'=>$list1['class1'] ,  'site_id'=>$list1['site_id']) ;
+                    $where_arr[] = array('goods_product_category_name_1'=>$list1['class1']) ;
                 }else if($datas['count_dimension'] == 'group'){
-                    $where_arr[] = array('group_id'=>$list1['group_id'] ,  'site_id'=>$list1['site_id']) ;
+                    $where_arr[] = array('group_id'=>$list1['group_id'] ) ;
                 }else if($datas['count_dimension'] == 'tags'){  //标签
                     $where_arr[] = array('tags_id'=>$list1['tags_id']) ;
                 }else if($datas['count_dimension'] == 'head_id'){  //负责人
@@ -631,6 +642,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $where_arr[] = array('developer_id'=>$list1['developer_id']) ;
                 }else if($datas['count_dimension'] == 'isku'){ //开发人
                     $where_arr[] = array('isku_id'=>$list1['isku_id']) ;
+                }else{
+                    $where_arr[] = array('channel_id' => $list1['channel_id']);
                 }
             }
 
@@ -655,11 +668,14 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
                 $where_str = 'g.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
-            }else{
+            }else if($datas['count_dimension'] == 'all_goods' || $datas['count_dimension'] == 'goods_channel'){
+                $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
+                $where_str = 'g.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
+            } else{
                 $where_str = '1=1' ;
             }
         }
-        $where.= ' AND ' . $where_str." AND g.fba_inventory_v3_id > 0  AND g.\"Transport_mode\" = 2" ;
+        $where.= ' AND ' . $where_str." AND g.fba_inventory_v3_id > 0  AND g.Transport_mode = 2" ;
         if(isset($datas['where_detail']) && $datas['where_detail']){
             if (!is_array($datas['where_detail'])){
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
@@ -701,6 +717,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'isku'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'all_goods'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
+                }elseif($datas['count_dimension'] == 'goods_channel'){
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',1,$fbaDatas);
                 }
 
             }
@@ -725,6 +745,10 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fba_data = $fbaDatas[$list2['developer_id']] ;
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_data = $fbaDatas[$list2['isku_id']] ;
+            }else if($datas['count_dimension'] == 'all_goods'){
+                $fba_data = $fbaDatas[$list2['channel_id']] ;
+            }else if($datas['count_dimension'] == 'goods_channel'){
+                $fba_data = $fbaDatas[$list2['channel_id']] ;
             }
 
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
@@ -757,28 +781,86 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
     protected function handleGoodsFbaData($fba, $field, $is_distinct_channel = 0, $fbaDatas = array())
     {
-        if($field == 'sku' || $field == 'asin' || $field == 'parent_asin'){
+        if($is_distinct_channel == 1 && ($field == 'sku' || $field == 'asin' || $field == 'parent_asin')){
             $fbaDatas[$fba[$field].'-'.$fba['channel_id']] = $fba ;
         } else {
-            $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_stock'])){
+                $fbaDatas[$fba[$field]]['fba_sales_stock'] = $fba['fba_sales_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['fba_sales_day'] = ($fbaDatas[$fba[$field]]['fba_sales_day'] > $fba['fba_sales_day']) ? $fbaDatas[$fba[$field]]['fba_sales_day'] : $fba['fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['fba_sales_day'] = $fba['fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_day'] = ($fbaDatas[$fba[$field]]['fba_sales_day'] > $fba['fba_sales_day']) ? $fbaDatas[$fba[$field]]['fba_sales_day'] : $fba['fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['max_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_fba_sales_day'] > $fba['max_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_fba_sales_day'] : $fba['max_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['max_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['max_fba_sales_day'] = $fba['max_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_fba_sales_day'] > $fba['max_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_fba_sales_day'] : $fba['max_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['min_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_fba_sales_day'] < $fba['min_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_fba_sales_day'] : $fba['min_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['min_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['min_fba_sales_day'] = $fba['min_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_fba_sales_day'] < $fba['min_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_fba_sales_day'] : $fba['min_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] > $fba['max_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] : $fba['max_egt0_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = $fba['max_egt0_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] > $fba['max_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['max_egt0_fba_sales_day'] : $fba['max_egt0_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] < $fba['min_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] : $fba['min_egt0_fba_sales_day'] ;
+            if(empty($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'])){
+                $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = $fba['min_egt0_fba_sales_day'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] = ($fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] < $fba['min_egt0_fba_sales_day']) ? $fbaDatas[$fba[$field]]['min_egt0_fba_sales_day'] : $fba['min_egt0_fba_sales_day'] ;
+            }
 
-            $fbaDatas[$fba[$field]]['fba_reserve_stock'] += $fba['fba_reserve_stock'] ;
-            $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] += $fba['fba_recommended_replenishment'] ;
-            $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] < $fba['max_fba_recommended_replenishment']) ? $fba['max_fba_recommended_replenishment']:$fbaDatas[$fba[$field]]['max_fba_recommended_replenishment']   ;
-            $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] < $fba['min_fba_recommended_replenishment']) ? $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] : $fba['min_fba_recommended_replenishment'] ;
-            $fbaDatas[$fba[$field]]['fba_special_purpose'] += $fba['fba_special_purpose'] ;
-            $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['max_fba_special_purpose'] > $fba['max_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['max_fba_special_purpose'] : $fba['max_fba_special_purpose'] ;
-            $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['min_fba_special_purpose'] < $fba['min_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['min_fba_special_purpose'] : $fba['min_fba_special_purpose'] ;
+            if(empty($fbaDatas[$fba[$field]]['fba_reserve_stock'])){
+                $fbaDatas[$fba[$field]]['fba_reserve_stock'] = $fba['fba_reserve_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_reserve_stock'] += $fba['fba_reserve_stock'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] = $fba['fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_recommended_replenishment'] += $fba['fba_recommended_replenishment'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = $fba['max_fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['max_fba_recommended_replenishment'] < $fba['max_fba_recommended_replenishment']) ? $fba['max_fba_recommended_replenishment']:$fbaDatas[$fba[$field]]['max_fba_recommended_replenishment']   ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'])){
+                $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = $fba['min_fba_recommended_replenishment'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] = ($fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] < $fba['min_fba_recommended_replenishment']) ? $fbaDatas[$fba[$field]]['min_fba_recommended_replenishment'] : $fba['min_fba_recommended_replenishment'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['fba_special_purpose'] = $fba['fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_special_purpose'] += $fba['fba_special_purpose'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['max_fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = $fba['max_fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['max_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['max_fba_special_purpose'] > $fba['max_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['max_fba_special_purpose'] : $fba['max_fba_special_purpose'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['min_fba_special_purpose'])){
+                $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = $fba['min_fba_special_purpose'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['min_fba_special_purpose'] = ($fbaDatas[$fba[$field]]['min_fba_special_purpose'] < $fba['min_fba_special_purpose']) ? $fbaDatas[$fba[$field]]['min_fba_special_purpose'] : $fba['min_fba_special_purpose'] ;
+            }
         }
 
         return $fbaDatas;
@@ -1193,62 +1275,65 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
     private function getGoodsTheSameFields($datas,$fields){
         $fields['user_id'] = 'max(report.user_id)';
         $fields['goods_id'] = 'max(report.amazon_goods_id)';
-        $fields['site_country_id'] = 'max(report.site_id)';
-
         if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
             $fields['goods_price_min'] = 'min(report.goods_price)';
             $fields['goods_price_max'] = 'max(report.goods_price)';
             $fields['min_transport_mode'] = ' min(report.goods_transport_mode) ' ;
             $fields['max_transport_mode'] = ' max(report.goods_transport_mode) ' ;
         }
-
         if ($datas['count_dimension'] == 'parent_asin') {
-
-
-            $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_country_id'] = 'max(report.site_id)';
             $fields['site_id'] = 'max(report.site_id)';
-
+            $fields['channel_id'] = '(report.channel_id)';
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'asin') {
-
-            $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_country_id'] = 'max(report.site_id)';
             $fields['site_id'] = 'max(report.site_id)';
-
+            $fields['channel_id'] = '(report.channel_id)';
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
+            $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         }else if ($datas['count_dimension'] == 'sku') {
+            $fields['site_country_id'] = 'max(report.site_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+            $fields['channel_id'] = '(report.channel_id)';
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
+            $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['up_status']                  = 'max(report.goods_up_status)';
             $fields['isku_id']                       = 'max(report.goods_isku_id)';
-            $fields['channel_id'] = 'max(report.channel_id)';
-            $fields['site_id'] = 'max(report.site_id)';
             $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         } else if ($datas['count_dimension'] == 'isku') {
             $fields['isku_id'] = 'max(report.goods_isku_id)';
+            $fields['site_id'] = 'report.site_id';
         }else if ($datas['count_dimension'] == 'class1') {
-
+            $fields['site_id'] = 'report.site_id';
             $fields['class1_id'] = 'max(report.goods_product_category_id_1)';
         } else if ($datas['count_dimension'] == 'group') {
             $fields['group_id'] = 'max(report.goods_group_id)';
-
+            $fields['site_id'] = 'report.site_id';
         } else if ($datas['count_dimension'] == 'head_id') {
+            $fields['site_id'] = 'report.site_id';
             $fields['head_id'] = 'max(report.isku_head_id)';
         } else if ($datas['count_dimension'] == 'developer_id') {
+            $fields['site_id'] = 'report.site_id';
             $fields['developer_id'] = 'max(report.isku_developer_id)';
         } elseif($datas['count_dimension'] == 'all_goods') {
             $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
         } else if($datas['count_dimension'] == 'goods_channel'){
             $fields['channel_id'] = '(report.channel_id)';
+            $fields['site_id'] = '(report.site_id)';
         }
 
         return $fields;
@@ -1387,7 +1472,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         array $timeLine = [],
         array $deparmentData = [],
         int $userId = 0,
-        int $adminId = 0
+        int $adminId = 0 ,
+        array $rateInfo = []
     ) {
         $fields = [];
         //没有按周期统计 ， 按指标展示
@@ -1405,11 +1491,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         $orderby = '';
         if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
-            $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
+            $orderby = "({$fields[$params['sort_target']]}) {$params['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $params['limit_num'] == 0 ) {
-            $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
+            $orderby =  "({$fields[$sort]}) {$order}";
         }
 
         $rt = $fields_arr = [];
@@ -1471,7 +1557,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $orderby = empty($orderby) ? 'report.site_id ' : ($orderby . ' , report.site_id ');
             }
 
-        } else if ($params['count_dimension'] == 'site_group') {
+        } /*else if ($params['count_dimension'] == 'site_group') {  //暂时去除该维度汇总
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
                 if ($params['count_periods'] == '1' ) { //按天
                     $group = 'report.area_id , report.lday';
@@ -1493,26 +1579,26 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $group = 'report.area_id ';
                 $orderby = empty($orderby) ? 'report.area_id ' : ($orderby . ' , report.area_id ');
             }
-        }else if($params['count_dimension'] == 'all_channels') { //按全部店铺维度统计
+        }*/else if($params['count_dimension'] == 'all_channels') { //按全部店铺维度统计
             if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
                 if ($params['count_periods'] == '1') { //按天
-                    $group = 'report.lday';
-                    $orderby = 'report.lday';
+                    $group = 'report.lday ,report.site_id';
+                    $orderby = 'report.lday,report.site_id';
                 } else if ($params['count_periods'] == '2') { //按周
-                    $group = 'report.lweek';
-                    $orderby = 'report.lweek';
+                    $group = 'report.lweek,report.site_id';
+                    $orderby = 'report.lweek,report.site_id';
                 } else if ($params['count_periods'] == '3') { //按月
-                    $group = 'report.lmonth';
-                    $orderby = 'report.lmonth';
+                    $group = 'report.lmonth,report.site_id';
+                    $orderby = 'report.lmonth,report.site_id';
                 } else if ($params['count_periods'] == '4') {  //按季
-                    $group = 'report.lquarter';
-                    $orderby = 'report.lquarter';
+                    $group = 'report.lquarter,report.site_id';
+                    $orderby = 'report.lquarter,report.site_id';
                 } else if ($params['count_periods'] == '5') { //按年
-                    $group = 'report.myear';
-                    $orderby = 'report.myear';
+                    $group = 'report.myear,report.site_id';
+                    $orderby = 'report.myear,report.site_id';
                 }
             } else {
-                $group = 'report.user_id  ';
+                $group = 'report.user_id ,report.site_id ';
             }
         }
 
@@ -1542,7 +1628,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if ($params['is_count'] == 1){
             $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
-            $lists = $this->select($where, $field_data, $table,2000,'' ,'channel_id');
+            $field_data['site_id'] = 'report.site_id' ;
+            $field_data['site_country_id'] = 'report.site_id' ;
+            $lists = $this->select($where, $field_data, $table,2000,'' ,'site_id');
         }else{
             $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
 
@@ -1551,9 +1639,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $logger->info('getListByUnGoods Elastic 【'.$count_tip.'】【'.$params['is_count'].'】【'.$group.'】【'.$orderby.'】', [$this->getLastSql()]);
         $logger->info('getListByUnGoods Elastic 结果 【'.$count_tip.'】【'.$params['is_count'].'】【'.$group.'】【'.$orderby.'】', $lists);
 
-        if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-            $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
-        }
+
 
         if(!empty($lists) && $params['show_type'] = 2 && $params['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$params['sort_target']]) && !empty($params['sort_target']) && !empty($params['sort_order'])){
             //根据字段对数组$lists进行排列
@@ -1562,8 +1648,13 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             array_multisort($sort_names,$order2,$lists);
         }
         if(!empty($lists)){
+            //部分数据指标先对不同站点进行汇率换算汇总
+            $lists = $this->countRateCount($lists , $params , $rateInfo) ;
             //获取部分需要先获取出汇总数据再计算的值
-            $this->getOtherCountDatas($lists , $params ,2) ;
+            $lists = $this->getOtherCountDatas($lists , $params ,2) ;
+            if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+                $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr,  $rateInfo) ;
+            }
         }
         $rt['lists'] = empty($lists) ? [] : $lists;
         $rt['count'] = 0;
@@ -1575,16 +1666,19 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
     {
         $fields = [];
         $fields['user_id'] = 'max(report.user_id)';
-        $fields['site_country_id'] = 'max(report.site_id)';
-
         if ($datas['count_dimension'] === 'channel_id') {
             $fields['site_id'] = 'max(report.site_id)';
+            $fields['site_country_id'] = 'max(report.site_id)';
             $fields['channel_id'] = '(report.channel_id)';
             $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
-            $fields['site_id'] = 'max(report.site_id)';
+            $fields['site_id'] = '(report.site_id)';
+            $fields['site_country_id'] = '(report.site_id)';
         } elseif ($datas['count_dimension'] === 'site_group') {
             $fields['site_group'] = 'max(report.area_id)';
+        } elseif($datas['all_goods']){
+            $fields['site_id'] = '(report.site_id)';
+            $fields['site_country_id'] = '(report.site_id)';
         }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
@@ -2086,7 +2180,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1')
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $rateInfo = [])
     {
         if(empty($lists)){
             return $lists ;
@@ -2101,7 +2195,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 }
             }
             if($datas['count_dimension'] == 'channel_id'){
-                $fba_fields = $group = 'c.channel_id' ;
+                $fba_fields =  'max(c.site_id) as site_id  , c.channel_id' ;
+                $group =  'c.channel_id' ;
             }else if($datas['count_dimension'] == 'site_id'){
                 $fba_fields = $group = 'c.site_id' ;
             }
@@ -2111,10 +2206,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $where_arr[] = array( 'channel_id'=>$list1['channel_id'] , 'site_id'=>$list1['site_id']) ;
                 }else if($datas['count_dimension'] == 'site_id'){
                     $where_arr[] = array('site_id'=>$list1['site_id']) ;
-                }else if($datas['count_dimension'] == 'department'){
-                    $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
-                }else if($datas['count_dimension'] == 'admin_id'){
-                    $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
                 }
             }
 
@@ -2134,7 +2225,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         $where.= ' AND ' . $where_str ;
         $fba_fields .= " , SUM(DISTINCT(c.yjzhz))  as fba_goods_value";
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
-        $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
+
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group);
 
         $fbaDatas = array() ;
@@ -2143,16 +2234,6 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fbaDatas[$fba['channel_id']] = $fba ;
             }else if($datas['count_dimension'] == 'site_id'){
                 $fbaDatas[$fba['site_id']] = $fba ;
-            }else if($datas['count_dimension'] == 'department'){
-                $fbaDatas[$fba['user_department_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_stock']+= $fba['fba_stock'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
-            }else if($datas['count_dimension'] == 'admin_id'){
-                $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
-                $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
             }
         }
         foreach($lists as $k=>$list2){
@@ -2160,13 +2241,20 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $fba_data = $fbaDatas[$list2['channel_id']] ;
             }else if($datas['count_dimension'] == 'site_id'){
                 $fba_data = $fbaDatas[$list2['site_id']] ;
-            }else if($datas['count_dimension'] == 'department'){
-                $fba_data = $fbaDatas[$list2['user_department_id']] ;
-            }else if($datas['count_dimension'] == 'admin_id'){
-                $fba_data = $fbaDatas[$list2['admin_id']] ;
             }
             if (!empty($fields['fba_goods_value'])) {  //在库总成本
-                $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
+                if($datas['currency_code'] == 'ORIGIN' ){
+                    $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
+                }else{
+                    if(empty($fba_data)){
+                        $lists[$k]['fba_goods_value'] = null ;
+                    }else{
+                        $currency_code = $this->commonService->getCurrencyBySiteId($fba_data['site_id']) ;
+                        $lists[$k]['fba_goods_value'] =   round($this->commonService->currencyExchange($fba_data['fba_goods_value'] , $currency_code , $datas['currency_code'] , $rateInfo),2) ;
+                    }
+
+                }
+
             }
             if (!empty($fields['fba_stock'])) {  //FBA 库存
                 $lists[$k]['fba_stock'] = empty($fba_data) ? null : $fba_data['fba_stock'] ;
@@ -2180,6 +2268,455 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         return $lists;
     }
+
+
+    /**
+     * function countRateCount
+     * desc: 对不同的站点指标数据进行合并
+     * param $lists
+     * param $params
+     * param $rateInfo
+     * author: LWZ
+     * editTime: 2021-05-17 10:39
+     */
+    public function countRateCount($lists = array() , $datas = array() , $rateInfo = array()){
+        if(empty($lists)){
+            return $lists ;
+        }else{
+            $newLists = array() ;
+            foreach($lists as $list){
+                $newLists = $this->countField($list , $newLists , $datas['is_count'] ,$datas['currency_code'] ,$rateInfo) ;
+            }
+            $newLists = array_values($newLists) ;
+            return $newLists ;
+        }
+    }
+
+    private function countField($datas = array() , $newLists = array() , $is_count = 0 ,$to_currency_code = 'USD' ,$rate_info = array()){
+        $site_id = $datas['site_id'] ;
+        $from_currency_code = $this->commonService->getCurrencyBySiteId($site_id) ;
+        if($to_currency_code == 'ORIGIN') {
+            $to_currency_code = $from_currency_code;
+        }
+        if($is_count == 1){
+            $site_id = 0 ;
+        }
+        if(isset($datas['goods_visitors'])) {
+            $newLists[$site_id]['goods_visitors'] = empty($newLists[$site_id]['goods_visitors']) ? $datas['goods_visitors'] : ($newLists[$site_id]['goods_visitors'] + $datas['goods_visitors']);
+            unset($datas['goods_visitors']) ;
+        }
+        if(isset($datas['goods_rank'])) {  //大类目rank
+            if($is_count == 1) {
+                $newLists[$site_id]['goods_rank'] = '—';
+            }else {
+                if (!empty($datas['goods_rank'])) {
+                    if (empty($newLists[$site_id]['goods_rank'])) {
+                        $newLists[$site_id]['goods_rank'] = $datas['goods_rank'];
+                    } else {
+                        $newLists[$site_id]['goods_rank'] = ($newLists[$site_id]['goods_rank'] > $datas['goods_rank']) ? $datas['goods_rank'] : $newLists[$site_id]['goods_rank'];
+                    }
+                } else {
+                    if (empty($newLists[$site_id]['goods_rank'])) {
+                        $newLists[$site_id]['goods_rank'] = 0;
+                    }
+                }
+            }
+            unset($datas['goods_rank']) ;
+        }
+        if(isset($datas['goods_min_rank'])) {  //小类目rank
+            if($is_count == 1) {
+                $newLists[$site_id]['goods_rank'] = '—';
+            }else {
+                if (!empty($datas['goods_min_rank'])) {
+                    if (empty($newLists[$site_id]['goods_min_rank'])) {
+                        $newLists[$site_id]['goods_min_rank'] = $datas['goods_min_rank'];
+                    } else {
+                        $newLists[$site_id]['goods_min_rank'] = ($newLists[$site_id]['goods_min_rank'] > $datas['goods_min_rank']) ? $datas['goods_min_rank'] : $newLists[$site_id]['goods_min_rank'];
+                    }
+                } else {
+                    if (empty($newLists[$site_id]['goods_min_rank'])) {
+                        $newLists[$site_id]['goods_min_rank'] = 0;
+                    }
+                }
+            }
+            unset($datas['goods_min_rank']) ;
+        }
+        if(isset($datas['goods_views_number'])) { //页面浏览次数
+            $newLists[$site_id]['goods_views_number'] = empty($newLists[$site_id]['goods_views_number']) ? $datas['goods_views_number'] : ($newLists[$site_id]['goods_views_number'] + $datas['goods_views_number']);
+            unset($datas['goods_views_number']) ;
+        }
+        if(isset($datas['sale_sales_volume'])) { //销售量
+            $newLists[$site_id]['sale_sales_volume'] = empty($newLists[$site_id]['sale_sales_volume']) ? $datas['sale_sales_volume'] : ($newLists[$site_id]['sale_sales_volume'] + $datas['sale_sales_volume']);
+            unset($datas['sale_sales_volume']) ;
+        }
+        if(isset($datas['sale_many_channel_sales_volume'])) { //多渠道数量
+            $newLists[$site_id]['sale_many_channel_sales_volume'] = empty($newLists[$site_id]['sale_many_channel_sales_volume']) ? $datas['sale_many_channel_sales_volume'] : ($newLists[$site_id]['sale_many_channel_sales_volume'] + $datas['sale_many_channel_sales_volume']);
+            unset($datas['sale_many_channel_sales_volume']) ;
+        }
+        if(isset($datas['sale_sales_quota'])) { //商品销售额
+            $datas['sale_sales_quota'] = $this->commonService->currencyExchange($datas['sale_sales_quota'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['sale_sales_quota'] = empty($newLists[$site_id]['sale_sales_quota']) ? $datas['sale_sales_quota'] : ($newLists[$site_id]['sale_sales_quota'] + $datas['sale_sales_quota']);
+            unset($datas['sale_sales_quota']) ;
+        }
+        if(isset($datas['sale_return_goods_number'])) { //退款量
+            $newLists[$site_id]['sale_return_goods_number'] = empty($newLists[$site_id]['sale_return_goods_number']) ? $datas['sale_return_goods_number'] : ($newLists[$site_id]['sale_return_goods_number'] + $datas['sale_return_goods_number']);
+            unset($datas['sale_return_goods_number']) ;
+        }
+        if(isset($datas['sale_refund'])) { //退款
+            $datas['sale_refund'] = $this->commonService->currencyExchange($datas['sale_refund'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['sale_refund'] = empty($newLists[$site_id]['sale_refund']) ? $datas['sale_refund'] : ($newLists[$site_id]['sale_refund'] + $datas['sale_refund']);
+            unset($datas['sale_refund']) ;
+        }
+        if(isset($datas['promote_discount'])) { //promote折扣
+            $datas['promote_discount'] = $this->commonService->currencyExchange($datas['promote_discount'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['promote_discount'] = empty($newLists[$site_id]['promote_discount']) ? $datas['promote_discount'] : ($newLists[$site_id]['promote_discount'] + $datas['promote_discount']);
+            unset($datas['promote_discount']) ;
+        }
+        if(isset($datas['promote_refund_discount'])) { //退款返还promote折扣
+            $datas['promote_refund_discount'] = $this->commonService->currencyExchange($datas['promote_refund_discount'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['promote_refund_discount'] = empty($newLists[$site_id]['promote_refund_discount']) ? $datas['promote_refund_discount'] : ($newLists[$site_id]['promote_refund_discount'] + $datas['promote_refund_discount']);
+            unset($datas['promote_refund_discount']) ;
+        }
+        if(isset($datas['cost_profit_total_income'])) { //总收入
+            $datas['cost_profit_total_income'] = $this->commonService->currencyExchange($datas['cost_profit_total_income'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cost_profit_total_income'] = empty($newLists[$site_id]['cost_profit_total_income']) ? $datas['cost_profit_total_income'] : ($newLists[$site_id]['cost_profit_total_income'] + $datas['cost_profit_total_income']);
+            unset($datas['cost_profit_total_income']) ;
+        }
+        if(isset($datas['cost_profit_total_pay'])) { //总支出
+            $datas['cost_profit_total_pay'] = $this->commonService->currencyExchange($datas['cost_profit_total_pay'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cost_profit_total_pay'] = empty($newLists[$site_id]['cost_profit_total_pay']) ? $datas['cost_profit_total_pay'] : ($newLists[$site_id]['cost_profit_total_pay'] + $datas['cost_profit_total_pay']);
+            unset($datas['cost_profit_total_pay']) ;
+        }
+        if(isset($datas['cost_profit_profit'])) { //毛利润
+            $datas['cost_profit_profit'] = $this->commonService->currencyExchange($datas['cost_profit_profit'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cost_profit_profit'] = empty($newLists[$site_id]['cost_profit_profit']) ? $datas['cost_profit_profit'] : ($newLists[$site_id]['cost_profit_profit'] + $datas['cost_profit_profit']);
+            unset($datas['cost_profit_profit']) ;
+        }
+        if(isset($datas['amazon_fee'])) { //亚马逊费用
+            $datas['amazon_fee'] = $this->commonService->currencyExchange($datas['cost_profit_profit'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_fee'] = empty($newLists[$site_id]['amazon_fee']) ? $datas['amazon_fee'] : ($newLists[$site_id]['amazon_fee'] + $datas['amazon_fee']);
+            unset($datas['amazon_fee']) ;
+        }
+        if(isset($datas['amazon_sales_commission'])) { //亚马逊销售佣金
+            $datas['amazon_sales_commission'] = $this->commonService->currencyExchange($datas['amazon_sales_commission'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_sales_commission'] = empty($newLists[$site_id]['amazon_sales_commission']) ? $datas['amazon_sales_commission'] : ($newLists[$site_id]['amazon_sales_commission'] + $datas['amazon_sales_commission']);
+            unset($datas['amazon_sales_commission']) ;
+        }
+        if(isset($datas['amazon_fba_delivery_fee'])) { //FBA代发货费用
+            $datas['amazon_fba_delivery_fee'] = $this->commonService->currencyExchange($datas['amazon_fba_delivery_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_fba_delivery_fee'] = empty($newLists[$site_id]['amazon_fba_delivery_fee']) ? $datas['amazon_fba_delivery_fee'] : ($newLists[$site_id]['amazon_fba_delivery_fee'] + $datas['amazon_fba_delivery_fee']);
+            unset($datas['amazon_fba_delivery_fee']) ;
+        }
+        if(isset($datas['amazon_multi_channel_delivery_fee'])) { //多渠道配送费
+            $datas['amazon_multi_channel_delivery_fee'] = $this->commonService->currencyExchange($datas['amazon_multi_channel_delivery_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_multi_channel_delivery_fee'] = empty($newLists[$site_id]['amazon_multi_channel_delivery_fee']) ? $datas['amazon_multi_channel_delivery_fee'] : ($newLists[$site_id]['amazon_multi_channel_delivery_fee'] + $datas['amazon_multi_channel_delivery_fee']);
+            unset($datas['amazon_multi_channel_delivery_fee']) ;
+        }
+        if(isset($datas['amazon_settlement_fee'])) { //结算费
+            $datas['amazon_settlement_fee'] = $this->commonService->currencyExchange($datas['amazon_settlement_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_settlement_fee'] = empty($newLists[$site_id]['amazon_settlement_fee']) ? $datas['amazon_settlement_fee'] : ($newLists[$site_id]['amazon_settlement_fee'] + $datas['amazon_settlement_fee']);
+            unset($datas['amazon_settlement_fee']) ;
+        }
+        if(isset($datas['amazon_other_fee'])) { //其他亚马逊费用
+            $datas['amazon_other_fee'] = $this->commonService->currencyExchange($datas['amazon_other_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_other_fee'] = empty($newLists[$site_id]['amazon_other_fee']) ? $datas['amazon_other_fee'] : ($newLists[$site_id]['amazon_other_fee'] + $datas['amazon_other_fee']);
+            unset($datas['amazon_other_fee']) ;
+        }
+        if(isset($datas['amazon_other_fee'])) { //其他亚马逊费用
+            $datas['amazon_other_fee'] = $this->commonService->currencyExchange($datas['amazon_other_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_other_fee'] = empty($newLists[$site_id]['amazon_other_fee']) ? $datas['amazon_other_fee'] : ($newLists[$site_id]['amazon_other_fee'] + $datas['amazon_other_fee']);
+            unset($datas['amazon_other_fee']) ;
+        }
+        if(isset($datas['amazon_return_shipping_fee'])) { //返还运费
+            $datas['amazon_return_shipping_fee'] = $this->commonService->currencyExchange($datas['amazon_return_shipping_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_return_shipping_fee'] = empty($newLists[$site_id]['amazon_return_shipping_fee']) ? $datas['amazon_return_shipping_fee'] : ($newLists[$site_id]['amazon_return_shipping_fee'] + $datas['amazon_return_shipping_fee']);
+            unset($datas['amazon_return_shipping_fee']) ;
+        }
+        if(isset($datas['amazon_return_sale_commission'])) { //返还亚马逊销售佣金
+            $datas['amazon_return_sale_commission'] = $this->commonService->currencyExchange($datas['amazon_return_sale_commission'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_return_sale_commission'] = empty($newLists[$site_id]['amazon_return_sale_commission']) ? $datas['amazon_return_sale_commission'] : ($newLists[$site_id]['amazon_return_sale_commission'] + $datas['amazon_return_sale_commission']);
+            unset($datas['amazon_return_sale_commission']) ;
+        }
+        if(isset($datas['amazon_refund_deducted_commission'])) { //退款扣除佣金
+            $datas['amazon_refund_deducted_commission'] = $this->commonService->currencyExchange($datas['amazon_refund_deducted_commission'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_refund_deducted_commission'] = empty($newLists[$site_id]['amazon_refund_deducted_commission']) ? $datas['amazon_refund_deducted_commission'] : ($newLists[$site_id]['amazon_refund_deducted_commission'] + $datas['amazon_refund_deducted_commission']);
+            unset($datas['amazon_refund_deducted_commission']);
+        }
+        if(isset($datas['amazon_fba_return_processing_fee'])) { //FBA退货处理费
+            $datas['amazon_fba_return_processing_fee'] = $this->commonService->currencyExchange($datas['amazon_fba_return_processing_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_fba_return_processing_fee'] = empty($newLists[$site_id]['amazon_fba_return_processing_fee']) ? $datas['amazon_fba_return_processing_fee'] : ($newLists[$site_id]['amazon_fba_return_processing_fee'] + $datas['amazon_fba_return_processing_fee']);
+            unset($datas['amazon_fba_return_processing_fee']);
+        }
+        if(isset($datas['amazon_fba_monthly_storage_fee'])) { //FBA月仓储费
+            $datas['amazon_fba_monthly_storage_fee'] = $this->commonService->currencyExchange($datas['amazon_fba_monthly_storage_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_fba_monthly_storage_fee'] = empty($newLists[$site_id]['amazon_fba_monthly_storage_fee']) ? $datas['amazon_fba_monthly_storage_fee'] : ($newLists[$site_id]['amazon_fba_monthly_storage_fee'] + $datas['amazon_fba_monthly_storage_fee']);
+            unset($datas['amazon_fba_monthly_storage_fee']);
+        }
+        if(isset($datas['purchase_logistics_purchase_cost'])) { //采购成本
+            $datas['purchase_logistics_purchase_cost'] = $this->commonService->currencyExchange($datas['purchase_logistics_purchase_cost'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['purchase_logistics_purchase_cost'] = empty($newLists[$site_id]['purchase_logistics_purchase_cost']) ? $datas['purchase_logistics_purchase_cost'] : ($newLists[$site_id]['purchase_logistics_purchase_cost'] + $datas['purchase_logistics_purchase_cost']);
+            unset($datas['purchase_logistics_purchase_cost']);
+        }
+        if(isset($datas['purchase_logistics_logistics_cost'])) { //物流/头程
+            $datas['purchase_logistics_logistics_cost'] = $this->commonService->currencyExchange($datas['purchase_logistics_logistics_cost'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['purchase_logistics_logistics_cost'] = empty($newLists[$site_id]['purchase_logistics_logistics_cost']) ? $datas['purchase_logistics_logistics_cost'] : ($newLists[$site_id]['purchase_logistics_logistics_cost'] + $datas['purchase_logistics_logistics_cost']);
+            unset($datas['purchase_logistics_logistics_cost']);
+        }
+        if(isset($datas['operate_fee'])) { //运营费用
+            $datas['operate_fee'] = $this->commonService->currencyExchange($datas['operate_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['operate_fee'] = empty($newLists[$site_id]['operate_fee']) ? $datas['operate_fee'] : ($newLists[$site_id]['operate_fee'] + $datas['operate_fee']);
+            unset($datas['operate_fee']);
+        }
+        if(isset($datas['evaluation_fee'])) { //测评费用
+            $datas['evaluation_fee'] = $this->commonService->currencyExchange($datas['evaluation_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['evaluation_fee'] = empty($newLists[$site_id]['evaluation_fee']) ? $datas['evaluation_fee'] : ($newLists[$site_id]['evaluation_fee'] + $datas['evaluation_fee']);
+            unset($datas['evaluation_fee']);
+        }
+        if(isset($datas['cpc_cost'])) { //CPC花费
+            $datas['cpc_cost'] = $this->commonService->currencyExchange($datas['cpc_cost'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cpc_cost'] = empty($newLists[$site_id]['cpc_cost']) ? $datas['cpc_cost'] : ($newLists[$site_id]['cpc_cost'] + $datas['cpc_cost']);
+            unset($datas['cpc_cost']);
+        }
+        if(isset($datas['cpc_ad_fee'])) { //CPC广告费用
+            $datas['cpc_ad_fee'] = $this->commonService->currencyExchange($datas['cpc_ad_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cpc_ad_fee'] = empty($newLists[$site_id]['cpc_ad_fee']) ? $datas['cpc_ad_fee'] : ($newLists[$site_id]['cpc_ad_fee'] + $datas['cpc_ad_fee']);
+            unset($datas['cpc_ad_fee']);
+        }
+        if(isset($datas['cpc_exposure'])) { //CPC曝光量
+            $newLists[$site_id]['cpc_exposure'] = empty($newLists[$site_id]['cpc_exposure']) ? $datas['cpc_exposure'] : ($newLists[$site_id]['cpc_exposure'] + $datas['cpc_exposure']);
+            unset($datas['cpc_exposure']);
+        }
+        if(isset($datas['cpc_click_number'])) { //CPC点击次数
+            $newLists[$site_id]['cpc_click_number'] = empty($newLists[$site_id]['cpc_click_number']) ? $datas['cpc_click_number'] : ($newLists[$site_id]['cpc_click_number'] + $datas['cpc_click_number']);
+            unset($datas['cpc_click_number']);
+        }
+        if(isset($datas['cpc_order_number'])) { //CPC订单数
+            $newLists[$site_id]['cpc_order_number'] = empty($newLists[$site_id]['cpc_order_number']) ? $datas['cpc_order_number'] : ($newLists[$site_id]['cpc_order_number'] + $datas['cpc_order_number']);
+            unset($datas['cpc_order_number']);
+        }
+        if(isset($datas['cpc_turnover'])) { //CPC成交额
+            $datas['cpc_turnover'] = $this->commonService->currencyExchange($datas['cpc_turnover'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cpc_turnover'] = empty($newLists[$site_id]['cpc_turnover']) ? $datas['cpc_turnover'] : ($newLists[$site_id]['cpc_turnover'] + $datas['cpc_turnover']);
+            unset($datas['cpc_turnover']);
+        }
+        if(isset($datas['cpc_direct_sales_volume'])) { //CPC直接销量
+            $newLists[$site_id]['cpc_direct_sales_volume'] = empty($newLists[$site_id]['cpc_direct_sales_volume']) ? $datas['cpc_direct_sales_volume'] : ($newLists[$site_id]['cpc_direct_sales_volume'] + $datas['cpc_direct_sales_volume']);
+            unset($datas['cpc_direct_sales_volume']);
+        }
+        if(isset($datas['cpc_direct_sales_quota'])) { //CPC直接销售额
+            $datas['cpc_direct_sales_quota'] = $this->commonService->currencyExchange($datas['cpc_direct_sales_quota'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cpc_direct_sales_quota'] = empty($newLists[$site_id]['cpc_direct_sales_quota']) ? $datas['cpc_direct_sales_quota'] : ($newLists[$site_id]['cpc_direct_sales_quota'] + $datas['cpc_direct_sales_quota']);
+            unset($datas['cpc_direct_sales_quota']);
+        }
+        if(isset($datas['cpc_indirect_sales_volume'])) { //CPC间接销量
+            $newLists[$site_id]['cpc_indirect_sales_volume'] = empty($newLists[$site_id]['cpc_indirect_sales_volume']) ? $datas['cpc_indirect_sales_volume'] : ($newLists[$site_id]['cpc_indirect_sales_volume'] + $datas['cpc_indirect_sales_volume']);
+            unset($datas['cpc_indirect_sales_volume']);
+        }
+        if(isset($datas['cpc_indirect_sales_quota'])) { //CPC间接销售额
+            $datas['cpc_indirect_sales_quota'] = $this->commonService->currencyExchange($datas['cpc_indirect_sales_quota'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cpc_indirect_sales_quota'] = empty($newLists[$site_id]['cpc_indirect_sales_quota']) ? $datas['cpc_indirect_sales_quota'] : ($newLists[$site_id]['cpc_indirect_sales_quota'] + $datas['cpc_indirect_sales_quota']);
+            unset($datas['cpc_indirect_sales_quota']);
+        }
+        if(isset($datas['fba_sales_stock'])) { //可售库存
+            $newLists[$site_id]['fba_sales_stock'] = empty($newLists[$site_id]['fba_sales_stock']) ? $datas['fba_sales_stock'] : ($newLists[$site_id]['fba_sales_stock'] + $datas['fba_sales_stock']);
+            unset($datas['fba_sales_stock']);
+        }
+
+        if(isset($datas['fba_sales_day'])) { //可售天数
+            $newLists[$site_id]['max_egt0_fba_sales_day'] = empty($newLists[$site_id]['max_egt0_fba_sales_day']) ? $newLists[$site_id]['max_egt0_fba_sales_day'] : ($newLists[$site_id]['max_egt0_fba_sales_day'] > $datas['max_egt0_fba_sales_day']  ? $newLists[$site_id]['max_egt0_fba_sales_day'] : $datas['max_egt0_fba_sales_day']) ;
+
+            $newLists[$site_id]['min_egt0_fba_sales_day'] = empty($newLists[$site_id]['min_egt0_fba_sales_day']) ? $newLists[$site_id]['min_egt0_fba_sales_day'] : ($newLists[$site_id]['min_egt0_fba_sales_day'] < $datas['min_egt0_fba_sales_day']  ? $newLists[$site_id]['min_egt0_fba_sales_day'] : $datas['min_egt0_fba_sales_day']) ;
+
+            $newLists[$site_id]['fba_sales_day'] =  $datas['fba_sales_day'] ;
+
+            unset($datas['fba_sales_day']);
+            unset($datas['min_egt0_fba_sales_day']);
+            unset($datas['max_egt0_fba_sales_day']);
+        }
+        if(isset($datas['fba_reserve_stock'])) { //预留库存
+            $newLists[$site_id]['fba_reserve_stock'] = empty($newLists[$site_id]['fba_reserve_stock']) ? $datas['fba_reserve_stock'] : ($newLists[$site_id]['fba_reserve_stock'] + $datas['fba_reserve_stock']);
+            unset($datas['fba_reserve_stock']);
+        }
+        if(isset($datas['fba_recommended_replenishment'])) { //建议补货量
+            if(empty($newLists[$site_id]['fba_recommended_replenishment'])) {
+                $newLists[$site_id]['fba_recommended_replenishment'] = $datas['fba_recommended_replenishment']  ;
+            }else {
+                $newLists[$site_id]['fba_recommended_replenishment'] = $datas['fba_recommended_replenishment'] +  $newLists[$site_id]['fba_recommended_replenishment'] ;
+            }
+            $newLists[$site_id]['max_fba_recommended_replenishment'] = empty($newLists[$site_id]['max_fba_recommended_replenishment']) ? $newLists[$site_id]['max_fba_recommended_replenishment'] : ($newLists[$site_id]['max_fba_recommended_replenishment'] > $datas['max_fba_recommended_replenishment']  ? $newLists[$site_id]['max_fba_recommended_replenishment'] : $datas['max_fba_recommended_replenishment']) ;
+
+            $newLists[$site_id]['min_fba_recommended_replenishment'] = empty($newLists[$site_id]['min_fba_recommended_replenishment']) ? $newLists[$site_id]['min_fba_recommended_replenishment'] : ($newLists[$site_id]['min_fba_recommended_replenishment'] > $datas['min_fba_recommended_replenishment']  ? $newLists[$site_id]['min_fba_recommended_replenishment'] : $datas['min_fba_recommended_replenishment']) ;
+            unset($datas['fba_recommended_replenishment']);
+            unset($datas['max_fba_recommended_replenishment']);
+            unset($datas['min_fba_recommended_replenishment']);
+        }
+        if(isset($datas['fba_special_purpose'])) { //FBA专用
+            if(empty($newLists[$site_id]['fba_special_purpose'])) {
+                $newLists[$site_id]['fba_special_purpose'] = $datas['fba_special_purpose']  ;
+            }else {
+                $newLists[$site_id]['fba_special_purpose'] = $datas['fba_special_purpose'] +  $newLists[$site_id]['fba_special_purpose'] ;
+            }
+            $newLists[$site_id]['max_fba_special_purpose'] = empty($newLists[$site_id]['max_fba_special_purpose']) ? $newLists[$site_id]['max_fba_special_purpose'] : ($newLists[$site_id]['max_fba_special_purpose'] > $datas['max_fba_special_purpose']  ? $newLists[$site_id]['max_fba_special_purpose'] : $datas['max_fba_special_purpose']) ;
+
+            $newLists[$site_id]['min_fba_special_purpose'] = empty($newLists[$site_id]['min_fba_special_purpose']) ? $newLists[$site_id]['min_fba_special_purpose'] : ($newLists[$site_id]['min_fba_special_purpose'] < $datas['min_fba_special_purpose']  ? $newLists[$site_id]['min_fba_special_purpose'] : $datas['min_fba_special_purpose']) ;
+
+            unset($datas['fba_special_purpose']);
+            unset($datas['max_fba_special_purpose']);
+            unset($datas['min_fba_special_purpose']);
+        }
+        if(isset($datas['sale_order_number'])) { //订单数
+            $newLists[$site_id]['sale_order_number'] = empty($newLists[$site_id]['sale_order_number']) ? $datas['sale_order_number'] : ($newLists[$site_id]['sale_order_number'] + $datas['sale_order_number']);
+            unset($datas['sale_order_number']);
+        }
+        if(isset($datas['promote_store_fee'])) { //店铺促销费用
+            $datas['promote_store_fee'] = $this->commonService->currencyExchange($datas['promote_store_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['promote_store_fee'] = empty($newLists[$site_id]['promote_store_fee']) ? $datas['promote_store_fee'] : ($newLists[$site_id]['promote_store_fee'] + $datas['promote_store_fee']);
+            unset($datas['promote_store_fee']);
+        }
+        if(isset($datas['other_vat_fee'])) { //VAT
+            $datas['other_vat_fee'] = $this->commonService->currencyExchange($datas['other_vat_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['other_vat_fee'] = empty($newLists[$site_id]['other_vat_fee']) ? $datas['other_vat_fee'] : ($newLists[$site_id]['other_vat_fee'] + $datas['other_vat_fee']);
+            unset($datas['other_vat_fee']);
+        }
+        if(isset($datas['other_remark_fee'])) { //备注费用
+            $datas['other_remark_fee'] = $this->commonService->currencyExchange($datas['other_remark_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['other_remark_fee'] = empty($newLists[$site_id]['other_remark_fee']) ? $datas['other_remark_fee'] : ($newLists[$site_id]['other_remark_fee'] + $datas['other_remark_fee']);
+            unset($datas['other_remark_fee']);
+        }
+        if(isset($datas['other_other_fee'])) { //其他费用
+            $datas['other_other_fee'] = $this->commonService->currencyExchange($datas['other_other_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['other_other_fee'] = empty($newLists[$site_id]['other_other_fee']) ? $datas['other_other_fee'] : ($newLists[$site_id]['other_other_fee'] + $datas['other_other_fee']);
+            unset($datas['other_other_fee']);
+        }
+        if(isset($datas['other_goods_adjust'])) { //产品调整
+            $datas['other_goods_adjust'] = $this->commonService->currencyExchange($datas['other_goods_adjust'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['other_goods_adjust'] = empty($newLists[$site_id]['other_goods_adjust']) ? $datas['other_goods_adjust'] : ($newLists[$site_id]['other_goods_adjust'] + $datas['other_goods_adjust']);
+            unset($datas['other_goods_adjust']);
+        }
+        if(isset($datas['cpc_ad_settlement'])) { //广告结款
+            $datas['cpc_ad_settlement'] = $this->commonService->currencyExchange($datas['cpc_ad_settlement'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['cpc_ad_settlement'] = empty($newLists[$site_id]['cpc_ad_settlement']) ? $datas['cpc_ad_settlement'] : ($newLists[$site_id]['cpc_ad_settlement'] + $datas['cpc_ad_settlement']);
+            unset($datas['cpc_ad_settlement']);
+        }
+        if(isset($datas['fba_goods_value'])) { //在库总成本
+            $datas['fba_goods_value'] = $this->commonService->currencyExchange($datas['fba_goods_value'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['fba_goods_value'] = empty($newLists[$site_id]['fba_goods_value']) ? $datas['fba_goods_value'] : ($newLists[$site_id]['fba_goods_value'] + $datas['fba_goods_value']);
+            unset($datas['fba_goods_value']);
+        }
+        if(isset($datas['fba_stock'])) { //FBA库存
+            $newLists[$site_id]['fba_stock'] = empty($newLists[$site_id]['fba_stock']) ? $datas['fba_stock'] : ($newLists[$site_id]['fba_stock'] + $datas['fba_stock']);
+            unset($datas['fba_stock']);
+        }
+        if(isset($datas['fba_sales_volume'])) { //FBA销量
+            $newLists[$site_id]['fba_sales_volume'] = empty($newLists[$site_id]['fba_sales_volume']) ? $datas['fba_sales_volume'] : ($newLists[$site_id]['fba_sales_volume'] + $datas['fba_sales_volume']);
+            unset($datas['fba_sales_volume']);
+        }
+        if(isset($datas['fba_need_replenish'])) { //需补货SKu
+            $newLists[$site_id]['fba_need_replenish'] = empty($newLists[$site_id]['fba_need_replenish']) ? $datas['fba_need_replenish'] : ($newLists[$site_id]['fba_need_replenish'] + $datas['fba_need_replenish']);
+            unset($datas['fba_need_replenish']);
+        }
+        if(isset($datas['fba_predundancy_number'])) { //冗余FBA数
+            $newLists[$site_id]['fba_predundancy_number'] = empty($newLists[$site_id]['fba_predundancy_number']) ? $datas['fba_predundancy_number'] : ($newLists[$site_id]['fba_predundancy_number'] + $datas['fba_predundancy_number']);
+            unset($datas['fba_predundancy_number']);
+        }
+        if(isset($datas['promote_coupon'])) { //coupon优惠券
+            $datas['promote_coupon'] = $this->commonService->currencyExchange($datas['promote_coupon'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['promote_coupon'] = empty($newLists[$site_id]['promote_coupon']) ? $datas['promote_coupon'] : ($newLists[$site_id]['promote_coupon'] + $datas['promote_coupon']);
+            unset($datas['promote_coupon']);
+        }
+        if(isset($datas['promote_run_lightning_deal_fee'])) { //RunLightningDealFee
+            $datas['promote_run_lightning_deal_fee'] = $this->commonService->currencyExchange($datas['promote_run_lightning_deal_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['promote_run_lightning_deal_fee'] = empty($newLists[$site_id]['promote_run_lightning_deal_fee']) ? $datas['promote_run_lightning_deal_fee'] : ($newLists[$site_id]['promote_run_lightning_deal_fee'] + $datas['promote_run_lightning_deal_fee']);
+            unset($datas['promote_run_lightning_deal_fee']);
+        }
+        if(isset($datas['amazon_order_fee'])) { //订单费用
+            $datas['amazon_order_fee'] = $this->commonService->currencyExchange($datas['amazon_order_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_order_fee'] = empty($newLists[$site_id]['amazon_order_fee']) ? $datas['amazon_order_fee'] : ($newLists[$site_id]['amazon_order_fee'] + $datas['amazon_order_fee']);
+            unset($datas['amazon_order_fee']);
+        }
+        if(isset($datas['amazon_refund_fee'])) { //退货退款费用
+            $datas['amazon_refund_fee'] = $this->commonService->currencyExchange($datas['amazon_refund_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_refund_fee'] = empty($newLists[$site_id]['amazon_refund_fee']) ? $datas['amazon_refund_fee'] : ($newLists[$site_id]['amazon_refund_fee'] + $datas['amazon_refund_fee']);
+            unset($datas['amazon_refund_fee']);
+        }
+        if(isset($datas['amazon_stock_fee'])) { //库存费用
+            $datas['amazon_stock_fee'] = $this->commonService->currencyExchange($datas['amazon_stock_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_stock_fee'] = empty($newLists[$site_id]['amazon_stock_fee']) ? $datas['amazon_stock_fee'] : ($newLists[$site_id]['amazon_stock_fee'] + $datas['amazon_stock_fee']);
+            unset($datas['amazon_stock_fee']);
+        }
+        if(isset($datas['amazon_long_term_storage_fee'])) { //FBA长期仓储费
+            $datas['amazon_long_term_storage_fee'] = $this->commonService->currencyExchange($datas['amazon_long_term_storage_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['amazon_long_term_storage_fee'] = empty($newLists[$site_id]['amazon_long_term_storage_fee']) ? $datas['amazon_long_term_storage_fee'] : ($newLists[$site_id]['amazon_long_term_storage_fee'] + $datas['amazon_long_term_storage_fee']);
+            unset($datas['amazon_long_term_storage_fee']);
+        }
+        if(isset($datas['goods_adjust_fee'])) { //商品调整费用
+            $datas['goods_adjust_fee'] = $this->commonService->currencyExchange($datas['goods_adjust_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['goods_adjust_fee'] = empty($newLists[$site_id]['goods_adjust_fee']) ? $datas['goods_adjust_fee'] : ($newLists[$site_id]['goods_adjust_fee'] + $datas['goods_adjust_fee']);
+            unset($datas['goods_adjust_fee']);
+        }
+        if(isset($datas['other_review_enrollment_fee'])) { //早期评论者计划
+            $datas['other_review_enrollment_fee'] = $this->commonService->currencyExchange($datas['other_review_enrollment_fee'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['other_review_enrollment_fee'] = empty($newLists[$site_id]['other_review_enrollment_fee']) ? $datas['other_review_enrollment_fee'] : ($newLists[$site_id]['other_review_enrollment_fee'] + $datas['other_review_enrollment_fee']);
+            unset($datas['other_review_enrollment_fee']);
+        }
+        if(isset($datas['sale_sales_dollars'])) { //订单金额
+            $datas['sale_sales_dollars'] = $this->commonService->currencyExchange($datas['sale_sales_dollars'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['sale_sales_dollars'] = empty($newLists[$site_id]['sale_sales_dollars']) ? $datas['sale_sales_dollars'] : ($newLists[$site_id]['sale_sales_dollars'] + $datas['sale_sales_dollars']);
+            unset($datas['sale_sales_dollars']);
+        }
+        if(isset($datas['fba_sales_quota'])) { //fba商品销售额
+            $datas['fba_sales_quota'] = $this->commonService->currencyExchange($datas['fba_sales_quota'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['fba_sales_quota'] = empty($newLists[$site_id]['fba_sales_quota']) ? $datas['fba_sales_quota'] : ($newLists[$site_id]['fba_sales_quota'] + $datas['fba_sales_quota']);
+            unset($datas['fba_sales_quota']);
+        }
+        if(isset($datas['fbm_sales_quota'])) { //fbm商品销售额
+            $datas['fbm_sales_quota'] = $this->commonService->currencyExchange($datas['fbm_sales_quota'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['fbm_sales_quota'] = empty($newLists[$site_id]['fbm_sales_quota']) ? $datas['fbm_sales_quota'] : ($newLists[$site_id]['fbm_sales_quota'] + $datas['fbm_sales_quota']);
+            unset($datas['fbm_sales_quota']);
+        }
+        if(isset($datas['fba_logistics_head_course'])) { //FBA头程物流
+            $datas['fba_logistics_head_course'] = $this->commonService->currencyExchange($datas['fba_logistics_head_course'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['fba_logistics_head_course'] = empty($newLists[$site_id]['fba_logistics_head_course']) ? $datas['fba_logistics_head_course'] : ($newLists[$site_id]['fba_logistics_head_course'] + $datas['fba_logistics_head_course']);
+            unset($datas['fba_logistics_head_course']);
+        }
+        if(isset($datas['fbm_logistics_head_course'])) { //fbm物流
+            $datas['fbm_logistics_head_course'] = $this->commonService->currencyExchange($datas['fbm_logistics_head_course'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['fbm_logistics_head_course'] = empty($newLists[$site_id]['fbm_logistics_head_course']) ? $datas['fbm_logistics_head_course'] : ($newLists[$site_id]['fbm_logistics_head_course'] + $datas['fbm_logistics_head_course']);
+            unset($datas['fbm_logistics_head_course']);
+        }
+        if(isset($datas['shipping_charge'])) { //运费
+            $datas['shipping_charge'] = $this->commonService->currencyExchange($datas['shipping_charge'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['shipping_charge'] = empty($newLists[$site_id]['shipping_charge']) ? $datas['shipping_charge'] : ($newLists[$site_id]['shipping_charge'] + $datas['shipping_charge']);
+            unset($datas['shipping_charge']);
+        }
+        if(isset($datas['tax'])) { //TAX（销售）
+            $datas['tax'] = $this->commonService->currencyExchange($datas['tax'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['tax'] = empty($newLists[$site_id]['tax']) ? $datas['tax'] : ($newLists[$site_id]['tax'] + $datas['tax']);
+            unset($datas['tax']);
+        }
+        if(isset($datas['ware_house_lost'])) { //FBA仓丢失赔款
+            $datas['ware_house_lost'] = $this->commonService->currencyExchange($datas['ware_house_lost'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['ware_house_lost'] = empty($newLists[$site_id]['ware_house_lost']) ? $datas['ware_house_lost'] : ($newLists[$site_id]['ware_house_lost'] + $datas['ware_house_lost']);
+            unset($datas['ware_house_lost']);
+        }
+        if(isset($datas['ware_house_damage'])) { //FBA仓损坏赔款
+            $datas['ware_house_damage'] = $this->commonService->currencyExchange($datas['ware_house_damage'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['ware_house_damage'] = empty($newLists[$site_id]['ware_house_damage']) ? $datas['ware_house_damage'] : ($newLists[$site_id]['ware_house_damage'] + $datas['ware_house_damage']);
+            unset($datas['ware_house_damage']);
+        }
+        if(isset($datas['channel_fbm_safe_t_claim_demage'])) { //SAF-T
+            $datas['channel_fbm_safe_t_claim_demage'] = $this->commonService->currencyExchange($datas['channel_fbm_safe_t_claim_demage'] , $from_currency_code , $to_currency_code , $rate_info) ;
+            $newLists[$site_id]['channel_fbm_safe_t_claim_demage'] = empty($newLists[$site_id]['channel_fbm_safe_t_claim_demage']) ? $datas['channel_fbm_safe_t_claim_demage'] : ($newLists[$site_id]['channel_fbm_safe_t_claim_demage'] + $datas['channel_fbm_safe_t_claim_demage']);
+            unset($datas['channel_fbm_safe_t_claim_demage']);
+        }
+        if(!empty($datas)){
+            foreach($datas as $key=>$val){
+                $newLists[$site_id][$key] = $val ;
+            }
+        }
+        return $newLists ;
+    }
+
 
 
 }

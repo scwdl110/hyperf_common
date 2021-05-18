@@ -128,14 +128,14 @@ abstract class AbstractESModel implements BIModelInterface
                 }
 
                 // presto 语法必须 offset 在前，且不支持 limit 1,2 这种写法
-                $limit = " OFFSET {$offset} LIMIT {$limit}";
+                $limit = " LIMIT {$limit} OFFSET {$offset} ";
             } else {
                 if (is_numeric($limit)) {
                     $limit = " LIMIT {$limit}";
                 } elseif (1 === preg_match('/\s*offset\s+(\d+)\s+limit\s+(\d+)\s*/i', $limit, $m)) {
-                    $limit = " OFFSET {$m[1]} LIMIT {$m[2]}";
+                    $limit = "  LIMIT {$m[2]} OFFSET {$m[1]}";
                 } elseif (1 === preg_match('/\s*limit\s+(\d+)\s+offset\s+(\d+)\s*/i', $limit, $m)) {
-                    $limit = " OFFSET {$m[2]} LIMIT {$m[1]}";
+                    $limit = " LIMIT {$m[1]} OFFSET {$m[2]} ";
                 }
             }
         }

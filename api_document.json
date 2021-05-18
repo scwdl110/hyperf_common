@@ -490,8 +490,8 @@
                   "country_id"
                 ],
                 "properties": {
-                  "id": {
-                    "description": "货币id",
+                  "site_id": {
+                    "description": "站点id",
                     "type": "integer"
                   },
                   "name": {
