@@ -178,7 +178,7 @@ class AccountingService extends BaseService
 
             foreach ($rateList as $rate) {
                 if ((is_array($rate['site_id']) && in_array($list['site_id'], $rate['site_id'])) || $list['site_id'] == $rate['site_id']) {
-                    $info['currency_id'] = $list['id'];
+                    $info['currency_id'] = $rate['id'];
                     $info['exchang_rate'] = $rate['exchang_rate'];
                 }
             }
