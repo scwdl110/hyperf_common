@@ -32,6 +32,7 @@ class DataArkController extends AbstractController
         $exchangeCode = $req['exchangeCode'] ?? '1';
         $timeLine = $req['timeLine'] ?? [];
         $deparmentData = $req['deparmentData'] ?? [];
+        $rateInfo= $req['rateInfo'] ?? [];
         $offset = ($page - 1) * $limit;
 
         $result = ['lists' => [], 'count' => 0];
@@ -210,7 +211,8 @@ class DataArkController extends AbstractController
             $timeLine,
             $deparmentData,
             $userInfo['user_id'],
-            $userInfo['admin_id']
+            $userInfo['admin_id'],
+            $rateInfo
         );
 
         if (!isset($result['lists'])) {
