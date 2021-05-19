@@ -78,7 +78,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     'ods.' => $ods,
                     'dws.' => $dws,
                     'dim.' => $dim,
-                ][substr($v, 0, 4)] ?? substr($schema, 0, 3)) . substr($v, 3);
+                ][$schema] ?? substr($schema, 0, 3)) . substr($v, 3);
             }
         }
         
