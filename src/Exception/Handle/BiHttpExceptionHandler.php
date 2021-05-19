@@ -42,7 +42,7 @@ class BiHttpExceptionHandler extends HttpExceptionHandler
 
         $this->stopPropagation();
         // 格式化输出
-        $data = Result::fail([], $throwable->getMessage(), $throwable->getStatusCode());
+        $data = Result::fail([], $throwable->getMessage(), method_exists($throwable, 'getStatusCode') ? $throwable->getStatusCode() : $throwable->getCode());
 
         return $response->withStatus($throwable->getStatusCode())->withBody(new SwooleStream($data));
     }
