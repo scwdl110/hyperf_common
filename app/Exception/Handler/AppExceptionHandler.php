@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 namespace App\Exception\Handler;
 
+use Captainbi\Hyperf\Util\Result;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\ExceptionHandler\ExceptionHandler;
 use Hyperf\HttpMessage\Stream\SwooleStream;
@@ -33,7 +34,12 @@ class AppExceptionHandler extends ExceptionHandler
     {
         $this->logger->error(sprintf('%s[%s] in %s', $throwable->getMessage(), $throwable->getLine(), $throwable->getFile()));
         $this->logger->error($throwable->getTraceAsString());
-        return $response->withHeader('Server', 'Hyperf')->withStatus(500)->withBody(new SwooleStream('Internal Server Error.'));
+        // return $response->withHeader('Server', 'Hyperf')->withStatus(500)->withBody(new SwooleStream('Internal Server Error.'));
+        return $response->withHeader('Content-Type', 'application/json;charset=utf-8')->withStatus(500)->withBody(new SwooleStream(Result::fail(
+            [],
+            $throwable->getMessage() . ' in ' . $throwable->getFile() . ':' . $throwable->getLine(),
+            method_exists($throwable, 'getStatusCode') ? $throwable->getStatusCode() : $throwable->getCode()
+        )));
     }
 
     public function isValid(Throwable $throwable): bool
