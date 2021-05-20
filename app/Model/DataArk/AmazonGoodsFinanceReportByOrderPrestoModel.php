@@ -5199,13 +5199,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         foreach($lists as $k=>$list2){
             if($datas['count_dimension'] == 'channel_id'){
-                $fba_data = $fbaDatas[$list2['channel_id']] ;
+                $fba_data = empty($fbaDatas[$list2['channel_id']]) ? array() :  $fbaDatas[$list2['channel_id']];
             }else if($datas['count_dimension'] == 'site_id'){
-                $fba_data = $fbaDatas[$list2['site_id']] ;
+                $fba_data = empty($fbaDatas[$list2['site_id']]) ? array() :  $fbaDatas[$list2['site_id']];
             }else if($datas['count_dimension'] == 'department'){
-                $fba_data = $fbaDatas[$list2['user_department_id']] ;
+                $fba_data = empty($fbaDatas[$list2['user_department_id']]) ? array() :  $fbaDatas[$list2['user_department_id']];
             }else if($datas['count_dimension'] == 'admin_id'){
-                $fba_data = $fbaDatas[$list2['admin_id']] ;
+                $fba_data = empty($fbaDatas[$list2['admin_id']]) ? array() :  $fbaDatas[$list2['admin_id']];
             }
             if (!empty($fields['fba_goods_value'])) {  //在库总成本
                 $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
