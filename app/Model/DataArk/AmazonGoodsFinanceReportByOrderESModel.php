@@ -2237,9 +2237,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
         foreach($lists as $k=>$list2){
             if($datas['count_dimension'] == 'channel_id'){
-                $fba_data = $fbaDatas[$list2['channel_id']] ;
+                $fba_data = empty($fbaDatas[$list2['channel_id']]) ? array() : $fbaDatas[$list2['channel_id']] ;
             }else if($datas['count_dimension'] == 'site_id'){
-                $fba_data = $fbaDatas[$list2['site_id']] ;
+                $fba_data = empty($fbaDatas[$list2['site_id']]) ? array() :  $fbaDatas[$list2['site_id']];
             }
             if (!empty($fields['fba_goods_value'])) {  //在库总成本
                 if($datas['currency_code'] == 'ORIGIN' ){
