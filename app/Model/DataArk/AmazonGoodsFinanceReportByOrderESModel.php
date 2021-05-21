@@ -101,7 +101,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
                 $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
             }
-            $where .= " AND report.goods_" . $datas['count_dimension'] . " != '' ";
+            $where .= " AND report.goods_" . $datas['count_dimension'] . " <> '' ";
         } else if ($datas['count_dimension'] == 'isku') {  //ISKU 涉及不同汇率问题， 需要单独站点相加，再聚合计算 , 无法排序
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
@@ -173,7 +173,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $group = 'report.goods_product_category_name_1,report.site_id ';
                 $orderby = empty($orderby) ? ('max(report.goods_product_category_name_1,report.site_id) ') : ($orderby . ' , max(report.goods_product_category_name_1,report.site_id) ');
             }
-            $where .= " AND report.goods_product_category_name_1 != ''";
+            $where .= " AND report.goods_product_category_name_1 <> ''";
 
         } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计 涉及不同汇率问题， 需要单独站点相加，再聚合计算 , 无法排序
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
