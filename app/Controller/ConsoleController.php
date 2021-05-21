@@ -54,7 +54,7 @@ class ConsoleController extends AbstractController
                 return $this->sendRestartSignl() ? 'update success, restarting...' : 'update success, restart failed';
             }
         } else {
-            return 'failed';
+            return "failed\n{$result['output']}";
         }
     }
 
