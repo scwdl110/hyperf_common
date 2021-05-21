@@ -378,7 +378,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if (strpos($group, 'tags_rel.tags_id') === false) {
                     $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id";
                 }
-                if(is_array($where_detail['group_id'])){
+                if(is_array($where_detail['tag_id'])){
                     $tag_str = implode(',', $where_detail['tag_id']);
                 }else{
                     $tag_str = $where_detail['tag_id'] ;
@@ -1179,7 +1179,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
+        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+             || in_array('cost_profit_total_pay', $targets)) {  //采购成本
             if ($datas['finance_datas_origin'] == 1) {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     if ($datas['cost_count_type'] == '1') {
@@ -1211,7 +1212,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }
-        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
+        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+            || in_array('cost_profit_total_pay', $targets)) {  // 物流/头程
             if ($datas['finance_datas_origin'] == 1) {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     if ($datas['cost_count_type'] == '1') {
