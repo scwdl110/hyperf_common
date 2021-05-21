@@ -48,7 +48,7 @@ class ConsoleController extends AbstractController
         static::$updating = false;
 
         if (0 === $result['code']) {
-            if (strpos($result['output'], ' is up to date.')) {
+            if (strpos($result['output'], ' up to date.')) {
                 return 'current code is up to date';
             } else {
                 return $this->sendRestartSignl() ? 'update success, restarting...' : 'update success, restart failed';
