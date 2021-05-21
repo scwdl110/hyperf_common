@@ -15,8 +15,8 @@ use Hyperf\Logger\LoggerFactory;
 
 abstract class AbstractPrestoModel implements BIModelInterface
 {
-    protected static $detectSchemaName = false;
-    
+    protected static $detectSchemaName = '';
+
     protected static $tableMaps = [
         'table_channel' => 'ods.ods_dataark_b_channel',
         'table_site_rate' => 'ods.ods_dataark_b_site_rate',
@@ -66,12 +66,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ?LoggerInterface $logger = null,
         ?ClientInterface $httpClient = null
     ) {
-        if (!static::$detectSchemaName) {
-            static::$detectSchemaName = true;
-            $ods = env('PRESTO_SCHEMA_ODS', 'ods');
-            $dws = env('PRESTO_SCHEMA_DWS', 'dws');
-            $dim = env('PRESTO_SCHEMA_DIM', 'dim');
-            
+        $ods = config('misc.presto_schema_ods', 'ods');
+        $dws = config('misc.presto_schema_dws', 'dws');
+        $dim = config('misc.presto_schema_dim', 'dim');
+        $schemas = "{$ods}{$dws}{$dim}";
+
+        if ($schemas !== static::$detectSchemaName) {
+            static::$detectSchemaName = $schemas;
+
             foreach (static::$tableMaps as &$v) {
                 $schema = substr($v, 0, 4);
                 $v = ([
@@ -81,7 +83,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 ][$schema] ?? substr($schema, 0, 3)) . substr($v, 3);
             }
         }
-        
+
         $container = ApplicationContext::getContainer();
         if (null === $logger) {
             $logger = $container->get(LoggerFactory::class)->get('presto', 'default');

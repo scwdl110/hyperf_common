@@ -8,9 +8,10 @@ class ApolloBootProcessListener extends BootProcessListener
 {
     protected function formatValue($value)
     {
-        if (is_array($value)) {
+        if (!is_scalar($value)) {
             return $value;
         }
+
         return parent::formatValue($value);
     }
 }
