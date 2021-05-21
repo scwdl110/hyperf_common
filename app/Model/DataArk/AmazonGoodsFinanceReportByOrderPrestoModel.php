@@ -388,6 +388,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
 
+            if(!empty($where_detail['sku'])){
+                if(is_array($where_detail['sku'])){
+                    $sku_str="'".join("','",$where_detail['sku'])."'";
+                }else{
+                    $sku_str = "'".$where_detail['sku']."'" ;
+                }
+
+                if (!empty($sku_str)) {
+                    $where .= " AND report.goods_sku  IN ( " . $sku_str . ")";
+                }
+            }
+
             $target_wheres = $where_detail['target'] ?? '';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
