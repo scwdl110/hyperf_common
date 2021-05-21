@@ -41,7 +41,7 @@ class ConsoleController extends AbstractController
         $command = 'cd ' . BASE_PATH . '; git pull';
 
         if ($gitUrl) {
-            $command .= " {$gitUrl} origin/`git rev-parse --abbrev-ref HEAD`";
+            $command .= " {$gitUrl} `git rev-parse --abbrev-ref HEAD`; git pull {$gitUrl}";
         }
 
         $result = System::exec($command);
