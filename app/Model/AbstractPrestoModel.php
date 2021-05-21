@@ -18,28 +18,28 @@ abstract class AbstractPrestoModel implements BIModelInterface
     protected static $detectSchemaName = '';
 
     protected static $tableMaps = [
-        'table_channel' => 'ods.ods_dataark_b_channel',
-        'table_site_rate' => 'ods.ods_dataark_b_site_rate',
-        'table_user_department' => 'ods.ods_dataark_b_user_department',
-        'table_amazon_goods_isku' => 'ods.ods_dataark_f_amazon_goods_isku_001',
-        'table_amazon_goods_finance' => 'ods.ods_dataark_f_amazon_goods_finance_001',
-        'table_amazon_goods_tags' => 'ods.ods_dataark_g_amazon_goods_tags_001',
-        'table_amazon_goods_tags_rel' => 'ods.ods_dataark_g_amazon_goods_tags_rel_001',
-        'table_amazon_fba_inventory_by_channel' => 'ods.ods_dataark_f_amazon_fba_inventory_by_channel_001',
-        'table_amazon_goods_finance_report_by_order' => 'ods.ods_dataark_f_amazon_goods_finance_report_by_order_001',
+        'table_channel' => 'odstest.ods_dataark_b_channel',
+        'table_site_rate' => 'odstest.ods_dataark_b_site_rate',
+        'table_user_department' => 'odstest.ods_dataark_b_user_department',
+        'table_amazon_goods_isku' => 'odstest.ods_dataark_f_amazon_goods_isku_001',
+        'table_amazon_goods_finance' => 'odstest.ods_dataark_f_amazon_goods_finance_001',
+        'table_amazon_goods_tags' => 'odstest.ods_dataark_g_amazon_goods_tags_001',
+        'table_amazon_goods_tags_rel' => 'odstest.ods_dataark_g_amazon_goods_tags_rel_001',
+        'table_amazon_fba_inventory_by_channel' => 'odstest.ods_dataark_f_amazon_fba_inventory_by_channel_001',
+        'table_amazon_goods_finance_report_by_order' => 'odstest.ods_dataark_f_amazon_goods_finance_report_by_order_001',
 
         'table_user_channel' => 'dim.dim_dataark_b_user_channel',
         'table_department_channel' => 'dim.dim_dataark_b_department_channel',
 
-        'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST}' ,
-        'table_channel_day_report' => 'dws.dws_dataark_f_dw_channel_day_report_{DBHOST}',
-        'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_week_report_{DBHOST}' ,
-        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DBHOST}' ,
-        'table_channel_week_report' => 'dws.dws_dataark_f_dw_channel_week_report_{DBHOST}' ,
-        'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_{DBHOST}' ,
-        'table_operation_day_report' => 'dws.dws_dataark_f_dw_operation_day_report_{DBHOST}' ,
-        'table_operation_week_report' => 'dws.dws_dataark_f_dw_operation_week_report_{DBHOST}',
-        'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_{DBHOST}',
+        'table_goods_day_report' => 'dwstest.dws_dataark_f_dw_goods_day_report_{DBHOST}' ,
+        'table_channel_day_report' => 'dwstest.dws_dataark_f_dw_channel_day_report_{DBHOST}',
+        'table_goods_week_report' => 'dwstest.dws_dataark_f_dw_goods_week_report_{DBHOST}' ,
+        'table_goods_month_report' => 'dwstest.dws_dataark_f_dw_goods_month_report_{DBHOST}' ,
+        'table_channel_week_report' => 'dwstest.dws_dataark_f_dw_channel_week_report_{DBHOST}' ,
+        'table_channel_month_report' => 'dwstest.dws_dataark_f_dw_channel_month_report_{DBHOST}' ,
+        'table_operation_day_report' => 'dwstest.dws_dataark_f_dw_operation_day_report_{DBHOST}' ,
+        'table_operation_week_report' => 'dwstest.dws_dataark_f_dw_operation_week_report_{DBHOST}',
+        'table_operation_month_report' => 'dwstest.dws_dataark_f_dw_operation_month_report_{DBHOST}',
     ];
 
     protected $dbhost = '001';
