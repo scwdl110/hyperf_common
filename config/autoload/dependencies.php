@@ -11,4 +11,6 @@ declare(strict_types=1);
  */
 return [
     \Hyperf\ConfigApollo\Process\ConfigFetcherProcess::class => \App\Process\ApolloConfigFetcherProcess::class,
+    \Hyperf\ConfigApollo\Listener\BootProcessListener::class => \App\Listener\ApolloBootProcessListener::class,
+    \Hyperf\ConfigApollo\Listener\OnPipeMessageListener::class => \App\Listener\ApolloOnPipeMessageListener::class,
 ];
