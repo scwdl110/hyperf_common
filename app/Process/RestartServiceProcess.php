@@ -5,6 +5,8 @@ namespace App\Process;
 use Swoole\Server;
 use Swoole\Process;
 use Swoole\Timer;
+use Swoole\Coroutine;
+use Swoole\Coroutine\System;
 use Hyperf\Process\AbstractProcess;
 use Hyperf\Process\ProcessCollector;
 use Hyperf\Contract\ConfigInterface;
@@ -165,6 +167,11 @@ class RestartServiceProcess extends  AbstractProcess
                         "-s {$dingTalkSecret}"
                     ]);
                 }))->start();
+
+                // 回收子进程资源，避免子进程成为僵尸进程浪费系统资源
+                Coroutine\run(function () {
+                    System::wait();
+                });
 
                 break;
             }
