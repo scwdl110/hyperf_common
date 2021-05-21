@@ -493,3 +493,22 @@ function getUserInfo(): array
 {
     return ApplicationContext::getContainer()->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
 }
+
+/**
+ * 获取本地IP地址
+ *
+ * 此函数基于 swoole_get_local_ip 函数，swoole_get_local_ip 会返回多个 IP
+ * 此函数会过滤网卡名包含 docker 和 IP 为 x.y.z.1 的
+ * 如果所有 IP 都被过滤，返回 swoole_get_local_ip 的第一个 IP
+ *
+ * @return string
+ */
+function getLocalIP(): string
+{
+    $ips = \swoole_get_local_ip();
+    $filter = array_filter($ips, function($ip, $name) {
+        return '.1' !== substr($ip, -2) && false === stripos($name, 'docker');
+    }, \ARRAY_FILTER_USE_BOTH);
+
+    return ($filter ? current($filter) : current($ips)) ?: '127.0.0.1';
+}

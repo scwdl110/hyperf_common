@@ -13,7 +13,7 @@ class DataArkController extends AbstractController
         $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
 
-        if (env('APP_DATAARK_LOG', false)) {
+        if (config('misc.dataark_log_req', false)) {
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'default');
             $logger->info('request body', [$req, $userInfo]);
         }

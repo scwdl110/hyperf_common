@@ -28,5 +28,8 @@ return [
             'OA\Response',
             'OA\Schema'
         ],
+        'class_map' => [
+            \Hyperf\ConfigApollo\PipeMessage::class => BASE_PATH . '/class_map/Hyperf/ConfigApollo/PipeMessage.php',
+        ],
     ],
 ];
