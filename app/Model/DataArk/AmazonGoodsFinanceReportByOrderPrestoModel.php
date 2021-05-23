@@ -1909,10 +1909,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($datas['time_target'] == 'sale_refund_rate') {  //退款率
             if ($datas['refund_datas_origin'] == '1') {
-                $fields['count_total'] = "SUM (report.byorder_refund_num  ) * 1.0 / nullif(SUM(report.byorder_sales_volume),0)";
+                $fields['count_total'] = "SUM (report.byorder_refund_num  ) * 1.00000 / nullif(SUM(report.byorder_sales_volume),0)";
                 $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0 ", "report.byorder_sales_volume");
             } elseif ($datas['refund_datas_origin'] == '2') {
-                $fields['count_total'] = "SUM (report.report_refund_num ) * 1.0 / nullif(SUM(report.report_sales_volume),0)";
+                $fields['count_total'] = "SUM (report.report_refund_num ) * 1.00000 / nullif(SUM(report.report_sales_volume),0)";
                 $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0", "report.report_sales_volume");
             }
         } else if ($datas['time_target'] == 'promote_discount') {  //promote折扣
@@ -3493,7 +3493,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         if (in_array('sale_refund_rate', $targets)) {  //退款率
-            $fields['sale_refund_rate'] = '('.$fields['sale_return_goods_number'] . ") * 1.0 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
+            $fields['sale_refund_rate'] = '('.$fields['sale_return_goods_number'] . ") * 1.00000 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
         }
 
         if (in_array('promote_discount', $targets)) {  //promote折扣
@@ -5514,7 +5514,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         if (in_array('sale_refund_rate', $targets)) {  //退款率
-            $fields['sale_refund_rate'] = $fields['sale_return_goods_number'] . " * 1.0 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
+            $fields['sale_refund_rate'] = $fields['sale_return_goods_number'] . " * 1.0000 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
         }
 
         if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets)) {  //亚马逊费用
