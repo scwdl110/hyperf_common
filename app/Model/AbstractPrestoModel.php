@@ -126,7 +126,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         "isku"=>"isku_isku",
         "isku_title"=>"isku_isku_title",
         "isku_image"=>"isku_image",
-        "goods_group_name"=>"goods_group_name",
+        "goods_group_name"=>"group_group_name",
         "isku_head_id" => "isku_head_id",
         "isku_developer_id" => "isku_developer_id",
         "goods_operation_user_admin_name" => "goods_operation_user_admin_name",
@@ -439,7 +439,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
 
         //商品级
-        print_r($isJoin);
         //print_r($this->goodsCols);
         if($isJoin==1){
             foreach ($this->goodsCols as $key => $value){
@@ -456,7 +455,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 }
             }
         }
-        print_r($sql);
 
         $this->logSql();
         if ($this->logDryRun()) {
