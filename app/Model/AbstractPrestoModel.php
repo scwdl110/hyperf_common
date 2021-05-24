@@ -280,10 +280,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
             foreach (static::$tableMaps as &$v) {
                 $schema = substr($v, 0, 4);
                 $v = ([
-                            'ods.' => $ods,
-                            'dws.' => $dws,
-                            'dim.' => $dim,
-                        ][$schema] ?? substr($schema, 0, 3)) . substr($v, 3);
+                    'ods.' => $ods,
+                    'dws.' => $dws,
+                    'dim.' => $dim,
+                ][$schema] ?? substr($schema, 0, 3)) . substr($v, 3);
+                $v = str_replace('dim.dim_dataark_f_dw_goods_dim_report_', $dim.".dim_dataark_f_dw_goods_dim_report_", $v);
             }
         }
 
