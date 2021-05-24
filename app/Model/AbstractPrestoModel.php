@@ -444,6 +444,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
                     $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
+                    $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
+
                 } else {
                     if (strpos('_day_report_', $table)) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
