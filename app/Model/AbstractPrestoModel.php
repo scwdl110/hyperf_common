@@ -126,7 +126,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         "isku"=>"isku_isku",
         "isku_title"=>"isku_isku_title",
         "isku_image"=>"isku_image",
-        "goods_group_name"=>"goods_group_name",
+        "goods_group_name"=>"group_group_name",
         "isku_head_id" => "isku_head_id",
         "isku_developer_id" => "isku_developer_id",
         "goods_operation_user_admin_name" => "goods_operation_user_admin_name",
@@ -457,6 +457,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     }
                 }
             }
+            $this->lastSql = $sql;
         }
         print_r($sql);
 
