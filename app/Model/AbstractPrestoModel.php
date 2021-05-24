@@ -282,6 +282,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     'dws.' => $dws,
                     'dim.' => $dim,
                 ][$schema] ?? substr($schema, 0, 3)) . substr($v, 3);
+                $v = str_replace('dim.dim_dataark_f_dw_goods_dim_report_', $dim.".dim_dataark_f_dw_goods_dim_report_", $v);
             }
         }
         
