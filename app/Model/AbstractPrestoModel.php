@@ -436,14 +436,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
-        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
+        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit} ";
 
         //商品级
         //print_r($this->goodsCols);
         if($isJoin == 1){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
-                    $sql = str_replace('report.' . $key.' ', 'amazon_goods.' . $value.' ', $sql);
+                    $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
                     $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
 
                 } else {
