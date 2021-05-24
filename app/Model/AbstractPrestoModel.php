@@ -405,7 +405,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         bool $isCache = false,
         int $cacheTTL = 300,
-        $isJoin = 0
+        int $isJoin = 0
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -440,7 +440,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         //商品级
         //print_r($this->goodsCols);
-        //if($isJoin==1){
+        if($isJoin == 1){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
                     $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
@@ -456,10 +456,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     }
                 }
             }
-        //}
-
             $this->lastSql = $sql;
-        //}
+        }
 
         $this->logSql();
         if ($this->logDryRun()) {
