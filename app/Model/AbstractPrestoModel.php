@@ -458,6 +458,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         //}
 
+            $this->lastSql = $sql;
+        //}
+
         $this->logSql();
         if ($this->logDryRun()) {
             return [];
