@@ -439,7 +439,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
 
         //商品级
-        print_r($isJoin);
         //print_r($this->goodsCols);
         if($isJoin==1){
             foreach ($this->goodsCols as $key => $value){
@@ -459,7 +458,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $this->lastSql = $sql;
         }
-        print_r($sql);
 
         $this->logSql();
         if ($this->logDryRun()) {
