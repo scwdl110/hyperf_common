@@ -1723,7 +1723,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['site_id'] = 'max(report.site_id)';
                 $fields['class1'] = 'max(report.goods_product_category_name_1)';
                 $fields['group'] = 'max(report.goods_group_name)';
-                $fields['operators'] = 'max(report.goods_operation_user_admin_name)';
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
             }
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
