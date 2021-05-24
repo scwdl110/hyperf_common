@@ -129,7 +129,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         "isku_image"=>"isku_image",
         "isku_head_id" => "isku_head_id",
         "isku_developer_id" => "isku_developer_id",
-        "goods_operation_user_admin_name" => "goods_operation_user_admin_name",
+        //"goods_operation_user_admin_name" => "goods_operation_user_admin_name",
         "parent_asin_group" => array(
             'day' => "goods_parent_asin,report.myear,report.mmonth,report.mday",
             'week' => "goods_parent_asin,report.mweekyear,mweek",
