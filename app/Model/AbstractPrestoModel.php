@@ -76,10 +76,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         "goods_is_set_business"=>"goods_is_set_business",
         "goods_tag_id"=>"goods_tag_id",
         "goods_remark"=>"goods_remark",
+        "goods_group_id"=>"goods_group_id",
+        "goods_group_name"=>"group_group_name",
         "goods_group"=>"goods_group",
         "goods_get_image"=>"goods_get_image",
         "goods_is_set"=>"goods_is_set",
-        "goods_group_id"=>"goods_group_id",
         "goods_is_sync"=>"goods_is_sync",
         "goods_sale_nums_y"=>"goods_sale_nums_y",
         "goods_sale_nums_7"=>"goods_sale_nums_7",
@@ -126,7 +127,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
         "isku"=>"isku_isku",
         "isku_title"=>"isku_isku_title",
         "isku_image"=>"isku_image",
-        "goods_group_name"=>"group_group_name",
         "isku_head_id" => "isku_head_id",
         "isku_developer_id" => "isku_developer_id",
         "goods_operation_user_admin_name" => "goods_operation_user_admin_name",
@@ -443,7 +443,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if($isJoin == 1){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
-                    $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
+                    $sql = str_replace('report.' . $key.' ', 'amazon_goods.' . $value.' ', $sql);
                     $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
 
                 } else {
