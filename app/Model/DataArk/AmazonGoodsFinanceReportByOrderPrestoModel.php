@@ -3102,7 +3102,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($params['count_dimension'] == 'department') {
             $table .= " LEFT JOIN {$this->table_department_channel} as dc ON dc.user_id = report.user_id AND dc.channel_id = report.channel_id  LEFT JOIN {$this->table_user_department} as ud ON ud.id = dc.user_department_id ";
             $where .= " AND ud.status < 3";
-            $admin_info = UserAdminModel::query()->select('is_master', 'is_responsible', 'user_department_id')->where('user_id', 304)->where('id', 400)->first();
+            $admin_info = UserAdminModel::query()->select('is_master', 'is_responsible', 'user_department_id')->where('user_id', $userId)->where('id', $adminId)->first();
             if($admin_info['is_master'] != 1){
                 if($admin_info['is_responsible'] == 0 ){ //非部门负责人
                     $rt['lists'] = array();
