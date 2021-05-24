@@ -433,7 +433,13 @@ function getStartAndEndTimeAllSite($type = 1)
             $localDate[$key]["end"]   = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
         }
     }
-
+    if($type == 23){  //过去6个月
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-6 month", strtotime(date("Y-m-d", strtotime($localDate[$key]["start"])))));
+            $localDate[$key]["end"]   = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
+        }
+    }
     if ($type == 77) {  // 上周同日
         foreach ($localDate as $key => $value) {
             $localDate[$key]["site_id"] = $key;

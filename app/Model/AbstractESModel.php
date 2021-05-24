@@ -91,8 +91,10 @@ abstract class AbstractESModel implements BIModelInterface
         string $order = '',
         string $group = '',
         array $match = [],
-        array $orMatch = []
+        array $orMatch = [],
+        $isJoin
     ) {
+
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
         $matchSql = $orMatchSql = '';
@@ -139,7 +141,10 @@ abstract class AbstractESModel implements BIModelInterface
                 }
             }
         }
+        $sql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
+        if($isJoin==1){
 
+        }
         return "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
     }
 
@@ -151,9 +156,10 @@ abstract class AbstractESModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isCache = false,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        $isJoin = 0
     ): array {
-        $sql = $this->lastSql = $this->parseSql($where, $data, $table, $limit, $order, $group);
+        $sql = $this->lastSql = $this->parseSql($where, $data, $table, $limit, $order, $group,$isJoin);
         if ($this->logDryRun()) {
             return [];
         }

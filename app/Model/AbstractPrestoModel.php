@@ -31,16 +31,219 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_user_channel' => 'dim.dim_dataark_b_user_channel',
         'table_department_channel' => 'dim.dim_dataark_b_department_channel',
 
-        'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST}' ,
+        'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_day_report' => 'dws.dws_dataark_f_dw_channel_day_report_{DBHOST}',
-        'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_week_report_{DBHOST}' ,
-        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DBHOST}' ,
+        'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_week_report_{DBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
+        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_week_report' => 'dws.dws_dataark_f_dw_channel_week_report_{DBHOST}' ,
         'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_{DBHOST}' ,
         'table_operation_day_report' => 'dws.dws_dataark_f_dw_operation_day_report_{DBHOST}' ,
         'table_operation_week_report' => 'dws.dws_dataark_f_dw_operation_week_report_{DBHOST}',
         'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_{DBHOST}',
     ];
+
+    protected $goodsCols = array(
+        "goods_g_amazon_goods_id"=>"goods_g_amazon_goods_id",
+        "goods_title"=>"goods_title",
+        "goods_site_id"=>"goods_site_id",
+        "goods_user_id"=>"goods_user_id",
+        "goods_channel_id"=>"goods_channel_id",
+        "goods_logistics_head_course"=>"goods_logistics_head_course",
+        "goods_from_logistics_head_course"=>"goods_from_logistics_head_course",
+        "goods_Transport_mode"=>"goods_Transport_mode",
+        "goods_asin"=>"goods_asin",
+        "goods_parent_asin"=>"goods_parent_asin",
+        "goods_is_parent"=>"goods_is_parent",
+        "goods_image"=>"goods_image",
+        "goods_sku"=>"goods_sku",
+        "goods_fnsku"=>"goods_fnsku",
+        "goods_create_time"=>"goods_create_time",
+        "goods_modified_time"=>"goods_modified_time",
+        "goods_price"=>"goods_price",
+        "goods_purchasing_cost"=>"goods_purchasing_cost",
+        "goods_from_purchasing_cost"=>"goods_from_purchasing_cost",
+        "goods_exchang_rate"=>"goods_exchang_rate",
+        "goods_fbm_logistics_head_course"=>"goods_fbm_logistics_head_course",
+        "goods_fbm_from_logistics_head_course"=>"goods_fbm_from_logistics_head_course",
+        "goods_fbm_purchasing_cost"=>"goods_fbm_purchasing_cost",
+        "goods_fbm_from_purchasing_cost"=>"goods_fbm_from_purchasing_cost",
+        "goods_up_status"=>"goods_up_status",
+        "goods_is_new"=>"goods_is_new",
+        "goods_is_care"=>"goods_is_care",
+        "goods_is_remarks"=>"goods_is_remarks",
+        "goods_is_keyword"=>"goods_is_keyword",
+        "goods_set_time"=>"goods_set_time",
+        "goods_is_set_business"=>"goods_is_set_business",
+        "goods_tag_id"=>"goods_tag_id",
+        "goods_remark"=>"goods_remark",
+        "goods_group_id"=>"goods_group_id",
+        "goods_group_name"=>"group_group_name",
+        "goods_group"=>"goods_group",
+        "goods_get_image"=>"goods_get_image",
+        "goods_is_set"=>"goods_is_set",
+        "goods_is_sync"=>"goods_is_sync",
+        "goods_sale_nums_y"=>"goods_sale_nums_y",
+        "goods_sale_nums_7"=>"goods_sale_nums_7",
+        "goods_sale_nums_14"=>"goods_sale_nums_14",
+        "goods_sale_nums_30"=>"goods_sale_nums_30",
+        "goods_sale_nums"=>"goods_sale_nums",
+        "goods_sale_nums_before"=>"goods_sale_nums_before",
+        "goods_sale_amount_y"=>"goods_sale_amount_y",
+        "goods_sale_amount_7"=>"goods_sale_amount_7",
+        "goods_sale_amount_14"=>"goods_sale_amount_14",
+        "goods_sale_amount_30"=>"goods_sale_amount_30",
+        "goods_sale_amount"=>"goods_sale_amount",
+        "goods_sale_amount_before"=>"goods_sale_amount_before",
+        "goods_care_remark_new_time"=>"goods_care_remark_new_time",
+        "goods_is_get_category"=>"goods_is_get_category",
+        "goods_product_category_name_1"=>"goods_product_category_name_1",
+        "goods_product_category_id_1"=>"goods_product_category_id_1",
+        "goods_product_category_name_2"=>"goods_product_category_name_2",
+        "goods_product_category_id_2"=>"goods_product_category_id_2",
+        "goods_product_category_name_3"=>"goods_product_category_name_3",
+        "goods_product_category_id_3"=>"goods_product_category_id_3",
+        "goods_month_time"=>"goods_month_time",
+        "goods_isku_id"=>"goods_isku_id",
+        "goods_operation_user_admin_id"=>"goods_operation_user_admin_id",
+        "goods_rank_group"=>"goods_rank_group",
+        "goods_rank"=>"goods_rank",
+        "goods_rank_increase"=>"goods_rank_increase",
+        "goods_min_rank"=>"goods_min_rank",
+        "goods_min_rank_group"=>"goods_min_rank_group",
+        "goods_min_rank_increase"=>"goods_min_rank_increase",
+        "goods_loaddata_time"=>"goods_loaddata_time",
+        "goods_fulfillable_quantity"=>"goods_fulfillable_quantity",
+        "goods_available_days"=>"goods_available_days",
+        "goods_reserved_quantity"=>"goods_reserved_quantity",
+        "goods_replenishment_quantity"=>"goods_replenishment_quantity",
+        "goods_available_stock"=>"goods_available_stock",
+        "goods_sync_time"=>"goods_sync_time",
+        //"amazon_goods_id"=>"amazon_goods_id",
+        //"site_id"=>"goods_site_id",
+        //"user_id"=>"user_id",
+        //"channel_id"=>"goods_channel_id",
+        //"user_id_mod"=>"user_id_mod",
+        "area_id"=>"area_area_id",
+        "isku"=>"isku_isku",
+        "isku_title"=>"isku_isku_title",
+        "isku_image"=>"isku_image",
+        "isku_head_id" => "isku_head_id",
+        "isku_developer_id" => "isku_developer_id",
+        //"goods_operation_user_admin_name" => "goods_operation_user_admin_name",
+        "parent_asin_group" => array(
+            'day' => "goods_parent_asin,report.myear,report.mmonth,report.mday",
+            'week' => "goods_parent_asin,report.mweekyear,mweek",
+            'month' => "goods_parent_asin,report.myear,report.mmonth"
+        ),
+        "asin_group" => array(
+            'day' => "goods_asin,report.myear,report.mmonth,report.mday",
+            'week' => "goods_asin,report.myear,report.mweekyear,mweek",
+            'month' => "goods_asin,report.myear,report.mmonth"
+        ),
+        "sku_group" => array(
+            'day' => "goods_sku,report.myear,report.mmonth,report.mday",
+            'week' => "goods_sku,report.myear,report.mweekyear,mweek",
+            'month' => "goods_sku,report.myear,report.mmonth"
+        ),
+        "isku_group" => array(
+            'day' => "isku_isku,report.myear,report.mmonth,report.mday",
+            'week' => "isku_isku,report.myear,report.mweekyear,mweek",
+            'month' => "isku_isku,report.myear,report.mmonth"
+        ),
+        "site_id_group" => array(
+            'day' => "goods_site_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_site_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_site_id,report.myear,report.mmonth"
+        ),
+        "channel_id_group" => array(
+            'day' => "goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_channel_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_channel_id,report.myear,report.mmonth"
+        ),
+        "product_category_id_1_group" => array(
+            'day' => "goods_product_category_id_1,report.myear,report.mmonth,report.mday",
+            'week' => "goods_product_category_id_1,report.myear,report.mweekyear,mweek",
+            'month' => "goods_product_category_id_1,report.myear,report.mmonth"
+        ),
+        "group_id_group" => array(
+            'day' => "goods_group_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_group_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'month' => "goods_group_id,report.myear,report.mmonth"
+        ),
+        "operation_user_admin_id_group" => array(
+            'day' => "goods_operation_user_admin_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_operation_user_admin_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_operation_user_admin_id,report.myear,report.mmonth"
+        ),
+        "isku_head_id_group" => array(
+            'day' => "isku_head_id,report.myear,report.mmonth,report.mday",
+            'week' => "isku_head_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'month' => "isku_head_id,report.myear,report.mmonth"
+        ),
+        "isku_developer_id_group" => array(
+            'day' => "isku_developer_id,report.myear,report.mmonth,report.mday",
+            'week' => "isku_developer_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'month' => "isku_developer_id,report.myear,report.mmonth"
+        )
+    );
+
+    protected $goodsGroupByCols = array(
+        "parent_asin_group" => array(
+            'day' => "goods_parent_asin,report.myear,report.mmonth,report.mday",
+            'week' => "goods_parent_asin,report.mweekyear,mweek",
+            'month' => "goods_parent_asin,report.myear,report.mmonth"
+        ),
+        "asin_group" => array(
+            'day' => "goods_asin,report.myear,report.mmonth,report.mday",
+            'week' => "goods_asin,report.myear,report.mweekyear,mweek",
+            'month' => "goods_asin,report.myear,report.mmonth"
+        ),
+        "sku_group" => array(
+            'day' => "goods_sku,report.myear,report.mmonth,report.mday",
+            'week' => "goods_sku,report.myear,report.mweekyear,mweek",
+            'month' => "goods_sku,report.myear,report.mmonth"
+        ),
+        "isku_group" => array(
+            'day' => "isku_isku,report.myear,report.mmonth,report.mday",
+            'week' => "isku_isku,report.myear,report.mweekyear,mweek",
+            'month' => "isku_isku,report.myear,report.mmonth"
+        ),
+        "site_id_group" => array(
+            'day' => "goods_site_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_site_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_site_id,report.myear,report.mmonth"
+        ),
+        "channel_id_group" => array(
+            'day' => "goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_channel_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_channel_id,report.myear,report.mmonth"
+        ),
+        "product_category_id_1_group" => array(
+            'day' => "goods_product_category_id_1,report.myear,report.mmonth,report.mday",
+            'week' => "goods_product_category_id_1,report.myear,report.mweekyear,mweek",
+            'month' => "goods_product_category_id_1,report.myear,report.mmonth"
+        ),
+        "group_id_group" => array(
+            'day' => "goods_group_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_group_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'month' => "goods_group_id,report.myear,report.mmonth"
+        ),
+        "operation_user_admin_id_group" => array(
+            'day' => "goods_operation_user_admin_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_operation_user_admin_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_operation_user_admin_id,report.myear,report.mmonth"
+        ),
+        "isku_head_id_group" => array(
+            'day' => "isku_head_id,report.myear,report.mmonth,report.mday",
+            'week' => "isku_head_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'month' => "isku_head_id,report.myear,report.mmonth"
+        ),
+        "isku_developer_id_group" => array(
+            'day' => "isku_developer_id,report.myear,report.mmonth,report.mday",
+            'week' => "isku_developer_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'month' => "isku_developer_id,report.myear,report.mmonth"
+        )
+    );
 
     protected $dbhost = '001';
 
@@ -109,7 +312,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
             throw new RuntimeException('Missing Presto config.');
         }
 
-        $config = $config[$this->dbhost] ?? [];
+        //$config = $config[$this->dbhost] ?? [];
+        $rand_key = array_rand($config);
+        $config = $config[$rand_key] ?? [];
         if (empty($config)) {
             $this->logger->error('presto 数据库配置不存在', [$config]);
             throw new RuntimeException('Missing Presto connection config.');
@@ -201,7 +406,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isCache = false,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        int $isJoin = 0
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -232,7 +438,29 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
-        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
+        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit} ";
+
+        //商品级
+        //print_r($this->goodsCols);
+        if($isJoin == 1){
+            foreach ($this->goodsCols as $key => $value){
+                if (!is_array($value)) {
+                    $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
+                    $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
+
+                } else {
+                    if (strpos('_day_report_', $table)) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
+                    } elseif (strpos('_week_report_', $table)) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
+                    } elseif (strpos('_month_report_', $table)) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['month'], $sql);
+                    }
+                }
+            }
+            $this->lastSql = $sql;
+        }
+
         $this->logSql();
         if ($this->logDryRun()) {
             return [];
@@ -245,7 +473,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 return $cacheData;
             }
         }
-
         $result = $this->presto->query($sql);
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
@@ -278,9 +505,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isCache = false,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        $isJson = 0
     ): array {
-        $result = $this->select($where, $data, $table, 1, $order, $group, $isCache, $cacheTTL);
+        $result = $this->select($where, $data, $table, 1, $order, $group, $isCache, $cacheTTL,$isJson);
 
         return $result[0] ?? [];
     }
@@ -318,25 +546,27 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $data = '',
         string $cols = '',
         bool $isCache = false,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        int $isJoin = 0
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
 
         if ($group) {
             $data = $data ?: '1';
             $result = $this->getOne(
-                '',
-                "COUNT(*) AS num",
-                "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
+                $where,
+                "count(distinct($group)) AS num",
+                "$table",
                 '',
                 '',
                 $isCache,
-                $cacheTTL
+                $cacheTTL,
+                $isJoin
             );
         } elseif (!empty($cols)) {
-            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isCache, $cacheTTL, $isJoin);
         } else {
-            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '', $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '', $isCache, $cacheTTL, $isJoin);
         }
 
         return intval($result['num'] ?? 0);
