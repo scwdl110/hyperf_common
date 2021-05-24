@@ -595,107 +595,188 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         if(empty($lists)){
             return $lists ;
         }else{
-            $where = 'g.user_id = ' . $lists[0]['user_id']   ;
+            $amazon_fba_inventory_v3_md = new AmazonFbaInventoryV3MySQLModel([], $this->dbhost, $this->codeno);
+            $where = "g.user_id = " . intval($lists[0]['user_id']);
             if (!empty($channel_arr)){
                 if (count($channel_arr)==1){
-                    $where .= " AND g.channel_id = ".intval(implode(",",$channel_arr));
+                    $where .= " AND rel.channel_id = ".intval(implode(",",$channel_arr));
                 }else{
-                    $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
+                    $where .= " AND rel.channel_id IN (".implode(",",$channel_arr).")";
                 }
             }
-            $table = "f_amazon_goods_finance_{$this->codeno} as g " ;
+            $table = "g_amazon_fba_inventory_v3_{$this->codeno} as g LEFT JOIN g_amazon_fba_inventory_v3_rel_{$this->codeno} as rel ON g.id = rel.inventory_id " ;
             if($datas['count_dimension'] == 'sku'){
-                $fba_fields = $group = 'g.sku , g.channel_id' ;
+                if($datas['is_distinct_channel'] == 1){
+                    $table_fields = 'g.seller_sku as sku , rel.channel_id' ;
+                    $table_group = 'g.seller_sku  , rel.channel_id' ;
+                    $fba_fields = $group = 'sku , channel_id' ;
+                }else{
+                    $table_fields = 'g.seller_sku as sku , g.id' ;
+                    $table_group = 'g.seller_sku as sku , g.id' ;
+                    $fba_fields = $group = 'sku, id' ;
+                }
             }else if($datas['count_dimension'] == 'asin'){
-                $fba_fields = $group = 'g.asin , g.channel_id' ;
+                if($datas['is_distinct_channel'] == 1){
+                    $table_fields = $table_group = 'g.asin , rel.channel_id' ;
+                    $fba_fields = $group = 'asin , channel_id' ;
+                }else{
+                    $table_fields = $table_group = 'g.asin , g.id' ;
+                    $fba_fields = $group = 'asin ,id ' ;
+                }
             }else if($datas['count_dimension'] == 'parent_asin'){
-                $fba_fields = $group = 'g.parent_asin , g.channel_id' ;
+                if($datas['is_distinct_channel'] == 1){
+                    $table_fields = $table_group = 'g.parent_asin , rel.channel_id' ;
+                    $fba_fields = $group = 'parent_asin , channel_id' ;
+                }else{
+                    $table_fields = $table_group = 'g.parent_asin , g.id' ;
+                    $fba_fields = $group = 'parent_asin ,id ' ;
+                }
             }else if($datas['count_dimension'] == 'isku'){
-                $fba_fields = $group = 'g.isku_id ,g.fba_inventory_v3_id' ;
+                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+
+                $table_fields = $table_group = 'ext.isku_id , g.id' ;
+                $fba_fields = $group = 'isku_id ,id' ;
             }else if($datas['count_dimension'] == 'class1'){
-                $fba_fields = $group = 'g.product_category_name_1 ,g.fba_inventory_v3_id' ;
+                //分类暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'group'){ //分组
-                $fba_fields = $group = 'g.group_id ,g.fba_inventory_v3_id' ;
+                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+
+                $table_fields = $table_group = 'ext.isku_id , g.id' ;
+                $fba_fields = $group = 'isku_id , id' ;
+
+            }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
+                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+
+                $table_fields = $table_group = 'tags_rel.tags_id,g.id' ;
+                $fba_fields = $group = 'tags_id , id' ;
+
+
+            }else if($datas['count_dimension'] == 'head_id') { //负责人
+                //负责人暂时没有 ，因为需要跨库查询
+            }else if($datas['count_dimension'] == 'developer_id') { //开发人员
+                //开发人员暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'all_goods'){
-                $fba_fields = $group = 'g.channel_id' ;
+                if($datas['is_distinct_channel'] == 1) { //有区分店铺
+                    $table_fields = $table_group =  'rel.channel_id' ;
+                    $fba_fields = $group = 'channel_id' ;
+                }else{
+                    $table_fields = $table_group =  'g.id' ;
+                    $fba_fields = $group = 'id' ;
+                }
             }else if($datas['count_dimension'] == 'goods_channel'){
-                $fba_fields = $group = 'g.channel_id' ;
+                $table_fields = $table_group =  'rel.channel_id' ;
+                $fba_fields = $group = 'channel_id' ;
             }
+
 
             $where_arr = array() ;
             foreach($lists as $list1){
                 if($datas['count_dimension'] == 'sku'){
-                    $where_arr[] = array('sku' => AmazonGoodsFinanceMysqlModel::escape($list1['sku']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                    if($datas['is_distinct_channel'] == 1) {
+                        $where_arr[] = array('sku' => self::escape($list1['sku']), 'channel_id' => $list1['channel_id']);
+                    }else{
+                        $where_arr[] = array('sku' => self::escape($list1['sku']));
+                    }
                 }else if($datas['count_dimension'] == 'asin'){
-                    $where_arr[] = array('asin' => AmazonGoodsFinanceMysqlModel::escape($list1['asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                    if($datas['is_distinct_channel'] == 1) {
+                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id']);
+                    }else{
+                        $where_arr[] = array('asin' => self::escape($list1['asin']));
+                    }
                 }else if($datas['count_dimension'] == 'parent_asin'){
-                    $where_arr[] = array('parent_asin' => AmazonGoodsFinanceMysqlModel::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'], 'site_id' => $list1['site_id']);
+                    if($datas['is_distinct_channel'] == 1) {
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id']);
+                    }else{
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
+                    }
                 }else if($datas['count_dimension'] == 'class1'){
-                    $where_arr[] = array('goods_product_category_name_1'=>$list1['class1']) ;
+                    //分类暂时没有 ，因为需要跨库查询
                 }else if($datas['count_dimension'] == 'group'){
-                    $where_arr[] = array('group_id'=>$list1['group_id'] ) ;
+                    $where_arr[] = array('group_id'=>$list1['group_id']) ;
                 }else if($datas['count_dimension'] == 'tags'){  //标签
                     $where_arr[] = array('tags_id'=>$list1['tags_id']) ;
                 }else if($datas['count_dimension'] == 'head_id'){  //负责人
-                    $where_arr[] = array('head_id'=>$list1['head_id']) ;
+                    //负责人暂时没有 ，因为需要跨库查询
                 }else if($datas['count_dimension'] == 'developer_id'){ //开发人
-                    $where_arr[] = array('developer_id'=>$list1['developer_id']) ;
+                    //开发人暂时没有 ，因为需要跨库查询
                 }else if($datas['count_dimension'] == 'isku'){ //开发人
                     $where_arr[] = array('isku_id'=>$list1['isku_id']) ;
-                }else{
-                    $where_arr[] = array('channel_id' => $list1['channel_id']);
+                }else {
+                    $where_arr[] = array('channel_id'=>$list1['channel_id']) ;
                 }
             }
 
             if($datas['count_dimension'] == 'sku' || $datas['count_dimension'] == 'asin' || $datas['count_dimension'] == 'parent_asin'){
-                $whereDatas = array() ;
-                foreach($where_arr as $wheres){
-                    $whereDatas[$wheres['channel_id']][] = $wheres[$datas['count_dimension']] ;
+                if($datas['is_distinct_channel'] == 1) {
+                    $whereDatas = array() ;
+                    foreach($where_arr as $wheres){
+                        $whereDatas[$wheres['channel_id']][] = $wheres[$datas['count_dimension']] ;
+                    }
+                    $where_strs = array() ;
+                    foreach($whereDatas as $cid => $wd){
+                        $str = "'" . implode("','" , $wd) . "'" ;
+                        if($datas['count_dimension'] == 'sku'){
+                            $where_strs[] = '( rel.channel_id = ' . $cid . ' AND g.seller_sku ' . ' IN (' . $str . '))' ;
+                        }else{
+                            $where_strs[] = '( rel.channel_id = ' . $cid . ' AND g.'.$datas['count_dimension'] . ' IN (' . $str . '))' ;
+                        }
+
+                    }
+                    $where_str = "(".implode(' OR ' , $where_strs).")" ;
+
+                }else{
+                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
+                    $str = "'" . implode("','" , $where_strs) . "'" ;
+                    $where_str = 'g.'.$datas['count_dimension'].' IN (' . $str . ') ' ;
                 }
-                $where_strs = array() ;
-                foreach($whereDatas as $cid => $wd){
-                    $str = "'" . implode("','" , $wd) . "'" ;
-                    $where_strs[] = '( g.channel_id = ' . $cid . ' AND g.'.$datas['count_dimension'] . ' IN (' . $str . '))' ;
-                }
-                $where_str = "(".implode(' OR ' , $where_strs).")" ;
             }else if($datas['count_dimension'] == 'class1'){
-                $where_strs = array_unique(array_column($where_arr , 'goods_product_category_name_1')) ;
-                $str = "'" . implode("','" , $where_strs) . "'" ;
-                $where_str = 'g.product_category_name_1 IN (' . $str . ') ' ;
+                //分类暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'group'){
                 $where_strs = array_unique(array_column($where_arr , 'group_id')) ;
-                $where_str = 'g.group_id IN (' . implode(',' , $where_strs) . ' ) ';
+                $where_str = 'ext.group_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else if($datas['count_dimension'] == 'tags'){ //标签
+                $where_strs = array_unique(array_column($where_arr , 'tags_id')) ;
+                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else if($datas['count_dimension'] == 'head_id'){
+                //负责人暂时没有 ，因为需要跨库查询
+            }else if($datas['count_dimension'] == 'developer_id'){
+                //开发人员暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
-                $where_str = 'g.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
-            }else if($datas['count_dimension'] == 'all_goods' || $datas['count_dimension'] == 'goods_channel'){
+                $where_str = 'ext.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else{
                 $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
-                $where_str = 'g.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
-            } else{
-                $where_str = '1=1' ;
+                $where_str = 'rel.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
             }
         }
-        $where.= ' AND ' . $where_str." AND g.fba_inventory_v3_id > 0  AND g.Transport_mode = 2" ;
+        $where.= ' AND ' . $where_str." AND g.id > 0 " ;
         if(isset($datas['where_detail']) && $datas['where_detail']){
             if (!is_array($datas['where_detail'])){
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
             }
-            if ($datas['where_detail']['group_id'] && !empty(trim($datas['where_detail']['group_id']))){
-                $where .= ' AND g.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
+            if (!empty($datas['where_detail']['group_id']) && !empty(trim($datas['where_detail']['group_id']))){
+                $where .= ' AND ext.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
             }
-            if ($datas['where_detail']['transport_mode'] && !empty(trim($datas['where_detail']['transport_mode']))){
+            /*if (!empty($datas['where_detail']['transport_mode']) && !empty(trim($datas['where_detail']['transport_mode']))){
                 $where .= ' AND g.Transport_mode = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
+            } //FBA 信息 Transport_mode 必为 2   */
+            if (!empty($datas['where_detail']['is_care']) && !empty(trim($datas['where_detail']['is_care']))){
+                $where .= ' AND ext.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
             }
-            if ($datas['where_detail']['is_care'] && !empty(trim($datas['where_detail']['is_care']))){
-                $where .= ' AND g.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
+            if (!empty($datas['where_detail']['tag_id']) && !empty(trim($datas['where_detail']['tag_id']))){
+                if ($datas['count_dimension'] != 'tags'){
+                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                }
+                $where .=' AND tags_rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
             }
         }
+        $table_fields.= ' , g.fulfillable_quantity, g.available_days  ,g.reserved_quantity , g.replenishment_quantity , g.available_stock ' ;
 
-        $fba_fields .= ' , SUM(DISTINCT(CASE WHEN g.fulfillable_quantity < 0 THEN 0 ELSE g.fulfillable_quantity END )) as fba_sales_stock ,MAX(DISTINCT( CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as  fba_sales_day , MAX(DISTINCT(g.available_days) ) as max_fba_sales_day , MIN( DISTINCT(g.available_days) ) as min_fba_sales_day , MIN(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END ))  as min_egt0_fba_sales_day , MAX(DISTINCT(CASE WHEN g.available_days < 0 THEN 0 ELSE g.available_days END )) as max_egt0_fba_sales_day , SUM(DISTINCT(CASE WHEN g.reserved_quantity < 0 THEN 0 ELSE g.reserved_quantity END )) as fba_reserve_stock  , SUM(DISTINCT( CASE WHEN g.replenishment_quantity < 0 THEN 0 ELSE g.replenishment_quantity END ))  as fba_recommended_replenishment , MAX( DISTINCT(g.replenishment_quantity) ) as max_fba_recommended_replenishment ,MIN( DISTINCT(g.replenishment_quantity) ) as min_fba_recommended_replenishment , SUM(DISTINCT( CASE WHEN g.available_stock < 0 THEN 0 ELSE g.available_stock END )) as fba_special_purpose , MAX( DISTINCT(g.available_stock)) as  max_fba_special_purpose , MIN(DISTINCT( g.available_stock) )  as min_fba_special_purpose ';
 
-        $goods_finance_md = new AmazonGoodsFinanceMysqlModel([], $this->dbhost, $this->codeno);
-        $goods_finance_md->dryRun(env('APP_TEST_RUNNING', false));
-        $fbaData =$goods_finance_md->select($where, $fba_fields, $table, '', '', $group);
+        $fba_fields .= ' , SUM(DISTINCT(CASE WHEN fulfillable_quantity < 0 THEN 0 ELSE fulfillable_quantity END )) as fba_sales_stock ,MAX(DISTINCT( CASE WHEN available_days < 0 THEN 0 ELSE available_days END )) as  fba_sales_day , MAX(DISTINCT(available_days) ) as max_fba_sales_day , MIN(DISTINCT(available_days) ) as min_fba_sales_day , MIN(DISTINCT(CASE WHEN available_days < 0 THEN 0 ELSE available_days END ))  as min_egt0_fba_sales_day , MAX(DISTINCT(CASE WHEN available_days < 0 THEN 0 ELSE available_days END )) as max_egt0_fba_sales_day , SUM(DISTINCT(CASE WHEN reserved_quantity < 0 THEN 0 ELSE reserved_quantity END )) as fba_reserve_stock  , SUM(DISTINCT( CASE WHEN replenishment_quantity < 0 THEN 0 ELSE replenishment_quantity END ))  as fba_recommended_replenishment , MAX( DISTINCT(replenishment_quantity) ) as max_fba_recommended_replenishment ,MIN( DISTINCT(replenishment_quantity) ) as min_fba_recommended_replenishment , SUM(DISTINCT( CASE WHEN available_stock < 0 THEN 0 ELSE available_stock END )) as fba_special_purpose , MAX( DISTINCT(available_stock)) as  max_fba_special_purpose , MIN(DISTINCT(available_stock) )  as min_fba_special_purpose ';
+
+        $table_tmp = " (SELECT {$table_fields} FROM {$table} WHERE {$where} GROUP BY {$table_group} ) as tmp  " ;
+        $fbaData = $amazon_fba_inventory_v3_md->select('' , $fba_fields, $table_tmp ,'','',$group) ;
         $fbaDatas = array() ;
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
@@ -706,15 +787,15 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 }else if($datas['count_dimension'] == 'parent_asin'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'parent_asin',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'class1'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'product_category_name_1',1,$fbaDatas);
+
                 }else if($datas['count_dimension'] == 'group'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'group_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'tags'){  //标签（需要刷数据）
                     $fbaDatas = $this->handleGoodsFbaData($fba,'tags_id',1,$fbaDatas);
                 }else if($datas['count_dimension'] == 'head_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'head_id',1,$fbaDatas);
+
                 }else if($datas['count_dimension'] == 'developer_id'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'developer_id',1,$fbaDatas);
+
                 }else if($datas['count_dimension'] == 'isku'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',1,$fbaDatas);
                 }elseif($datas['count_dimension'] == 'all_goods'){
