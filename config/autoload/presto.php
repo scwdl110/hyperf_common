@@ -45,17 +45,17 @@ return (function() {
         '004' => $cluster1,
         '005' => $cluster1,
 
-        '006' => $cluster2,
-        '007' => $cluster2,
-        '008' => $cluster2,
-        '009' => $cluster2,
-        '010' => $cluster2,
+//        '006' => $cluster2,
+//        '007' => $cluster2,
+//        '008' => $cluster2,
+//        '009' => $cluster2,
+//        '010' => $cluster2,
 
-        '011' => $cluster3,
-        '012' => $cluster3,
-        '013' => $cluster3,
-        '014' => $cluster3,
-        '015' => $cluster3,
-        '016' => $cluster3,
+//        '011' => $cluster3,
+//        '012' => $cluster3,
+//        '013' => $cluster3,
+//        '014' => $cluster3,
+//        '015' => $cluster3,
+//        '016' => $cluster3,
     ];
 })();
