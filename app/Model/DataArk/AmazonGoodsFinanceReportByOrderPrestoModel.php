@@ -1018,6 +1018,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $targets = explode(',', $datas['target']);
+
+        //是否计算总支出(查询总支出、毛利润、毛利率时需要计算总支出)--总支出=亚马逊费用 + 退款 + promote折扣 + cpc_sp_cost + cpc_sd_cost + 商品成本 + 物流 + 测评费用 + 运营费用 + VAT
+        $isCalTotalPay=in_array('cost_profit_total_pay', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets);
+
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
@@ -1129,7 +1133,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['sale_return_goods_number'] = "SUM (report.report_refund_num )";
             }
         }
-        if (in_array('sale_refund', $targets)) {  //退款
+        if (in_array('sale_refund', $targets) || $isCalTotalPay) {  //退款
             if ($datas['refund_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['sale_refund'] = "SUM ( 0 - report.byorder_refund )";
@@ -1148,7 +1152,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['sale_refund_rate'] = $fields['sale_return_goods_number'] . " * 1.0 / nullif( " . $fields['sale_sales_volume'] . " ,0) ";
         }
 
-        if (in_array('promote_discount', $targets)) {  //promote折扣
+        if (in_array('promote_discount', $targets) || $isCalTotalPay) {  //promote折扣
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['promote_discount'] = "SUM(report.byorder_promote_discount)";
@@ -1180,7 +1184,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
-             || in_array('cost_profit_total_pay', $targets)) {  //采购成本
+            || $isCalTotalPay) {  //采购成本
             if ($datas['finance_datas_origin'] == 1) {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     if ($datas['cost_count_type'] == '1') {
@@ -1213,7 +1217,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }
         if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
-            || in_array('cost_profit_total_pay', $targets)) {  // 物流/头程
+            || $isCalTotalPay) {  // 物流/头程
             if ($datas['finance_datas_origin'] == 1) {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     if ($datas['cost_count_type'] == '1') {
@@ -1248,27 +1252,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) ||  in_array('cost_profit_total_pay', $targets) ) {  //毛利润
-            if ($datas['finance_datas_origin'] == '1') {
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                } else {
-                    $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)))' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                }
-            } else {
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                } else {
-                    $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)))' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                }
-            }
-
-        }
-        if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
-            $fields['cost_profit_profit_rate'] = $fields['cost_profit_profit'] . " /  nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
-        }
-
-        if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets) || in_array('cost_profit_total_income',$targets)) {  //亚马逊费用
+        if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets) || $isCalTotalPay) {  //亚马逊费用
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['amazon_fee'] = 'SUM (report.byorder_goods_amazon_fee)';
@@ -1456,7 +1440,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
             $fields['purchase_logistics_cost_rate'] = '(' . $fields['purchase_logistics_purchase_cost'] . ' + ' . $fields['purchase_logistics_logistics_cost'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
-        if (in_array('operate_fee', $targets) || in_array('operate_fee_rate', $targets)) {  //运营费用
+        if (in_array('operate_fee', $targets) || in_array('operate_fee_rate', $targets) || $isCalTotalPay) {  //运营费用
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['operate_fee'] = "SUM ( 0- report.byorder_reserved_field16 ) ";
             } else {
@@ -1466,7 +1450,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (in_array('operate_fee_rate', $targets)) {  //运营费用占比
             $fields['operate_fee_rate'] = '(' . $fields['operate_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
-        if (in_array('evaluation_fee', $targets) || in_array('evaluation_fee_rate', $targets)) {  //测评费用
+        if (in_array('evaluation_fee', $targets) || in_array('evaluation_fee_rate', $targets) || $isCalTotalPay) {  //测评费用
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['evaluation_fee'] = "SUM ( report.byorder_reserved_field10 ) ";
@@ -1485,14 +1469,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['evaluation_fee_rate'] = '(' . $fields['evaluation_fee'] . ") / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
 
-        if (in_array('cpc_sp_cost', $targets)) {  //CPC_SP花费
+        if (in_array('cpc_sp_cost', $targets) || $isCalTotalPay) {  //CPC_SP花费
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost) ";
             } else {
                 $fields['cpc_sp_cost'] = " SUM ( report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1))) ";
             }
         }
-        if (in_array('cpc_sd_cost', $targets)) {  //CPC_SD花费
+        if (in_array('cpc_sd_cost', $targets) || $isCalTotalPay) {  //CPC_SD花费
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['cpc_sd_cost'] = " SUM ( report.byorder_cpc_sd_cost) ";
             } else {
@@ -1584,7 +1568,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['cpc_indirect_sales_volume_rate'] = '(' . $fields['cpc_indirect_sales_volume'] . ") / nullif( " . $fields['sale_sales_volume'] . " , 0 ) ";
         }
 
-        if (in_array('other_vat_fee', $targets)) { //VAT
+        if (in_array('other_vat_fee', $targets) || $isCalTotalPay) { //VAT
             if($datas['finance_datas_origin'] == 1){
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['other_vat_fee'] = "SUM(0-report.byorder_reserved_field17)";
@@ -1616,7 +1600,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['fba_special_purpose'] = '1';
         }
 
-        if (in_array('cost_profit_total_income', $targets) || in_array('cost_profit_total_pay', $targets)) {   //总收入
+        if (in_array('cost_profit_total_income', $targets) || $isCalTotalPay) {   //总收入
             if ($datas['sale_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
@@ -1647,10 +1631,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }
 
-        if (in_array('cost_profit_total_pay', $targets) ) {   //总支出
-            $fields['cost_profit_total_income'] = $fields['cost_profit_profit'] . '-' . $fields['cost_profit_total_income']  ;
+        //调整总收入、总支出、毛利润计算方式：
+        //总收入=商品销售额+ 退款返还Promote折扣
+        //总支出=亚马逊费用 + 退款 + promote折扣 + cpc_sp_cost + cpc_sd_cost + 商品成本 + 物流 + 测评费用 + 运营费用 + VAT
+        //毛利润=总收入+总支出（总支出为负值），毛利率=毛利润/总收入
+        if (in_array('cost_profit_total_pay', $targets) || $isCalTotalPay) {   //总支出
+            $fields['cost_profit_total_pay'] ="{$fields['amazon_fee']}+{$fields['sale_refund']}+{$fields['promote_discount']}+{$fields['cpc_sp_cost']}
+                                                +{$fields['cpc_sd_cost']}+{$fields['purchase_logistics_purchase_cost']}+{$fields['purchase_logistics_logistics_cost']}+{$fields['evaluation_fee']}
+                                                +{$fields['operate_fee']}+{$fields['other_vat_fee']}";
         }
-
+        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {
+            $fields['cost_profit_profit'] = $fields['cost_profit_total_income'] . "+" . $fields['cost_profit_total_pay'];
+            if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
+                $fields['cost_profit_profit_rate'] = '('.$fields['cost_profit_profit'] . ") * 1.00000 / nullif( " . $fields['cost_profit_total_income'] . " ,0) ";
+            }
+        }
 
         $this->getUnTimeFields($fields,$datas,$targets);
 
