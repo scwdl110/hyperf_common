@@ -1904,7 +1904,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($datas['time_target'] == 'sale_refund_rate') {  //退款率
             if ($datas['refund_datas_origin'] == '1') {
-                $fields['count_total'] = "SUM (report.byorder_refund_num  ) * 1.00000 / nullif(SUM(report.byorder_sales_volume),0)";
+                $fields['count_total'] = "SUM (report.byorder_refund_num  ) * 1.00000 / nullif(SUM(report.byorder_sales_volume),0)";//*1.0只会保留一位小数
                 $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0 ", "report.byorder_sales_volume");
             } elseif ($datas['refund_datas_origin'] == '2') {
                 $fields['count_total'] = "SUM (report.report_refund_num ) * 1.00000 / nullif(SUM(report.report_sales_volume),0)";
