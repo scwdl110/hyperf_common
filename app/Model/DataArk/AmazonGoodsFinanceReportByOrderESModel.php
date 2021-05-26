@@ -641,8 +641,8 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             }else if($datas['count_dimension'] == 'group'){ //分组
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
 
-                $table_fields = $table_group = 'ext.isku_id , g.id' ;
-                $fba_fields = $group = 'isku_id , id' ;
+                $table_fields = $table_group = 'ext.group_id , g.id' ;
+                $fba_fields = $group = 'group_id , id' ;
 
             }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
@@ -861,6 +861,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
     protected function handleGoodsFbaData($fba, $field, $is_distinct_channel = 0, $fbaDatas = array())
     {
+        if(empty($fba[$field])){
+            return $fbaDatas ;
+        }
         if($is_distinct_channel == 1 && ($field == 'sku' || $field == 'asin' || $field == 'parent_asin')){
             $fbaDatas[$fba[$field].'-'.$fba['channel_id']] = $fba ;
         } else {
