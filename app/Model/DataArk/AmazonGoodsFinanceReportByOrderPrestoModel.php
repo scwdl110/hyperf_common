@@ -842,6 +842,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $table_tmp = " (SELECT {$table_fields} FROM {$table} WHERE {$where} GROUP BY {$table_group} ) as tmp  " ;
         $fbaDatas = array() ;
         $fbaData = $amazon_fba_inventory_v3_md->select('' , $fba_fields, $table_tmp ,'','',$group) ;
+        $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+        $logger->info('getGoodsFbaDataTmp Mysql:', [ $amazon_fba_inventory_v3_md->getLastSql()]);
+
         if (!empty($fbaData)){
             foreach($fbaData as $fba){
                 if($datas['count_dimension'] == 'sku'){
