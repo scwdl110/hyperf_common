@@ -131,19 +131,19 @@ abstract class AbstractPrestoModel implements BIModelInterface
         "isku_developer_id" => "isku_developer_id",
         //"goods_operation_user_admin_name" => "goods_operation_user_admin_name",
         "parent_asin_group" => array(
-            'day' => "goods_parent_asin,report.myear,report.mmonth,report.mday",
-            'week' => "goods_parent_asin,report.mweekyear,mweek",
-            'month' => "goods_parent_asin,report.myear,report.mmonth"
+            'day' => "goods_parent_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_parent_asin,amazon_goods.goods_channel_id,report.mweekyear,mweek",
+            'month' => "goods_parent_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth"
         ),
         "asin_group" => array(
-            'day' => "goods_asin,report.myear,report.mmonth,report.mday",
-            'week' => "goods_asin,report.myear,report.mweekyear,mweek",
-            'month' => "goods_asin,report.myear,report.mmonth"
+            'day' => "goods_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_asin,amazon_goods.goods_channel_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth"
         ),
         "sku_group" => array(
-            'day' => "goods_sku,report.myear,report.mmonth,report.mday",
-            'week' => "goods_sku,report.myear,report.mweekyear,mweek",
-            'month' => "goods_sku,report.myear,report.mmonth"
+            'day' => "goods_sku,amazon_goods.goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_sku,amazon_goods.goods_channel_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_sku,amazon_goods.goods_channel_id,report.myear,report.mmonth"
         ),
         "isku_group" => array(
             'day' => "isku_isku,report.myear,report.mmonth,report.mday",
@@ -450,7 +450,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
 
                 } else {
-                    if (strpos('_day_report_', $table)) {
+                    if (strpos($table, '_day_report_')) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
                     } elseif (strpos('_week_report_', $table)) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
@@ -461,7 +461,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $this->lastSql = $sql;
         }
-
         $this->logSql();
         if ($this->logDryRun()) {
             return [];
