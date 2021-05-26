@@ -2220,9 +2220,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if (in_array('cost_profit_total_income', $targets)) {  //总收入
             if ($datas['sale_datas_origin'] == '1') {
-                $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
+                $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota + report.byorder_refund_promote_discount)";
             } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota )";
+                $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota + report.report_refund_promote_discount)";
             }
         }
 
