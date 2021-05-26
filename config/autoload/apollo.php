@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 return [
     // 是否开启配置中心的接入流程，为 true 时会自动启动一个 ConfigFetcherProcess 进程用于更新配置
-    'enable' => env('APOLLO_ENABLE', false),
+    'enable' =>  false , //env('APOLLO_ENABLE', false), 暂时先禁用掉 APOLLO
     // 是否使用独立进程来拉取config，如果否则将在worker内以协程方式拉取
     'use_standalone_process' => true,
     // Apollo Server

@@ -92,7 +92,7 @@ abstract class AbstractESModel implements BIModelInterface
         string $group = '',
         array $match = [],
         array $orMatch = [],
-        $isJoin
+        bool $isJoin = false
     ) {
 
         $where = is_array($where) ? $this->sqls($where) : $where;
@@ -142,7 +142,7 @@ abstract class AbstractESModel implements BIModelInterface
             }
         }
         $sql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
-        if($isJoin==1){
+        if($isJoin){
 
         }
         return "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
@@ -155,9 +155,9 @@ abstract class AbstractESModel implements BIModelInterface
         $limit = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
-        int $cacheTTL = 300,
-        $isJoin = 0
+        int $cacheTTL = 300
     ): array {
         $sql = $this->lastSql = $this->parseSql($where, $data, $table, $limit, $order, $group,$isJoin);
         if ($this->logDryRun()) {
@@ -279,10 +279,11 @@ abstract class AbstractESModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false,
         bool $isCache = false,
         int $cacheTTL = 300
     ) {
-        $result = $this->select($where, $data, $table, 1, $order, $group, $isCache, $cacheTTL);
+        $result = $this->select($where, $data, $table, 1, $order, $group, $isJoin , $isCache, $cacheTTL);
         return $result[0] ?? [];
     }
 
@@ -292,10 +293,11 @@ abstract class AbstractESModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array {
-        return $this->getOne($where, $data, $table, $order, $group, $isCache, $cacheTTL);
+        return $this->getOne($where, $data, $table, $order, $group,$isJoin ,$isCache, $cacheTTL);
     }
 
     public function count(
@@ -304,6 +306,7 @@ abstract class AbstractESModel implements BIModelInterface
         string $group = '',
         string $data = '',
         string $cols = '',
+        bool $isJoin = false,
         bool $isCache = false,
         int $cacheTTL = 300
     ): int {

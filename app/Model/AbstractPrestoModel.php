@@ -131,19 +131,19 @@ abstract class AbstractPrestoModel implements BIModelInterface
         "isku_developer_id" => "isku_developer_id",
         //"goods_operation_user_admin_name" => "goods_operation_user_admin_name",
         "parent_asin_group" => array(
-            'day' => "goods_parent_asin,report.myear,report.mmonth,report.mday",
-            'week' => "goods_parent_asin,report.mweekyear,mweek",
-            'month' => "goods_parent_asin,report.myear,report.mmonth"
+            'day' => "goods_parent_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_parent_asin,amazon_goods.goods_channel_id,report.mweekyear,mweek",
+            'month' => "goods_parent_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth"
         ),
         "asin_group" => array(
-            'day' => "goods_asin,report.myear,report.mmonth,report.mday",
-            'week' => "goods_asin,report.myear,report.mweekyear,mweek",
-            'month' => "goods_asin,report.myear,report.mmonth"
+            'day' => "goods_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_asin,amazon_goods.goods_channel_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth"
         ),
         "sku_group" => array(
-            'day' => "goods_sku,report.myear,report.mmonth,report.mday",
-            'week' => "goods_sku,report.myear,report.mweekyear,mweek",
-            'month' => "goods_sku,report.myear,report.mmonth"
+            'day' => "goods_sku,amazon_goods.goods_channel_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_sku,amazon_goods.goods_channel_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_sku,amazon_goods.goods_channel_id,report.myear,report.mmonth"
         ),
         "isku_group" => array(
             'day' => "isku_isku,report.myear,report.mmonth,report.mday",
@@ -406,9 +406,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $limit = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
-        int $cacheTTL = 300,
-        int $isJoin = 0
+        int $cacheTTL = 300
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -443,14 +443,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         //商品级
         //print_r($this->goodsCols);
-        if($isJoin == 1){
+        if($isJoin){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
                     $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
                     $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
 
                 } else {
-                    if (strpos('_day_report_', $table)) {
+                    if (strpos($table, '_day_report_')) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
                     } elseif (strpos('_week_report_', $table)) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
@@ -461,7 +461,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $this->lastSql = $sql;
         }
-
         $this->logSql();
         if ($this->logDryRun()) {
             return [];
@@ -505,11 +504,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
-        int $cacheTTL = 300,
-        $isJson = 0
+        int $cacheTTL = 300
     ): array {
-        $result = $this->select($where, $data, $table, 1, $order, $group, $isCache, $cacheTTL,$isJson);
+        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL);
 
         return $result[0] ?? [];
     }
@@ -521,10 +520,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array {
-        return $this->getOne($where, $data, $table, $order, $group, $isCache, $cacheTTL);
+        return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL);
     }
 
     /**
@@ -546,9 +546,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         string $data = '',
         string $cols = '',
+        bool $isJoin = false ,
         bool $isCache = false,
-        int $cacheTTL = 300,
-        int $isJoin = 0
+        int $cacheTTL = 300
+
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
 
@@ -560,14 +561,15 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 "$table",
                 '',
                 '',
+                $isJoin ,
                 $isCache,
-                $cacheTTL,
-                $isJoin
+                $cacheTTL
+
             );
         } elseif (!empty($cols)) {
-            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isCache, $cacheTTL, $isJoin);
+            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL);
         } else {
-            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '', $isCache, $cacheTTL, $isJoin);
+            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL);
         }
 
         return intval($result['num'] ?? 0);
