@@ -292,7 +292,7 @@ function getStartAndEndTimeAllSite($type = 1)
      $localDate = [];
      $datetime = new \DateTime();
      foreach ($siteTimeZones as $siteId => $timeZone) {
-         $datetime->setTimeZone(new \DateTimeZone($timeZone));
+         //$datetime->setTimeZone(new \DateTimeZone($timeZone));   /改为全部使用北京时间
          $localDate[$siteId]['site_id'] = $siteId;
          $localDate[$siteId]['start'] = date('Y-m-d 00:00:00', strtotime($datetime->format('Y-m-d 00:00:00P')));
          $localDate[$siteId]['end'] = date('Y-m-d 23:59:59', strtotime($datetime->format('Y-m-d 23:59:59P')));
