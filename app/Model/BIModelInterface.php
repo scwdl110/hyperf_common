@@ -20,6 +20,7 @@ interface BIModelInterface
         $limit = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array;
@@ -30,6 +31,7 @@ interface BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array;
@@ -40,6 +42,7 @@ interface BIModelInterface
         string $group = '',
         string $data = '',
         string $cols = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): int;
