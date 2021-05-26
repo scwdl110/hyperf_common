@@ -612,42 +612,49 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                     $fba_fields = $group = 'sku , channel_id' ;
                 }else{
                     $table_fields = 'g.seller_sku as sku , g.id' ;
-                    $table_group = 'g.seller_sku as sku , g.id' ;
+                    $table_group = 'g.seller_sku , g.id' ;
                     $fba_fields = $group = 'sku, id' ;
                 }
             }else if($datas['count_dimension'] == 'asin'){
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = $table_group = 'g.asin , rel.channel_id' ;
+                    $table_fields = 'max(g.asin) as asin  , rel.channel_id' ;
+                    $table_group = 'g.seller_sku , rel.channel_id' ;
                     $fba_fields = $group = 'asin , channel_id' ;
                 }else{
-                    $table_fields = $table_group = 'g.asin , g.id' ;
+                    $table_fields =  'max(g.asin) as asin  , g.id' ;
+                    $table_group = 'g.seller_sku , g.id' ;
                     $fba_fields = $group = 'asin ,id ' ;
                 }
             }else if($datas['count_dimension'] == 'parent_asin'){
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = $table_group = 'g.parent_asin , rel.channel_id' ;
+                    $table_fields =  'max(g.parent_asin) as parent_asin , rel.channel_id' ;
+                    $table_group = 'g.seller_sku , rel.channel_id' ;
                     $fba_fields = $group = 'parent_asin , channel_id' ;
                 }else{
-                    $table_fields = $table_group = 'g.parent_asin , g.id' ;
+                    $table_fields =  'max(g.parent_asin) as parent_asin ,  g.id' ;
+                    $table_group = 'g.seller_sku ,  g.id' ;
                     $fba_fields = $group = 'parent_asin ,id ' ;
                 }
             }else if($datas['count_dimension'] == 'isku'){
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
 
-                $table_fields = $table_group = 'ext.isku_id , g.id' ;
+                $table_fields =  'max(ext.isku_id) as isku_id , g.id' ;
+                $table_group = 'g.seller_sku ,  g.id' ;
                 $fba_fields = $group = 'isku_id ,id' ;
             }else if($datas['count_dimension'] == 'class1'){
                 //分类暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'group'){ //分组
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
 
-                $table_fields = $table_group = 'ext.group_id , g.id' ;
+                $table_fields = 'max(ext.group_id) as group_id , g.id' ;
+                $table_group = 'g.seller_sku ,  g.id' ;
                 $fba_fields = $group = 'group_id , id' ;
 
             }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
 
-                $table_fields = $table_group = 'tags_rel.tags_id,g.id' ;
+                $table_fields =  'max(tags_rel.tags_id) as tags_id ,g.id' ;
+                $table_group = 'g.seller_sku , tags_rel.tags_id , g.id' ;
                 $fba_fields = $group = 'tags_id , id' ;
 
 
@@ -657,14 +664,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 //开发人员暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'all_goods'){
                 if($datas['is_distinct_channel'] == 1) { //有区分店铺
-                    $table_fields = $table_group =  'rel.channel_id' ;
+                    $table_fields =  'rel.channel_id' ;
+                    $table_group = 'g.seller_sku , rel.channel_id' ;
                     $fba_fields = $group = 'channel_id' ;
                 }else{
-                    $table_fields = $table_group =  'g.id' ;
+                    $table_fields =  'g.id' ;
+                    $table_group = 'g.seller_sku , g.id' ;
                     $fba_fields = $group = 'id' ;
                 }
             }else if($datas['count_dimension'] == 'goods_channel'){
-                $table_fields = $table_group =  'rel.channel_id' ;
+                $table_fields = 'rel.channel_id' ;
+                $table_group = 'g.seller_sku , rel.channel_id' ;
                 $fba_fields = $group = 'channel_id' ;
             }
 
