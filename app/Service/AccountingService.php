@@ -414,7 +414,7 @@ class AccountingService extends BaseService
             custom_nl_exchang_rate as nl_exchang_rate,custom_sg_exchang_rate as sg_exchang_rate,custom_hk_exchang_rate as hk_exchang_rate"
         )->where([['user_id', '=', $user_id]])->first());
 
-        if (!isset($financeCurrencyList)) {
+        if (empty($financeCurrencyList)) {
             $SystemCurrencyList = $this->getArray(SystemCurrencyModel::select(
                 "id", "usd_exchang_rate", "cad_exchang_rate", "mxn_exchang_rate", "jpy_exchang_rate", "gbp_exchang_rate", "eur_exchang_rate", "au_exchang_rate", "in_exchang_rate", "br_exchang_rate",
                 "tr_exchang_rate", "ae_exchang_rate", "nl_exchang_rate", "sa_exchang_rate", "sg_exchang_rate", "hk_exchang_rate"
