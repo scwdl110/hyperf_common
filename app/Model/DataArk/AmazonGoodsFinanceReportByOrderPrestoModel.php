@@ -672,7 +672,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fba_fields = $group = 'sku , channel_id' ;
                 }else{
                     $table_fields = 'g.seller_sku as sku , g.id' ;
-                    $table_group = 'g.seller_sku as sku , g.id' ;
+                    $table_group = 'g.seller_sku , g.id' ;
                     $fba_fields = $group = 'sku, id' ;
                 }
             }else if($datas['count_dimension'] == 'asin'){
@@ -787,7 +787,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
                     $str = "'" . implode("','" , $where_strs) . "'" ;
-                    $where_str = 'g.'.$datas['count_dimension'].' IN (' . $str . ') ' ;
+                    if($datas['count_dimension'] == 'sku') {
+                        $where_str = 'g.seller_sku' . ' IN (' . $str . ') ';
+                    }else{
+                        $where_str = 'g.' . $datas['count_dimension'] . ' IN (' . $str . ') ';
+                    }
                 }
             }else if($datas['count_dimension'] == 'class1'){
                 //分类暂时没有 ，因为需要跨库查询
