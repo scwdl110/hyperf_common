@@ -5399,6 +5399,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
         $limit_num = 0 ;
+        $count = 0 ;
         if($datas['show_type'] == 2 && $datas['limit_num'] > 0 ){
             $limit_num = $datas['limit_num'] ;
         }
