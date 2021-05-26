@@ -40,8 +40,8 @@ return (function() {
 
     return [
         '001' => $cluster1,
-        '002' => $cluster2,
-        '003' => $cluster3,
+//        '002' => $cluster2,
+//        '003' => $cluster3,
 //        '004' => $cluster1,
 //        '005' => $cluster1,
 
