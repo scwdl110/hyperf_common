@@ -406,9 +406,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $limit = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
-        int $cacheTTL = 300,
-        int $isJoin = 0
+        int $cacheTTL = 300
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -443,7 +443,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         //商品级
         //print_r($this->goodsCols);
-        if($isJoin == 1){
+        if($isJoin){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
                     $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
@@ -505,11 +505,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
-        int $cacheTTL = 300,
-        $isJson = 0
+        int $cacheTTL = 300
     ): array {
-        $result = $this->select($where, $data, $table, 1, $order, $group, $isCache, $cacheTTL,$isJson);
+        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL);
 
         return $result[0] ?? [];
     }
@@ -521,10 +521,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array {
-        return $this->getOne($where, $data, $table, $order, $group, $isCache, $cacheTTL);
+        return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL);
     }
 
     /**
@@ -546,9 +547,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         string $data = '',
         string $cols = '',
+        bool $isJoin = false ,
         bool $isCache = false,
-        int $cacheTTL = 300,
-        int $isJoin = 0
+        int $cacheTTL = 300
+
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
 
@@ -560,14 +562,15 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 "$table",
                 '',
                 '',
+                $isJoin ,
                 $isCache,
-                $cacheTTL,
-                $isJoin
+                $cacheTTL
+
             );
         } elseif (!empty($cols)) {
-            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isCache, $cacheTTL, $isJoin);
+            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL);
         } else {
-            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '', $isCache, $cacheTTL, $isJoin);
+            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL);
         }
 
         return intval($result['num'] ?? 0);
