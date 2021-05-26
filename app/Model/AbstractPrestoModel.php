@@ -452,9 +452,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 } else {
                     if (strpos($table, '_day_report_')) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
-                    } elseif (strpos('_week_report_', $table)) {
+                    } elseif (strpos($table,'_week_report_' )) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
-                    } elseif (strpos('_month_report_', $table)) {
+                    } elseif (strpos($table,'_month_report_')) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['month'], $sql);
                     }
                 }
