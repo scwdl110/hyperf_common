@@ -596,7 +596,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             return $lists ;
         }else{
             $amazon_fba_inventory_v3_md = new AmazonFbaInventoryV3MySQLModel([], $this->dbhost, $this->codeno);
-            $where = "g.user_id = " . intval($lists[0]['user_id']);
+            $where = "g.user_id = " . intval($lists[0]['user_id']) ." AND g.is_parent=0";
             if (!empty($channel_arr)){
                 if (count($channel_arr)==1){
                     $where .= " AND rel.channel_id = ".intval(implode(",",$channel_arr));
