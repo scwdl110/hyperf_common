@@ -113,6 +113,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         $limit = '',
         string $order = '',
         string $group = '',
+        $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array {
@@ -180,10 +181,11 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array {
-        $result = $this->select($where, $data, $table, 1, $order, $group, $isCache, $cacheTTL);
+        $result = $this->select($where, $data, $table, 1, $order, $group, $isJoin ,$isCache, $cacheTTL);
         return $result[0] ?? [];
     }
 
@@ -193,10 +195,11 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         string $table = '',
         string $order = '',
         string $group = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): array {
-        return $this->getOne($where, $data, $table, $order, $group, $isCache, $cacheTTL);
+        return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL);
     }
 
     public function count(
@@ -205,6 +208,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         string $group = '',
         string $data = '',
         string $cols = '',
+        bool $isJoin = false ,
         bool $isCache = false,
         int $cacheTTL = 300
     ): int {
@@ -218,13 +222,14 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
                 "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
                 '',
                 '',
+                $isJoin ,
                 $isCache,
                 $cacheTTL
             );
         } elseif (!empty($cols)) {
-            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '',$isJoin , $isCache, $cacheTTL);
         } else {
-            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '', $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '', $isJoin,$isCache, $cacheTTL);
         }
 
         return intval($result['num'] ?? 0);
