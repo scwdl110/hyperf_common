@@ -1054,7 +1054,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if(in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)){
-            $table = "{$this->table_goods_day_report} AS report ";
+            $table = "{$this->table_goods_day_report} ";
             if($datas['min_ym'] == $datas['max_ym']){
                 $where  = "report.ym = '" . $datas['min_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
             }else{
@@ -1776,7 +1776,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $time_fields = [];
 
         if($datas['time_target'] == 'goods_views_rate' || $datas['time_target'] == 'goods_buyer_visit_rate'){
-            $table = "{$this->table_goods_day_report} AS report ";
+            $table = "{$this->table_goods_day_report} ";
             if($datas['min_ym'] == $datas['max_ym']){
                 $where  = "report.ym = '" . $datas['min_ym'] . "' AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
             }else{
