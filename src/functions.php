@@ -2,6 +2,7 @@
 
 namespace Captainbi\Hyperf;
 
+use Captainbi\Hyperf\Session\Session;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\SessionInterface;
 use Hyperf\Utils\ApplicationContext;
@@ -66,7 +67,7 @@ function current_url(): string
 function appendDbCodeno(string $name, int $type = 0): string
 {
     $open = env('CODENO_DB_OPEN');
-    if (!$open) { //未开启
+    if (!$open || php_sapi_name() == 'cli') { //未开启
         return $name;
     }
 
