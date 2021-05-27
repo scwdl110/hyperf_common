@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\DbConnection\Pool;
 
+use Hyperf\Contract\SessionInterface;
 use Hyperf\Di\Container;
 use Psr\Container\ContainerInterface;
+use function Captainbi\Hyperf\appendDbCodeno;
 
 class PoolFactory
 {
@@ -27,8 +29,9 @@ class PoolFactory
     public function getPool(string $name): DbPool
     {
 
-        if (isset($this->pools[$name])) {
-            return $this->pools[$name];
+        $key = appendDbCodeno($name, 1);
+        if (isset($this->pools[$key])) {
+            return $this->pools[$key];
         }
 
         if ($this->container instanceof Container) {
@@ -37,6 +40,6 @@ class PoolFactory
             $pool = new DbPool($this->container, $name);
         }
 
-        return $this->pools[$name] = $pool;
+        return $this->pools[$key] = $pool;
     }
 }

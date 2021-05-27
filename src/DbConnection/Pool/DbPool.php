@@ -13,6 +13,7 @@ use Hyperf\Di\Annotation\Inject;
 use Hyperf\Pool\Pool;
 use Hyperf\Utils\Arr;
 use Psr\Container\ContainerInterface;
+use function Captainbi\Hyperf\appendDbCodeno;
 
 class DbPool extends Pool
 {
@@ -43,14 +44,6 @@ class DbPool extends Pool
         $config->set("{$key}.name", $name);
 
         $this->config = $config->get($key);
-        //追加分库数据库编号
-        $dbList = env('CODENO_DB_LIST'); //已分库的数据库名称清单
-        $dbList = $dbList ? explode(',', $dbList) : array();
-        if (in_array($this->config['database'], $dbList)) {
-            $code = $container->get(SessionInterface::class)->get('codeno'); //dbhost
-            $code = $code ? '_'.$code : '';
-            $this->config['database'] .= $code;
-        }
 
         $options = Arr::get($this->config, 'pool', []);
 
@@ -65,6 +58,7 @@ class DbPool extends Pool
 
     protected function createConnection(): ConnectionInterface
     {
+        $this->config['database'] = appendDbCodeno($this->config['database']);
         return new Connection($this->container, $this, $this->config);
     }
 
