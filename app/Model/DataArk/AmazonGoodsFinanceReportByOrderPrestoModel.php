@@ -667,39 +667,39 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = "g_amazon_fba_inventory_v3_{$this->codeno} as g LEFT JOIN g_amazon_fba_inventory_v3_rel_{$this->codeno} as rel ON g.id = rel.inventory_id " ;
             if($datas['count_dimension'] == 'sku'){
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = 'g.seller_sku as sku , rel.channel_id' ;
-                    $table_group = 'g.seller_sku  , rel.channel_id' ;
+                    $table_fields = 'max(g.seller_sku) as sku , rel.channel_id' ;
+                    $table_group = 'g.id  , rel.channel_id' ;
                     $fba_fields = $group = 'sku , channel_id' ;
                 }else{
-                    $table_fields = 'g.seller_sku as sku , g.id' ;
-                    $table_group = 'g.seller_sku , g.id' ;
+                    $table_fields = 'max(g.seller_sku) as sku , g.id' ;
+                    $table_group = ' g.id' ;
                     $fba_fields = $group = 'sku, id' ;
                 }
             }else if($datas['count_dimension'] == 'asin'){
                 if($datas['is_distinct_channel'] == 1){
                     $table_fields = 'max(g.asin) as asin  , rel.channel_id' ;
-                    $table_group = 'g.seller_sku , rel.channel_id' ;
+                    $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'asin , channel_id' ;
                 }else{
                     $table_fields =  'max(g.asin) as asin  , g.id' ;
-                    $table_group = 'g.seller_sku , g.id' ;
+                    $table_group = ' g.id' ;
                     $fba_fields = $group = 'asin ,id ' ;
                 }
             }else if($datas['count_dimension'] == 'parent_asin'){
                 if($datas['is_distinct_channel'] == 1){
                     $table_fields =  'max(g.parent_asin) as parent_asin , rel.channel_id' ;
-                    $table_group = 'g.seller_sku , rel.channel_id' ;
+                    $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'parent_asin , channel_id' ;
                 }else{
                     $table_fields =  'max(g.parent_asin) as parent_asin ,  g.id' ;
-                    $table_group = 'g.seller_sku ,  g.id' ;
+                    $table_group = ' g.id' ;
                     $fba_fields = $group = 'parent_asin ,id ' ;
                 }
             }else if($datas['count_dimension'] == 'isku'){
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
 
                 $table_fields =  'max(ext.isku_id) as isku_id , g.id' ;
-                $table_group = 'g.seller_sku ,  g.id' ;
+                $table_group = ' g.id' ;
                 $fba_fields = $group = 'isku_id ,id' ;
             }else if($datas['count_dimension'] == 'class1'){
                 //分类暂时没有 ，因为需要跨库查询
@@ -707,14 +707,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
 
                 $table_fields = 'max(ext.group_id) as group_id , g.id' ;
-                $table_group = 'g.seller_sku ,  g.id' ;
+                $table_group = ' g.id' ;
                 $fba_fields = $group = 'group_id , id' ;
 
             }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
 
-                $table_fields =  'max(tags_rel.tags_id) as tags_id ,g.id' ;
-                $table_group = 'g.seller_sku , tags_rel.tags_id , g.id' ;
+                $table_fields =  'tags_rel.tags_id ,g.id' ;
+                $table_group = 'tags_rel.tags_id , g.id' ;
                 $fba_fields = $group = 'tags_id , id' ;
 
 
@@ -725,16 +725,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'all_goods'){
                 if($datas['is_distinct_channel'] == 1) { //有区分店铺
                     $table_fields =  'rel.channel_id' ;
-                    $table_group = 'g.seller_sku , rel.channel_id' ;
+                    $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'channel_id' ;
                 }else{
                     $table_fields =  'g.id' ;
-                    $table_group = 'g.seller_sku , g.id' ;
+                    $table_group = 'g.id' ;
                     $fba_fields = $group = 'id' ;
                 }
             }else if($datas['count_dimension'] == 'goods_channel'){
                 $table_fields = 'rel.channel_id' ;
-                $table_group = 'g.seller_sku , rel.channel_id' ;
+                $table_group = 'g.id , rel.channel_id' ;
                 $fba_fields = $group = 'channel_id' ;
             }
 
@@ -829,17 +829,27 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
             }
             if (!empty($datas['where_detail']['group_id']) && !empty(trim($datas['where_detail']['group_id']))){
+                if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
+                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                }
                 $where .= ' AND ext.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
             }
             /*if (!empty($datas['where_detail']['transport_mode']) && !empty(trim($datas['where_detail']['transport_mode']))){
                 $where .= ' AND g.Transport_mode = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
             } //FBA 信息 Transport_mode 必为 2   */
             if (!empty($datas['where_detail']['is_care']) && !empty(trim($datas['where_detail']['is_care']))){
+                if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
+                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                }
                 $where .= ' AND ext.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
             }
             if (!empty($datas['where_detail']['tag_id']) && !empty(trim($datas['where_detail']['tag_id']))){
                 if ($datas['count_dimension'] != 'tags'){
-                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                    if($datas['count_dimension'] == 'group' || $datas['count_dimension'] == 'isku'){
+                        $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                    }else{
+                        $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                    }
                 }
                 $where .=' AND tags_rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
             }
