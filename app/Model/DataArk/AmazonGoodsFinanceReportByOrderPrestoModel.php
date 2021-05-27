@@ -4133,47 +4133,39 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if (in_array('cost_profit_total_pay', $targets)) {  //总支出
-            if ($datas['sale_datas_origin'] == '1') {
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $filed1 = "report.byorder_channel_amazon_order_fee + report.byorder_channel_amazon_refund_fee + report.byorder_channel_amazon_storage_fee + report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee";//亚马逊费用
-                    $filed2 = " + report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund";//广告结款
-                    $filed3 = " - report.byorder_reserved_field17";//VAT
-                    $filed4 = " + report.byorder_purchasing_cost";//采购成本
-                    $filed5 = " + report.byorder_logistics_head_course";//物流/头程
-                    $filed6 = " + report.bychannel_operating_fee";//运营费用
-                    $filed7 = " + report.byorder_reserved_field10";//测评费用
-                    $filed8 = " + report.bychannel_loan_payment +  report.bychannel_review_enrollment_fee";//其他
-                    $filed9 = " + report.byorder_refund_promote_discount + report.byorder_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee";//店铺促销
-                    $filed10 = " + report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee";//商品调整
-                    $filed11 = "  - report.byorder_refund";//退款
-                    $file_total = $filed1.$filed2.$filed3.$filed4.$filed5.$filed6.$filed7.$filed8.$filed9.$filed10.$filed11;
-                    $fields['cost_profit_total_pay'] = "SUM ({$file_total})";
-                } else {
-                    $fields['cost_profit_total_pay'] = "SUM ( report.byorder_channel_amazon_order_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_channel_amazon_refund_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_channel_amazon_storage_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_order_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_refund_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_storage_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_product_ads_payment_eventlist_charge * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_product_ads_payment_eventlist_refund * ({:RATE} / COALESCE(rates.rate ,1)) - report.byorder_reserved_field17 * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_purchasing_cost* ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_reserved_field10 * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_loan_payment * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_review_enrollment_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_refund_promote_discount * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_promote_discount * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_coupon_redemption_fee  * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_run_lightning_deal_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) - report.byorder_refund * ({:RATE} / COALESCE(rates.rate ,1)) )";
-                }
-            } elseif ($datas['sale_datas_origin'] == '2') {
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $filed1 = "report.report_channel_amazon_order_fee + report.report_channel_amazon_refund_fee + report.report_channel_amazon_storage_fee + report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee";//亚马逊费用
-                    $filed2 = " + report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund";//广告结款
-                    $filed3 = " - report.report_reserved_field17";//VAT
-                    $filed4 = " + report.report_purchasing_cost";//采购成本
-                    $filed5 = " + report.report_logistics_head_course";//物流/头程
-                    $filed6 = " + report.bychannel_operating_fee";//运营费用
-                    $filed7 = " + report.report_reserved_field10";//测评费用
-                    $filed8 = " + report.bychannel_loan_payment  + report.bychannel_review_enrollment_fee";//其他
-                    $filed9 = " + report.report_refund_promote_discount + report.report_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee";//店铺促销费用
-                    $filed10 = " + report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee";//商品调整费用
-                    $filed11 = "  - report.report_refund";//退款
-                    $file_total = $filed1.$filed2.$filed3.$filed4.$filed5.$filed6.$filed7.$filed8.$filed9.$filed10.$filed11;
-                    $fields['cost_profit_total_pay'] = "SUM ({$file_total})";
-                } else {
-                    $fields['cost_profit_total_pay'] = "SUM (report.report_channel_amazon_order_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_channel_amazon_refund_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_channel_amazon_storage_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_order_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_refund_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_storage_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_product_ads_payment_eventlist_charge * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_product_ads_payment_eventlist_refund * ({:RATE} / COALESCE(rates.rate ,1)) - report.report_reserved_field17 * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_reserved_field10 * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_loan_payment  * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_review_enrollment_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_refund_promote_discount * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_promote_discount * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_coupon_redemption_fee  * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_run_lightning_deal_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) - report.report_refund * ({:RATE} / COALESCE(rates.rate ,1)) )";
-                }
+            $filed2 = " + report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund";//广告结款
+            $filed6 = " + report.bychannel_operating_fee";//运营费用
+            $filed8 = " + report.bychannel_loan_payment +  report.bychannel_review_enrollment_fee";//其他
+            if ($datas['finance_datas_origin'] == '1') {
+                $filed1 = "report.byorder_channel_amazon_order_fee + report.byorder_channel_amazon_refund_fee + report.byorder_channel_amazon_storage_fee + report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee";//亚马逊费用
+                $filed3 = " - report.byorder_reserved_field17";//VAT
+                $filed4 = " + report.byorder_purchasing_cost";//采购成本
+                $filed5 = " + report.byorder_logistics_head_course";//物流/头程
+                $filed7 = " + report.byorder_reserved_field10";//测评费用
+                $filed9 = " + report.byorder_refund_promote_discount + report.byorder_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee";//店铺促销费用
+                $filed10 = " + report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee";//商品调整
+            }else{
+                $filed1 = "report.report_channel_amazon_order_fee + report.report_channel_amazon_refund_fee + report.report_channel_amazon_storage_fee + report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_order_fee + report.bychannel_channel_amazon_refund_fee + report.bychannel_channel_amazon_storage_fee + report.bychannel_channel_amazon_other_fee";//亚马逊费用
+                $filed3 = " - report.report_reserved_field17";//VAT
+                $filed4 = " + report.report_purchasing_cost";//采购成本
+                $filed5 = " + report.report_logistics_head_course";//物流/头程
+                $filed7 = " + report.report_reserved_field10";//测评费用
+                $filed9 = " + report.report_refund_promote_discount + report.report_promote_discount + report.bychannel_coupon_redemption_fee  + report.bychannel_run_lightning_deal_fee";//店铺促销费用
+                $filed10 = " + report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee";//商品调整费用
             }
-
+            if ($datas['refund_datas_origin'] == '1') {
+                $filed11 = "  - report.byorder_refund";//退款
+            } else {
+                $filed11 = "  - report.report_refund";//退款
+            }
+            $file_total = $filed1.$filed2.$filed3.$filed4.$filed5.$filed6.$filed7.$filed8.$filed9.$filed10.$filed11;
+            if ($datas['currency_code'] != 'ORIGIN') {
+                $file_total = str_replace("+"," * ({:RATE} / COALESCE(rates.rate ,1)) +" , $file_total);
+                $file_total = str_replace("-"," * ({:RATE} / COALESCE(rates.rate ,1)) -" , $file_total);
+                $file_total .= " * ({:RATE} / COALESCE(rates.rate ,1))";
+            }
+            $fields['cost_profit_total_pay'] = "SUM ({$file_total})";
         }
-
-
         $this->getUnTimeFields($fields, $datas, $targets, 2);
 
         return $fields;
