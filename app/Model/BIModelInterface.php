@@ -21,7 +21,7 @@ interface BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array;
 
@@ -32,7 +32,7 @@ interface BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array;
 
@@ -43,7 +43,13 @@ interface BIModelInterface
         string $data = '',
         string $cols = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): int;
+
+    public function setDefaultCache(bool $defaultCache);
+
+    public function getDefaultCache(): bool;
+
+    public function isCache(?bool $cache): bool;
 }
