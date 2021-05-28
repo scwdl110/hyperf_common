@@ -1115,13 +1115,40 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
+            $repair_data = '' ;
             if ($datas['finance_datas_origin'] == '1') {
-                // $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
-            } else {
-                // $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                if ($datas['sale_datas_origin'] == '2') {
+                    $repair_data .= " + doc.report_sales_quota.value - doc.byorder_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '2') {
+                    $repair_data .=  " + doc.byorder_refund.value - doc.report_refund.value ";
+                }
+            }else{
+                if ($datas['sale_datas_origin'] == '1') {
+                    $repair_data .= " + doc.byorder_sales_quota.value - doc.report_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '1') {
+                    $repair_data .=  " + doc.report_refund.value - doc.byorder_refund.value ";
+                }
             }
+            if(empty($repair_data)){
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                }
+            }else{
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                }
+            }
+
 
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
@@ -1950,13 +1977,40 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //毛利润
+            $repair_data = '' ;
             if ($datas['finance_datas_origin'] == '1') {
-                // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
-            } else {
-                // $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                if ($datas['sale_datas_origin'] == '2') {
+                    $repair_data .= " + doc.report_sales_quota.value - doc.byorder_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '2') {
+                    $repair_data .=  " + doc.byorder_refund.value - doc.report_refund.value ";
+                }
+            }else{
+                if ($datas['sale_datas_origin'] == '1') {
+                    $repair_data .= " + doc.byorder_sales_quota.value - doc.report_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '1') {
+                    $repair_data .=  " + doc.report_refund.value - doc.byorder_refund.value ";
+                }
             }
+            if(empty($repair_data)){
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                }
+            }else{
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                }
+            }
+
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
 
