@@ -13,6 +13,8 @@ use Psr\SimpleCache\CacheInterface;
 
 abstract class AbstractESModel implements BIModelInterface
 {
+    use BIModelDefaultCacheTrait;
+
     protected $lastSql = '';
 
     protected $dbhost = '001';
@@ -69,6 +71,10 @@ abstract class AbstractESModel implements BIModelInterface
 
         if ($this->table && strlen($this->table) - 1 === strrpos($this->table, '_')) {
             $this->table = $this->table . $this->dbhost;
+        }
+
+        if (null === $this->isDefaultCache) {
+            $this->setDefaultCache(config('misc.elasticsearch_defautl_cache', false));
         }
 
         $this->esClient = Elasticsearch::getConnection($config, $this->logger, $handler, $tracer);
@@ -156,7 +162,7 @@ abstract class AbstractESModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         $sql = $this->lastSql = $this->parseSql($where, $data, $table, $limit, $order, $group,$isJoin);
@@ -165,7 +171,7 @@ abstract class AbstractESModel implements BIModelInterface
         }
 
         $cacheKey = 'ES_SQL_DATAS_' . md5($sql);
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $cacheData = $this->getCache()->get($cacheKey);
             if(!empty($cacheData)){
                 return $cacheData;
@@ -280,7 +286,7 @@ abstract class AbstractESModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ) {
         $result = $this->select($where, $data, $table, 1, $order, $group, $isJoin , $isCache, $cacheTTL);
@@ -294,7 +300,7 @@ abstract class AbstractESModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         return $this->getOne($where, $data, $table, $order, $group,$isJoin ,$isCache, $cacheTTL);
@@ -307,7 +313,7 @@ abstract class AbstractESModel implements BIModelInterface
         string $data = '',
         string $cols = '',
         bool $isJoin = false,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): int {
         $sql = $this->lastSql = $this->parseSql($where, 'count(*)', $table, '', '', $group);
@@ -316,7 +322,7 @@ abstract class AbstractESModel implements BIModelInterface
         }
 
         $cacheKey = 'ES_SQL_DATAS_' . md5($sql);
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $cacheData = $this->getCache()->get($cacheKey);
             if(!empty($cacheData)){
                 return $cacheData;
@@ -333,7 +339,7 @@ abstract class AbstractESModel implements BIModelInterface
         if ($result['_shards']['successful'] > 0) {
             $aggregations = array_values($result['aggregations']);
             $count = (int)$aggregations[0]['value'];
-            if ($isCache) {
+            if ($this->isCache($isCache)) {
                 $this->getCache()->set($cacheKey, $count, $cacheTTL);
             }
         } else {

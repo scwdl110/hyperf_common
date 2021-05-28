@@ -15,6 +15,8 @@ use Hyperf\Logger\LoggerFactory;
 
 abstract class AbstractPrestoModel implements BIModelInterface
 {
+    use BIModelDefaultCacheTrait;
+
     protected static $detectSchemaName = '';
 
     protected static $tableMaps = [
@@ -334,6 +336,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
+        if (null === $this->isDefaultCache) {
+            $this->setDefaultCache(config('misc.presto_defautl_cache', false));
+        }
+
         $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
     }
 
@@ -346,7 +352,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         return $this->cache;
     }
 
-    public function query(string $sql, array $bindings = [], bool $isCache = false, int $cacheTTL = 300): array
+    public function query(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300): array
     {
         if ($bindings) {
             $this->lastSql = $psql = "PREPARE {$sql}; EXECUTE " . @join(',', $bindings);
@@ -355,7 +361,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($psql);
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $result = $this->getCache()->get($cacheKey);
             if (!empty($result)) {
                 return $result;
@@ -368,13 +374,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
             return [];
         }
 
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $this->getCache()->set($cacheKey, $result, $cacheTTL);
         }
         return $result;
     }
 
-    public function fetch(string $sql, array $bindings = [], bool $isCache = false, int $cacheTTL = 300): array
+    public function fetch(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300): array
     {
         $result = $this->query($sql, $bindings, $isCache, $cacheTTL);
         return $result[0] ?? [];
@@ -407,7 +413,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
@@ -467,7 +473,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $cacheData = $this->getCache()->get($cacheKey);
             if(!empty($cacheData)){
                 return $cacheData;
@@ -479,7 +485,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             throw new RuntimeException('presto 查询失败');
         }
 
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $this->getCache()->set($cacheKey, $result, $cacheTTL);
         }
 
@@ -505,7 +511,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL);
@@ -521,7 +527,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL);
@@ -547,7 +553,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $data = '',
         string $cols = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
 
     ): int {
