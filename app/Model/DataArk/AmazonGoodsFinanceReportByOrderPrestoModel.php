@@ -5474,7 +5474,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return $lists ;
         } else {
             $table = "{$this->table_amazon_fba_inventory_by_channel} as c";
-            $where = 'c.user_id = ' . $lists[0]['user_id'];
+            $where = 'c.user_id = ' . $lists[0]['user_id'] ." AND c.db_num = '".$this->dbhost."'";
             if (!empty($channel_arr)){
                 if (count($channel_arr)==1){
                     $where .= " AND c.channel_id = ".intval(implode(",",$channel_arr));
