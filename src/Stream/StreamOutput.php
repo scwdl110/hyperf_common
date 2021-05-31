@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Symfony\Component\Console\Output;
+namespace Captainbi\Hyperf\Stream\StreamOutput;
 
 use Captainbi\Hyperf\Util\Log;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
