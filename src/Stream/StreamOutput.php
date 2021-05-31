@@ -14,6 +14,7 @@ namespace Captainbi\Hyperf\Stream\StreamOutput;
 use Captainbi\Hyperf\Util\Log;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Formatter\OutputFormatterInterface;
+use Symfony\Component\Console\Output\Output;
 
 /**
  * StreamOutput writes the output to a given stream.
