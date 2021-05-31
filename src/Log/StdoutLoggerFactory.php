@@ -11,6 +11,6 @@ class StdoutLoggerFactory
     public function __invoke(ContainerInterface $container)
     {
         $loggerFactory = ApplicationContext::getContainer()->get("Hyperf\Logger\LoggerFactory");
-        return $loggerFactory->get('sys');
+        return $loggerFactory->get('log', 'sys');
     }
 }
