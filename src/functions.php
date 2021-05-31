@@ -2,6 +2,9 @@
 
 namespace Captainbi\Hyperf;
 
+use Captainbi\Hyperf\Session\Session;
+use Hyperf\Contract\ConfigInterface;
+use Hyperf\Contract\SessionInterface;
 use Hyperf\Utils\ApplicationContext;
 
 /**
@@ -53,4 +56,39 @@ function current_url(): string
     }
 
     return '';
+}
+
+/**
+ * desc 追加分库数据库编号
+ * @param string $name
+ * @param int $type
+ * @return string
+ */
+function appendDbCodeno(string $name, int $type = 0): string
+{
+    $open = env('CODENO_DB_OPEN');
+    if (!$open || php_sapi_name() == 'cli') { //未开启
+        return $name;
+    }
+
+    $codeno = ApplicationContext::getContainer()->get(SessionInterface::class)->get('codeno'); //dbhost
+    $codeno = $codeno ? '_'.$codeno : '';
+
+    $dbList = env('CODENO_DB_LIST'); //已分库的数据库名称清单
+    $dbList = $dbList ? explode(',', $dbList) : array();
+    $database = $name;
+    if ($type) { //数据库连接名称
+        $config = ApplicationContext::getContainer()->get(ConfigInterface::class);
+        $key = sprintf('databases.%s', $name);
+        if (! $config->has($key)) {
+            return $name;
+        }
+        $config = $config->get($key);
+        $database = $config['database'];
+    }
+
+    if (in_array($database, $dbList)) {
+        $name .= $codeno;
+    }
+    return $name;
 }
