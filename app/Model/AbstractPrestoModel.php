@@ -126,11 +126,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         //"channel_id"=>"goods_channel_id",
         //"user_id_mod"=>"user_id_mod",
         "area_id"=>"area_area_id",
-        "isku"=>"isku_isku",
         "isku_title"=>"isku_isku_title",
         "isku_image"=>"isku_image",
-        "isku_head_id" => "isku_head_id",
-        "isku_developer_id" => "isku_developer_id",
         //"goods_operation_user_admin_name" => "goods_operation_user_admin_name",
         "parent_asin_group" => array(
             'day' => "goods_parent_asin,amazon_goods.goods_channel_id,report.myear,report.mmonth,report.mday",
@@ -186,7 +183,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
             'day' => "isku_developer_id,report.myear,report.mmonth,report.mday",
             'week' => "isku_developer_id,report.myear,report.mmonth,report.mweekyear,mweek",
             'month' => "isku_developer_id,report.myear,report.mmonth"
-        )
+        ),
+        "isku_head_id" => "isku_head_id",
+        "isku_developer_id" => "isku_developer_id",
+        "isku"=>"isku_isku"
     );
 
     protected $goodsGroupByCols = array(
