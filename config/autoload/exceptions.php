@@ -12,14 +12,14 @@ declare(strict_types=1);
 return [
     'handler' => [
         'http' => [
-//            App\Exception\Handler\AppExceptionHandler::class,
+            App\Exception\Handler\AppExceptionHandler::class,
 //            \Hyperf\ExceptionHandler\Handler\WhoopsExceptionHandler::class,
 //            Hyperf\HttpServer\Exception\Handler\HttpExceptionHandler::class,
 //            App\Exception\Handler\AppExceptionHandler::class,
             \Captainbi\Hyperf\Exception\Handle\BusinessExceptionHandle::class,
             \Captainbi\Hyperf\Exception\Handle\BiHttpExceptionHandler::class,
             \Hyperf\Validation\ValidationExceptionHandler::class,
-             \Captainbi\Hyperf\Exception\Handle\BiAppExceptionHandler::class,
+//             \Captainbi\Hyperf\Exception\Handle\BiAppExceptionHandler::class,
         ],
     ],
 ];
