@@ -10,6 +10,8 @@ use Psr\SimpleCache\CacheInterface;
 
 abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
 {
+    use BIModelDefaultCacheTrait;
+
     protected $lastSql = '';
 
     protected $cache = null;
@@ -114,7 +116,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         string $order = '',
         string $group = '',
         $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         if (is_array($where)) {
@@ -154,7 +156,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         }
 
         $cacheKey = 'MYSQL_SQL_DATAS_' . md5($sql);
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $cacheData = $this->getCache()->get($cacheKey);
             if(!empty($cacheData)){
                 return $cacheData;
@@ -168,7 +170,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
             $item = (array)$item;
         }
 
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $this->getCache()->set($cacheKey, $result, $cacheTTL);
         }
 
@@ -182,7 +184,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         $result = $this->select($where, $data, $table, 1, $order, $group, $isJoin ,$isCache, $cacheTTL);
@@ -196,7 +198,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         string $order = '',
         string $group = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): array {
         return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL);
@@ -209,7 +211,7 @@ abstract class AbstractMySQLModel extends BaseModel implements BIModelInterface
         string $data = '',
         string $cols = '',
         bool $isJoin = false ,
-        bool $isCache = false,
+        ?bool $isCache = null,
         int $cacheTTL = 300
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;

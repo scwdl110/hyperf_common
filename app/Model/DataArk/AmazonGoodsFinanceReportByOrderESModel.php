@@ -596,7 +596,7 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             return $lists ;
         }else{
             $amazon_fba_inventory_v3_md = new AmazonFbaInventoryV3MySQLModel([], $this->dbhost, $this->codeno);
-            $where = "g.user_id = " . intval($lists[0]['user_id']);
+            $where = "g.user_id = " . intval($lists[0]['user_id']) ." AND g.is_parent=0";
             if (!empty($channel_arr)){
                 if (count($channel_arr)==1){
                     $where .= " AND rel.channel_id = ".intval(implode(",",$channel_arr));
@@ -607,47 +607,54 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
             $table = "g_amazon_fba_inventory_v3_{$this->codeno} as g LEFT JOIN g_amazon_fba_inventory_v3_rel_{$this->codeno} as rel ON g.id = rel.inventory_id " ;
             if($datas['count_dimension'] == 'sku'){
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = 'g.seller_sku as sku , rel.channel_id' ;
-                    $table_group = 'g.seller_sku  , rel.channel_id' ;
+                    $table_fields = 'max(g.seller_sku) as sku , rel.channel_id' ;
+                    $table_group = 'g.id  , rel.channel_id' ;
                     $fba_fields = $group = 'sku , channel_id' ;
                 }else{
-                    $table_fields = 'g.seller_sku as sku , g.id' ;
-                    $table_group = 'g.seller_sku as sku , g.id' ;
+                    $table_fields = 'max(g.seller_sku) as sku , g.id' ;
+                    $table_group = ' g.id' ;
                     $fba_fields = $group = 'sku, id' ;
                 }
             }else if($datas['count_dimension'] == 'asin'){
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = $table_group = 'g.asin , rel.channel_id' ;
+                    $table_fields = 'max(g.asin) as asin  , rel.channel_id' ;
+                    $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'asin , channel_id' ;
                 }else{
-                    $table_fields = $table_group = 'g.asin , g.id' ;
+                    $table_fields =  'max(g.asin) as asin  , g.id' ;
+                    $table_group = ' g.id' ;
                     $fba_fields = $group = 'asin ,id ' ;
                 }
             }else if($datas['count_dimension'] == 'parent_asin'){
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = $table_group = 'g.parent_asin , rel.channel_id' ;
+                    $table_fields =  'max(g.parent_asin) as parent_asin , rel.channel_id' ;
+                    $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'parent_asin , channel_id' ;
                 }else{
-                    $table_fields = $table_group = 'g.parent_asin , g.id' ;
+                    $table_fields =  'max(g.parent_asin) as parent_asin ,  g.id' ;
+                    $table_group = ' g.id' ;
                     $fba_fields = $group = 'parent_asin ,id ' ;
                 }
             }else if($datas['count_dimension'] == 'isku'){
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
 
-                $table_fields = $table_group = 'ext.isku_id , g.id' ;
+                $table_fields =  'max(ext.isku_id) as isku_id , g.id' ;
+                $table_group = ' g.id' ;
                 $fba_fields = $group = 'isku_id ,id' ;
             }else if($datas['count_dimension'] == 'class1'){
                 //分类暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'group'){ //分组
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
 
-                $table_fields = $table_group = 'ext.isku_id , g.id' ;
-                $fba_fields = $group = 'isku_id , id' ;
+                $table_fields = 'max(ext.group_id) as group_id , g.id' ;
+                $table_group = ' g.id' ;
+                $fba_fields = $group = 'group_id , id' ;
 
             }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
 
-                $table_fields = $table_group = 'tags_rel.tags_id,g.id' ;
+                $table_fields =  'tags_rel.tags_id ,g.id' ;
+                $table_group = 'tags_rel.tags_id , g.id' ;
                 $fba_fields = $group = 'tags_id , id' ;
 
 
@@ -657,14 +664,17 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 //开发人员暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'all_goods'){
                 if($datas['is_distinct_channel'] == 1) { //有区分店铺
-                    $table_fields = $table_group =  'rel.channel_id' ;
+                    $table_fields =  'rel.channel_id' ;
+                    $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'channel_id' ;
                 }else{
-                    $table_fields = $table_group =  'g.id' ;
+                    $table_fields =  'g.id' ;
+                    $table_group = 'g.id' ;
                     $fba_fields = $group = 'id' ;
                 }
             }else if($datas['count_dimension'] == 'goods_channel'){
-                $table_fields = $table_group =  'rel.channel_id' ;
+                $table_fields = 'rel.channel_id' ;
+                $table_group = 'g.id , rel.channel_id' ;
                 $fba_fields = $group = 'channel_id' ;
             }
 
@@ -727,7 +737,11 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 }else{
                     $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
                     $str = "'" . implode("','" , $where_strs) . "'" ;
-                    $where_str = 'g.'.$datas['count_dimension'].' IN (' . $str . ') ' ;
+                    if($datas['count_dimension'] == 'sku') {
+                        $where_str = 'g.seller_sku' . ' IN (' . $str . ') ';
+                    }else{
+                        $where_str = 'g.' . $datas['count_dimension'] . ' IN (' . $str . ') ';
+                    }
                 }
             }else if($datas['count_dimension'] == 'class1'){
                 //分类暂时没有 ，因为需要跨库查询
@@ -755,17 +769,27 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
             }
             if (!empty($datas['where_detail']['group_id']) && !empty(trim($datas['where_detail']['group_id']))){
+                if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
+                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                }
                 $where .= ' AND ext.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
             }
             /*if (!empty($datas['where_detail']['transport_mode']) && !empty(trim($datas['where_detail']['transport_mode']))){
                 $where .= ' AND g.Transport_mode = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
             } //FBA 信息 Transport_mode 必为 2   */
             if (!empty($datas['where_detail']['is_care']) && !empty(trim($datas['where_detail']['is_care']))){
+                if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
+                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                }
                 $where .= ' AND ext.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
             }
             if (!empty($datas['where_detail']['tag_id']) && !empty(trim($datas['where_detail']['tag_id']))){
                 if ($datas['count_dimension'] != 'tags'){
-                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                    if($datas['count_dimension'] == 'group' || $datas['count_dimension'] == 'isku'){
+                        $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                    }else{
+                        $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                    }
                 }
                 $where .=' AND tags_rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
             }
@@ -861,6 +885,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
     protected function handleGoodsFbaData($fba, $field, $is_distinct_channel = 0, $fbaDatas = array())
     {
+        if(empty($fba[$field])){
+            return $fbaDatas ;
+        }
         if($is_distinct_channel == 1 && ($field == 'sku' || $field == 'asin' || $field == 'parent_asin')){
             $fbaDatas[$fba[$field].'-'.$fba['channel_id']] = $fba ;
         } else {
@@ -1088,13 +1115,40 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
+            $repair_data = '' ;
             if ($datas['finance_datas_origin'] == '1') {
-                // $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
-            } else {
-                // $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                if ($datas['sale_datas_origin'] == '2') {
+                    $repair_data .= " + doc.report_sales_quota.value - doc.byorder_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '2') {
+                    $repair_data .=  " + doc.byorder_refund.value - doc.report_refund.value ";
+                }
+            }else{
+                if ($datas['sale_datas_origin'] == '1') {
+                    $repair_data .= " + doc.byorder_sales_quota.value - doc.report_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '1') {
+                    $repair_data .=  " + doc.report_refund.value - doc.byorder_refund.value ";
+                }
             }
+            if(empty($repair_data)){
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                }
+            }else{
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_goods_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                }
+            }
+
 
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
@@ -1923,13 +1977,40 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
         }
 
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //毛利润
+            $repair_data = '' ;
             if ($datas['finance_datas_origin'] == '1') {
-                // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
-            } else {
-                // $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
-                $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                if ($datas['sale_datas_origin'] == '2') {
+                    $repair_data .= " + doc.report_sales_quota.value - doc.byorder_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '2') {
+                    $repair_data .=  " + doc.byorder_refund.value - doc.report_refund.value ";
+                }
+            }else{
+                if ($datas['sale_datas_origin'] == '1') {
+                    $repair_data .= " + doc.byorder_sales_quota.value - doc.report_sales_quota.value  ";
+                }
+                if ($datas['refund_datas_origin'] == '1') {
+                    $repair_data .=  " + doc.report_refund.value - doc.byorder_refund.value ";
+                }
             }
+            if(empty($repair_data)){
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript};'))";
+                }
+            }else{
+                if ($datas['finance_datas_origin'] == '1') {
+                    // $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.byorder_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                } else {
+                    // $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                    $fields['cost_profit_profit'] = "SUM(script('', 'return doc.report_channel_profit.value + doc.bychannel_channel_profit.value + {$purchaseLogisticsPurchaseCostScript} + {$purchaseLogisticsLogisticsCostScript} {$repair_data};'))";
+                }
+            }
+
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
 
@@ -2220,9 +2301,9 @@ class AmazonGoodsFinanceReportByOrderESModel extends AbstractESModel
 
         if (in_array('cost_profit_total_income', $targets)) {  //总收入
             if ($datas['sale_datas_origin'] == '1') {
-                $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota )";
+                $fields['cost_profit_total_income'] = "SUM ( report.byorder_sales_quota + report.byorder_refund_promote_discount)";
             } elseif ($datas['sale_datas_origin'] == '2') {
-                $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota )";
+                $fields['cost_profit_total_income'] = "SUM ( report.report_sales_quota + report.report_refund_promote_discount)";
             }
         }
 
