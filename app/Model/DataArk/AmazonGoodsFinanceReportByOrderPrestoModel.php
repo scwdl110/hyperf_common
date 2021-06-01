@@ -207,7 +207,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where .= " AND report.goods_product_category_name_1 != ''";
 
         } else if($datas['count_dimension'] == 'tags'){
-            $table.= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id and  tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.status = 1" ;
+            $table.= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' and  tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.status = 1 AND gtags.db_num = '{$this->dbhost}' " ;
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if ($datas['count_periods'] == '1' ) { //按天
                     $group = 'tags_rel.tags_id  , report.myear , report.mmonth  , report.mday';
@@ -376,7 +376,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             if (!empty($where_detail['tag_id'])) {
                 if (strpos($group, 'tags_rel.tags_id') === false) {
-                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id";
+                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}";
+
                 }
                 if(is_array($where_detail['tag_id'])){
                     $tag_str = implode(',', $where_detail['tag_id']);
@@ -501,7 +502,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($datas['limit_num'] <= 0){
             return $where;
         }
-
+        $is_join = true;
         switch ($datas['count_dimension']){
             //商品级
             case "parent_asin":
@@ -547,26 +548,31 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 break;
                 //店铺级
             case "site_id":
+                $is_join = false;
                 $field_data = "max(report.site_id) as site_id";
                 break;
             case "channel_id":
+                $is_join = false;
                 $field_data = "max(report.channel_id) as channel_id";
                 break;
             case "department":
+                $is_join = false;
                 $field_data = "max(dc.user_department_id) as user_department_id";
                 break;
             case "admin_id":
+                $is_join = false;
                 $field_data = "max(uc.admin_id) as admin_id";
                 break;
                 //运营人员
             case "operators":
+                $is_join = false;
                 $field_data = "max(report.goods_operation_user_admin_id) as goods_operation_user_admin_id";
                 break;
 
             default:
                 return $where;
         }
-        $lists = $this->select($where,$field_data , $table, $limit, $orderby, $group);
+        $lists = $this->select($where,$field_data , $table, $limit, $orderby, $group,$is_join );
         if (!empty($lists)){
             switch ($datas['count_dimension']){
                 //商品级
@@ -3254,19 +3260,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
 
         $ym_where = $this->getYnWhere($params['max_ym'] , $params['min_ym'] ) ;
+        $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_channel_day_report} AS report";
-            $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
+
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $table = "{$this->table_channel_week_report} AS report" ;
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
+//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
             $table = "{$this->table_channel_month_report} AS report" ;
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
+//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['cost_count_type'] == 2 ){
             $table = "{$this->table_channel_month_report} AS report" ;
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
+//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         } else {
             return [];
         }
