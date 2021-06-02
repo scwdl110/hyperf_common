@@ -170,9 +170,11 @@ class DataArkController extends AbstractController
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
             $min_ym = date('Ym',$params['search_start_time']) ;
             $max_ym = date('Ym',$params['search_end_time']) ;
+            $day_param = ($params['search_end_time'] + 1 - $params['search_start_time']) / 86400;
         } else {
             $ors = [];
-            foreach ($this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type'], $params['search_start_time'], $params['search_end_time']) as $times) {
+            $time_arr = $this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type'], $params['search_start_time'], $params['search_end_time']);
+            foreach ($time_arr as $times) {
 
                 $min_ym = empty($min_ym) ? date('Ym',$times['start']) : ($min_ym > date('Ym',$times['start']) ? date('Ym',$times['start']) : $min_ym) ;
                 $max_ym = empty($max_ym) ? date('Ym',$times['end']) : ($max_ym < date('Ym',$times['end']) ? date('Ym',$times['end']) : $max_ym) ;
@@ -183,6 +185,7 @@ class DataArkController extends AbstractController
                     (int)$times['end']
                 );
             }
+            $day_param = ($time_arr[0]['end'] + 1 - $time_arr[0]['start']) / 86400;
             if (empty($ors)) {
                 return Result::success($result);
             }
@@ -218,7 +221,8 @@ class DataArkController extends AbstractController
             $deparmentData,
             $userInfo['user_id'],
             $userInfo['admin_id'],
-            $rateInfo
+            $rateInfo,
+            $day_param
         );
 
         if (!isset($result['lists'])) {
