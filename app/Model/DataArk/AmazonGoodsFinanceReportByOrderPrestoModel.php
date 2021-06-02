@@ -73,18 +73,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
 
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
+        $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
+
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_goods_day_report}" ;
-            $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "{$this->table_goods_week_report}" ;
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $where = $ym_where . " AND report.available = 1 " . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report}" ;
         }else if($datas['cost_count_type'] == 2 ){
-            $where = $ym_where . " AND report.available = 1 "  . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report}" ;
         }else{
             return [];
@@ -3266,7 +3264,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = "{$this->table_channel_day_report} AS report";
 
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
-            $table = "{$this->table_channel_week_report} AS report" ;
+            $table = "{$this->table_channel_day_report} AS report" ;
 //            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
             $table = "{$this->table_channel_month_report} AS report" ;
@@ -3357,8 +3355,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $group = 'report.channel_id , report.myear' ;
                     $orderby = 'report.channel_id , report.myear ';
                 }else{
-                    $group = 'report.channel_id_group ';
-                    $orderby = 'report.channel_id_group ';
+                    if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){
+                        $group = 'report.channel_id , report.mweekyear , report.mweek ';
+                        $orderby = 'report.channel_id , report.mweekyear , report.mweek ';
+                    }else{
+                        $group = 'report.channel_id_group ';
+                        $orderby = 'report.channel_id_group ';
+                    }
                 }
             }else{
                 $group = 'report.channel_id ';
@@ -3374,8 +3377,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $group = 'report.site_id , report.myear' ;
                     $orderby = 'report.site_id , report.myear ';
                 }else {
-                    $group = 'report.site_id_group ';
-                    $orderby = 'report.site_id_group ';
+                    if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){
+                        $group = 'report.site_id , report.mweekyear , report.mweek ';
+                        $orderby = 'report.site_id , report.mweekyear , report.mweek ';
+                    }else{
+                        $group = 'report.site_id_group ';
+                        $orderby = 'report.site_id_group ';
+                    }
                 }
             }else{
                 $group = 'report.site_id ';
@@ -3390,8 +3398,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $group = 'report.area_id , report.myear' ;
                     $orderby = 'report.area_id , report.myear ';
                 }else {
-                    $orderby = 'report.area_id_group ';
-                    $group = 'report.area_id_group ';
+                    if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){
+                        $group = 'report.area_id , report.mweekyear , report.mweek ';
+                        $orderby = 'report.area_id , report.mweekyear , report.mweek ';
+                    }else{
+                        $group = 'report.area_id_group ';
+                        $orderby = 'report.area_id_group ';
+                    }
+
                 }
             }else{
                 $group = 'report.area_id ';
