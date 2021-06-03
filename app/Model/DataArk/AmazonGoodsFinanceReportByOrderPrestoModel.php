@@ -8,6 +8,7 @@ use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
+use function App\getUserInfo;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
@@ -3552,6 +3553,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id ";
             }
+        }
+
+        if ($this->countDimensionChannel){
+            //新增指标是店铺维度时  f_monthly_profit_report_001表year month为text，需转成int连表
+            $table .= " LEFT JOIN ods.ods_dataark_f_monthly_profit_report_{$this->dbhost} as monthly_profit ON monthly_profit.db_num='{$this->dbhost}' AND monthly_profit.user_id = report.user_id AND monthly_profit.channel_id = report.channel_id AND CAST(monthly_profit.year AS INTEGER) = report.myear AND CAST(monthly_profit.month AS INTEGER) = report.mmonth";
         }
 
         $having = '';
@@ -8075,7 +8081,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        $templateType = param::session("template_type"); //0旧版 1新版
+        $userInfo = getUserInfo();
+        $templateType = $userInfo['template_type']; //0旧版 1新版
         $goalList = [];
         if(!empty($channel_arr)){
             $nowYear = date("Y");
