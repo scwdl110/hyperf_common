@@ -116,18 +116,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
 
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
+        $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_goods_day_report}" ;
-            $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "{$this->table_goods_week_report}" ;
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $where = $ym_where . " AND report.available = 1 " . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report}" ;
         }else if($datas['cost_count_type'] == 2 ){
-            $where = $ym_where . " AND report.available = 1 "  . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_goods_month_report}" ;
         }else{
             return [];
@@ -3485,13 +3482,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $table = "{$this->table_channel_week_report} AS report" ;
-//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
             $table = "{$this->table_channel_month_report} AS report" ;
-//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['cost_count_type'] == 2 ){
             $table = "{$this->table_channel_month_report} AS report" ;
-//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         } else {
             return [];
         }
@@ -5973,19 +5967,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
 
+        $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
-            $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_day_report} AS report" ;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_week_report} AS report" ;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_month_report} AS report";
         }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
             $table = "{$this->table_operation_month_report} AS report";
         } else {
             return [];
