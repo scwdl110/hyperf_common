@@ -2940,7 +2940,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fields['count_total'] = "SUM($report_fields)";
                         $time_fields = $this->getTimeFields($timeLine, $report_fields);
                     } else {
-                        $fields['count_total'] = "SUM((0-report.report_reserved_field17) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                        $fields['count_total'] = "SUM(({$report_fields}) * ({:RATE} / COALESCE(rates.rate ,1)))";
                         $time_fields = $this->getTimeFields($timeLine, "($report_fields) * ({:RATE} / COALESCE(rates.rate ,1))");
                     }
                 }
@@ -3008,7 +3008,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fields['count_total'] = "SUM($report_fields)";
                         $time_fields = $this->getTimeFields($timeLine, $report_fields);
                     } else {
-                        $fields['count_total'] = "SUM((0-report.report_reserved_field17) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                        $fields['count_total'] = "SUM(({$report_fields}) * ({:RATE} / COALESCE(rates.rate ,1)))";
                         $time_fields = $this->getTimeFields($timeLine, "($report_fields) * ({:RATE} / COALESCE(rates.rate ,1))");
                     }
                 }
@@ -5672,17 +5672,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
-            $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
-            $table = "{$this->table_operation_day_report} AS report" ;
+//            $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
+//            $table = "{$this->table_operation_day_report} AS report" ;
+            $table = $this->operationTable($datas,$ym_where,'day');
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
-            $table = "{$this->table_operation_week_report} AS report" ;
+//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
+            $table = $this->operationTable($datas,$ym_where,'week');
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
-            $table = "{$this->table_operation_month_report} AS report";
+//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
+//            $table = "{$this->table_operation_month_report} AS report";
+            $table = $this->operationTable($datas,$ym_where,'month');
+
         }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
-            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
-            $table = "{$this->table_operation_month_report} AS report";
+//            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
+//            $table = "{$this->table_operation_month_report} AS report";
+            $table = $this->operationTable($datas,$ym_where,'month');
         } else {
             return [];
         }
@@ -7484,4 +7488,769 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
     }
+
+
+    /**
+     * 获取运营人员table
+     * @author json.qiu 2021/05/31
+     *
+     * @param $datas
+     * @param $ym_where  //ym条件
+     * @param string $table_type //店铺类型，day,week,month
+     * @return string  返回table
+     */
+    public function operationTable($datas,$ym_where,$table_type = "day"){
+
+        $create_time_tmp = str_replace("site_id",'dw_report.byorder_site_id',$datas['origin_time']);
+        $where_dw_report_amazon_goods = "dw_report.byorder_user_id = {$datas['user_id']} AND dw_report.user_id_mod = ".($datas['user_id'] % 20)
+            ." AND dw_report.byorder_channel_id IN (".$datas['operation_channel_ids'].") "
+            ." AND amazon_goods.goods_user_id = {$datas['user_id']} AND amazon_goods.goods_user_id_mod = ".($datas['user_id'] % 20)." AND  amazon_goods.goods_operation_user_admin_id > 0  "." AND amazon_goods.goods_channel_id IN (".$datas['operation_channel_ids'].") ";
+        $where_ym = " AND ".str_replace("report.",'dw_report.',$ym_where);
+        $where_dw_report_month_amazon_goods = $where_dw_report_amazon_goods;
+        $where_dw_report_amazon_goods .= " ".str_replace("create_time",'dw_report.byorder_create_time',$create_time_tmp);
+
+
+        $where_channel = "user_id = {$datas['user_id']} AND user_id_mod = ".($datas['user_id'] % 20)." AND channel_id IN (".$datas['operation_channel_ids'].") ".$datas['origin_time']." AND ".str_replace("report.",'',$ym_where);
+        $goods_month_table = '';
+        if ($table_type == 'week'){
+
+            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
+			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $channel_table = "(select * from dws.dws_dataark_f_dw_channel_week_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mweek = bychannel.mweek
+	    AND goods.goods_operation_pattern = 2";
+            $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth,dw_report.byorder_mweek";
+            $goods_other_field = "dw_report.byorder_mweek as mweek,max(dw_report.byorder_mweekyear) as mweekyear,";
+            $report_other_field = "COALESCE(goods.mweek ,bychannel.mweek) AS mweek,COALESCE(goods.mweekyear ,bychannel.mweekyear) AS mweekyear,concat(cast(goods.goods_operation_user_admin_id as varchar),'_',cast(COALESCE(goods.mweekyear ,bychannel.mweekyear) as varchar),'_',lpad(cast(COALESCE(goods.mweek ,bychannel.mweek) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
+
+        }elseif ($table_type == 'month'){
+            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
+			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $channel_table = "(select * from dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
+	    AND goods.goods_operation_pattern = 2";
+            $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth";
+            $goods_other_field = '';
+            $report_other_field = "
+            COALESCE(goods_month.first_purchasing_cost ,bychannel.first_purchasing_cost) as first_purchasing_cost,
+            COALESCE(goods_month.first_logistics_head_course ,bychannel.first_logistics_head_course) as first_logistics_head_course,
+            COALESCE(goods_month.fba_first_logistics_head_course ,bychannel.fba_first_logistics_head_course) as fba_first_logistics_head_course,
+            COALESCE(goods_month.fbm_first_logistics_head_course ,bychannel.fbm_first_logistics_head_course) as fbm_first_logistics_head_course,
+            COALESCE(goods_month.monthly_sku_reserved_field37 ,bychannel.monthly_sku_reserved_field37) as monthly_sku_reserved_field37,
+            COALESCE(goods_month.monthly_sku_reserved_field38 ,bychannel.monthly_sku_reserved_field38) as monthly_sku_reserved_field38,
+            COALESCE(goods_month.monthly_sku_reserved_field39 ,bychannel.monthly_sku_reserved_field39) as monthly_sku_reserved_field39,
+            COALESCE(goods_month.monthly_sku_reserved_field40 ,bychannel.monthly_sku_reserved_field40) as monthly_sku_reserved_field40,
+            COALESCE(goods_month.monthly_sku_reserved_field41 ,bychannel.monthly_sku_reserved_field41) as monthly_sku_reserved_field41,
+            COALESCE(goods_month.monthly_sku_reserved_field42 ,bychannel.monthly_sku_reserved_field42) as monthly_sku_reserved_field42,
+            COALESCE(goods_month.monthly_sku_reserved_field43 ,bychannel.monthly_sku_reserved_field43) as monthly_sku_reserved_field43,
+            COALESCE(goods_month.monthly_sku_reserved_field44 ,bychannel.monthly_sku_reserved_field44) as monthly_sku_reserved_field44,
+            COALESCE(goods_month.monthly_sku_reserved_field44 ,bychannel.monthly_sku_reserved_field44) as monthly_sku_reserved_field44,
+            COALESCE(goods_month.monthly_sku_reserved_field45 ,bychannel.monthly_sku_reserved_field45) as monthly_sku_reserved_field45,
+            COALESCE(goods_month.monthly_sku_reserved_field46 ,bychannel.monthly_sku_reserved_field46) as monthly_sku_reserved_field46,
+            COALESCE(goods_month.monthly_sku_reserved_field47 ,bychannel.monthly_sku_reserved_field47) as monthly_sku_reserved_field47,
+            COALESCE(goods_month.monthly_sku_reserved_field48 ,bychannel.monthly_sku_reserved_field48) as monthly_sku_reserved_field48,
+            COALESCE(goods_month.monthly_sku_reserved_field49 ,bychannel.monthly_sku_reserved_field49) as monthly_sku_reserved_field49,
+            concat(cast(goods.goods_operation_user_admin_id as varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as  varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
+
+            $goods_month_table = "LEFT JOIN ( SELECT
+			amazon_goods.goods_operation_user_admin_id,
+			amazon_goods.goods_channel_id as channel_id,
+			dw_report.myear,
+			sum(first_purchasing_cost ) as first_purchasing_cost,
+			sum(first_logistics_head_course ) as first_logistics_head_course,
+			sum(first_logistics_head_course- reserved_field24) as fba_first_logistics_head_course,
+			sum(reserved_field24 ) as fbm_first_logistics_head_course,
+			sum(reserved_field37 ) as monthly_sku_reserved_field37,
+			sum(reserved_field38 ) as monthly_sku_reserved_field38,
+			sum(reserved_field39 ) as monthly_sku_reserved_field39,
+			sum(reserved_field40 ) as monthly_sku_reserved_field40,
+			sum(reserved_field41 ) as monthly_sku_reserved_field41,
+			sum(reserved_field42 ) as monthly_sku_reserved_field42,
+			sum(reserved_field43 ) as monthly_sku_reserved_field43,
+			sum(reserved_field44 ) as monthly_sku_reserved_field44,
+			sum(reserved_field45 ) as monthly_sku_reserved_field45,
+			sum(reserved_field46 ) as monthly_sku_reserved_field46,
+			sum(reserved_field47 ) as monthly_sku_reserved_field47,
+			sum(reserved_field48 ) as monthly_sku_reserved_field48,
+			sum(reserved_field49 ) as monthly_sku_reserved_field49,
+			dw_report.mmonth
+	FROM
+		ods.ods_dataark_f_monthly_profit_report_by_sku_{$this->codeno} AS dw_report 
+		left JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id and dw_report.db_num = '".$this->dbhost."'  WHERE ".str_replace("dw_report.create_time","dw_report.start_time",str_replace("dw_report.byorder_","dw_report.",$where_dw_report_month_amazon_goods))." GROUP BY amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth) as goods_month ON goods.channel_id = goods_month.channel_id 
+		AND goods.myear = goods_month.myear 
+		AND goods.mmonth = goods_month.mmonth AND goods.goods_operation_user_admin_id = goods_month.goods_operation_user_admin_id ";
+        }else{
+//            $goods_table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS dw_report
+//			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
+            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
+			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $channel_table = "(select * from dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
+	    AND goods.goods_operation_pattern = 2";
+            $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth,dw_report.byorder_mday";
+            $goods_other_field = "dw_report.byorder_mday as mday,";
+            $report_other_field = "COALESCE(goods.mday ,bychannel.mday) AS mday,concat(cast(goods.goods_operation_user_admin_id as  varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0'),'_',lpad(cast(COALESCE(goods.mday ,bychannel.mday) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
+
+        }
+
+        $where_dw_report_amazon_goods .= $where_ym." AND dw_report.available = 1 ";
+
+        $table = " (
+select
+COALESCE(goods.byorder_user_sessions,0) AS byorder_user_sessions ,
+COALESCE(goods.byorder_quantity_of_goods_ordered,0) AS byorder_quantity_of_goods_ordered ,
+COALESCE(goods.byorder_number_of_visits,0) AS byorder_number_of_visits ,
+COALESCE(goods.byorder_buy_button_winning_rate,0) AS byorder_buy_button_winning_rate ,
+COALESCE(goods.byorder_sales_volume,0) AS byorder_sales_volume ,
+COALESCE(goods.byorder_group_id,0) AS byorder_group_id ,
+COALESCE(goods.byorder_sales_quota,0) AS byorder_sales_quota ,
+COALESCE(goods.byorder_refund_num,0) AS byorder_refund_num ,
+COALESCE(goods.byorder_refund,0) AS byorder_refund ,
+COALESCE(goods.byorder_promote_discount,0) AS byorder_promote_discount ,
+COALESCE(goods.byorder_refund_promote_discount,0) AS byorder_refund_promote_discount ,
+COALESCE(goods.byorder_purchasing_cost,0) AS byorder_purchasing_cost ,
+COALESCE(goods.byorder_logistics_head_course,0) AS byorder_logistics_head_course ,
+COALESCE(goods.byorder_goods_profit,0) AS byorder_goods_profit ,
+COALESCE(goods.byorder_goods_amazon_fee,0) AS byorder_goods_amazon_fee ,
+COALESCE(goods.byorder_platform_sales_commission,0) AS byorder_platform_sales_commission ,
+COALESCE(goods.byorder_fba_generation_delivery_cost,0) AS byorder_fba_generation_delivery_cost ,
+COALESCE(goods.byorder_fbaperorderfulfillmentfee,0) AS byorder_fbaperorderfulfillmentfee ,
+COALESCE(goods.byorder_fbaweightbasedfee,0) AS byorder_fbaweightbasedfee ,
+COALESCE(goods.byorder_profit,0) AS byorder_profit ,
+COALESCE(goods.byorder_order_variableclosingfee,0) AS byorder_order_variableclosingfee ,
+COALESCE(goods.byorder_fixedclosingfee,0) AS byorder_fixedclosingfee ,
+COALESCE(goods.byorder_refund_variableclosingfee,0) AS byorder_refund_variableclosingfee ,
+COALESCE(goods.byorder_goods_amazon_other_fee,0) AS byorder_goods_amazon_other_fee ,
+COALESCE(goods.byorder_returnshipping,0) AS byorder_returnshipping ,
+COALESCE(goods.byorder_return_and_return_sales_commission,0) AS byorder_return_and_return_sales_commission ,
+COALESCE(goods.byorder_fba_refund_treatment_fee,0) AS byorder_fba_refund_treatment_fee ,
+COALESCE(goods.byorder_fbacustomerreturnperorderfee,0) AS byorder_fbacustomerreturnperorderfee ,
+COALESCE(goods.byorder_fbacustomerreturnweightbasedfee,0) AS byorder_fbacustomerreturnweightbasedfee ,
+COALESCE(goods.byorder_estimated_monthly_storage_fee,0) AS byorder_estimated_monthly_storage_fee ,
+COALESCE(goods.byorder_long_term_storage_fee,0) AS byorder_long_term_storage_fee ,
+COALESCE(goods.byorder_reserved_field16,0) AS byorder_reserved_field16 ,
+COALESCE(goods.byorder_reserved_field10,0) AS byorder_reserved_field10 ,
+COALESCE(goods.byorder_cpc_cost,0) AS byorder_cpc_cost ,
+COALESCE(goods.byorder_cpc_sd_cost,0) AS byorder_cpc_sd_cost ,
+COALESCE(goods.byorder_reserved_field1,0) AS byorder_reserved_field1 ,
+COALESCE(goods.byorder_reserved_field2,0) AS byorder_reserved_field2 ,
+COALESCE(goods.byorder_cpc_sd_clicks,0) AS byorder_cpc_sd_clicks ,
+COALESCE(goods.byorder_cpc_sp_clicks,0) AS byorder_cpc_sp_clicks ,
+COALESCE(goods.byorder_sp_attributedconversions7d,0) AS byorder_sp_attributedconversions7d ,
+COALESCE(goods.byorder_sd_attributedconversions7d,0) AS byorder_sd_attributedconversions7d ,
+COALESCE(goods.byorder_sp_attributedsales7d,0) AS byorder_sp_attributedsales7d ,
+COALESCE(goods.byorder_sd_attributedsales7d,0) AS byorder_sd_attributedsales7d ,
+COALESCE(goods.byorder_sd_attributedconversions7dsamesku,0) AS byorder_sd_attributedconversions7dsamesku ,
+COALESCE(goods.byorder_sp_attributedconversions7dsamesku,0) AS byorder_sp_attributedconversions7dsamesku ,
+COALESCE(goods.byorder_sd_attributedsales7dsamesku,0) AS byorder_sd_attributedsales7dsamesku ,
+COALESCE(goods.byorder_sp_attributedsales7dsamesku,0) AS byorder_sp_attributedsales7dsamesku ,
+COALESCE(goods.byorder_buy_button_winning_num,0) AS byorder_buy_button_winning_num ,
+COALESCE(goods.byorder_return_and_return_commission,0) AS byorder_return_and_return_commission ,
+COALESCE(goods.byorder_reserved_field17,0) AS byorder_reserved_field17 ,
+COALESCE(goods.byorder_order_quantity,0) AS byorder_order_quantity ,
+COALESCE(goods.byorder_reserved_field21,0) AS byorder_reserved_field21 ,
+COALESCE(goods.byorder_fba_sales_volume,0) AS byorder_fba_sales_volume ,
+COALESCE(goods.byorder_fbm_sales_volume,0) AS byorder_fbm_sales_volume ,
+COALESCE(goods.byorder_fba_refund_num,0) AS byorder_fba_refund_num ,
+COALESCE(goods.byorder_fbm_refund_num,0) AS byorder_fbm_refund_num ,
+COALESCE(goods.byorder_fba_logistics_head_course,0) AS byorder_fba_logistics_head_course ,
+COALESCE(goods.byorder_fba_sales_quota,0) AS byorder_fba_sales_quota ,
+COALESCE(goods.byorder_fbm_sales_quota,0) AS byorder_fbm_sales_quota ,
+COALESCE(goods.byorder_fba_refund,0) AS byorder_fba_refund ,
+COALESCE(goods.byorder_fbm_refund,0) AS byorder_fbm_refund ,
+COALESCE(goods.byorder_tax,0) AS byorder_tax ,
+COALESCE(goods.byorder_ware_house_lost,0) AS byorder_ware_house_lost ,
+COALESCE(goods.byorder_ware_house_damage,0) AS byorder_ware_house_damage ,
+COALESCE(goods.byorder_shipping_charge,0) AS byorder_shipping_charge ,
+COALESCE(goods.byorder_customer_damage,0) AS byorder_customer_damage ,
+COALESCE(goods.byorder_removal_order_lost,0) AS byorder_removal_order_lost ,
+COALESCE(goods.byorder_incorrect_fees_items,0) AS byorder_incorrect_fees_items ,
+COALESCE(goods.byorder_missing_from_inbound,0) AS byorder_missing_from_inbound ,
+COALESCE(goods.byorder_multichannel_order_lost,0) AS byorder_multichannel_order_lost ,
+COALESCE(goods.byorder_removal_fee,0) AS byorder_removal_fee ,
+COALESCE(goods.byorder_gift_wrap,0) AS byorder_gift_wrap ,
+COALESCE(goods.report_sales_volume,0) AS report_sales_volume ,
+COALESCE(goods.report_group_id,0) AS report_group_id ,
+COALESCE(goods.report_sales_quota,0) AS report_sales_quota ,
+COALESCE(goods.report_refund_num,0) AS report_refund_num ,
+COALESCE(goods.report_refund,0) AS report_refund ,
+COALESCE(goods.report_promote_discount,0) AS report_promote_discount ,
+COALESCE(goods.report_refund_promote_discount,0) AS report_refund_promote_discount ,
+COALESCE(goods.report_purchasing_cost,0) AS report_purchasing_cost ,
+COALESCE(goods.report_logistics_head_course,0) AS report_logistics_head_course ,
+COALESCE(goods.report_goods_profit,0) AS report_goods_profit ,
+COALESCE(goods.report_goods_amazon_fee,0) AS report_goods_amazon_fee ,
+COALESCE(goods.report_platform_sales_commission,0) AS report_platform_sales_commission ,
+COALESCE(goods.report_fba_generation_delivery_cost,0) AS report_fba_generation_delivery_cost ,
+COALESCE(goods.report_fbaperorderfulfillmentfee,0) AS report_fbaperorderfulfillmentfee ,
+COALESCE(goods.report_fbaweightbasedfee,0) AS report_fbaweightbasedfee ,
+COALESCE(goods.report_profit,0) AS report_profit ,
+COALESCE(goods.report_order_variableclosingfee,0) AS report_order_variableclosingfee ,
+COALESCE(goods.report_fixedclosingfee,0) AS report_fixedclosingfee ,
+COALESCE(goods.report_refund_variableclosingfee,0) AS report_refund_variableclosingfee ,
+COALESCE(goods.report_goods_amazon_other_fee,0) AS report_goods_amazon_other_fee ,
+COALESCE(goods.report_returnshipping,0) AS report_returnshipping ,
+COALESCE(goods.report_return_and_return_sales_commission,0) AS report_return_and_return_sales_commission ,
+COALESCE(goods.report_fba_refund_treatment_fee,0) AS report_fba_refund_treatment_fee ,
+COALESCE(goods.report_fbacustomerreturnperorderfee,0) AS report_fbacustomerreturnperorderfee ,
+COALESCE(goods.report_fbacustomerreturnweightbasedfee,0) AS report_fbacustomerreturnweightbasedfee ,
+COALESCE(goods.report_estimated_monthly_storage_fee,0) AS report_estimated_monthly_storage_fee ,
+COALESCE(goods.report_long_term_storage_fee,0) AS report_long_term_storage_fee ,
+COALESCE(goods.report_reserved_field16,0) AS report_reserved_field16 ,
+COALESCE(goods.report_reserved_field10,0) AS report_reserved_field10 ,
+COALESCE(goods.report_cpc_cost,0) AS report_cpc_cost ,
+COALESCE(goods.report_cpc_sd_cost,0) AS report_cpc_sd_cost ,
+COALESCE(goods.report_reserved_field1,0) AS report_reserved_field1 ,
+COALESCE(goods.report_reserved_field2,0) AS report_reserved_field2 ,
+COALESCE(goods.report_cpc_sd_clicks,0) AS report_cpc_sd_clicks ,
+COALESCE(goods.report_cpc_sp_clicks,0) AS report_cpc_sp_clicks ,
+COALESCE(goods.report_sp_attributedconversions7d,0) AS report_sp_attributedconversions7d ,
+COALESCE(goods.report_sd_attributedconversions7d,0) AS report_sd_attributedconversions7d ,
+COALESCE(goods.report_sp_attributedsales7d,0) AS report_sp_attributedsales7d ,
+COALESCE(goods.report_sd_attributedsales7d,0) AS report_sd_attributedsales7d ,
+COALESCE(goods.report_sd_attributedconversions7dsamesku,0) AS report_sd_attributedconversions7dsamesku ,
+COALESCE(goods.report_sp_attributedconversions7dsamesku,0) AS report_sp_attributedconversions7dsamesku ,
+COALESCE(goods.report_sd_attributedsales7dsamesku,0) AS report_sd_attributedsales7dsamesku ,
+COALESCE(goods.report_sp_attributedsales7dsamesku,0) AS report_sp_attributedsales7dsamesku ,
+COALESCE(goods.report_return_and_return_commission,0) AS report_return_and_return_commission ,
+COALESCE(goods.report_reserved_field17,0) AS report_reserved_field17 ,
+COALESCE(goods.report_order_quantity,0) AS report_order_quantity ,
+COALESCE(goods.report_reserved_field21,0) AS report_reserved_field21 ,
+COALESCE(goods.report_fba_sales_volume,0) AS report_fba_sales_volume ,
+COALESCE(goods.report_fbm_sales_volume,0) AS report_fbm_sales_volume ,
+COALESCE(goods.report_fba_refund_num,0) AS report_fba_refund_num ,
+COALESCE(goods.report_fbm_refund_num,0) AS report_fbm_refund_num ,
+COALESCE(goods.report_fba_logistics_head_course,0) AS report_fba_logistics_head_course ,
+COALESCE(goods.report_fba_sales_quota,0) AS report_fba_sales_quota ,
+COALESCE(goods.report_fbm_sales_quota,0) AS report_fbm_sales_quota ,
+COALESCE(goods.report_fba_refund,0) AS report_fba_refund ,
+COALESCE(goods.report_fbm_refund,0) AS report_fbm_refund ,
+COALESCE(goods.report_tax,0) AS report_tax ,
+COALESCE(goods.report_ware_house_lost,0) AS report_ware_house_lost ,
+COALESCE(goods.report_ware_house_damage,0) AS report_ware_house_damage ,
+COALESCE(goods.report_shipping_charge,0) AS report_shipping_charge ,
+COALESCE(goods.report_customer_damage,0) AS report_customer_damage ,
+COALESCE(goods.report_removal_order_lost,0) AS report_removal_order_lost ,
+COALESCE(goods.report_incorrect_fees_items,0) AS report_incorrect_fees_items ,
+COALESCE(goods.report_missing_from_inbound,0) AS report_missing_from_inbound ,
+COALESCE(goods.report_multichannel_order_lost,0) AS report_multichannel_order_lost ,
+COALESCE(goods.report_removal_fee,0) AS report_removal_fee ,
+COALESCE(goods.byorder_fbm_logistics_head_course,0) AS byorder_fbm_logistics_head_course ,
+COALESCE(goods.report_fbm_logistics_head_course,0) AS report_fbm_logistics_head_course ,
+COALESCE(goods.report_gift_wrap,0) AS report_gift_wrap ,".
+//--bychannnel
+//"COALESCE(goods.report_channel_profit,0) as report_channel_profit,
+//COALESCE(goods.byorder_channel_profit,0) as byorder_channel_profit,
+            "COALESCE(goods.byorder_channel_amazon_order_fee,0) as byorder_channel_amazon_order_fee,
+COALESCE(goods.report_channel_amazon_order_fee,0) as report_channel_amazon_order_fee,
+COALESCE(goods.byorder_channel_amazon_refund_fee,0) as byorder_channel_amazon_refund_fee,
+COALESCE(goods.report_channel_amazon_refund_fee,0) as report_channel_amazon_refund_fee,
+COALESCE(goods.byorder_channel_amazon_storage_fee,0) as byorder_channel_amazon_storage_fee,
+COALESCE(goods.report_channel_amazon_storage_fee,0) as report_channel_amazon_storage_fee,
+COALESCE(goods.byorder_channel_amazon_other_fee,0) as byorder_channel_amazon_other_fee,
+COALESCE(goods.report_channel_amazon_other_fee,0) as report_channel_amazon_other_fee,
+COALESCE(goods.byorder_channel_goods_adjustment_fee,0) as byorder_channel_goods_adjustment_fee,
+COALESCE(goods.report_channel_goods_adjustment_fee,0) as report_channel_goods_adjustment_fee,
+COALESCE(goods.report_channel_profit,0) as report_channel_profit,
+COALESCE(goods.byorder_channel_profit,0) as byorder_channel_profit,
+
+COALESCE(bychannel.bychannel_sales_quota,0) as bychannel_sales_quota,
+COALESCE(bychannel.bychannel_fba_sales_quota,0) as bychannel_fba_sales_quota,
+COALESCE(bychannel.bychannel_sales_volume,0) as bychannel_sales_volume,
+COALESCE(bychannel.bychannel_fba_sales_volume,0) as bychannel_fba_sales_volume,
+COALESCE(bychannel.bychannel_operating_fee,0) as bychannel_operating_fee,
+COALESCE(bychannel.bychannel_fba_per_unit_fulfillment_fee,0) as bychannel_fba_per_unit_fulfillment_fee,
+COALESCE(bychannel.bychannel_return_postage_billing_fuel_surcharge,0) as bychannel_return_postage_billing_fuel_surcharge,
+COALESCE(bychannel.bychannel_postage_billing_tracking,0) as bychannel_postage_billing_tracking,
+COALESCE(bychannel.bychannel_postage_billing_delivery_area_surcharge,0) as bychannel_postage_billing_delivery_area_surcharge,
+COALESCE(bychannel.bychannel_postage_billing_vat,0) as bychannel_postage_billing_vat,
+COALESCE(bychannel.bychannel_postage_billing_signature_confirmation,0) as bychannel_postage_billing_signature_confirmation,
+COALESCE(bychannel.bychannel_return_postage_billing_oversize_surcharge,0) as bychannel_return_postage_billing_oversize_surcharge,
+COALESCE(bychannel.bychannel_postage_billing_postage_adjustment,0) as bychannel_postage_billing_postage_adjustment,
+COALESCE(bychannel.bychannel_postage_billing_insurance,0) as bychannel_postage_billing_insurance,
+COALESCE(bychannel.bychannel_postage_billing_import_duty,0) as bychannel_postage_billing_import_duty,
+COALESCE(bychannel.bychannel_postage_billing_fuel_surcharge,0) as bychannel_postage_billing_fuel_surcharge,
+COALESCE(bychannel.bychannel_product_ads_payment_eventlist_charge,0) as bychannel_product_ads_payment_eventlist_charge,
+COALESCE(bychannel.bychannel_product_ads_payment_eventlist_refund,0) as bychannel_product_ads_payment_eventlist_refund,
+COALESCE(bychannel.bychannel_fba_storage_fee,0) as bychannel_fba_storage_fee,
+COALESCE(bychannel.bychannel_review_enrollment_fee,0) as bychannel_review_enrollment_fee,
+COALESCE(bychannel.bychannel_loan_payment,0) as bychannel_loan_payment,
+COALESCE(bychannel.bychannel_debt_payment,0) as bychannel_debt_payment,
+COALESCE(bychannel.bychannel_coupon_redemption_fee,0) as bychannel_coupon_redemption_fee,
+COALESCE(bychannel.bychannel_run_lightning_deal_fee,0) as bychannel_run_lightning_deal_fee,
+COALESCE(bychannel.bychannel_fba_inbound_convenience_fee,0) as bychannel_fba_inbound_convenience_fee,
+COALESCE(bychannel.bychannel_labeling_fee,0) as bychannel_labeling_fee,
+COALESCE(bychannel.bychannel_polybagging_fee,0) as bychannel_polybagging_fee,
+COALESCE(bychannel.bychannel_fba_inbound_shipment_carton_level_info_fee,0) as bychannel_fba_inbound_shipment_carton_level_info_fee,
+COALESCE(bychannel.bychannel_fba_inbound_transportation_program_fee,0) as bychannel_fba_inbound_transportation_program_fee,
+COALESCE(bychannel.bychannel_fba_overage_fee,0) as bychannel_fba_overage_fee,
+COALESCE(bychannel.bychannel_fba_inbound_transportation_fee,0) as bychannel_fba_inbound_transportation_fee,
+COALESCE(bychannel.bychannel_fba_inbound_defect_fee,0) as bychannel_fba_inbound_defect_fee,
+COALESCE(bychannel.bychannel_subscription,0) as bychannel_subscription,
+COALESCE(bychannel.bychannel_charge_back_recovery,0) as bychannel_charge_back_recovery,
+COALESCE(bychannel.bychannel_cs_error_non_itemized,0) as bychannel_cs_error_non_itemized,
+COALESCE(bychannel.bychannel_return_postage_billing_postage,0) as bychannel_return_postage_billing_postage,
+COALESCE(bychannel.bychannel_re_evaluation,0) as bychannel_re_evaluation,
+COALESCE(bychannel.bychannel_subscription_fee_correction,0) as bychannel_subscription_fee_correction,
+COALESCE(bychannel.bychannel_incorrect_fees_non_itemized,0) as bychannel_incorrect_fees_non_itemized,
+COALESCE(bychannel.bychannel_buyer_recharge,0) as bychannel_buyer_recharge,
+COALESCE(bychannel.bychannel_multichannel_order_late,0) as bychannel_multichannel_order_late,
+COALESCE(bychannel.bychannel_non_subscription_fee_adj,0) as bychannel_non_subscription_fee_adj,
+COALESCE(bychannel.bychannel_fba_disposal_fee,0) as bychannel_fba_disposal_fee,
+COALESCE(bychannel.bychannel_fba_removal_fee,0) as bychannel_fba_removal_fee,
+COALESCE(bychannel.bychannel_fba_long_term_storage_fee,0) as bychannel_fba_long_term_storage_fee,
+COALESCE(bychannel.bychannel_fba_international_inbound_freight_fee,0) as bychannel_fba_international_inbound_freight_fee,
+COALESCE(bychannel.bychannel_fba_international_inbound_freight_tax_and_duty,0) as bychannel_fba_international_inbound_freight_tax_and_duty,
+COALESCE(bychannel.bychannel_postage_billing_transaction,0) as bychannel_postage_billing_transaction,
+COALESCE(bychannel.bychannel_postage_billing_delivery_confirmation,0) as bychannel_postage_billing_delivery_confirmation,
+COALESCE(bychannel.bychannel_postage_billing_postage,0) as bychannel_postage_billing_postage,
+COALESCE(bychannel.bychannel_reserved_field1,0) as bychannel_reserved_field1,
+COALESCE(bychannel.bychannel_reserved_field2,0) as bychannel_reserved_field2,
+COALESCE(bychannel.bychannel_reserved_field3,0) as bychannel_reserved_field3,
+COALESCE(bychannel.bychannel_reserved_field4,0) as bychannel_reserved_field4,
+COALESCE(bychannel.bychannel_reserved_field5,0) as bychannel_reserved_field5,
+COALESCE(bychannel.bychannel_reserved_field6,0) as bychannel_reserved_field6,
+COALESCE(bychannel.bychannel_reserved_field7,0) as bychannel_reserved_field7,
+COALESCE(bychannel.bychannel_reserved_field8,0) as bychannel_reserved_field8,
+COALESCE(bychannel.bychannel_reserved_field9,0) as bychannel_reserved_field9,
+COALESCE(bychannel.bychannel_reserved_field10,0) as bychannel_reserved_field10,
+COALESCE(bychannel.bychannel_reserved_field11,0) as bychannel_reserved_field11,
+COALESCE(bychannel.bychannel_reserved_field12,0) as bychannel_reserved_field12,
+COALESCE(bychannel.bychannel_reserved_field13,0) as bychannel_reserved_field13,
+COALESCE(bychannel.bychannel_reserved_field14,0) as bychannel_reserved_field14,
+COALESCE(bychannel.bychannel_reserved_field15,0) as bychannel_reserved_field15,
+COALESCE(bychannel.bychannel_reserved_field16,0) as bychannel_reserved_field16,
+COALESCE(bychannel.bychannel_reserved_field17,0) as bychannel_reserved_field17,
+COALESCE(bychannel.bychannel_reserved_field18,0) as bychannel_reserved_field18,
+COALESCE(bychannel.bychannel_reserved_field19,0) as bychannel_reserved_field19,
+COALESCE(bychannel.bychannel_reserved_field20,0) as bychannel_reserved_field20,
+COALESCE(bychannel.bychannel_misc_adjustment,0) as bychannel_misc_adjustment,
+COALESCE(bychannel.bychannel_cpc_sb_sales_volume,0) as bychannel_cpc_sb_sales_volume,
+COALESCE(bychannel.bychannel_cpc_sb_sales_quota,0) as bychannel_cpc_sb_sales_quota,
+COALESCE(bychannel.bychannel_cpc_sb_cost,0) as bychannel_cpc_sb_cost,
+COALESCE(bychannel.bychannel_create_time,0) as bychannel_create_time,
+COALESCE(bychannel.bychannel_modified_time,0) as bychannel_modified_time,
+COALESCE(bychannel.bychannel_platform_type,0) as bychannel_platform_type,
+COALESCE(bychannel.bychannel_mfnpostageFee,0) as bychannel_mfnpostageFee,
+COALESCE(bychannel.bychannel_coupon_payment_eventList_tax,0) as bychannel_coupon_payment_eventList_tax,
+COALESCE(bychannel.bychannel_channel_amazon_order_fee,0) as bychannel_channel_amazon_order_fee,
+COALESCE(bychannel.bychannel_channel_amazon_refund_fee,0) as bychannel_channel_amazon_refund_fee,
+COALESCE(bychannel.bychannel_channel_amazon_storage_fee,0) as bychannel_channel_amazon_storage_fee,
+COALESCE(bychannel.bychannel_channel_amazon_other_fee,0) as bychannel_channel_amazon_other_fee,
+COALESCE(bychannel.bychannel_channel_profit,0) as bychannel_channel_profit,
+COALESCE(bychannel.bychannel_channel_goods_adjustment_fee,0) as bychannel_channel_goods_adjustment_fee,
+COALESCE(bychannel.bychannel_reserved_field1,0) as channel_fbm_safe_t_claim_demage,
+COALESCE(goods.channel_id ,bychannel.channel_id) AS channel_id ,
+COALESCE(goods.site_id ,bychannel.site_id) AS site_id ,
+COALESCE(goods.user_id ,bychannel.user_id) AS user_id ,
+COALESCE(goods.myear ,bychannel.channel_id) AS myear ,
+COALESCE(goods.mmonth ,bychannel.channel_id) AS mmonth ,
+COALESCE(goods.goods_operation_user_admin_id ,0) AS goods_operation_user_admin_id ,
+COALESCE(goods.create_time ,bychannel.bychannel_create_time) AS create_time ,
+{$report_other_field}
+COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern 
+ from
+        (SELECT
+			SUM( dw_report.byorder_user_sessions ) AS byorder_user_sessions,
+			SUM( dw_report.byorder_channel_amazon_order_fee ) AS byorder_channel_amazon_order_fee,
+			SUM( dw_report.report_channel_amazon_order_fee ) AS report_channel_amazon_order_fee,
+			SUM( dw_report.byorder_channel_amazon_refund_fee ) AS byorder_channel_amazon_refund_fee,
+			SUM( dw_report.report_channel_amazon_refund_fee ) AS report_channel_amazon_refund_fee,
+			SUM( dw_report.byorder_channel_amazon_storage_fee ) AS byorder_channel_amazon_storage_fee,
+			SUM( dw_report.report_channel_amazon_storage_fee ) AS report_channel_amazon_storage_fee,
+			SUM( dw_report.byorder_channel_amazon_other_fee ) AS byorder_channel_amazon_other_fee,
+			SUM( dw_report.report_channel_amazon_other_fee ) AS report_channel_amazon_other_fee,
+			SUM( dw_report.byorder_channel_goods_adjustment_fee ) AS byorder_channel_goods_adjustment_fee,
+			SUM( dw_report.report_channel_goods_adjustment_fee ) AS report_channel_goods_adjustment_fee,
+			SUM( dw_report.byorder_channel_profit ) AS byorder_channel_profit,
+			SUM( dw_report.report_channel_profit ) AS report_channel_profit,
+			SUM( dw_report.byorder_quantity_of_goods_ordered ) AS byorder_quantity_of_goods_ordered,
+			SUM( dw_report.byorder_number_of_visits ) AS byorder_number_of_visits,
+			SUM( dw_report.byorder_buy_button_winning_rate ) AS byorder_buy_button_winning_rate,
+			SUM( dw_report.byorder_sales_volume ) AS byorder_sales_volume,
+			SUM( dw_report.byorder_group_id ) AS byorder_group_id,
+			SUM( dw_report.byorder_sales_quota ) AS byorder_sales_quota,
+			SUM( dw_report.byorder_refund_num ) AS byorder_refund_num,
+			SUM( dw_report.byorder_refund ) AS byorder_refund,
+			SUM( dw_report.byorder_promote_discount ) AS byorder_promote_discount,
+			SUM( dw_report.byorder_refund_promote_discount ) AS byorder_refund_promote_discount,
+			SUM( dw_report.byorder_purchasing_cost ) AS byorder_purchasing_cost,
+			SUM( dw_report.byorder_logistics_head_course ) AS byorder_logistics_head_course,
+			SUM( dw_report.byorder_goods_profit ) AS byorder_goods_profit,
+			SUM( dw_report.byorder_goods_amazon_fee ) AS byorder_goods_amazon_fee,
+			SUM( dw_report.byorder_platform_sales_commission ) AS byorder_platform_sales_commission,
+			SUM( dw_report.byorder_fba_generation_delivery_cost ) AS byorder_fba_generation_delivery_cost,
+			SUM( dw_report.byorder_fbaperorderfulfillmentfee ) AS byorder_fbaperorderfulfillmentfee,
+			SUM( dw_report.byorder_fbaweightbasedfee ) AS byorder_fbaweightbasedfee,
+			SUM( dw_report.byorder_profit ) AS byorder_profit,
+			SUM( dw_report.byorder_order_variableclosingfee ) AS byorder_order_variableclosingfee,
+			SUM( dw_report.byorder_fixedclosingfee ) AS byorder_fixedclosingfee,
+			SUM( dw_report.byorder_refund_variableclosingfee ) AS byorder_refund_variableclosingfee,
+			SUM( dw_report.byorder_goods_amazon_other_fee ) AS byorder_goods_amazon_other_fee,
+			SUM( dw_report.byorder_returnshipping ) AS byorder_returnshipping,
+			SUM( dw_report.byorder_return_and_return_sales_commission ) AS byorder_return_and_return_sales_commission,
+			SUM( dw_report.byorder_fba_refund_treatment_fee ) AS byorder_fba_refund_treatment_fee,
+			SUM( dw_report.byorder_fbacustomerreturnperorderfee ) AS byorder_fbacustomerreturnperorderfee,
+			SUM( dw_report.byorder_fbacustomerreturnweightbasedfee ) AS byorder_fbacustomerreturnweightbasedfee,
+			SUM( dw_report.byorder_estimated_monthly_storage_fee ) AS byorder_estimated_monthly_storage_fee,
+			SUM( dw_report.byorder_long_term_storage_fee ) AS byorder_long_term_storage_fee,
+			SUM( dw_report.byorder_reserved_field16 ) AS byorder_reserved_field16,
+			SUM( dw_report.byorder_reserved_field10 ) AS byorder_reserved_field10,
+			SUM( dw_report.byorder_cpc_cost ) AS byorder_cpc_cost,
+			SUM( dw_report.byorder_cpc_sd_cost ) AS byorder_cpc_sd_cost,
+			SUM( dw_report.byorder_reserved_field1 ) AS byorder_reserved_field1,
+			SUM( dw_report.byorder_reserved_field2 ) AS byorder_reserved_field2,
+			SUM( dw_report.byorder_cpc_sd_clicks ) AS byorder_cpc_sd_clicks,
+			SUM( dw_report.byorder_cpc_sp_clicks ) AS byorder_cpc_sp_clicks,
+			SUM( dw_report.byorder_sp_attributedconversions7d ) AS byorder_sp_attributedconversions7d,
+			SUM( dw_report.byorder_sd_attributedconversions7d ) AS byorder_sd_attributedconversions7d,
+			SUM( dw_report.byorder_sp_attributedsales7d ) AS byorder_sp_attributedsales7d,
+			SUM( dw_report.byorder_sd_attributedsales7d ) AS byorder_sd_attributedsales7d,
+			SUM( dw_report.byorder_sd_attributedconversions7dsamesku ) AS byorder_sd_attributedconversions7dsamesku,
+			SUM( dw_report.byorder_sp_attributedconversions7dsamesku ) AS byorder_sp_attributedconversions7dsamesku,
+			SUM( dw_report.byorder_sd_attributedsales7dsamesku ) AS byorder_sd_attributedsales7dsamesku,
+			SUM( dw_report.byorder_sp_attributedsales7dsamesku ) AS byorder_sp_attributedsales7dsamesku,
+			SUM( dw_report.byorder_number_of_visits * dw_report.byorder_buy_button_winning_rate/100 ) AS byorder_buy_button_winning_num,
+			SUM( dw_report.byorder_return_and_return_commission ) AS byorder_return_and_return_commission,
+			SUM( dw_report.byorder_reserved_field17 ) AS byorder_reserved_field17,
+			SUM( dw_report.byorder_order_quantity ) AS byorder_order_quantity,
+			SUM( dw_report.byorder_reserved_field21 ) AS byorder_reserved_field21,
+			SUM( dw_report.byorder_reserved_field11 ) AS byorder_fba_sales_volume,
+			SUM( dw_report.byorder_sales_volume - dw_report.byorder_reserved_field11 ) AS byorder_fbm_sales_volume,
+			SUM( dw_report.byorder_reserved_field12 ) AS byorder_fba_refund_num,
+			SUM( dw_report.byorder_refund_num - dw_report.byorder_reserved_field12 ) AS byorder_fbm_refund_num,
+			SUM( dw_report.byorder_reserved_field13 ) AS byorder_fba_logistics_head_course,
+			SUM( case when dw_report.byorder_sales_volume=0 then 0 else dw_report.byorder_sales_quota*(dw_report.byorder_reserved_field11/(dw_report.byorder_sales_volume)) end  ) AS byorder_fba_sales_quota,
+			SUM( case when dw_report.byorder_sales_volume=0 then 0 else dw_report.byorder_sales_quota-dw_report.byorder_sales_quota*(dw_report.byorder_reserved_field11/(dw_report.byorder_sales_volume)) end) AS byorder_fbm_sales_quota,
+			SUM( case when dw_report.byorder_refund_num=0 then 0 else dw_report.byorder_refund*(dw_report.byorder_reserved_field12/dw_report.byorder_refund_num) end ) AS byorder_fba_refund,
+			SUM( case when dw_report.byorder_refund_num=0 then 0 else dw_report.byorder_refund-byorder_refund*(dw_report.byorder_reserved_field12/dw_report.byorder_refund_num) end ) AS byorder_fbm_refund,
+			SUM( dw_report.byorder_tax ) AS byorder_tax,
+			SUM( dw_report.byorder_ware_house_lost ) AS byorder_ware_house_lost,
+			SUM( dw_report.byorder_ware_house_damage ) AS byorder_ware_house_damage,
+			SUM( dw_report.byorder_shipping_charge ) AS byorder_shipping_charge,
+			SUM( dw_report.byorder_customer_damage ) AS byorder_customer_damage,
+			SUM( dw_report.byorder_removal_order_lost ) AS byorder_removal_order_lost,
+			SUM( dw_report.byorder_incorrect_fees_items ) AS byorder_incorrect_fees_items,
+			SUM( dw_report.byorder_missing_from_inbound ) AS byorder_missing_from_inbound,
+			SUM( dw_report.byorder_multichannel_order_lost ) AS byorder_multichannel_order_lost,
+			SUM( dw_report.byorder_removal_fee ) AS byorder_removal_fee,
+			SUM( dw_report.byorder_gift_wrap ) AS byorder_gift_wrap,
+			SUM( dw_report.report_sales_volume ) AS report_sales_volume,
+			SUM( dw_report.report_group_id ) AS report_group_id,
+			SUM( dw_report.report_sales_quota ) AS report_sales_quota,
+			SUM( dw_report.report_refund_num ) AS report_refund_num,
+			SUM( dw_report.report_refund ) AS report_refund,
+			SUM( dw_report.report_promote_discount ) AS report_promote_discount,
+			SUM( dw_report.report_refund_promote_discount ) AS report_refund_promote_discount,
+			SUM( dw_report.report_purchasing_cost ) AS report_purchasing_cost,
+			SUM( dw_report.report_logistics_head_course ) AS report_logistics_head_course,
+			SUM( dw_report.report_goods_profit ) AS report_goods_profit,
+			SUM( dw_report.report_goods_amazon_fee ) AS report_goods_amazon_fee,
+			SUM( dw_report.report_platform_sales_commission ) AS report_platform_sales_commission,
+			SUM( dw_report.report_fba_generation_delivery_cost ) AS report_fba_generation_delivery_cost,
+			SUM( dw_report.report_fbaperorderfulfillmentfee ) AS report_fbaperorderfulfillmentfee,
+			SUM( dw_report.report_fbaweightbasedfee ) AS report_fbaweightbasedfee,
+			SUM( dw_report.report_profit ) AS report_profit,
+			SUM( dw_report.report_order_variableclosingfee ) AS report_order_variableclosingfee,
+			SUM( dw_report.report_fixedclosingfee ) AS report_fixedclosingfee,
+			SUM( dw_report.report_refund_variableclosingfee ) AS report_refund_variableclosingfee,
+			SUM( dw_report.report_goods_amazon_other_fee ) AS report_goods_amazon_other_fee,
+			SUM( dw_report.report_returnshipping ) AS report_returnshipping,
+			SUM( dw_report.report_return_and_return_sales_commission ) AS report_return_and_return_sales_commission,
+			SUM( dw_report.report_fba_refund_treatment_fee ) AS report_fba_refund_treatment_fee,
+			SUM( dw_report.report_fbacustomerreturnperorderfee ) AS report_fbacustomerreturnperorderfee,
+			SUM( dw_report.report_fbacustomerreturnweightbasedfee ) AS report_fbacustomerreturnweightbasedfee,
+			SUM( dw_report.report_estimated_monthly_storage_fee ) AS report_estimated_monthly_storage_fee,
+			SUM( dw_report.report_long_term_storage_fee ) AS report_long_term_storage_fee,
+			SUM( dw_report.report_reserved_field16 ) AS report_reserved_field16,
+			SUM( dw_report.report_reserved_field10 ) AS report_reserved_field10,
+			SUM( dw_report.report_cpc_cost ) AS report_cpc_cost,
+			SUM( dw_report.report_cpc_sd_cost ) AS report_cpc_sd_cost,
+			SUM( dw_report.report_reserved_field1 ) AS report_reserved_field1,
+			SUM( dw_report.report_reserved_field2 ) AS report_reserved_field2,
+			SUM( dw_report.report_cpc_sd_clicks ) AS report_cpc_sd_clicks,
+			SUM( dw_report.report_cpc_sp_clicks ) AS report_cpc_sp_clicks,
+			SUM( dw_report.report_sp_attributedconversions7d ) AS report_sp_attributedconversions7d,
+			SUM( dw_report.report_sd_attributedconversions7d ) AS report_sd_attributedconversions7d,
+			SUM( dw_report.report_sp_attributedsales7d ) AS report_sp_attributedsales7d,
+			SUM( dw_report.report_sd_attributedsales7d ) AS report_sd_attributedsales7d,
+			SUM( dw_report.report_sd_attributedconversions7dsamesku ) AS report_sd_attributedconversions7dsamesku,
+			SUM( dw_report.report_sp_attributedconversions7dsamesku ) AS report_sp_attributedconversions7dsamesku,
+			SUM( dw_report.report_sd_attributedsales7dsamesku ) AS report_sd_attributedsales7dsamesku,
+			SUM( dw_report.report_sp_attributedsales7dsamesku ) AS report_sp_attributedsales7dsamesku,
+			SUM( dw_report.report_return_and_return_commission ) AS report_return_and_return_commission,
+			SUM( dw_report.report_reserved_field17 ) AS report_reserved_field17,
+			SUM( dw_report.report_order_quantity ) AS report_order_quantity,
+			SUM( dw_report.report_reserved_field21 ) AS report_reserved_field21,
+			SUM( dw_report.report_reserved_field11 ) AS report_fba_sales_volume,
+			SUM( dw_report.report_sales_volume  - dw_report.report_reserved_field11) AS report_fbm_sales_volume,
+			SUM( dw_report.report_reserved_field12 ) AS report_fba_refund_num,
+			SUM( dw_report.report_refund_num - report_reserved_field12 ) AS report_fbm_refund_num,
+			SUM( dw_report.report_reserved_field13 ) AS report_fba_logistics_head_course,
+			SUM( case when dw_report.report_sales_volume=0 then 0 else dw_report.report_sales_quota*(dw_report.report_reserved_field11/(dw_report.report_sales_volume)) end) AS report_fba_sales_quota,
+			SUM( case when dw_report.report_sales_volume=0 then 0 else dw_report.report_sales_quota-dw_report.report_sales_quota*(dw_report.report_reserved_field11/(dw_report.report_sales_volume)) end ) AS report_fbm_sales_quota,
+			SUM( case when dw_report.report_refund_num=0 then 0 else dw_report.report_refund*(dw_report.report_reserved_field12/dw_report.report_refund_num) end ) AS report_fba_refund,
+			SUM( case when dw_report.report_refund_num=0 then 0 else dw_report.report_refund-dw_report.report_refund*(dw_report.report_reserved_field12/dw_report.report_refund_num) end ) AS report_fbm_refund,
+			SUM( dw_report.report_tax ) AS report_tax,
+			SUM( dw_report.report_ware_house_lost ) AS report_ware_house_lost,
+			SUM( dw_report.report_ware_house_damage ) AS report_ware_house_damage,
+			SUM( dw_report.report_shipping_charge ) AS report_shipping_charge,
+			SUM( dw_report.report_customer_damage ) AS report_customer_damage,
+			SUM( dw_report.report_removal_order_lost ) AS report_removal_order_lost,
+			SUM( dw_report.report_incorrect_fees_items ) AS report_incorrect_fees_items,
+			SUM( dw_report.report_missing_from_inbound ) AS report_missing_from_inbound,
+			SUM( dw_report.report_multichannel_order_lost ) AS report_multichannel_order_lost,
+			SUM( dw_report.report_removal_fee ) AS report_removal_fee,
+			SUM( dw_report.report_gift_wrap ) AS report_gift_wrap,
+			SUM( dw_report.byorder_logistics_head_course - dw_report.byorder_logistics_head_course) AS byorder_fbm_logistics_head_course,
+			SUM( dw_report.report_logistics_head_course  - dw_report.report_logistics_head_course) AS report_fbm_logistics_head_course,
+			amazon_goods.goods_channel_id AS channel_id ,
+			max(dw_report.byorder_myear) as myear ,
+			max(dw_report.byorder_mmonth) as mmonth,
+			{$goods_other_field}
+			amazon_goods.goods_operation_user_admin_id,
+			max(dw_report.byorder_create_time) as create_time,
+			max(dw_report.byorder_user_id) as user_id,
+			max(dw_report.byorder_site_id) as site_id,
+			max(amazon_goods.channel_goods_operation_pattern) as goods_operation_pattern
+		FROM
+			{$goods_table}
+			WHERE
+		{$where_dw_report_amazon_goods}
+		GROUP BY
+			{$goods_group}
+			) AS goods {$goods_month_table}
+			full JOIN
+		    {$channel_table}
+
+) AS report ";
+
+        $table = str_replace("dw_report.byorder_goods_profit","byorder_order_variableclosingfee+byorder_fixedclosingfee+byorder_refund_variableclosingfee+byorder_platform_sales_commission+byorder_fba_generation_delivery_cost
+	+byorder_fbaperorderfulfillmentfee+byorder_fbaweightbasedfee-byorder_profit+byorder_profit+byorder_returnshipping+byorder_return_and_return_sales_commission+byorder_return_and_return_commission
+	+byorder_fba_refund_treatment_fee+byorder_fbacustomerreturnperorderfee+byorder_fbacustomerreturnweightbasedfee+byorder_estimated_monthly_storage_fee+byorder_gift_wrap+byorder_restocking_fee
+	+byorder_shipping_charge+byorder_shipping_charge_charge_back+byorder_shipping_tax+byorder_tax+byorder_gift_wrap_tax+byorder_refund_shipping_charge+byorder_refund_shipping_charge_charge_back
+	+byorder_refund_shipping_tax+byorder_refund_tax+byorder_marketplace_facilitator_tax_shipping+byorder_marketplace_facilitator_tax_principal+byorder_order_lowvaluegoods_other
+	+byorder_order_giftwrapchargeback+byorder_order_shippinghb+byorder_salestaxcollectionfee+byorder_costofpointsgranted+byorder_order_codchargeback+byorder_amazonexclusivesfee+byorder_giftwrapcommission
+	+byorder_order_paymentmethodfee+byorder_cod_tax+byorder_refund_lowvaluegoods_other+byorder_marketplacefacilitatortax_restockingfee+byorder_goodwill+byorder_refund_paymentmethodfee
+	+byorder_refund_codchargeback+byorder_refund_shippinghb+byorder_refund_giftwrapchargeback+byorder_costofpointsreturned+byorder_pointsadjusted+byorder_reserved_field3+byorder_reserved_field4
+	+byorder_reserved_field6+byorder_reserved_field7+byorder_reserved_field8+byorder_reserved_field14+byorder_reserved_field15+byorder_reserved_field18+byorder_reserved_field19+byorder_reserved_field20
+	+byorder_reserved_field21+byorder_ware_house_lost+byorder_ware_house_damage+byorder_ware_house_lost_manual+byorder_ware_house_damage_exception+byorder_reversal_reimbursement
+	+byorder_compensated_clawback+byorder_customer_damage+byorder_sales_quota-byorder_refund+byorder_long_term_storage_fee+byorder_promote_discount
+	+byorder_refund_promote_discount+byorder_cpc_cost+byorder_cpc_sd_cost+byorder_reserved_field10-byorder_reserved_field16
+	+byorder_free_replacement_refund_items
+	+byorder_removal_order_lost
+	+byorder_incorrect_fees_items
+	+byorder_missing_from_inbound_clawback
+	+byorder_missing_from_inbound
+	+byorder_inbound_carrier_damage
+	+byorder_multichannel_order_lost
+	+byorder_payment_retraction_items-byorder_reserved_field17+byorder_cpc_sb_sales_quota+byorder_cpc_sb_cost+byorder_refund_rate
+	+byorder_profit_margin
+	+byorder_disposal_fee
+	+byorder_removal_fee",$table);
+        $table = str_replace("dw_report.report_goods_profit","report_order_variableclosingfee+report_fixedclosingfee+report_refund_variableclosingfee+report_platform_sales_commission+report_fba_generation_delivery_cost
+	+report_fbaperorderfulfillmentfee+report_fbaweightbasedfee-report_profit+report_profit+report_returnshipping+report_return_and_return_sales_commission+report_return_and_return_commission
+	+report_fba_refund_treatment_fee+report_fbacustomerreturnperorderfee+report_fbacustomerreturnweightbasedfee+report_estimated_monthly_storage_fee+report_gift_wrap+report_restocking_fee
+	+report_shipping_charge+report_shipping_charge_charge_back+report_shipping_tax+report_tax+report_gift_wrap_tax+report_refund_shipping_charge+report_refund_shipping_charge_charge_back
+	+report_refund_shipping_tax+report_refund_tax+report_marketplace_facilitator_tax_shipping+report_marketplace_facilitator_tax_principal+report_order_lowvaluegoods_other
+	+report_order_giftwrapchargeback+report_order_shippinghb+report_salestaxcollectionfee+report_costofpointsgranted+report_order_codchargeback+report_amazonexclusivesfee+report_giftwrapcommission
+	+report_order_paymentmethodfee+report_cod_tax+report_refund_lowvaluegoods_other+report_marketplacefacilitatortax_restockingfee+report_goodwill+report_refund_paymentmethodfee
+	+report_refund_codchargeback+report_refund_shippinghb+report_refund_giftwrapchargeback+report_costofpointsreturned+report_pointsadjusted+report_reserved_field3+report_reserved_field4
+	+report_reserved_field6+report_reserved_field7+report_reserved_field8+report_reserved_field14+report_reserved_field15+report_reserved_field18+report_reserved_field19+report_reserved_field20
+	+report_reserved_field21+report_ware_house_lost+report_ware_house_damage+report_ware_house_lost_manual+report_ware_house_damage_exception+report_reversal_reimbursement
+	+report_compensated_clawback+report_customer_damage+report_sales_quota-report_refund+report_long_term_storage_fee+report_promote_discount
+	+report_refund_promote_discount+report_cpc_cost+report_cpc_sd_cost+report_reserved_field10-report_reserved_field16
+	+report_free_replacement_refund_items
+	+report_removal_order_lost
+	+report_incorrect_fees_items
+	+report_missing_from_inbound_clawback
+	+report_missing_from_inbound
+	+report_inbound_carrier_damage
+	+report_multichannel_order_lost
+	+report_payment_retraction_items-report_reserved_field17+report_cpc_sb_sales_quota+report_cpc_sb_cost+report_refund_rate
+	+report_profit_margin
+	+report_disposal_fee
+	+report_removal_fee",$table);
+        $table = str_replace("dw_report.byorder_goods_amazon_fee","byorder_order_variableclosingfee+byorder_fixedclosingfee+byorder_refund_variableclosingfee+byorder_platform_sales_commission+byorder_fba_generation_delivery_cost
+	+byorder_fbaperorderfulfillmentfee+byorder_fbaweightbasedfee-byorder_profit+byorder_profit+byorder_returnshipping+byorder_return_and_return_sales_commission+byorder_return_and_return_commission
+	+byorder_fba_refund_treatment_fee+byorder_fbacustomerreturnperorderfee+byorder_fbacustomerreturnweightbasedfee+byorder_estimated_monthly_storage_fee+byorder_gift_wrap+byorder_restocking_fee
+	+byorder_shipping_charge+byorder_shipping_charge_charge_back+byorder_shipping_tax+byorder_tax+byorder_gift_wrap_tax+byorder_refund_shipping_charge+byorder_refund_shipping_charge_charge_back
+	+byorder_refund_shipping_tax+byorder_refund_tax+byorder_marketplace_facilitator_tax_shipping+byorder_marketplace_facilitator_tax_principal+byorder_order_lowvaluegoods_other
+	+byorder_order_giftwrapchargeback+byorder_order_shippinghb+byorder_salestaxcollectionfee+byorder_costofpointsgranted+byorder_order_codchargeback+byorder_amazonexclusivesfee+byorder_giftwrapcommission
+	+byorder_order_paymentmethodfee+byorder_cod_tax+byorder_refund_lowvaluegoods_other+byorder_marketplacefacilitatortax_restockingfee+byorder_goodwill+byorder_refund_paymentmethodfee
+	+byorder_refund_codchargeback+byorder_refund_shippinghb+byorder_refund_giftwrapchargeback+byorder_costofpointsreturned+byorder_pointsadjusted+byorder_reserved_field3+byorder_reserved_field4
+	+byorder_reserved_field6+byorder_reserved_field7+byorder_reserved_field8+byorder_reserved_field14+byorder_reserved_field15+byorder_reserved_field18+byorder_reserved_field19+byorder_reserved_field20
+	+byorder_reserved_field21+byorder_ware_house_lost+byorder_ware_house_damage+byorder_ware_house_lost_manual+byorder_ware_house_damage_exception+byorder_reversal_reimbursement
+	+byorder_compensated_clawback+byorder_customer_damage+byorder_long_term_storage_fee
+	+byorder_free_replacement_refund_items
+	+byorder_removal_order_lost
+	+byorder_incorrect_fees_items
+	+byorder_missing_from_inbound_clawback
+	+byorder_missing_from_inbound
+	+byorder_inbound_carrier_damage
+	+byorder_multichannel_order_lost
+	+byorder_payment_retraction_items
+	+byorder_cpc_sb_sales_quota
+	+byorder_cpc_sb_cost
+	+byorder_refund_rate
+	+byorder_profit_margin
+	+byorder_disposal_fee
+	+byorder_removal_fee",$table);
+        $table = str_replace("dw_report.report_goods_amazon_fee","report_order_variableclosingfee+report_fixedclosingfee+report_refund_variableclosingfee+report_platform_sales_commission+report_fba_generation_delivery_cost
+	+report_fbaperorderfulfillmentfee+report_fbaweightbasedfee-report_profit+report_profit+report_returnshipping+report_return_and_return_sales_commission+report_return_and_return_commission
+	+report_fba_refund_treatment_fee+report_fbacustomerreturnperorderfee+report_fbacustomerreturnweightbasedfee+report_estimated_monthly_storage_fee+report_gift_wrap+report_restocking_fee
+	+report_shipping_charge+report_shipping_charge_charge_back+report_shipping_tax+report_tax+report_gift_wrap_tax+report_refund_shipping_charge+report_refund_shipping_charge_charge_back
+	+report_refund_shipping_tax+report_refund_tax+report_marketplace_facilitator_tax_shipping+report_marketplace_facilitator_tax_principal+report_order_lowvaluegoods_other
+	+report_order_giftwrapchargeback+report_order_shippinghb+report_salestaxcollectionfee+report_costofpointsgranted+report_order_codchargeback+report_amazonexclusivesfee+report_giftwrapcommission
+	+report_order_paymentmethodfee+report_cod_tax+report_refund_lowvaluegoods_other+report_marketplacefacilitatortax_restockingfee+report_goodwill+report_refund_paymentmethodfee
+	+report_refund_codchargeback+report_refund_shippinghb+report_refund_giftwrapchargeback+report_costofpointsreturned+report_pointsadjusted+report_reserved_field3+report_reserved_field4
+	+report_reserved_field6+report_reserved_field7+report_reserved_field8+report_reserved_field14+report_reserved_field15+report_reserved_field18+report_reserved_field19+report_reserved_field20
+	+report_reserved_field21+report_ware_house_lost+report_ware_house_damage+report_ware_house_lost_manual+report_ware_house_damage_exception+report_reversal_reimbursement
+	+report_compensated_clawback+report_customer_damage+report_long_term_storage_fee
+	+report_free_replacement_refund_items
+	+report_removal_order_lost
+	+report_incorrect_fees_items
+	+report_missing_from_inbound_clawback
+	+report_missing_from_inbound
+	+report_inbound_carrier_damage
+	+report_multichannel_order_lost
+	+report_payment_retraction_items
+	+report_cpc_sb_sales_quota
+	+report_cpc_sb_cost
+	+report_refund_rate
+	+report_profit_margin
+	+report_disposal_fee
+	+report_removal_fee",$table);
+        $table = str_replace("dw_report.byorder_goods_amazon_other_fee","byorder_gift_wrap+byorder_restocking_fee+byorder_shipping_charge+byorder_shipping_charge_charge_back+byorder_shipping_tax+byorder_tax+byorder_gift_wrap_tax
+	+byorder_refund_shipping_charge+byorder_refund_shipping_charge_charge_back+byorder_refund_shipping_tax+byorder_refund_tax+byorder_marketplace_facilitator_tax_shipping
+	+byorder_marketplace_facilitator_tax_principal+byorder_order_lowvaluegoods_other+byorder_order_giftwrapchargeback+byorder_order_shippinghb+byorder_salestaxcollectionfee
+	+byorder_costofpointsgranted+byorder_order_codchargeback+byorder_amazonexclusivesfee+byorder_giftwrapcommission+byorder_order_paymentmethodfee+byorder_cod_tax+byorder_refund_lowvaluegoods_other
+	+byorder_marketplacefacilitatortax_restockingfee+byorder_goodwill+byorder_refund_paymentmethodfee+byorder_refund_codchargeback+byorder_refund_shippinghb+byorder_refund_giftwrapchargeback
+	+byorder_costofpointsreturned+byorder_pointsadjusted+byorder_reserved_field3+byorder_reserved_field4+byorder_reserved_field6+byorder_reserved_field7+byorder_reserved_field8+byorder_reserved_field14
+	+byorder_reserved_field15+byorder_reserved_field18+byorder_reserved_field19+byorder_reserved_field20+byorder_ware_house_lost+byorder_ware_house_damage
+	+byorder_ware_house_lost_manual+byorder_ware_house_damage_exception+byorder_reversal_reimbursement+byorder_compensated_clawback+byorder_customer_damage
+	+byorder_free_replacement_refund_items
+	+byorder_removal_order_lost
+	+byorder_incorrect_fees_items
+	+byorder_missing_from_inbound_clawback
+	+byorder_missing_from_inbound
+	+byorder_inbound_carrier_damage
+	+byorder_multichannel_order_lost
+	+byorder_payment_retraction_items
+	+byorder_cpc_sb_sales_quota
+	+byorder_cpc_sb_cost
+	+byorder_refund_rate
+	+byorder_profit_margin
+	+byorder_disposal_fee+byorder_cpc_sb_cost",$table);
+        $table = str_replace("dw_report.report_goods_amazon_other_fee","report_gift_wrap+report_restocking_fee+report_shipping_charge+report_shipping_charge_charge_back+report_shipping_tax+report_tax+report_gift_wrap_tax
+	+report_refund_shipping_charge+report_refund_shipping_charge_charge_back+report_refund_shipping_tax+report_refund_tax+report_marketplace_facilitator_tax_shipping
+	+report_marketplace_facilitator_tax_principal+report_order_lowvaluegoods_other+report_order_giftwrapchargeback+report_order_shippinghb+report_salestaxcollectionfee
+	+report_costofpointsgranted+report_order_codchargeback+report_amazonexclusivesfee+report_giftwrapcommission+report_order_paymentmethodfee+report_cod_tax+report_refund_lowvaluegoods_other
+	+report_marketplacefacilitatortax_restockingfee+report_goodwill+report_refund_paymentmethodfee+report_refund_codchargeback+report_refund_shippinghb+report_refund_giftwrapchargeback
+	+report_costofpointsreturned+report_pointsadjusted+report_reserved_field3+report_reserved_field4+report_reserved_field6+report_reserved_field7+report_reserved_field8+report_reserved_field14
+	+report_reserved_field15+report_reserved_field18+report_reserved_field19+report_reserved_field20+report_ware_house_lost+report_ware_house_damage
+	+report_ware_house_lost_manual+report_ware_house_damage_exception+report_reversal_reimbursement+report_compensated_clawback+report_customer_damage
+	+report_free_replacement_refund_items
+	+report_removal_order_lost
+	+report_incorrect_fees_items
+	+report_missing_from_inbound_clawback
+	+report_missing_from_inbound
+	+report_inbound_carrier_damage
+	+report_multichannel_order_lost
+	+report_payment_retraction_items
+	+report_cpc_sb_sales_quota
+	+report_cpc_sb_cost
+	+report_refund_rate
+	+report_profit_margin
+	+report_disposal_fee
+	+report_removal_fee+report_cpc_sb_cost",$table);
+
+        $table = str_replace("dw_report.byorder_channel_amazon_order_fee","byorder_platform_sales_commission+byorder_fba_generation_delivery_cost
+	+byorder_fbaperorderfulfillmentfee+byorder_fbaweightbasedfee+byorder_order_variableclosingfee+byorder_fixedclosingfee
+	+byorder_reserved_field20+byorder_reserved_field21+byorder_disposal_fee",$table);
+        $table = str_replace("dw_report.report_channel_amazon_order_fee","report_platform_sales_commission+report_fba_generation_delivery_cost
+	+report_fbaperorderfulfillmentfee+report_fbaweightbasedfee+report_order_variableclosingfee+report_fixedclosingfee
+	+report_reserved_field20+report_reserved_field21+report_disposal_fee",$table);
+
+        $table = str_replace("dw_report.byorder_channel_amazon_refund_fee","byorder_return_and_return_commission+byorder_fba_refund_treatment_fee
+	+byorder_return_and_return_sales_commission+byorder_returnshipping+byorder_refund_variableclosingfee
+	+byorder_fbacustomerreturnperorderfee+byorder_fbacustomerreturnweightbasedfee",$table);
+        $table = str_replace("dw_report.report_channel_amazon_refund_fee","report_return_and_return_commission+report_fba_refund_treatment_fee
+	+report_return_and_return_sales_commission+report_returnshipping+report_refund_variableclosingfee
+	+report_fbacustomerreturnperorderfee+report_fbacustomerreturnweightbasedfee",$table);
+
+        $table = str_replace("dw_report.byorder_channel_amazon_storage_fee","byorder_restocking_fee+byorder_removal_fee",$table);
+        $table = str_replace("dw_report.report_channel_amazon_storage_fee","report_restocking_fee+report_removal_fee",$table);
+        $table = str_replace("dw_report.byorder_channel_amazon_other_fee","byorder_gift_wrap+byorder_shipping_charge+byorder_shipping_charge_charge_back+byorder_shipping_tax+byorder_tax+byorder_gift_wrap_tax
+	+byorder_refund_shipping_charge+byorder_refund_shipping_charge_charge_back+byorder_refund_shipping_tax+byorder_refund_tax
+	+byorder_marketplace_facilitator_tax_shipping+byorder_marketplace_facilitator_tax_principal+byorder_order_lowvaluegoods_other
+	+byorder_order_giftwrapchargeback+byorder_order_shippinghb+byorder_salestaxcollectionfee+byorder_costofpointsgranted+byorder_order_codchargeback
+	+byorder_amazonexclusivesfee+byorder_giftwrapcommission+byorder_order_paymentmethodfee+byorder_cod_tax+byorder_refund_lowvaluegoods_other
+	+byorder_marketplacefacilitatortax_restockingfee+byorder_goodwill+byorder_refund_paymentmethodfee+byorder_refund_codchargeback
+	+byorder_refund_shippinghb+byorder_refund_giftwrapchargeback+byorder_costofpointsreturned+byorder_pointsadjusted+byorder_reserved_field3
+	+byorder_reserved_field4+byorder_reserved_field6+byorder_reserved_field7+byorder_reserved_field8+byorder_reserved_field14+byorder_reserved_field15+byorder_reserved_field18+byorder_cpc_sb_sales_quota+byorder_cpc_sb_cost
+	+byorder_refund_rate
+	+byorder_profit_margin",$table);
+        $table = str_replace("dw_report.report_channel_amazon_other_fee","report_gift_wrap+report_shipping_charge+report_shipping_charge_charge_back+report_shipping_tax+report_tax+report_gift_wrap_tax
+	+report_refund_shipping_charge+report_refund_shipping_charge_charge_back+report_refund_shipping_tax+report_refund_tax
+	+report_marketplace_facilitator_tax_shipping+report_marketplace_facilitator_tax_principal+report_order_lowvaluegoods_other
+	+report_order_giftwrapchargeback+report_order_shippinghb+report_salestaxcollectionfee+report_costofpointsgranted+report_order_codchargeback
+	+report_amazonexclusivesfee+report_giftwrapcommission+report_order_paymentmethodfee+report_cod_tax+report_refund_lowvaluegoods_other
+	+report_marketplacefacilitatortax_restockingfee+report_goodwill+report_refund_paymentmethodfee+report_refund_codchargeback
+	+report_refund_shippinghb+report_refund_giftwrapchargeback+report_costofpointsreturned+report_pointsadjusted+report_reserved_field3
+	+report_reserved_field4+report_reserved_field6+report_reserved_field7+report_reserved_field8+report_reserved_field14+report_reserved_field15+report_reserved_field18+report_cpc_sb_sales_quota+report_cpc_sb_cost
+	+report_refund_rate
+	+report_profit_margin",$table);
+        $table = str_replace("dw_report.byorder_channel_goods_adjustment_fee","byorder_ware_house_lost+byorder_ware_house_damage+byorder_ware_house_lost_manual+byorder_ware_house_damage_exception
+	+byorder_reversal_reimbursement+byorder_compensated_clawback+byorder_free_replacement_refund_items+byorder_removal_order_lost+byorder_incorrect_fees_items
+	+byorder_missing_from_inbound_clawback+byorder_missing_from_inbound+byorder_inbound_carrier_damage+byorder_multichannel_order_lost+byorder_payment_retraction_items+byorder_reserved_field19",$table);
+        $table = str_replace("dw_report.report_channel_goods_adjustment_fee","report_ware_house_lost+report_ware_house_damage+report_ware_house_lost_manual+report_ware_house_damage_exception
+	+report_reversal_reimbursement+report_compensated_clawback+report_free_replacement_refund_items+report_removal_order_lost+report_incorrect_fees_items
+	+report_missing_from_inbound_clawback+report_missing_from_inbound+report_inbound_carrier_damage+report_multichannel_order_lost+report_payment_retraction_items+report_reserved_field19",$table);
+        $table = str_replace("dw_report.byorder_channel_profit","byorder_platform_sales_commission+byorder_fba_generation_delivery_cost
+	+byorder_fbaperorderfulfillmentfee+byorder_fbaweightbasedfee+byorder_order_variableclosingfee+byorder_fixedclosingfee
+	+byorder_reserved_field20+byorder_reserved_field21+byorder_return_and_return_commission+byorder_fba_refund_treatment_fee
+	+byorder_return_and_return_sales_commission+byorder_returnshipping+byorder_refund_variableclosingfee
+	+byorder_fbacustomerreturnperorderfee+byorder_fbacustomerreturnweightbasedfee+byorder_restocking_fee
+	+byorder_gift_wrap+byorder_shipping_charge+byorder_shipping_charge_charge_back+byorder_shipping_tax+byorder_tax+byorder_gift_wrap_tax
+	+byorder_refund_shipping_charge+byorder_refund_shipping_charge_charge_back+byorder_refund_shipping_tax+byorder_refund_tax
+	+byorder_marketplace_facilitator_tax_shipping+byorder_marketplace_facilitator_tax_principal+byorder_order_lowvaluegoods_other
+	+byorder_order_giftwrapchargeback+byorder_order_shippinghb+byorder_salestaxcollectionfee+byorder_costofpointsgranted+byorder_order_codchargeback
+	+byorder_amazonexclusivesfee+byorder_giftwrapcommission+byorder_order_paymentmethodfee+byorder_cod_tax+byorder_refund_lowvaluegoods_other
+	+byorder_marketplacefacilitatortax_restockingfee+byorder_goodwill+byorder_refund_paymentmethodfee+byorder_refund_codchargeback
+	+byorder_refund_shippinghb+byorder_refund_giftwrapchargeback+byorder_costofpointsreturned+byorder_pointsadjusted+byorder_reserved_field3
+	+byorder_reserved_field4+byorder_reserved_field6+byorder_reserved_field7+byorder_reserved_field8+byorder_reserved_field14+byorder_reserved_field15+byorder_reserved_field18+byorder_cpc_sb_sales_quota+byorder_cpc_sb_cost
+	+byorder_sales_quota-byorder_refund+byorder_promote_discount+byorder_refund_promote_discount+byorder_ware_house_lost+byorder_ware_house_damage+byorder_ware_house_lost_manual
+	+byorder_ware_house_damage_exception+byorder_reversal_reimbursement+byorder_compensated_clawback+byorder_free_replacement_refund_items+byorder_removal_order_lost
+	+byorder_incorrect_fees_items+byorder_missing_from_inbound_clawback+byorder_missing_from_inbound+byorder_inbound_carrier_damage+byorder_multichannel_order_lost
+	+byorder_payment_retraction_items+byorder_reserved_field19+byorder_reserved_field10-byorder_reserved_field17
+	+byorder_refund_rate
+	+byorder_profit_margin
+	+byorder_disposal_fee+byorder_removal_fee",$table);
+        $table = str_replace("dw_report.report_channel_profit","report_platform_sales_commission+report_fba_generation_delivery_cost
+	+report_fbaperorderfulfillmentfee+report_fbaweightbasedfee+report_order_variableclosingfee+report_fixedclosingfee
+	+report_reserved_field20+report_reserved_field21+report_return_and_return_commission+report_fba_refund_treatment_fee
+	+report_return_and_return_sales_commission+report_returnshipping+report_refund_variableclosingfee
+	+report_fbacustomerreturnperorderfee+report_fbacustomerreturnweightbasedfee+report_restocking_fee
+	+report_gift_wrap+report_shipping_charge+report_shipping_charge_charge_back+report_shipping_tax+report_tax+report_gift_wrap_tax
+	+report_refund_shipping_charge+report_refund_shipping_charge_charge_back+report_refund_shipping_tax+report_refund_tax
+	+report_marketplace_facilitator_tax_shipping+report_marketplace_facilitator_tax_principal+report_order_lowvaluegoods_other
+	+report_order_giftwrapchargeback+report_order_shippinghb+report_salestaxcollectionfee+report_costofpointsgranted+report_order_codchargeback
+	+report_amazonexclusivesfee+report_giftwrapcommission+report_order_paymentmethodfee+report_cod_tax+report_refund_lowvaluegoods_other
+	+report_marketplacefacilitatortax_restockingfee+report_goodwill+report_refund_paymentmethodfee+report_refund_codchargeback
+	+report_refund_shippinghb+report_refund_giftwrapchargeback+report_costofpointsreturned+report_pointsadjusted+report_reserved_field3
+	+report_reserved_field4+report_reserved_field6+report_reserved_field7+report_reserved_field8+report_reserved_field14+report_reserved_field15+report_reserved_field18+report_cpc_sb_sales_quota+report_cpc_sb_cost
+	+report_sales_quota-report_refund+report_promote_discount+report_refund_promote_discount+report_ware_house_lost+report_ware_house_damage+report_ware_house_lost_manual
+	+report_ware_house_damage_exception+report_reversal_reimbursement+report_compensated_clawback+report_free_replacement_refund_items+report_removal_order_lost
+	+report_incorrect_fees_items+report_missing_from_inbound_clawback+report_missing_from_inbound+report_inbound_carrier_damage+report_multichannel_order_lost
+	+report_payment_retraction_items+report_reserved_field19+report_reserved_field10-report_reserved_field17
+	+report_refund_rate
+	+report_profit_margin
+	+report_disposal_fee+report_removal_fee",$table);
+//        $table = str_replace("dw_report.byorder_goods_profit","",$table);
+//        $table = str_replace("dw_report.byorder_goods_profit","",$table);
+//        $table = str_replace("dw_report.byorder_goods_profit","",$table);
+
+
+        return $table;
+
+    }
+
 }
