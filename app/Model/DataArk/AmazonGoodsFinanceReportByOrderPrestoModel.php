@@ -8282,8 +8282,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $channel_table = "(select * from dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth";
-            $goods_other_field = '';
+            $goods_other_field = "max(dw_report.byorder_mquarter) as mquarter,";
             $report_other_field = "
+            COALESCE(goods.mquarter ,bychannel.mquarter) as mquarter,
             COALESCE(goods_month.first_purchasing_cost ,bychannel.first_purchasing_cost) as first_purchasing_cost,
             COALESCE(goods_month.first_logistics_head_course ,bychannel.first_logistics_head_course) as first_logistics_head_course,
             COALESCE(goods_month.fba_first_logistics_head_course ,bychannel.fba_first_logistics_head_course) as fba_first_logistics_head_course,
