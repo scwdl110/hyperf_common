@@ -43,11 +43,13 @@ class DataArkController extends AbstractController
         }
 
         if (count($channelIds) > 1) {
+            $params['operation_channel_ids'] = implode(',' , $channelIds);
             $where = "report.user_id={$userInfo['user_id']} AND report.channel_id IN (" . implode(',', $channelIds) . ')';
             if ($type == 1) {
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id IN (" . implode(',', $channelIds) . ')';
             }
         } else {
+            $params['operation_channel_ids'] = $channelIds[0];
             $where = "report.user_id={$userInfo['user_id']} AND report.channel_id={$channelIds[0]}";
             if ($type == 1) {
                 $where = "amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id={$channelIds[0]}";
@@ -168,11 +170,13 @@ class DataArkController extends AbstractController
                 (int)$params['search_end_time']
             );
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
+            $params['origin_time']  = '  AND create_time >= ' .$params['search_start_time'] . ' AND create_time <= ' . $params['search_end_time'] ;
             $min_ym = date('Ym',$params['search_start_time']) ;
             $max_ym = date('Ym',$params['search_end_time']) ;
             $day_param = ($params['search_end_time'] + 1 - $params['search_start_time']) / 86400;
         } else {
             $ors = [];
+            $origin_time = [];
             $time_arr = $this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type'], $params['search_start_time'], $params['search_end_time']);
             foreach ($time_arr as $times) {
 
@@ -180,6 +184,12 @@ class DataArkController extends AbstractController
                 $max_ym = empty($max_ym) ? date('Ym',$times['end']) : ($max_ym < date('Ym',$times['end']) ? date('Ym',$times['end']) : $max_ym) ;
                 $ors[] = sprintf(
                     '(report.site_id in (%s) and report.create_time>=%d and report.create_time<=%d)',
+                    $times['site_id'],
+                    (int)$times['start'],
+                    (int)$times['end']
+                );
+                $origin_time[] = sprintf(
+                    '(site_id in (%s) and create_time>=%d and create_time<=%d)',
                     $times['site_id'],
                     (int)$times['start'],
                     (int)$times['end']
@@ -192,6 +202,8 @@ class DataArkController extends AbstractController
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
             $params['origin_where'] .= " AND ({$ors}) ";
+            $datas['origin_time'] = " AND ({$origin_time})";
+
         }
 
         $method = [

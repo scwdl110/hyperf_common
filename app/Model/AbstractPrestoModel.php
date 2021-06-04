@@ -35,7 +35,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_day_report' => 'dws.dws_dataark_f_dw_channel_day_report_{DBHOST}',
-        'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_week_report_{DBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
+        'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST} AS week_report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_week_report' => 'dws.dws_dataark_f_dw_channel_week_report_{DBHOST}' ,
         'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_{DBHOST}' ,
@@ -456,14 +456,18 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
 
                 } else {
-                    if (strpos($table, '_day_report_')) {
+                    if (strpos($table, '_day_report_') && !strpos($table,'week_report' ) ) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
-                    } elseif (strpos($table,'_week_report_' )) {
+                    } elseif (strpos($table,'week_report' )) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
                     } elseif (strpos($table,'_month_report_')) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['month'], $sql);
                     }
                 }
+            }
+            if (strpos($table,'week_report' )){
+                $sql = str_replace('week_report' , 'report' , $sql);
+
             }
             $this->lastSql = $sql;
         }
