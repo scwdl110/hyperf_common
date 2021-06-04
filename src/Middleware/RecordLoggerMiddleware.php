@@ -23,7 +23,7 @@ class RecordLoggerMiddleware implements MiddlewareInterface
         $query_string = $request->getUri()->getQuery();
         $http_header = json_encode($request->getHeaders());
         $http_method = $request->getMethod();
-        $http_params = json_encode($request->getQueryParams());
+        $http_params =  $request->getMethod() == 'GET'  ? json_encode($request->getQueryParams()) : $request->getBody()->getContents();
 
         Logger::access_log($admin_id, $user_id, $access_url, $query_string, $http_header, $http_method, $http_params);
 
