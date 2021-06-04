@@ -199,7 +199,7 @@ class DataArkController extends AbstractController
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
             $params['origin_where'] .= " AND ({$ors}) ";
-            $datas['origin_time'] = " AND ({$origin_time})";
+            $params['origin_time'] = " AND ({$origin_time})";
 
         }
 
