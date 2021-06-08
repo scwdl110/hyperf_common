@@ -383,7 +383,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $transport_modes = $where_detail['transport_mode'] ;
                 }
                 if(count($transport_modes) == 1){
-                    $where .= ' AND report.goods_transport_mode = ' . ($transport_modes[0] == 'FBM' ? 1 : 2);
+                    $where .= ' AND report.goods_Transport_mode = ' . ($transport_modes[0] == 'FBM' ? 1 : 2);
                 }
             }
             if(!empty($where_detail['up_status'])){
@@ -520,6 +520,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
                 $count = $this->getTotalNum($where, $table, $group,true);
+                echo $this->getLastSql();
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
@@ -1841,8 +1842,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             }
 
-            $fields['min_transport_mode'] = ' min(report.goods_transport_mode) ' ;
-            $fields['max_transport_mode'] = ' max(report.goods_transport_mode) ' ;
+            $fields['min_transport_mode'] = ' min(report.goods_Transport_mode) ' ;
+            $fields['max_transport_mode'] = ' max(report.goods_Transport_mode) ' ;
         }
 
         if ($datas['count_dimension'] == 'parent_asin') {
