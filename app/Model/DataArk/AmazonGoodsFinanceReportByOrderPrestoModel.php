@@ -7653,7 +7653,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course ";
                     }
                     $fields_tmp = "(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + {$purchasing_logistics}) ELSE (report.report_goods_profit+ {$purchasing_logistics}  END $repair_data) * ({:RATE} / COALESCE(rates.rate ,1)) ";
-                    $fields['count_total'] = "(xSUM($fields_tmp) * 1.0000 / nullif(SUM ($fields_denominator),0))";
+                    $fields['count_total'] = "(SUM($fields_tmp) * 1.0000 / nullif(SUM ($fields_denominator),0))";
                     $time_fields = $this->getTimeFields($time_line, $fields_tmp, $fields_denominator);
                 }
 
