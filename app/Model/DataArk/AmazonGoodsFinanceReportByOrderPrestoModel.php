@@ -7324,11 +7324,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             } else if ($time_target == 'cpc_turnover_rate') {  //CPC成交额占比
                 if ($datas['sale_datas_origin'] == '1') {
-                    $fields['count_total'] = 'SUM (  report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5") * 1.0000 / nullif( SUM(report.byorder_sales_quota),0)';
-                    $time_fields = $this->getTimeFields($time_line, ' report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5"', 'report.byorder_sales_quota');
+                    $fields['count_total'] = 'SUM (  (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5")* ({:RATE} / COALESCE(rates.rate ,1)) ) * 1.0000 / nullif( SUM(report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
+                    $time_fields = $this->getTimeFields($time_line, ' (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5") * ({:RATE} / COALESCE(rates.rate ,1))', 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                 } else {
-                    $fields['count_total'] = 'SUM (  report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5") * 1.0000 / nullif( SUM(report.report_sales_quota),0)';
-                    $time_fields = $this->getTimeFields($time_line, '  report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5"', 'report.report_sales_quota');
+                    $fields['count_total'] = 'SUM (  (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5") * ({:RATE} / COALESCE(rates.rate ,1))) * 1.0000 / nullif( SUM(report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
+                    $time_fields = $this->getTimeFields($time_line, '  (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" +  report."bychannel_reserved_field5") * ({:RATE} / COALESCE(rates.rate ,1))', 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                 }
             } else if ($time_target == 'cpc_avg_click_cost') {  //CPC平均点击花费
                 if ($datas['currency_code'] == 'ORIGIN') {
