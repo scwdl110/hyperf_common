@@ -19,7 +19,9 @@ return [
             \Captainbi\Hyperf\Exception\Handle\BusinessExceptionHandle::class,
             \Captainbi\Hyperf\Exception\Handle\BiHttpExceptionHandler::class,
             \Hyperf\Validation\ValidationExceptionHandler::class,
+
             \Captainbi\Hyperf\Exception\Handle\BiAppExceptionHandler::class,
+
         ],
     ],
 ];
