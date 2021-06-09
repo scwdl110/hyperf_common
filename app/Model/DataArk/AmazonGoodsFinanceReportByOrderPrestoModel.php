@@ -3239,7 +3239,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['fba_sales_quota'] = "SUM(report.report_fba_sales_quota)";
                 } else {
-                    $fields['fba_sales_quota'] = "SUM((0-report.report_fba_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                    $fields['fba_sales_quota'] = "SUM((report.report_fba_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
                 }
             }
         }
@@ -3255,7 +3255,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['fbm_sales_quota'] = "SUM(report.report_fbm_sales_quota)";
                 } else {
-                    $fields['fbm_sales_quota'] = "SUM((0-report.report_fbm_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                    $fields['fbm_sales_quota'] = "SUM((report.report_fbm_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
                 }
             }
         }
