@@ -5417,7 +5417,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($timeLine, '( report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' . $rate_fields, 'report.byorder_sales_quota' . $rate_fields);
                 } else {
                     $fields['count_total'] = '(SUM ((report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' .$rate_fields ."))/nullif( SUM(report.report_sales_quota {$rate_fields}),0)";
-                    $time_fields = $this->ggetTimeFields($timeLine, ' (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' . $rate_fields, 'report.report_sales_quota' . $rate_fields);
+                    $time_fields = $this->getTimeFields($timeLine, ' (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' . $rate_fields, 'report.report_sales_quota' . $rate_fields);
                 }
             } else if ($time_target == 'cpc_avg_click_cost') {  //CPC平均点击花费
                 if ($datas['currency_code'] == 'ORIGIN') {
