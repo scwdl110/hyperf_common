@@ -7301,13 +7301,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($time_line, '( CASE WHEN report.goods_operation_pattern = 2 THEN (report.bychannel_product_ads_payment_eventlist_charge * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_product_ads_payment_eventlist_refund * ({:RATE} / COALESCE(rates.rate ,1))) ELSE (report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) END) ');
                 }
             } else if ($time_target == 'cpc_cost_rate') {  //CPC花费占比
+                $fields_tmp = "( CASE WHEN report.goods_operation_pattern = 2 THEN (report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund) ELSE (report.byorder_cpc_cost + report.byorder_cpc_sd_cost) END ) * ({:RATE} / COALESCE(rates.rate ,1)) ";
                 if ($datas['sale_datas_origin'] == '1') {
-                    $fields['count_total'] = "SUM(  report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund + report.byorder_cpc_cost + report.byorder_cpc_sd_cost )  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, '  report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund + report.byorder_cpc_cost + report.byorder_cpc_sd_cost ', 'report.byorder_sales_quota');
+
+                    $fields_denominator = "report.byorder_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))";
+
                 } else {
-                    $fields['count_total'] = "SUM(  report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund + report.byorder_cpc_cost + report.byorder_cpc_sd_cost )  * 1.0000 / nullif(SUM(report.report_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, '  report.bychannel_product_ads_payment_eventlist_charge + report.bychannel_product_ads_payment_eventlist_refund + report.byorder_cpc_cost + report.byorder_cpc_sd_cost ', 'report.report_sales_quota');
+
+                    $fields_denominator = "report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))";
                 }
+                $fields['count_total'] = "SUM(  $fields_tmp )  * 1.0000 / nullif(SUM($fields_denominator),0)";
+                $time_fields = $this->getTimeFields($time_line, $fields_tmp, $fields_denominator);
             } else if ($time_target == 'cpc_exposure') {  //CPC曝光量
                 $fields['count_total'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3 )";
                 $time_fields = $this->getTimeFields($time_line, 'report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3');
