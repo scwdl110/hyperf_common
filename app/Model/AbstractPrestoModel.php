@@ -2,6 +2,7 @@
 
 namespace App\Model;
 
+use App\Lib\Athena;
 use RuntimeException;
 
 use App\Lib\Presto;
@@ -265,9 +266,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $logSql = false;
 
+    protected $isReadAthena = false;
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
+        bool $isReadAthena = false,
         ?LoggerInterface $logger = null,
         ?ClientInterface $httpClient = null
     ) {
@@ -275,6 +279,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $dws = config('misc.presto_schema_dws', 'dws');
         $dim = config('misc.presto_schema_dim', 'dim');
         $schemas = "{$ods}{$dws}{$dim}";
+
+        $this->isReadAthena = $isReadAthena;
 
         if ($schemas !== static::$detectSchemaName) {
             static::$detectSchemaName = $schemas;
@@ -339,8 +345,18 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if (null === $this->isDefaultCache) {
             $this->setDefaultCache(config('misc.presto_defautl_cache', false));
         }
+        if ($isReadAthena){
+            $config = $container->get(ConfigInterface::class)->get('athena', []);
+            if (empty($config)) {
+                $this->logger->error('Anthea 配置信息不存在');
+                throw new RuntimeException('Missing Anthea config.');
+            }
+            $this->presto = Athena::getConnection($config, $this->logger, $httpClient);
 
-        $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
+        }else{
+            $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
+
+        }
     }
 
     protected function getCache()
