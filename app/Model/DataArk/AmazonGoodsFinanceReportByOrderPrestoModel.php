@@ -3239,7 +3239,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['fba_sales_quota'] = "SUM(report.report_fba_sales_quota)";
                 } else {
-                    $fields['fba_sales_quota'] = "SUM((0-report.report_fba_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                    $fields['fba_sales_quota'] = "SUM((report.report_fba_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
                 }
             }
         }
@@ -3255,7 +3255,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['fbm_sales_quota'] = "SUM(report.report_fbm_sales_quota)";
                 } else {
-                    $fields['fbm_sales_quota'] = "SUM((0-report.report_fbm_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                    $fields['fbm_sales_quota'] = "SUM((report.report_fbm_sales_quota) * ({:RATE} / COALESCE(rates.rate ,1)))";
                 }
             }
         }
@@ -5417,7 +5417,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($timeLine, '( report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' . $rate_fields, 'report.byorder_sales_quota' . $rate_fields);
                 } else {
                     $fields['count_total'] = '(SUM ((report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' .$rate_fields ."))/nullif( SUM(report.report_sales_quota {$rate_fields}),0)";
-                    $time_fields = $this->ggetTimeFields($timeLine, ' (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' . $rate_fields, 'report.report_sales_quota' . $rate_fields);
+                    $time_fields = $this->getTimeFields($timeLine, ' (report."byorder_sp_attributedSales7d" + report."byorder_sd_attributedSales7d" + report."bychannel_reserved_field5" )' . $rate_fields, 'report.report_sales_quota' . $rate_fields);
                 }
             } else if ($time_target == 'cpc_avg_click_cost') {  //CPC平均点击花费
                 if ($datas['currency_code'] == 'ORIGIN') {
@@ -5857,15 +5857,47 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'site_id'){
                 $fbaDatas[$fba['site_id']] = $fba ;
             }else if($datas['count_dimension'] == 'department'){
-                $fbaDatas[$fba['user_department_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_stock']+= $fba['fba_stock'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                if(isset($fbaDatas[$fba['user_department_id']]['fba_goods_value'])){
+                    $fbaDatas[$fba['user_department_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
+                }else{
+                    $fbaDatas[$fba['user_department_id']]['fba_goods_value'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['user_department_id']]['fba_stock'])){
+                    $fbaDatas[$fba['user_department_id']]['fba_stock']+= $fba['fba_stock'] ;
+                }else{
+                    $fbaDatas[$fba['user_department_id']]['fba_stock'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['user_department_id']]['fba_need_replenish'])){
+                    $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
+                }else{
+                    $fbaDatas[$fba['user_department_id']]['fba_need_replenish'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['user_department_id']]['fba_predundancy_number'])){
+                    $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                }else{
+                    $fbaDatas[$fba['user_department_id']]['fba_predundancy_number'] = 0 ;
+                }
             }else if($datas['count_dimension'] == 'admin_id'){
-                $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
-                $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                if(isset($fbaDatas[$fba['admin_id']]['fba_goods_value'])){
+                    $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_goods_value'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['admin_id']]['fba_stock'])){
+                    $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_stock'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['admin_id']]['fba_need_replenish'])){
+                    $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_need_replenish'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['admin_id']]['fba_predundancy_number'])){
+                    $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_predundancy_number'] = 0 ;
+                }
             }
         }
         foreach($lists as $k=>$list2){
