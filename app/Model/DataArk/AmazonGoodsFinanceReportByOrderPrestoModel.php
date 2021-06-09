@@ -2733,11 +2733,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             } else if ($time_target == 'cpc_cost_rate') {  //CPC花费占比
                 if ($datas['sale_datas_origin'] == '1') {
-                    $fields['count_total'] = "SUM( report.byorder_cpc_cost + report.byorder_cpc_sd_cost )  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, ' report.byorder_cpc_cost + report.byorder_cpc_sd_cost ', 'report.byorder_sales_quota');
+                    $fields['count_total'] = "SUM( (report.byorder_cpc_cost + report.byorder_cpc_sd_cost)* ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif(SUM(report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)";
+                    $time_fields = $this->getTimeFields($time_line, ' (report.byorder_cpc_cost + report.byorder_cpc_sd_cost)* ({:RATE} / COALESCE(rates.rate ,1)) ', 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                 } else {
-                    $fields['count_total'] = "SUM( report.byorder_cpc_cost + report.byorder_cpc_sd_cost )  * 1.0000 / nullif(SUM(report.report_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, ' report.byorder_cpc_cost + report.byorder_cpc_sd_cost ', 'report.report_sales_quota');
+                    $fields['count_total'] = "SUM( (report.byorder_cpc_cost + report.byorder_cpc_sd_cost)* ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif(SUM(report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)";
+                    $time_fields = $this->getTimeFields($time_line, ' (report.byorder_cpc_cost + report.byorder_cpc_sd_cost)* ({:RATE} / COALESCE(rates.rate ,1)) ', 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                 }
             } else if ($time_target == 'cpc_exposure') {  //CPC曝光量
                 $fields['count_total'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 )";
