@@ -6697,9 +6697,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (in_array('operate_fee', $targets) || in_array('operate_fee_rate', $targets)) {  //运营费用
             if ($datas['currency_code'] == 'ORIGIN') {
-                $fields['operate_fee'] = "SUM ( 0- report.byorder_reserved_field16 + report.bychannel_operating_fee ) ";
+                $fields['operate_fee'] = "SUM ( CASE WHEN report.goods_operation_pattern = 1 THEN (0- report.byorder_reserved_field16 ) ELSE  report.bychannel_operating_fee END) ";
             } else {
-                $fields['operate_fee'] = "SUM ( (0 -  report.byorder_reserved_field16) * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1))) ";
+                $fields['operate_fee'] = "SUM (CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16) * ({:RATE} / COALESCE(rates.rate ,1)) ELSE report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) END ) ";
             }
         }
         if (in_array('operate_fee_rate', $targets)) {  //运营费用占比
