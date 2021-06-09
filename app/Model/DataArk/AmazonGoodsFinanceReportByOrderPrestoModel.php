@@ -5862,10 +5862,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
                 $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
             }else if($datas['count_dimension'] == 'admin_id'){
-                $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
-                $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                if(isset($fbaDatas[$fba['admin_id']]['fba_goods_value'])){
+                    $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_goods_value'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['admin_id']]['fba_stock'])){
+                    $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_stock'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['admin_id']]['fba_need_replenish'])){
+                    $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_need_replenish'] = 0 ;
+                }
+                if(isset($fbaDatas[$fba['admin_id']]['fba_predundancy_number'])){
+                    $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                }else{
+                    $fbaDatas[$fba['admin_id']]['fba_predundancy_number'] = 0 ;
+                }
             }
         }
         foreach($lists as $k=>$list2){
