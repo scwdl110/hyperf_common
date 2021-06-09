@@ -7571,93 +7571,48 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $repair_data .= " + report.report_refund - report.byorder_refund ";
                     }
                 }
-                if (empty($repair_data)) {
-                    if ($datas['finance_datas_origin'] == '1') {
-                        if ($datas['currency_code'] == 'ORIGIN') {
-                            if ($datas['cost_count_type'] == '1') {
-                                $fields['count_total'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + COALESCE(report.byorder_purchasing_cost,0) + COALESCE(report.byorder_logistics_head_course,0)) ELSE (report.byorder_goods_profit+ report.byorder_purchasing_cost + report.byorder_logistics_head_course  END )';
-                                $time_fields = $this->getTimeFields($time_line, ' (CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course) ELSE (report.byorder_goods_profit+ report.byorder_purchasing_cost + report.byorder_logistics_head_course  END )');
-                            } else {
-                                $fields['count_total'] = 'SUM(  CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.first_purchasing_cost,0) + COALESCE(report.first_logistics_head_course,0)  +COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0)) ELSE (report.first_purchasing_cost + report.first_logistics_head_course  + report.byorder_goods_profit) END  )';
-                                $time_fields = $this->getTimeFields($time_line, ' (  CASE WHEN report.goods_operation_pattern = 2 THEN (report.first_purchasing_cost + report.first_logistics_head_course  +report.byorder_channel_profit + report.bychannel_channel_profit) ELSE (report.first_purchasing_cost + report.first_logistics_head_course  + report.byorder_goods_profit) END  )');
-                            }
+                if ($datas['finance_datas_origin'] == '1') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        if ($datas['cost_count_type'] == '1') {
+                            $fields['count_total'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + COALESCE(report.byorder_purchasing_cost,0) + COALESCE(report.byorder_logistics_head_course,0)) ELSE (report.byorder_goods_profit+ report.byorder_purchasing_cost + report.byorder_logistics_head_course  END ) + SUM(0 ' . $repair_data . ')';
+                            $time_fields = $this->getTimeFields($time_line, ' (CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course) ELSE (report.byorder_goods_profit+ report.byorder_purchasing_cost + report.byorder_logistics_head_course  END ) ' . $repair_data);
                         } else {
-                            if ($datas['cost_count_type'] == '1') {
-                                $purchasing_logistics = "COALESCE(report.byorder_purchasing_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-                            } else {
-                                $purchasing_logistics = "COALESCE(report.first_purchasing_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-                            }
-                            $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics ) ELSE (report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics ) END";
-                            $fields['count_total'] = "SUM( $fields_tmp )";
-                            $time_fields = $this->getTimeFields($time_line, "( $fields_tmp )");
-
+                            $fields['count_total'] = 'SUM(  CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.first_purchasing_cost,0) + COALESCE(report.first_logistics_head_course,0)  +COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0)) ELSE (report.first_purchasing_cost + report.first_logistics_head_course  + report.byorder_goods_profit) END  ) + SUM(0 ' . $repair_data . ')';
+                            $time_fields = $this->getTimeFields($time_line, ' (  CASE WHEN report.goods_operation_pattern = 2 THEN (report.first_purchasing_cost + report.first_logistics_head_course  +report.byorder_channel_profit + report.bychannel_channel_profit) ELSE (report.first_purchasing_cost + report.first_logistics_head_course  + report.byorder_goods_profit) END  )' . $repair_data);
                         }
-                    } elseif ($datas['finance_datas_origin'] == '2') {
-                        if ($datas['currency_code'] == 'ORIGIN') {
-                            if ($datas['cost_count_type'] == '1') {
-                                $purchasing_logistics = "report.report_purchasing_cost  + report.report_logistics_head_course";
-                            } else {
-                                $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course";
-                            }
-                            $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit + report.bychannel_channel_profit + $purchasing_logistics) ELSE (report.report_goods_profit + $purchasing_logistics ) END";
-
+                    } else {
+                        if ($datas['cost_count_type'] == '1') {
+                            $purchasing_logistics = "COALESCE(report.byorder_purchasing_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
                         } else {
-                            if ($datas['cost_count_type'] == '1') {
-                                $purchasing_logistics = "report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-                            } else {
-                                $purchasing_logistics = "report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-
-                            }
-                            $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))  + $purchasing_logistics) ELSE ( report.report_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics) END";
-
+                            $purchasing_logistics = "COALESCE(report.first_purchasing_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
                         }
+                        $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics ) ELSE (report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics ) END + (0 " . $repair_data . ") * ({:RATE} / COALESCE(rates.rate ,1))";
+
                         $fields['count_total'] = "SUM( $fields_tmp )";
                         $time_fields = $this->getTimeFields($time_line, "( $fields_tmp )");
-                    }
-                } else {
-                    if ($datas['finance_datas_origin'] == '1') {
-                        if ($datas['currency_code'] == 'ORIGIN') {
-                            if ($datas['cost_count_type'] == '1') {
-                                $fields['count_total'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + COALESCE(report.byorder_purchasing_cost,0) + COALESCE(report.byorder_logistics_head_course,0)) ELSE (report.byorder_goods_profit+ report.byorder_purchasing_cost + report.byorder_logistics_head_course  END ) + SUM(0 ' . $repair_data . ')';
-                                $time_fields = $this->getTimeFields($time_line, ' (CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course) ELSE (report.byorder_goods_profit+ report.byorder_purchasing_cost + report.byorder_logistics_head_course  END ) ' . $repair_data);
-                            } else {
-                                $fields['count_total'] = 'SUM(  CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.first_purchasing_cost,0) + COALESCE(report.first_logistics_head_course,0)  +COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0)) ELSE (report.first_purchasing_cost + report.first_logistics_head_course  + report.byorder_goods_profit) END  ) + SUM(0 ' . $repair_data . ')';
-                                $time_fields = $this->getTimeFields($time_line, ' (  CASE WHEN report.goods_operation_pattern = 2 THEN (report.first_purchasing_cost + report.first_logistics_head_course  +report.byorder_channel_profit + report.bychannel_channel_profit) ELSE (report.first_purchasing_cost + report.first_logistics_head_course  + report.byorder_goods_profit) END  )' . $repair_data);
-                            }
-                        } else {
-                            if ($datas['cost_count_type'] == '1') {
-                                $purchasing_logistics = "COALESCE(report.byorder_purchasing_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-                            } else {
-                                $purchasing_logistics = "COALESCE(report.first_purchasing_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-                            }
-                            $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics ) ELSE (report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics ) END + (0 " . $repair_data . ") * ({:RATE} / COALESCE(rates.rate ,1))";
 
-                            $fields['count_total'] = "SUM( $fields_tmp )";
-                            $time_fields = $this->getTimeFields($time_line, "( $fields_tmp )");
+                    }
+                } elseif ($datas['finance_datas_origin'] == '2') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        if ($datas['cost_count_type'] == '1') {
+                            $purchasing_logistics = "report.report_purchasing_cost  + report.report_logistics_head_course";
+                        } else {
+                            $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course";
+                        }
+                        $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit + report.bychannel_channel_profit + $purchasing_logistics) ELSE (report.report_goods_profit + $purchasing_logistics ) END {$repair_data}";
+
+                    } else {
+                        if ($datas['cost_count_type'] == '1') {
+                            $purchasing_logistics = "report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
+                        } else {
+                            $purchasing_logistics = "report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
 
                         }
-                    } elseif ($datas['finance_datas_origin'] == '2') {
-                        if ($datas['currency_code'] == 'ORIGIN') {
-                            if ($datas['cost_count_type'] == '1') {
-                                $purchasing_logistics = "report.report_purchasing_cost  + report.report_logistics_head_course";
-                            } else {
-                                $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course";
-                            }
-                            $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit + report.bychannel_channel_profit + $purchasing_logistics) ELSE (report.report_goods_profit + $purchasing_logistics ) END {$repair_data}";
+                        $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))  + $purchasing_logistics) ELSE ( report.report_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics) END + ( 0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1)) ";
 
-                        } else {
-                            if ($datas['cost_count_type'] == '1') {
-                                $purchasing_logistics = "report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-                            } else {
-                                $purchasing_logistics = "report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
-
-                            }
-                            $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))  + $purchasing_logistics) ELSE ( report.report_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics) END + ( 0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1)) ";
-
-                        }
-                        $fields['count_total'] = "SUM( $fields_tmp )";
-                        $time_fields = $this->getTimeFields($time_line, "( $fields_tmp )");
                     }
+                    $fields['count_total'] = "SUM( $fields_tmp )";
+                    $time_fields = $this->getTimeFields($time_line, "( $fields_tmp )");
                 }
 
             } else if ($time_target == 'cost_profit_profit_rate') {  //毛利率
@@ -7678,41 +7633,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
                 if ($datas['sale_datas_origin'] == 1) {
-                    if ($datas['finance_datas_origin'] == '1') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = '(SUM((report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course ' . $repair_data . ')* ({:RATE} / COALESCE(rates.rate ,1))) * 1.0000 / nullif(SUM (report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0))';
-                            $time_fields = $this->getTimeFields($time_line, ' (report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course' . $repair_data.")* ({:RATE} / COALESCE(rates.rate ,1))", 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
-                        } else {
-                            $fields['count_total'] = '(SUM(  ((report.first_purchasing_cost + report.first_logistics_head_course) +  report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit' . $repair_data . ')* ({:RATE} / COALESCE(rates.rate ,1)))) * 1.0000 / nullif(SUM (report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
-                            $time_fields = $this->getTimeFields($time_line, '((report.first_purchasing_cost + report.first_logistics_head_course) +  report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit' . $repair_data.")* ({:RATE} / COALESCE(rates.rate ,1))", 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
-                        }
-                    } elseif ($datas['finance_datas_origin'] == '2') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = '(SUM((report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit + report.report_purchasing_cost + report.report_logistics_head_course' . $repair_data . ')* ({:RATE} / COALESCE(rates.rate ,1)))) * 1.0000 / nullif(SUM (report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
-                            $time_fields = $this->getTimeFields($time_line, ' (report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit + report.report_purchasing_cost + report.report_logistics_head_course' . $repair_data.")* ({:RATE} / COALESCE(rates.rate ,1))", 'report.byorder_sales_quota');
-                        } else {
-                            $fields['count_total'] = '(SUM( (( report.first_purchasing_cost + report.first_logistics_head_course ) + report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit ' . $repair_data . ' )* ({:RATE} / COALESCE(rates.rate ,1)))) * 1.0000 / nullif(SUM (report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
-                            $time_fields = $this->getTimeFields($time_line, ' (( report.first_purchasing_cost + report.first_logistics_head_course ) + report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit' . $repair_data.")* ({:RATE} / COALESCE(rates.rate ,1))", 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
-                        }
-                    }
+                    $fields_denominator = '(report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1)))';
                 } else {
-                    if ($datas['finance_datas_origin'] == '1') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = '(SUM((report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course' . $repair_data . ')* ({:RATE} / COALESCE(rates.rate ,1)))) * 1.0000 / nullif(SUM (report.report_sales_quota),0)';
-                            $time_fields = $this->getTimeFields($time_line, ' (report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit + report.byorder_purchasing_cost + report.byorder_logistics_head_course' . $repair_data.")* ({:RATE} / COALESCE(rates.rate ,1))", 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
-                        } else {
-                            $fields['count_total'] = '(SUM(  ((report.first_purchasing_cost + report.first_logistics_head_course) +  report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit' . $repair_data . ')* ({:RATE} / COALESCE(rates.rate ,1)) )) * 1.0000 / nullif(SUM (report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
-                            $time_fields = $this->getTimeFields($time_line, ' ((report.first_purchasing_cost + report.first_logistics_head_course) +  report.byorder_goods_profit + report.byorder_channel_profit + report.bychannel_channel_profit' . $repair_data.")* ({:RATE} / COALESCE(rates.rate ,1))", 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
-                        }
-                    } elseif ($datas['finance_datas_origin'] == '2') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = '(SUM((report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit +  report.report_purchasing_cost + report.report_logistics_head_course' . $repair_data . ')* ({:RATE} / COALESCE(rates.rate ,1)))) * 1.0000 / nullif(SUM (report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
-                            $time_fields = $this->getTimeFields($time_line, ' (report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit + report.report_purchasing_cost + report.report_logistics_head_course' . $repair_data.")* ({:RATE} / COALESCE(rates.rate ,1))", 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
-                        } else {
-                            $fields['count_total'] = '(SUM( ( report.first_purchasing_cost + report.first_logistics_head_course +  report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit ' . $repair_data . ')* ({:RATE} / COALESCE(rates.rate ,1)))) * 1.0000 / nullif(SUM (report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)';
-                            $time_fields = $this->getTimeFields($time_line, ' ( report.first_purchasing_cost + report.first_logistics_head_course +  report.report_goods_profit + report.report_channel_profit + report.bychannel_channel_profit' . $repair_data."* ({:RATE} / COALESCE(rates.rate ,1))", 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
-                        }
+                    $fields_denominator = '(report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1)))';
+                }
+                if ($datas['finance_datas_origin'] == '1') {
+                    if ($datas['cost_count_type'] == '1') {
+                        $purchasing_logistics = "report.byorder_purchasing_cost + report.byorder_logistics_head_course ";
+                    } else {
+                        $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course ";
                     }
+                    $fields_tmp = "(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + {$purchasing_logistics}) ELSE (report.byorder_goods_profit+ {$purchasing_logistics})  END $repair_data) * ({:RATE} / COALESCE(rates.rate ,1)) ";
+                    $fields['count_total'] = "(SUM($fields_tmp) * 1.0000 / nullif(SUM ($fields_denominator),0))";
+                    $time_fields = $this->getTimeFields($time_line, $fields_tmp, $fields_denominator);
+                } elseif ($datas['finance_datas_origin'] == '2') {
+                    if ($datas['cost_count_type'] == '1') {
+                        $purchasing_logistics = "report.report_purchasing_cost + report.report_logistics_head_course ";
+                    } else {
+                        $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course ";
+                    }
+                    $fields_tmp = "(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + {$purchasing_logistics}) ELSE (report.report_goods_profit+ {$purchasing_logistics}  END $repair_data) * ({:RATE} / COALESCE(rates.rate ,1)) ";
+                    $fields['count_total'] = "(xSUM($fields_tmp) * 1.0000 / nullif(SUM ($fields_denominator),0))";
+                    $time_fields = $this->getTimeFields($time_line, $fields_tmp, $fields_denominator);
                 }
 
             } elseif ($custom_target && $custom_target['target_type'] == 1) {
