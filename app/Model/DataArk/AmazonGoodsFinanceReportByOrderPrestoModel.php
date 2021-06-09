@@ -873,7 +873,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         }
 
                     }
-                    $where_str = "(".implode(' OR ' , $where_strs).")" ;
+                    $where_str = !empty($where_strs) ? "(".implode(' OR ' , $where_strs).")" : "";
 
                 }else{
                     $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
@@ -904,14 +904,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where_str = 'rel.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
             }
         }
+        $where_str = !empty($where_str) ? $where_str . " AND " : "";
         $where.= ' AND ' . $where_str." AND g.id > 0 " ;
         if(isset($datas['where_detail']) && $datas['where_detail']){
+            $is_rel_status = false;
             if (!is_array($datas['where_detail'])){
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
             }
             if (!empty($datas['where_detail']['group_id']) && !empty(trim($datas['where_detail']['group_id']))){
                 if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
                     $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                    $is_rel_status = true;
                 }
                 $where .= ' AND ext.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
             }
@@ -920,7 +923,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } //FBA 信息 Transport_mode 必为 2   */
             if (!empty($datas['where_detail']['is_care']) && !empty(trim($datas['where_detail']['is_care']))){
                 if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
-                    $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                    if(!$is_rel_status){
+                        $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                        $is_rel_status = true;
+                    }
                 }
                 $where .= ' AND ext.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
             }
@@ -929,7 +935,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if($datas['count_dimension'] == 'group' || $datas['count_dimension'] == 'isku'){
                         $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
                     }else{
-                        $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                        if(!$is_rel_status){
+                            $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
+                        }
+                        $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id ";
                     }
                 }
                 $where .=' AND tags_rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
