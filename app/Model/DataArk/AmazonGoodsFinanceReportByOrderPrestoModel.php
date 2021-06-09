@@ -905,7 +905,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         $where_str = !empty($where_str) ? $where_str . " AND " : "";
-        $where.= ' AND ' . $where_str." AND g.id > 0 " ;
+        $where.= ' AND ' . $where_str." g.id > 0 " ;
         if(isset($datas['where_detail']) && $datas['where_detail']){
             $is_rel_status = false;
             if (!is_array($datas['where_detail'])){
