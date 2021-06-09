@@ -7527,19 +7527,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             } else if ($time_target == 'operate_fee') {  //运营费用
                 if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['count_total'] = "SUM (0- report.byorder_reserved_field16 + report.bychannel_operating_fee ) ";
-                    $time_fields = $this->getTimeFields($time_line, '0 - report.byorder_reserved_field16 + report.bychannel_operating_fee');
+                    $fields['count_total'] = "SUM ( CASE WHEN report.goods_operation_pattern = 1 THEN (0- report.byorder_reserved_field16) ELSE (report.bychannel_operating_fee) END) ";
+                    $time_fields = $this->get_time_fields($time_line, '( CASE WHEN report.goods_operation_pattern = 1 THEN (0- report.byorder_reserved_field16) ELSE (report.bychannel_operating_fee) END)');
                 } else {
-                    $fields['count_total'] = "SUM ((0 -  report.byorder_reserved_field16 )* ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                    $time_fields = $this->getTimeFields($time_line, '  (0 - report.byorder_reserved_field16) * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) ');
+                    $fields['count_total'] = "SUM (CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16 )/ COALESCE(rates.rate ,1) * {:RATE} ELSE report.bychannel_operating_fee / COALESCE(rates.rate ,1) * {:RATE} END) ";
+                    $time_fields = $this->get_time_fields($time_line, '  (CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16) / COALESCE(rates.rate ,1) * {:RATE} ELSE report.bychannel_operating_fee / COALESCE(rates.rate ,1) * {:RATE} END )');
                 }
             } else if ($time_target == 'operate_fee_rate') {  //运营费用占比
                 if ($datas['sale_datas_origin'] == '1') {
-                    $fields['count_total'] = "SUM( 0 - report.byorder_reserved_field16 + report.bychannel_operating_fee )  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, 'report.byorder_reserved_field16 + report.bychannel_operating_fee', 'report.byorder_sales_quota');
+                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16)/ COALESCE(rates.rate ,1) * {:RATE} ELSE report.bychannel_operating_fee/ COALESCE(rates.rate ,1) * {:RATE} END) /nullif(SUM(report.byorder_sales_quota/ COALESCE(rates.rate ,1) * {:RATE}),0)";
+                    $time_fields = $this->get_time_fields($time_line, 'CASEC WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16)/ COALESCE(rates.rate ,1) * {:RATE} ELSE report.bychannel_operating_fee/ COALESCE(rates.rate ,1) * {:RATE} END', 'report.byorder_sales_quota / COALESCE(rates.rate ,1) * {:RATE}');
                 } else {
-                    $fields['count_total'] = "SUM( 0 - report.byorder_reserved_field16 + report.bychannel_operating_fee )  * 1.0000 / nullif(SUM(report.report_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, '(0 - report.byorder_reserved_field16 + report.bychannel_operating_fee)', 'report.report_sales_quota');
+                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.report_reserved_field16)/ COALESCE(rates.rate ,1) * {:RATE} ELSE report.bychannel_operating_fee/ COALESCE(rates.rate ,1) * {:RATE} END ) /nullif(SUM(report.report_sales_quota/ COALESCE(rates.rate ,1) * {:RATE}),0)";
+                    $time_fields = $this->get_time_fields($time_line, '(CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.report_reserved_field16)/ COALESCE(rates.rate ,1) * {:RATE} ELSE report.bychannel_operating_fee/ COALESCE(rates.rate ,1) * {:RATE} END)', 'report.report_sales_quota/ COALESCE(rates.rate ,1) * {:RATE}');
                 }
             } else if ($time_target == 'other_vat_fee') {//VAT
                 if ($datas['finance_datas_origin'] == '1') {
