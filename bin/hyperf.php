@@ -12,6 +12,7 @@ date_default_timezone_set('Asia/Shanghai');
 ! defined('SWOOLE_HOOK_FLAGS') && define('SWOOLE_HOOK_FLAGS', SWOOLE_HOOK_ALL);
 
 require BASE_PATH . '/vendor/autoload.php';
+\GuzzleHttp\DefaultHandler::setDefaultHandler(\Yurun\Util\Swoole\Guzzle\SwooleHandler::class);
 
 // Self-called anonymous function that creates its own scope and keep the global namespace clean.
 (function () {
