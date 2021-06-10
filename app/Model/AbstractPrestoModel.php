@@ -515,7 +515,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
         if ($this->isReadAthena){
-            if (!$is_only_limit) {
+            if (!$is_only_limit && !empty($athena_limit)) {
                 $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($athena_sql) as t)  {$athena_limit}";//athena特有的分页写法
             }
         }
