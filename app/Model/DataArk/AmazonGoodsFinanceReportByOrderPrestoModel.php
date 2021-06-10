@@ -1827,7 +1827,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            }
 //        }
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
-            if (is_month_table($datas)){//月报仓储费需读月报得仓储费
+            if ($this->is_month_table($datas)){//月报仓储费需读月报得仓储费
                 if ($datas['finance_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
                         $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
@@ -3094,7 +3094,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $time_fields            = $goods_time_filed['time_fields'];
                 break;
             case 'fbm_logistics_head_course':
-                $goods_time_filed       = $this->handleTimeFields($datas,$timeLine,5,'report.byorder_fbm_logistics_head_course','report.report_fbm_logistics_head_course','report.fbm_first_logistics_head_course');
+                if($type == 1){//商品的fbm刷的没问题
+                    $first_fields = 'report.fbm_first_logistics_head_course';
+                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
+                    $first_fields = '(report.first_logistics_head_course - report.fba_first_logistics_head_course)';
+                }
+                $goods_time_filed       = $this->handleTimeFields($datas,$timeLine,5,'report.byorder_fbm_logistics_head_course','report.report_fbm_logistics_head_course',$first_fields);
                 $fields['count_total']  = $goods_time_filed['count_total'];
                 $time_fields            = $goods_time_filed['time_fields'];
                 break;
@@ -3355,10 +3360,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }else{
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
-                } else {
-                    $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                if($type == 1){//商品的fbm刷的没问题
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
+                    } else {
+                        $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                    }
+                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['fbm_logistics_head_course'] = " SUM ( (report.first_logistics_head_course - report.fba_first_logistics_head_course) ) ";
+                    } else {
+                        $fields['fbm_logistics_head_course'] = " SUM (( (report.first_logistics_head_course - report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+                    }
                 }
             }
 
@@ -7582,7 +7595,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16) ELSE report.bychannel_operating_fee END');
                 } else {
                     $fields['count_total'] = "SUM (CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16 )* ({:RATE} / COALESCE(rates.rate ,1)) ELSE report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) END) ";
-                    $time_fields = $this->getTimeFields($time_line, '  (0 - report.byorder_reserved_field16) * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) ');
+                    $time_fields = $this->getTimeFields($time_line, ' CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16 )* ({:RATE} / COALESCE(rates.rate ,1)) ELSE report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) END ');
                 }
             } else if ($time_target == 'operate_fee_rate') {  //运营费用占比
                 if ($datas['sale_datas_origin'] == '1') {
@@ -9054,6 +9067,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         return $table;
 
+    }
+
+    /**
+     * 是否读月报的数据
+     * @param $datas
+     * @return bool
+     */
+    public function is_month_table($datas){
+        if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
+            return true;
+        }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
+            return true;
+        }
+
+        return false;
     }
 
 }
