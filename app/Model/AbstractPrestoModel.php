@@ -473,8 +473,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
-        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
-        $athena_sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order}  ";
+        $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
 
         //商品级
         //print_r($this->goodsCols);
@@ -498,8 +497,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $sql = str_replace('week_report' , 'report' , $sql);
 
             }
-            $this->lastSql = $sql;
+
         }
+        $athena_sql = $sql;
+        $sql .= " {$limit}";
+        $this->lastSql = $sql;
         $this->logSql();
         if ($this->logDryRun()) {
             return [];
