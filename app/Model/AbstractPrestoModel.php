@@ -473,7 +473,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
-        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order}  ";
+        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
 
         //商品级
         //print_r($this->goodsCols);
