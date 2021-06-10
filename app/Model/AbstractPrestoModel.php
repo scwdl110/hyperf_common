@@ -2,6 +2,7 @@
 
 namespace App\Model;
 
+use App\Lib\Athena;
 use RuntimeException;
 
 use App\Lib\Presto;
@@ -265,9 +266,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $logSql = false;
 
+    protected $isReadAthena = false;
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
+        bool $isReadAthena = false,
         ?LoggerInterface $logger = null,
         ?ClientInterface $httpClient = null
     ) {
@@ -275,6 +279,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $dws = config('misc.presto_schema_dws', 'dws');
         $dim = config('misc.presto_schema_dim', 'dim');
         $schemas = "{$ods}{$dws}{$dim}";
+
+        $this->isReadAthena = $isReadAthena;
 
         if ($schemas !== static::$detectSchemaName) {
             static::$detectSchemaName = $schemas;
@@ -339,8 +345,18 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if (null === $this->isDefaultCache) {
             $this->setDefaultCache(config('misc.presto_defautl_cache', false));
         }
+        if ($isReadAthena){
+            $config = $container->get(ConfigInterface::class)->get('athena', []);
+            if (empty($config)) {
+                $this->logger->error('Anthea 配置信息不存在');
+                throw new RuntimeException('Missing Anthea config.');
+            }
+            $this->presto = Athena::getConnection($config, $this->logger, $httpClient);
 
-        $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
+        }else{
+            $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
+
+        }
     }
 
     protected function getCache()
@@ -423,7 +439,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $order = empty($order) ? '' : " ORDER BY {$order}";
         $group = empty($group) ? '' : " GROUP BY {$group}";
         $limit = is_string($limit) || is_numeric($limit) ? trim((string)$limit) : '';
-
+        $athena_limit = '';
+        $is_only_limit = false;
         if (!empty($limit)) {
             // 兼容 $limit = '1', '1, 2', 'limit 1,2', 'limit 1 offset 2', 'offset 1 limit 2' 等形式
             if (false !== strpos($limit, ',')) {
@@ -434,18 +451,29 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
                 // presto 语法必须 offset 在前，且不支持 limit 1,2 这种写法
                 $limit = " OFFSET {$offset} LIMIT {$limit}";
+                //athena 分页写法
+                $athena_offset = ($offset+1);
+                $athena_limit = " WHERE rn BETWEEN {$athena_offset} AND ".($athena_offset+$limit);
             } else {
                 if (is_numeric($limit)) {
                     $limit = " LIMIT {$limit}";
+                    $athena_limit = " LIMIT {$limit}";
+                    $is_only_limit = true;
                 } elseif (1 === preg_match('/\s*offset\s+(\d+)\s+limit\s+(\d+)\s*/i', $limit, $m)) {
                     $limit = " OFFSET {$m[1]} LIMIT {$m[2]}";
+                    //athena 分页写法
+                    $athena_offset = ($m[1]+1);
+                    $athena_limit = " WHERE rn BETWEEN ".$athena_offset." AND ".($athena_offset+$m[2]);
                 } elseif (1 === preg_match('/\s*limit\s+(\d+)\s+offset\s+(\d+)\s*/i', $limit, $m)) {
                     $limit = " OFFSET {$m[2]} LIMIT {$m[1]}";
+                    //athena 分页写法
+                    $athena_offset = ($m[2]+1);
+                    $athena_limit = " WHERE rn BETWEEN ".$athena_offset." AND ".($athena_offset+$m[1]);
                 }
             }
         }
 
-        $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit} ";
+        $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
 
         //商品级
         //print_r($this->goodsCols);
@@ -469,8 +497,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $sql = str_replace('week_report' , 'report' , $sql);
 
             }
-            $this->lastSql = $sql;
+
         }
+        $athena_sql = $sql;
+        $sql .= " {$limit}";
+        $this->lastSql = $sql;
         $this->logSql();
         if ($this->logDryRun()) {
             return [];
@@ -483,7 +514,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 return $cacheData;
             }
         }
+        if ($this->isReadAthena){
+            if (!$is_only_limit && !empty($athena_limit)) {
+                $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($athena_sql) as t)  {$athena_limit}";//athena特有的分页写法
+            }
+        }
         $result = $this->presto->query($sql);
+        $this->lastSql = $sql;
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
             throw new RuntimeException('presto 查询失败');
@@ -565,17 +602,30 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         if ($group) {
             $data = $data ?: '1';
-            $result = $this->getOne(
-                $where,
-                "count(distinct($group)) AS num",
-                "$table",
-                '',
-                '',
-                $isJoin ,
-                $isCache,
-                $cacheTTL
+            if(stripos($group,'having') === false){
+                $result = $this->getOne(
+                    $where,
+                    "count(distinct($group)) AS num",
+                    "$table",
+                    '',
+                    '',
+                    $isJoin ,
+                    $isCache,
+                    $cacheTTL
 
-            );
+                );
+            }else{
+                $result = $this->getOne(
+                    '',
+                    "COUNT(*) AS num",
+                    "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
+                    '',
+                    '',
+                    $isJoin,
+                    $isCache,
+                    $cacheTTL
+                );
+            }
         } elseif (!empty($cols)) {
             $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL);
         } else {
