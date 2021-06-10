@@ -7620,12 +7620,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($time_line, ' CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16 )* ({:RATE} / COALESCE(rates.rate ,1)) ELSE report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) END ');
                 }
             } else if ($time_target == 'operate_fee_rate') {  //运营费用占比
+                $rate_fields = $datas['currency_code'] == 'ORIGIN' ? " * 1.0000" : " * ({:RATE} / COALESCE(rates.rate ,1))";
                 if ($datas['sale_datas_origin'] == '1') {
-                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) ElSE (report.bychannel_operating_fee) END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) ELSE report.bychannel_operating_fee END', 'report.byorder_sales_quota');
+                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) {$rate_fields} ElSE (report.bychannel_operating_fee) {$rate_fields} END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota {$rate_fields}),0)";
+                    $time_fields = $this->getTimeFields($time_line, "(CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) {$rate_fields} ELSE report.bychannel_operating_fee {$rate_fields} END) * 1.0000" , 'report.byorder_sales_quota' . $rate_fields);
                 } else {
-                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) ElSE (report.bychannel_operating_fee) END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) ELSE report.bychannel_operating_fee END', 'report.report_sales_quota');
+                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) {$rate_fields} ElSE (report.bychannel_operating_fee {$rate_fields}) END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota {$rate_fields}),0)";
+                    $time_fields = $this->getTimeFields($time_line, "(CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) {$rate_fields} ELSE report.bychannel_operating_fee {$rate_fields} END) * 1.0000", 'report.report_sales_quota' . $rate_fields );
                 }
             } else if ($time_target == 'other_vat_fee') {//VAT
                 if ($datas['finance_datas_origin'] == '1') {
