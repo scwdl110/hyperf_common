@@ -3094,7 +3094,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $time_fields            = $goods_time_filed['time_fields'];
                 break;
             case 'fbm_logistics_head_course':
-                $goods_time_filed       = $this->handleTimeFields($datas,$timeLine,5,'report.byorder_fbm_logistics_head_course','report.report_fbm_logistics_head_course','report.fbm_first_logistics_head_course');
+                if($type == 1){//商品的fbm刷的没问题
+                    $first_fields = 'report.fbm_first_logistics_head_course';
+                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
+                    $first_fields = '(report.first_logistics_head_course - report.fba_first_logistics_head_course)';
+                }
+                $goods_time_filed       = $this->handleTimeFields($datas,$timeLine,5,'report.byorder_fbm_logistics_head_course','report.report_fbm_logistics_head_course',$first_fields);
                 $fields['count_total']  = $goods_time_filed['count_total'];
                 $time_fields            = $goods_time_filed['time_fields'];
                 break;
@@ -3355,10 +3360,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }else{
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
-                } else {
-                    $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                if($type == 1){//商品的fbm刷的没问题
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
+                    } else {
+                        $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                    }
+                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['fbm_logistics_head_course'] = " SUM ( (report.first_logistics_head_course - report.fba_first_logistics_head_course) ) ";
+                    } else {
+                        $fields['fbm_logistics_head_course'] = " SUM (( (report.first_logistics_head_course - report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+                    }
                 }
             }
 
@@ -7582,7 +7595,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16) ELSE report.bychannel_operating_fee END');
                 } else {
                     $fields['count_total'] = "SUM (CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16 )* ({:RATE} / COALESCE(rates.rate ,1)) ELSE report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) END) ";
-                    $time_fields = $this->getTimeFields($time_line, '  (0 - report.byorder_reserved_field16) * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) ');
+                    $time_fields = $this->getTimeFields($time_line, ' CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16 )* ({:RATE} / COALESCE(rates.rate ,1)) ELSE report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) END ');
                 }
             } else if ($time_target == 'operate_fee_rate') {  //运营费用占比
                 if ($datas['sale_datas_origin'] == '1') {
