@@ -1827,7 +1827,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            }
 //        }
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
-            if (is_month_table($datas)){//月报仓储费需读月报得仓储费
+            if ($this->is_month_table($datas)){//月报仓储费需读月报得仓储费
                 if ($datas['finance_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
                         $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
@@ -8947,6 +8947,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         return $table;
 
+    }
+
+    /**
+     * 是否读月报的数据
+     * @param $datas
+     * @return bool
+     */
+    public function is_month_table($datas){
+        if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
+            return true;
+        }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
+            return true;
+        }
+
+        return false;
     }
 
 }
