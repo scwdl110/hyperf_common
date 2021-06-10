@@ -519,8 +519,25 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
-                $count = $this->getTotalNum($where, $table, $group,true);
+                $parallel = new Parallel();
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
+                    return $lists;
+                });
+                $parallel->add(function () use($where, $table, $group){
+                    $count = $this->getTotalNum($where, $table, $group,true);
+                    return $count;
+                });
+
+                try{
+                    // $results 结果为 [1, 2]
+                    $results = $parallel->wait();
+                    $lists = $results[0];
+                    $count = $results[1];
+                } catch(ParallelExecutionException $e){
+                    // $e->getResults() 获取协程中的返回值。
+                    // $e->getThrowables() 获取协程中出现的异常。
+                }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
@@ -6161,8 +6178,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Total Request', [$this->getLastSql()]);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                $count = $this->getTotalNum($where, $table, $group);
+                $parallel = new Parallel();
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                    return $lists;
+                });
+                $parallel->add(function () use($where, $table, $group){
+                    $count = $this->getTotalNum($where, $table, $group);
+                    return $count;
+                });
+
+                try{
+                    // $results 结果为 [1, 2]
+                    $results = $parallel->wait();
+                    $lists = $results[0];
+                    $count = $results[1];
+                } catch(ParallelExecutionException $e){
+                    // $e->getResults() 获取协程中的返回值。
+                    // $e->getThrowables() 获取协程中出现的异常。
+                }
+
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Request', [$this->getLastSql()]);
             }
