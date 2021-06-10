@@ -604,17 +604,30 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         if ($group) {
             $data = $data ?: '1';
-            $result = $this->getOne(
-                $where,
-                "count(distinct($group)) AS num",
-                "$table",
-                '',
-                '',
-                $isJoin ,
-                $isCache,
-                $cacheTTL
+            if(stripos($group,'having') === false){
+                $result = $this->getOne(
+                    $where,
+                    "count(distinct($group)) AS num",
+                    "$table",
+                    '',
+                    '',
+                    $isJoin ,
+                    $isCache,
+                    $cacheTTL
 
-            );
+                );
+            }else{
+                $result = $this->getOne(
+                    '',
+                    "COUNT(*) AS num",
+                    "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
+                    '',
+                    '',
+                    $isJoin,
+                    $isCache,
+                    $cacheTTL
+                );
+            }
         } elseif (!empty($cols)) {
             $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL);
         } else {

@@ -2099,13 +2099,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'sale_refund_rate') {  //退款率
-                $rate_fields = $datas['currency_code'] == 'ORIGIN' ? " * 1.0000" : " * ({:RATE} / COALESCE(rates.rate ,1))";
                 if ($datas['refund_datas_origin'] == '1') {
-                    $fields['count_total'] = "SUM (report.byorder_refund_num {$rate_fields}) * 1.0000 / nullif(SUM(report.byorder_sales_volume {$rate_fields}),0)";
-                    $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000 " . $rate_fields, "report.byorder_sales_volume" . $rate_fields);
+                    $fields['count_total'] = "SUM (report.byorder_refund_num) * 1.0000 / nullif(SUM(report.byorder_sales_volume),0)";
+                    $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000 ", "report.byorder_sales_volume");
                 } elseif ($datas['refund_datas_origin'] == '2') {
-                    $fields['count_total'] = "SUM (report.report_refund_num {$rate_fields}) * 1.0000 / nullif(SUM(report.report_sales_volume {$rate_fields}),0)";
-                    $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000" . $rate_fields, "report.report_sales_volume" . $rate_fields);
+                    $fields['count_total'] = "SUM (report.report_refund_num) * 1.0000 / nullif(SUM(report.report_sales_volume),0)";
+                    $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000", "report.report_sales_volume");
                 }
             } else if ($time_target == 'promote_discount') {  //promote折扣
                 if ($datas['finance_datas_origin'] == '1') {
@@ -4711,22 +4710,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'sale_refund_rate') {  //退款率
-                $rate_fields = $datas['currency_code'] == 'ORIGIN' ? " * 1.0000" : " * ({:RATE} / COALESCE(rates.rate ,1))";
                 if ($datas['sale_datas_origin'] == '1') {
                     if ($datas['refund_datas_origin'] == '1') {
-                        $fields['count_total'] = "SUM (report.byorder_refund_num {$rate_fields}) * 1.0000 / nullif(SUM((report.byorder_sales_volume + report.byorder_group_id) {$rate_fields}),0)";
-                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_refund_num * 1.0" . $rate_fields, "(report.byorder_sales_volume+ report.byorder_group_id)" . $rate_fields);
+                        $fields['count_total'] = "SUM (report.byorder_refund_num) * 1.0000 / nullif(SUM((report.byorder_sales_volume + report.byorder_group_id)),0)";
+                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_refund_num * 1.0000", "(report.byorder_sales_volume+ report.byorder_group_id)");
                     } elseif ($datas['refund_datas_origin'] == '2') {
-                        $fields['count_total'] = "SUM (report.report_refund_num {$rate_fields} ) * 1.0000 / nullif(SUM((report.byorder_sales_volume+ report.byorder_group_id) {$rate_fields}),0)";
-                        $time_fields = $this->getTimeFields($timeLine, "report.report_refund_num * 1.0 " . $rate_fields, "(report.byorder_sales_volume+ report.byorder_group_id)" . $rate_fields);
+                        $fields['count_total'] = "SUM (report.report_refund_num) * 1.0000 / nullif(SUM((report.byorder_sales_volume+ report.byorder_group_id)),0)";
+                        $time_fields = $this->getTimeFields($timeLine, "report.report_refund_num * 1.0000 ", "(report.byorder_sales_volume+ report.byorder_group_id)");
                     }
                 } else {
                     if ($datas['refund_datas_origin'] == '1') {
-                        $fields['count_total'] = "SUM (report.byorder_refund_num {$rate_fields} ) * 1.0000  / nullif(SUM((report.report_sales_volume+ report.report_group_id) {$rate_fields}),0)";
-                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_refund_num * 1.0 " . $rate_fields, "(report.report_sales_volume+ report.report_group_id)" . $rate_fields);
+                        $fields['count_total'] = "SUM (report.byorder_refund_num) * 1.0000  / nullif(SUM((report.report_sales_volume+ report.report_group_id)),0)";
+                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_refund_num * 1.0000 ", "(report.report_sales_volume+ report.report_group_id)");
                     } elseif ($datas['refund_datas_origin'] == '2') {
-                        $fields['count_total'] = "SUM (report.report_refund_num {$rate_fields} ) * 1.0000 / nullif(SUM((report.report_sales_volume+ report.report_group_id) {$rate_fields}),0)";
-                        $time_fields = $this->getTimeFields($timeLine, "report.report_refund_num * 1.0 " . $rate_fields, "(report.report_sales_volume+ report.report_group_id)" . $rate_fields);
+                        $fields['count_total'] = "SUM (report.report_refund_num) * 1.0000 / nullif(SUM((report.report_sales_volume+ report.report_group_id)),0)";
+                        $time_fields = $this->getTimeFields($timeLine, "report.report_refund_num * 1.0000 ", "(report.report_sales_volume+ report.report_group_id)");
                     }
                 }
             } else if ($time_target == 'promote_discount') {  //promote折扣
@@ -6916,10 +6914,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['sale_datas_origin'] == '1') {
                     if ($datas['refund_datas_origin'] == '1') {
                         $fields['count_total'] = "SUM (report.byorder_refund_num ) * 1.0000 / nullif(SUM(report.byorder_sales_volume + report.byorder_group_id),0)";
-                        $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0", "report.byorder_sales_volume+ report.byorder_group_id");
+                        $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000", "report.byorder_sales_volume+ report.byorder_group_id");
                     } elseif ($datas['refund_datas_origin'] == '2') {
                         $fields['count_total'] = "SUM (report.report_refund_num  ) * 1.0000 / nullif(SUM(report.byorder_sales_volume+ report.byorder_group_id),0)";
-                        $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0 ", "report.byorder_sales_volume+ report.byorder_group_id");
+                        $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000 ", "report.byorder_sales_volume+ report.byorder_group_id");
                     }
                 } else {
                     if ($datas['refund_datas_origin'] == '1') {
