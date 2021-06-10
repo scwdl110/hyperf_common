@@ -5921,52 +5921,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group);
 
         $fbaDatas = array() ;
-        foreach($fbaData as $fba){
-            if($datas['count_dimension'] == 'channel_id'){
-                $fbaDatas[$fba['channel_id']] = $fba ;
-            }else if($datas['count_dimension'] == 'site_id'){
-                $fbaDatas[$fba['site_id']] = $fba ;
-            }else if($datas['count_dimension'] == 'department'){
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_goods_value'])){
+        if($fbaData){
+            foreach($fbaData as $fba){
+                if($datas['count_dimension'] == 'channel_id'){
+                    $fbaDatas[$fba['channel_id']] = $fba ;
+                }else if($datas['count_dimension'] == 'site_id'){
+                    $fbaDatas[$fba['site_id']] = $fba ;
+                }else if($datas['count_dimension'] == 'department'){
                     $fbaDatas[$fba['user_department_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_goods_value'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_stock'])){
                     $fbaDatas[$fba['user_department_id']]['fba_stock']+= $fba['fba_stock'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_stock'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_need_replenish'])){
                     $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_need_replenish'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_predundancy_number'])){
                     $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_predundancy_number'] = 0 ;
-                }
-            }else if($datas['count_dimension'] == 'admin_id'){
-                if(isset($fbaDatas[$fba['admin_id']]['fba_goods_value'])){
+                }else if($datas['count_dimension'] == 'admin_id'){
                     $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_goods_value'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['admin_id']]['fba_stock'])){
                     $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_stock'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['admin_id']]['fba_need_replenish'])){
                     $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_need_replenish'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['admin_id']]['fba_predundancy_number'])){
                     $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_predundancy_number'] = 0 ;
                 }
             }
         }
