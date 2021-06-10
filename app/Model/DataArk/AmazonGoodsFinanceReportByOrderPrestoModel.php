@@ -519,8 +519,25 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
-                $count = $this->getTotalNum($where, $table, $group,true);
+                $parallel = new Parallel();
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
+                    return $lists;
+                });
+                $parallel->add(function () use($where, $table, $group){
+                    $count = $this->getTotalNum($where, $table, $group,true);
+                    return $count;
+                });
+
+                try{
+                    // $results 结果为 [1, 2]
+                    $results = $parallel->wait();
+                    $lists = $results[0];
+                    $count = $results[1];
+                } catch(ParallelExecutionException $e){
+                    // $e->getResults() 获取协程中的返回值。
+                    // $e->getThrowables() 获取协程中出现的异常。
+                }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
@@ -5921,52 +5938,38 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group);
 
         $fbaDatas = array() ;
-        foreach($fbaData as $fba){
-            if($datas['count_dimension'] == 'channel_id'){
-                $fbaDatas[$fba['channel_id']] = $fba ;
-            }else if($datas['count_dimension'] == 'site_id'){
-                $fbaDatas[$fba['site_id']] = $fba ;
-            }else if($datas['count_dimension'] == 'department'){
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_goods_value'])){
-                    $fbaDatas[$fba['user_department_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_goods_value'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_stock'])){
-                    $fbaDatas[$fba['user_department_id']]['fba_stock']+= $fba['fba_stock'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_stock'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_need_replenish'])){
-                    $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_need_replenish'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['user_department_id']]['fba_predundancy_number'])){
-                    $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
-                }else{
-                    $fbaDatas[$fba['user_department_id']]['fba_predundancy_number'] = 0 ;
-                }
-            }else if($datas['count_dimension'] == 'admin_id'){
-                if(isset($fbaDatas[$fba['admin_id']]['fba_goods_value'])){
-                    $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_goods_value'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['admin_id']]['fba_stock'])){
-                    $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_stock'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['admin_id']]['fba_need_replenish'])){
-                    $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_need_replenish'] = 0 ;
-                }
-                if(isset($fbaDatas[$fba['admin_id']]['fba_predundancy_number'])){
-                    $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
-                }else{
-                    $fbaDatas[$fba['admin_id']]['fba_predundancy_number'] = 0 ;
+        if($fbaData){
+            foreach($fbaData as $fba){
+                if($datas['count_dimension'] == 'channel_id'){
+                    $fbaDatas[$fba['channel_id']] = $fba ;
+                }else if($datas['count_dimension'] == 'site_id'){
+                    $fbaDatas[$fba['site_id']] = $fba ;
+                }else if($datas['count_dimension'] == 'department'){
+                    if (empty($fbaDatas[$fba['user_department_id']])){
+                        $fbaDatas[$fba['user_department_id']]['fba_goods_value']= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['user_department_id']]['fba_stock']= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['user_department_id']]['fba_need_replenish']= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']= $fba['fba_predundancy_number'] ;
+                    }else{
+                        $fbaDatas[$fba['user_department_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['user_department_id']]['fba_stock']+= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['user_department_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['user_department_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                    }
+
+                }else if($datas['count_dimension'] == 'admin_id'){
+                    if (empty($fbaDatas[$fba['admin_id']])){
+                        $fbaDatas[$fba['admin_id']]['fba_goods_value']= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['admin_id']]['fba_stock']= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['admin_id']]['fba_need_replenish']= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['admin_id']]['fba_predundancy_number']= $fba['fba_predundancy_number'] ;
+                    }else{
+                        $fbaDatas[$fba['admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['admin_id']]['fba_stock']+= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                    }
+
                 }
             }
         }
@@ -6175,8 +6178,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Total Request', [$this->getLastSql()]);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                $count = $this->getTotalNum($where, $table, $group);
+                $parallel = new Parallel();
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                    return $lists;
+                });
+                $parallel->add(function () use($where, $table, $group){
+                    $count = $this->getTotalNum($where, $table, $group);
+                    return $count;
+                });
+
+                try{
+                    // $results 结果为 [1, 2]
+                    $results = $parallel->wait();
+                    $lists = $results[0];
+                    $count = $results[1];
+                } catch(ParallelExecutionException $e){
+                    // $e->getResults() 获取协程中的返回值。
+                    // $e->getThrowables() 获取协程中出现的异常。
+                }
+
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Request', [$this->getLastSql()]);
             }
@@ -7618,12 +7639,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($time_line, ' CASE WHEN report.goods_operation_pattern = 1 THEN (0 -  report.byorder_reserved_field16 )* ({:RATE} / COALESCE(rates.rate ,1)) ELSE report.bychannel_operating_fee * ({:RATE} / COALESCE(rates.rate ,1)) END ');
                 }
             } else if ($time_target == 'operate_fee_rate') {  //运营费用占比
+                $rate_fields = $datas['currency_code'] == 'ORIGIN' ? " * 1.0000" : " * ({:RATE} / COALESCE(rates.rate ,1))";
                 if ($datas['sale_datas_origin'] == '1') {
-                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) ElSE (report.bychannel_operating_fee) END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) ELSE report.bychannel_operating_fee END', 'report.byorder_sales_quota');
+                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) {$rate_fields} ElSE (report.bychannel_operating_fee) {$rate_fields} END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota {$rate_fields}),0)";
+                    $time_fields = $this->getTimeFields($time_line, "(CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) {$rate_fields} ELSE report.bychannel_operating_fee {$rate_fields} END) * 1.0000" , 'report.byorder_sales_quota' . $rate_fields);
                 } else {
-                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) ElSE (report.bychannel_operating_fee) END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                    $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) ELSE report.bychannel_operating_fee END', 'report.report_sales_quota');
+                    $fields['count_total'] = "SUM( CASE WHEN report.goods_operation_pattern = 1 THEN (0 - report.byorder_reserved_field16 ) {$rate_fields} ElSE (report.bychannel_operating_fee {$rate_fields}) END)  * 1.0000 / nullif(SUM(report.byorder_sales_quota {$rate_fields}),0)";
+                    $time_fields = $this->getTimeFields($time_line, "(CASE WHEN report.goods_operation_pattern = 1 THEN (0-report.byorder_reserved_field16) {$rate_fields} ELSE report.bychannel_operating_fee {$rate_fields} END) * 1.0000", 'report.report_sales_quota' . $rate_fields );
                 }
             } else if ($time_target == 'other_vat_fee') {//VAT
                 if ($datas['finance_datas_origin'] == '1') {
