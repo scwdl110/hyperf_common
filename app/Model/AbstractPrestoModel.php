@@ -474,6 +474,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         $sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order} {$limit}";
+        $athena_sql = $this->lastSql = "SELECT {$data} FROM {$table} {$where} {$group} {$order}  ";
 
         //商品级
         //print_r($this->goodsCols);
@@ -505,20 +506,25 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $cacheData = $this->getCache()->get($cacheKey);
             if(!empty($cacheData)){
                 return $cacheData;
             }
         }
-
+        if ($this->isReadAthena){
+            if (!$is_only_limit) {
+                $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($athena_sql) as t)  {$athena_limit}";//athena特有的分页写法
+            }
+        }
         $result = $this->presto->query($sql);
+        $this->lastSql = $sql;
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
             throw new RuntimeException('presto 查询失败');
         }
 
-        if ($isCache) {
+        if ($this->isCache($isCache)) {
             $this->getCache()->set($cacheKey, $result, $cacheTTL);
         }
 
