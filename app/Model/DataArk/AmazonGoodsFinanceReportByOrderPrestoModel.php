@@ -3815,12 +3815,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
                     $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                    var_dump(1);
 
                     return $lists;
                 });
                 $parallel->add(function () use($where, $table, $group){
-                    var_dump(2);
                     $count = $this->getTotalNum($where, $table, $group);
                     return $count;
                 });
