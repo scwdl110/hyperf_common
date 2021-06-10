@@ -1828,38 +1828,36 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            }
 //        }
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
-            if ($this->is_month_table($datas)){//月报仓储费需读月报得仓储费
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    } else {
-                        $fields['cost_profit_profit'] = '(SUM((report.byorder_goods_profit) / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit-report.report_estimated_monthly_storage_fee+month_report.estimated_monthly_storage_fee)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    } else {
-                        $fields['cost_profit_profit'] = '(SUM((report.report_goods_profit-report.report_estimated_monthly_storage_fee+month_report.estimated_monthly_storage_fee) / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    }
+            //商品利润聚合数据只聚合财务维度 。 如果销售额或退款维度与财务不一致，需要转换修复
+            $repair_data = '' ;
+            if ($datas['finance_datas_origin'] == '1') {
+                if($datas['sale_datas_origin'] == '2'){
+                    $repair_data.= " + report.report_sales_quota - report.byorder_sales_quota  " ;
                 }
-            }else{
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    } else {
-                        $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    } else {
-                        $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
-                    }
+                if($datas['refund_datas_origin'] == '2'){
+                    $repair_data.= empty($repair_data) ? "  + report.byorder_refund - report.report_refund " : " + report.byorder_refund - report.report_refund " ;
                 }
+
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit'.$repair_data.')'  . '+'. $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                } else {
+                    $fields['cost_profit_profit'] = '(SUM((report.byorder_goods_profit'.$repair_data.') * ({:RATE} / COALESCE(rates.rate ,1)))' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                }
+
+            } else {
+                if($datas['sale_datas_origin'] == '1'){
+                    $repair_data.= " + report.byorder_sales_quota - report.report_sales_quota  " ;
+                }
+                if($datas['refund_datas_origin'] == '1'){
+                    $repair_data.= empty($repair_data) ? " + report.report_refund - report.byorder_refund " : " + report.report_refund - report.byorder_refund" ;
+                }
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit'.$repair_data.')+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                } else {
+                    $fields['cost_profit_profit'] = '(SUM((report.report_goods_profit'.$repair_data.') * ({:RATE} / COALESCE(rates.rate ,1)))' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                }
+
             }
-
-
-
 
         }
         if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
