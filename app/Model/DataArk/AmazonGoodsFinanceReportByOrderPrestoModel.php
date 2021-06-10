@@ -2924,10 +2924,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['count_total'] = "SUM(report.monthly_sku_{$tempField})";
-                    $time_fields = $this->get_time_fields($time_line, "report.monthly_sku_{$tempField}");
+                    $time_fields = $this->getTimeFields($time_line, "report.monthly_sku_{$tempField}");
                 } else {
                     $fields['count_total'] = "SUM(report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    $time_fields = $this->get_time_fields($time_line, "report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
+                    $time_fields = $this->getTimeFields($time_line, "report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 }
             } elseif ($time_target == 'goods_other_review_enrollment_fee') {
                 $goodsSplitField = $this->default_goods_split_fields;
@@ -2935,10 +2935,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['count_total'] = "SUM(report.monthly_sku_{$tempField})";
-                    $time_fields = $this->get_time_fields($time_line, "report.monthly_sku_{$tempField}");
+                    $time_fields = $this->getTimeFields($time_line, "report.monthly_sku_{$tempField}");
                 } else {
                     $fields['count_total'] = "SUM(report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    $time_fields = $this->get_time_fields($time_line, "report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
+                    $time_fields = $this->getTimeFields($time_line, "report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 }
             } elseif ($time_target == 'goods_promote_run_lightning_deal_fee') {
                 $goodsSplitField = $this->default_goods_split_fields;
@@ -2946,10 +2946,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['count_total'] = "SUM(report.monthly_sku_{$tempField})";
-                    $time_fields = $this->get_time_fields($time_line, "report.monthly_sku_{$tempField}");
+                    $time_fields = $this->getTimeFields($time_line, "report.monthly_sku_{$tempField}");
                 } else {
                     $fields['count_total'] = "SUM(report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    $time_fields = $this->get_time_fields($time_line, "report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
+                    $time_fields = $this->getTimeFields($time_line, "report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 }
             }
             elseif ($custom_target && $custom_target['target_type'] == 1) {
@@ -2957,20 +2957,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 //新增指标
                 if ($datas['currency_code'] != 'ORIGIN' && $custom_target['format_type'] == 4) {
                     $fields['count_total'] = "SUM ({$tempField} / COALESCE(rates.rate, 1) * {:RATE})";
-                    $time_fields = $this->get_time_fields($time_line, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
+                    $time_fields = $this->getTimeFields($time_line, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 } else {
                     $fields['count_total'] = "SUM({$tempField})";
-                    $time_fields = $this->get_time_fields($time_line, $tempField);
+                    $time_fields = $this->getTimeFields($time_line, $tempField);
                 }
             } elseif (in_array($time_target, $keys)) {
                 $tempField = "report.monthly_sku_" . $new_target_keys[$time_target]['month_goods_field'];
                 //新增指标
                 if ($datas['currency_code'] != 'ORIGIN' && $new_target_keys[$time_target]['format_type'] == 4) {
                     $fields['count_total'] = "SUM ({$tempField} / COALESCE(rates.rate, 1) * {:RATE})";
-                    $time_fields = $this->get_time_fields($time_line, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
+                    $time_fields = $this->getTimeFields($time_line, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 } else {
                     $fields['count_total'] = "SUM({$tempField})";
-                    $time_fields = $this->get_time_fields($time_line, $tempField);
+                    $time_fields = $this->getTimeFields($time_line, $tempField);
                 }
             }
             else {
@@ -5686,10 +5686,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 //新增指标
                 if ($datas['currency_code'] != 'ORIGIN' && $this->timeCustomTarget['format_type'] == 4) {
                     $fields['count_total'] = "SUM ({$tempField} / COALESCE(rates.rate, 1) * {:RATE})";
-                    $time_fields = $this->get_time_fields($timeLine, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
+                    $time_fields = $this->getTimeFields($timeLine, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 } else {
                     $fields['count_total'] = "SUM({$tempField})";
-                    $time_fields = $this->get_time_fields($timeLine, $tempField);
+                    $time_fields = $this->getTimeFields($timeLine, $tempField);
                 }
             } elseif (in_array($time_target, $keys)) {
                 if ($this->timeCustomTarget['count_dimension'] == 3) {
@@ -5700,10 +5700,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 //新增指标
                 if ($datas['currency_code'] != 'ORIGIN' && $new_target_keys[$time_target]['format_type'] == 4) {
                     $fields['count_total'] = "SUM ({$tempField} / COALESCE(rates.rate, 1) * {:RATE})";
-                    $time_fields = $this->get_time_fields($timeLine, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
+                    $time_fields = $this->getTimeFields($timeLine, "{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 } else {
                     $fields['count_total'] = "SUM({$tempField})";
-                    $time_fields = $this->get_time_fields($timeLine, $tempField);
+                    $time_fields = $this->getTimeFields($timeLine, $tempField);
                 }
             } else {
                 $datas['time_target'] = $time_target;
