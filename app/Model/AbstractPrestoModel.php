@@ -519,7 +519,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $result = $this->presto->query($sql);
         }else{
-            $result = $this->presto->query($sql." {$limit}");
+            $sql = $sql." {$limit}";
+            $result = $this->presto->query($sql);
 
         }
         $this->lastSql = $sql;
