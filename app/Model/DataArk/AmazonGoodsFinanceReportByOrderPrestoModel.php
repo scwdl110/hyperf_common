@@ -7513,28 +7513,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['sale_datas_origin'] == 1) {
                     if ($datas['cost_count_type'] == '1') {
                         if ($datas['finance_datas_origin'] == '1') {
-                            $fields['count_total'] = " SUM ( report.byorder_logistics_head_course + report.byorder_purchasing_cost ) * 1.0000 / nullif(SUM ( report.byorder_sales_quota ),0)  ";
-                            $time_fields = $this->getTimeFields($time_line, ' report.byorder_logistics_head_course  + report.byorder_purchasing_cost ', 'report.byorder_sales_quota');
+                            $fields['count_total'] = " SUM ( (report.byorder_logistics_head_course + report.byorder_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1)) ) * 1.0000 / nullif(SUM ( report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1)) ),0)  ";
+                            $time_fields = $this->getTimeFields($time_line, ' (report.byorder_logistics_head_course  + report.byorder_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1)) ', 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                         } else {
-                            $fields['count_total'] = " SUM ( report.report_logistics_head_course + report.report_purchasing_cost  ) * 1.0000 / nullif(SUM ( report.byorder_sales_quota ),0)  ";
-                            $time_fields = $this->getTimeFields($time_line, ' report.report_logistics_head_course + report.report_purchasing_cost', 'report.byorder_sales_quota');
+                            $fields['count_total'] = " SUM ( (report.report_logistics_head_course + report.report_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))  ) * 1.0000 / nullif(SUM ( report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1)) ),0)  ";
+                            $time_fields = $this->getTimeFields($time_line, ' (report.report_logistics_head_course + report.report_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))', 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                         }
                     } else {
-                        $fields['count_total'] = " SUM ( (report.first_logistics_head_course + report.first_purchasing_cost)) * 1.0000 / nullif(SUM ( report.byorder_sales_quota ),0)  ";
-                        $time_fields = $this->getTimeFields($time_line, '( report.first_logistics_head_course + report.first_purchasing_cost)', 'report.byorder_sales_quota');
+                        $fields['count_total'] = " SUM ( (report.first_logistics_head_course + report.first_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))) * 1.0000 / nullif(SUM ( report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1)) ),0)  ";
+                        $time_fields = $this->getTimeFields($time_line, '( report.first_logistics_head_course + report.first_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))', 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                     }
                 } else {
                     if ($datas['cost_count_type'] == '1') {
                         if ($datas['finance_datas_origin'] == '1') {
-                            $fields['count_total'] = " SUM ( report.byorder_logistics_head_course + report.byorder_purchasing_cost ) * 1.0000 / nullif(SUM ( report.report_sales_quota ),0)  ";
-                            $time_fields = $this->getTimeFields($time_line, ' report.byorder_logistics_head_course  + report.byorder_purchasing_cost ', 'report.report_sales_quota');
+                            $fields['count_total'] = " SUM ( (report.byorder_logistics_head_course + report.byorder_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1)) ) * 1.0000 / nullif(SUM ( report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1)) ),0)  ";
+                            $time_fields = $this->getTimeFields($time_line, ' (report.byorder_logistics_head_course  + report.byorder_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1)) ', 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                         } else {
-                            $fields['count_total'] = " SUM ( report.report_logistics_head_course + report.report_purchasing_cost  ) * 1.0000 / nullif(SUM ( report.report_sales_quota ),0)  ";
-                            $time_fields = $this->getTimeFields($time_line, ' report.report_logistics_head_course + report.report_purchasing_cost', 'report.report_sales_quota');
+                            $fields['count_total'] = " SUM ( (report.report_logistics_head_course + report.report_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))  ) * 1.0000 / nullif(SUM ( report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)  ";
+                            $time_fields = $this->getTimeFields($time_line, ' (report.report_logistics_head_course + report.report_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))', 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                         }
                     } else {
-                        $fields['count_total'] = " SUM ( (report.first_logistics_head_course + report.first_purchasing_cost)) * 1.0000 / nullif(SUM ( report.report_sales_quota ),0)  ";
-                        $time_fields = $this->getTimeFields($time_line, '( report.first_logistics_head_course + report.first_purchasing_cost)', 'report.report_sales_quota');
+                        $fields['count_total'] = " SUM ( (report.first_logistics_head_course + report.first_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))) * 1.0000 / nullif(SUM ( report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1)) ),0)  ";
+                        $time_fields = $this->getTimeFields($time_line, '( report.first_logistics_head_course + report.first_purchasing_cost)* ({:RATE} / COALESCE(rates.rate ,1))', 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                     }
                 }
             } else if ($time_target == 'operate_fee') {  //运营费用
