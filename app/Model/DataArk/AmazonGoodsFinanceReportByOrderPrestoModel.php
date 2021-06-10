@@ -7435,20 +7435,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else if ($time_target == 'evaluation_fee_rate') {  //测评费用占比
                 if ($datas['sale_datas_origin'] == '1') {
                     if ($datas['finance_datas_origin'] == '1') {
-                        $fields['count_total'] = "SUM(report.byorder_reserved_field10 )  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                        $time_fields = $this->getTimeFields($time_line, 'report.byorder_reserved_field10', 'report.byorder_sales_quota');
+                        $fields['count_total'] = "SUM(report.byorder_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif(SUM(report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)";
+                        $time_fields = $this->getTimeFields($time_line, 'report.byorder_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1))', 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                     } else {
-                        $fields['count_total'] = "SUM(report.report_reserved_field10 )  * 1.0000 / nullif(SUM(report.byorder_sales_quota),0)";
-                        $time_fields = $this->getTimeFields($time_line, 'report.report_reserved_field10', 'report.byorder_sales_quota');
+                        $fields['count_total'] = "SUM(report.report_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif(SUM(report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)";
+                        $time_fields = $this->getTimeFields($time_line, 'report.report_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1))', 'report.byorder_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                     }
 
                 } else {
                     if ($datas['finance_datas_origin'] == '1') {
-                        $fields['count_total'] = "SUM(report.byorder_reserved_field10 )  * 1.0000 / nullif(SUM(report.report_sales_quota),0)";
-                        $time_fields = $this->getTimeFields($time_line, 'report.byorder_reserved_field10', 'report.report_sales_quota');
+                        $fields['count_total'] = "SUM(report.byorder_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif(SUM(report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)";
+                        $time_fields = $this->getTimeFields($time_line, 'report.byorder_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1))', 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                     } else {
-                        $fields['count_total'] = "SUM(report.report_reserved_field10 )  * 1.0000 / nullif(SUM(report.report_sales_quota),0)";
-                        $time_fields = $this->getTimeFields($time_line, 'report.report_reserved_field10', 'report.report_sales_quota');
+                        $fields['count_total'] = "SUM(report.report_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif(SUM(report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))),0)";
+                        $time_fields = $this->getTimeFields($time_line, 'report.report_reserved_field10* ({:RATE} / COALESCE(rates.rate ,1))', 'report.report_sales_quota* ({:RATE} / COALESCE(rates.rate ,1))');
                     }
 
                 }
