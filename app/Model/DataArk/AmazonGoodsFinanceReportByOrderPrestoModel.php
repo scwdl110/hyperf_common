@@ -1820,11 +1820,49 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                                 +{$fields['cpc_sd_cost']}+{$fields['purchase_logistics_purchase_cost']}+{$fields['purchase_logistics_logistics_cost']}+{$fields['evaluation_fee']}
                                                 +{$fields['operate_fee']}+{$fields['other_vat_fee']}";
         }
-        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {
-            $fields['cost_profit_profit'] = $fields['cost_profit_total_income'] . "+" . $fields['cost_profit_total_pay'];
-            if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
-                $fields['cost_profit_profit_rate'] = '('.$fields['cost_profit_profit'] . ") * 1.0000 / nullif( " . $fields['cost_profit_total_income'] . " ,0) ";
+//        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {
+//            $fields['cost_profit_profit'] = $fields['cost_profit_total_income'] . "+" . $fields['cost_profit_total_pay'];
+//            if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
+//                $fields['cost_profit_profit_rate'] = '('.$fields['cost_profit_profit'] . ") * 1.0000 / nullif( " . $fields['cost_profit_total_income'] . " ,0) ";
+//            }
+//        }
+        if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //毛利润
+            if (is_month_table($datas)){//月报仓储费需读月报得仓储费
+                if ($datas['finance_datas_origin'] == '1') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    } else {
+                        $fields['cost_profit_profit'] = '(SUM((report.byorder_goods_profit) / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    }
+                } else {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit-report.report_estimated_monthly_storage_fee+month_report.estimated_monthly_storage_fee)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    } else {
+                        $fields['cost_profit_profit'] = '(SUM((report.report_goods_profit-report.report_estimated_monthly_storage_fee+month_report.estimated_monthly_storage_fee) / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    }
+                }
+            }else{
+                if ($datas['finance_datas_origin'] == '1') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    } else {
+                        $fields['cost_profit_profit'] = '(SUM(report.byorder_goods_profit / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    }
+                } else {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit)' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    } else {
+                        $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit / COALESCE(rates.rate ,1) * {:RATE})' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    }
+                }
             }
+
+
+
+
+        }
+        if (in_array('cost_profit_profit_rate', $targets)) {  //毛利率
+            $fields['cost_profit_profit_rate'] = $fields['cost_profit_profit'] . " /  nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
         }
 
         $this->getUnTimeFields($fields,$datas,$targets);
