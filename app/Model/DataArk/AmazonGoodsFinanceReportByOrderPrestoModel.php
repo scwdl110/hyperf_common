@@ -9,6 +9,7 @@ use App\Model\AbstractPrestoModel;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use function App\getUserInfo;
+use Hyperf\Utils\Parallel;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
@@ -3812,8 +3813,31 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-                $count = $this->getTotalNum($where, $table, $group);
+
+                $parallel = new Parallel();
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                    var_dump(1);
+
+                    return $lists;
+                });
+                $parallel->add(function () use($where, $table, $group){
+                    var_dump(2);
+                    $count = $this->getTotalNum($where, $table, $group);
+                    return $count;
+                });
+
+                try{
+                    // $results 结果为 [1, 2]
+                    $results = $parallel->wait();
+                    $lists = $results[0];
+                    $count = $results[1];
+                } catch(ParallelExecutionException $e){
+                    // $e->getResults() 获取协程中的返回值。
+                    // $e->getThrowables() 获取协程中出现的异常。
+                }
+
+
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Request', [$this->getLastSql()]);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
