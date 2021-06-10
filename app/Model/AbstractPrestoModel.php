@@ -511,18 +511,18 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 return $cacheData;
             }
         }
-//        if ($this->isReadAthena){
-//            if ($is_only_limit) {
-//                $sql = $sql." {$limit}";
-//            }else{
-//                $sql = $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($sql) as t)  {$athena_limit}";//athena特有的分页写法
-//            }
-//            $result = $this->presto->query($sql);
-//        }else{
+        if ($this->isReadAthena){
+            if ($is_only_limit) {
+                $sql = $sql." {$limit}";
+            }else{
+                $sql = $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($sql) as t)  {$athena_limit}";//athena特有的分页写法
+            }
+            $result = $this->presto->query($sql);
+        }else{
             $sql = $sql." {$limit}";
             $result = $this->presto->query($sql);
 
-//        }
+        }
         $this->lastSql = $sql;
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
