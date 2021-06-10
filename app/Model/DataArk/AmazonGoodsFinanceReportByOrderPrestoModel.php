@@ -519,7 +519,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
-                echo $this->getLastSql();
+                $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+                $logger->info('getListByGoods Request111111111111111111', [$this->getLastSql()]);
                 $count = $this->getTotalNum($where, $table, $group,true);
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
