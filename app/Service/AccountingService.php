@@ -584,8 +584,7 @@ class AccountingService extends BaseService
             'id' => 'required|integer',
             'synchronously_status' => 'required|integer',
             'synchronously_info' => 'required|string',
-            'synchronously_time' =>'required|integer',
-            'total' =>'required|integer',
+            'synchronously_time' =>'required|integer'
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -613,8 +612,7 @@ class AccountingService extends BaseService
                 [
                     'synchronously_status' => $request_data['synchronously_status'],
                     'synchronously_info'=>json_encode($request_data['synchronously_info']),
-                    'synchronously_time' => $request_data['synchronously_time'],
-                    'total' => $request_data['total'],
+                    'synchronously_time' => $request_data['synchronously_time']
                 ]);
         } catch (\Exception $e) {
             $data = [
