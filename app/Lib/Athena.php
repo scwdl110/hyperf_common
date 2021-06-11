@@ -315,7 +315,7 @@ class Athena
 
             return $lists;
         } catch (Throwable $t) {
-            $this->logger->error('athena 异常出错了', $t->getMessage());
+            $this->logger->error('athena 异常出错了' . $t->getMessage());
             return false;
         }
     }
