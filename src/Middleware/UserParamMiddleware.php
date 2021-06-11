@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Middleware;
+namespace Captainbi\Hyperf\Middleware;
 
 use App\Model\UserModel;
 use Captainbi\Hyperf\Util\Redis;
