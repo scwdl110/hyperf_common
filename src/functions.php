@@ -71,7 +71,7 @@ function appendDbCodeno(string $name, int $type = 0): string
         return $name;
     }
 
-    $codeno = ApplicationContext::getContainer()->get(SessionInterface::class)->get('codeno'); //dbhost
+    $codeno = ApplicationContext::getContainer()->get(SessionInterface::class)->get('dbhost'); //dbhost
     $codeno = $codeno ? '_'.$codeno : '';
 
     $dbList = env('CODENO_DB_LIST'); //已分库的数据库名称清单
