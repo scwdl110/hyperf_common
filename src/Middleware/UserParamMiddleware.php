@@ -23,7 +23,7 @@ class UserParamMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         //获取用户dbhost 和 codeno
-        $user_id = $request->input('user_id', 0);
+        $user_id = (int)$request->input('user_id', 0);
         if($user_id > 0 ){
             $redis = new Redis();
             $redis = $redis->getClient();
