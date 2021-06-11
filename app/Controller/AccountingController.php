@@ -684,4 +684,20 @@ class AccountingController extends BaseController
         return Result::success($data['data'], $data['msg']);
     }
 
+
+    /**
+     * 同步接口
+     * @RequestMapping(path="syncOp", methods="post")
+     * @return mixed
+     */
+    public function syncOp()
+    {
+        $request_data = $this->request->all();
+        $data = $this->service->syncOp($request_data);
+        if ($data['code'] == 0) {
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'], $data['msg']);
+    }
+
 }

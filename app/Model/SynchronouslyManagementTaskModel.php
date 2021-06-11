@@ -9,7 +9,11 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-return [
-    \Hyperf\ExceptionHandler\Listener\ErrorExceptionHandler::class,
-    \Captainbi\Hyperf\Listener\DbExecutedListener::class,
-];
+namespace App\Model;
+
+class SynchronouslyManagementTaskModel extends BaseModel
+{
+    protected $table = 'synchronously_management_task';
+    //黑名单字段
+    protected $guarded = ['id'];
+}
