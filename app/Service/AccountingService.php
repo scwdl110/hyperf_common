@@ -596,7 +596,7 @@ class AccountingService extends BaseService
             'id' => $request_data['id'],
         ];
 
-        $synchronouslyManagementTask = SynchronouslyManagementTaskModel::query()->where($where)->select(array("mmouth","myear"))->first()->toArray();
+        $synchronouslyManagementTask = $this->getArray(SynchronouslyManagementTaskModel::query()->where($where)->select(array("mmouth","myear"))->first());
 
         if (empty($synchronouslyManagementTask)) {
             $data = [
