@@ -107,7 +107,7 @@ class Athena
 
     protected $athenaClient = null;
 
-    protected $sleepAmountInMs = 50;
+    protected $sleepAmountInMs = 200;
 
     protected static $connections = [];
 
@@ -249,7 +249,7 @@ class Athena
         $this->config = $config;
         $this->logger = $logger;
         $this->httpClient = $client;
-        $this->sleepAmountInMs = abs(intval($config['sleep_amount_in_ms'] ?? 50));
+        $this->sleepAmountInMs = abs(intval($config['sleep_amount_in_ms'] ?? 200));
 
         $this->athenaClient = new AthenaClient([
             'region' => $config['athena_region'],
@@ -272,6 +272,7 @@ class Athena
         if (isset($this->config['athena_output_location'])) {
             $query['ResultConfiguration']['OutputLocation'] = $this->config['athena_output_location'];
         }
+
 
         try {
             $result = $this->athenaClient->startQueryExecution($query);
@@ -307,12 +308,17 @@ class Athena
                 foreach ($data['ResultSet']['Rows'] as $key => $datum) {
                     $row = [];
                     foreach ($fields as $k=> $value) {
-                        $row[$value['VarCharValue']] = $datum['Data'][$k]['VarCharValue'];
+                        if (isset($datum['Data'][$k]['VarCharValue'])){
+                            $row[$value['VarCharValue']] = $datum['Data'][$k]['VarCharValue'];
+
+                        }else{
+                            $row[$value['VarCharValue']] = null;
+
+                        }
                     }
                     $lists[] = $row;
                 }
             }
-
             return $lists;
         } catch (Throwable $t) {
             $this->logger->error('athena 异常出错了' . $t->getMessage());
