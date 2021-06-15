@@ -190,6 +190,7 @@ class AccountingService extends BaseService
 
             $info['commodity_sales']['fba_sales_quota'] = floor($FinanceReportInfo[0]['fba_sales_quota'] * 100) / 100; //FBA销售额
             $info['commodity_sales']['fbm_sales_quota'] = floor($FinanceReportInfo[0]['fbm_sales_quota'] * 100) / 100; //FBM销售额
+            $info['commodity_sales']['total'] = $info['commodity_sales']['fba_sales_quota'] + $info['commodity_sales']['fbm_sales_quota'];
 
             $ChannelProfitReportInfo = $this->getArray(ChannelProfitReportModel::selectRaw("
             ifnull(sum(coupon_redemption_fee + coupon_payment_eventList_tax),0) as coupon,
@@ -232,7 +233,7 @@ class AccountingService extends BaseService
             $info['order_fee']['fba_generation_delivery_cost'] = floor($FinanceReportInfo[0]['fba_generation_delivery_cost'] * 100) / 100; //FBA代发货费用 **
             $info['order_fee']['profit'] = floor($FinanceReportInfo[0]['profit'] * 100) / 100;  //多渠道配送费
             $info['order_fee']['other_order_fee'] = floor(($FinanceReportInfo[0]['amazon_fee'] - $FinanceReportInfo[0]['platform_sales_commission'] - $FinanceReportInfo[0]['fba_generation_delivery_cost'] - $FinanceReportInfo[0]['profit']) * 100) / 100; //其他订单费用 **
-            $info['order_fee']['total'] =  $info['order_fee']['platform_sales_commission'] +  $info['order_fee']['fba_generation_delivery_cost'] + $info['order_fee']['profit'] + $info['order_fee']['other_order_fee'];
+            $info['order_fee']['total'] = $info['order_fee']['platform_sales_commission'] + $info['order_fee']['fba_generation_delivery_cost'] + $info['order_fee']['profit'] + $info['order_fee']['other_order_fee'];
 
 
             //退货退款费用
@@ -258,7 +259,7 @@ class AccountingService extends BaseService
             $info['inventory_cost']['fba_inbound_transportation_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_fee'] * 100) / 100; //入仓运输费
             $info['inventory_cost']['fba_inbound_transportation_program_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_program_fee'] * 100) / 100; //FBA入境运输费
             $info['inventory_cost']['fba_overage_fee'] = floor($ChannelProfitReportInfo[0]['fba_overage_fee'] * 100) / 100; //库存仓储超量费
-            $info['inventory_cost']['total'] =  $info['inventory_cost']['fba_storage_fee'] + $info['inventory_cost']['fba_long_term_storage_fee'] +
+            $info['inventory_cost']['total'] = $info['inventory_cost']['fba_storage_fee'] + $info['inventory_cost']['fba_long_term_storage_fee'] +
                 $info['inventory_cost']['fba_disposal_fee'] + $info['inventory_cost']['fba_removal_fee'] + $info['inventory_cost']['restocking_fee'] +
                 $info['inventory_cost']['fba_inbound_convenience_fee'] + $info['inventory_cost']['fba_inbound_defect_fee'] + $info['inventory_cost']['labeling_fee'] +
                 $info['inventory_cost']['polybagging_fee'] + $info['inventory_cost']['fba_inbound_shipment_carton_level_info_fee'] + $info['inventory_cost']['fba_inbound_transportation_fee'] +
@@ -293,7 +294,7 @@ class AccountingService extends BaseService
             $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //物流（FBM） **
             $info['fee']['total'] = $info['fee']['reserved_field16'] + $info['fee']['reserved_field10'] + $info['fee']['purchasing_cost'] + $info['fee']['logistics_head_course'] + $info['fee']['fbm'];
 
-
+            $info['total'] = $info['promotion_fee']['total'] + $info['order_fee'] + $info['return_refund_fee']['total'] + $info['inventory_cost']['total'] + $info['other_fee']['total'] + $info['commodity_adjustment_fee']['total'] + $info['fee']['total'];
             $infoList['list'][] = $info;
         }
 
@@ -575,8 +576,6 @@ class AccountingService extends BaseService
     }
 
 
-
-
     public function syncOp($request_data)
     {
         //验证
@@ -584,7 +583,7 @@ class AccountingService extends BaseService
             'id' => 'required|integer',
             'synchronously_status' => 'required|integer',
             'synchronously_info' => 'required|string',
-            'synchronously_time' =>'required|integer'
+            'synchronously_time' => 'required|integer'
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -611,7 +610,7 @@ class AccountingService extends BaseService
             SynchronouslyManagementTaskModel::query()->update(
                 [
                     'synchronously_status' => $request_data['synchronously_status'],
-                    'synchronously_info'=>json_encode($request_data['synchronously_info']),
+                    'synchronously_info' => json_encode($request_data['synchronously_info']),
                     'synchronously_time' => $request_data['synchronously_time']
                 ]);
         } catch (\Exception $e) {
