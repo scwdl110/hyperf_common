@@ -188,14 +188,12 @@ class DataArkController extends AbstractController
                 $min_ym = empty($min_ym) ? date('Ym',$times['start']) : ($min_ym > date('Ym',$times['start']) ? date('Ym',$times['start']) : $min_ym) ;
                 $max_ym = empty($max_ym) ? date('Ym',$times['end']) : ($max_ym < date('Ym',$times['end']) ? date('Ym',$times['end']) : $max_ym) ;
                 $ors[] = sprintf(
-                    '(report.site_id in (%s) and report.create_time>=%d and report.create_time<=%d)',
-                    $times['site_id'],
+                    '( report.create_time>=%d and report.create_time<=%d)',
                     (int)$times['start'],
                     (int)$times['end']
                 );
                 $origin_time[] = sprintf(
-                    '(site_id in (%s) and create_time>=%d and create_time<=%d)',
-                    $times['site_id'],
+                    '( create_time>=%d and create_time<=%d)',
                     (int)$times['start'],
                     (int)$times['end']
                 );
@@ -223,7 +221,7 @@ class DataArkController extends AbstractController
         //需要读取athena 的才使用该方法，其他不使用
         $big_data_user = "255981,33882,108142,22819,26060,34726,45723,53247,47562,57082,59221,255687,137346,255371,121069,83780,62473,74734,82142,337446,90330,95578,95336,99204,114937,101119,101133,114092,121675,346891,255707,98806,96975,105015,96119,95430,213581,219775,240755,243595,203705,185031,217593,245779,256968,220051,201375,243823,247442,268287,261217,310036,262106,306543,269036,21";
         $is_goods_day_report = false;//日报表才读
-        if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
+        if(($params['count_periods'] == 0 || $params['count_periods'] == 1 || $params['count_periods'] == 2 ) && $params['cost_count_type'] != 2){ //按天,按周或无统计周期
             $is_goods_day_report = true;
         }
         if ($method == 'getListByGoods' and $day_param > 90 AND in_array($userInfo['user_id'],explode(",",$big_data_user)) and $is_goods_day_report){
