@@ -294,7 +294,7 @@ class AccountingService extends BaseService
             $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //物流（FBM） **
             $info['fee']['total'] = $info['fee']['reserved_field16'] + $info['fee']['reserved_field10'] + $info['fee']['purchasing_cost'] + $info['fee']['logistics_head_course'] + $info['fee']['fbm'];
 
-            $info['total'] = $info['promotion_fee']['total'] + $info['order_fee'] + $info['return_refund_fee']['total'] + $info['inventory_cost']['total'] + $info['other_fee']['total'] + $info['commodity_adjustment_fee']['total'] + $info['fee']['total'];
+            $info['total'] = $info['promotion_fee']['total'] + $info['order_fee']['total'] + $info['return_refund_fee']['total'] + $info['inventory_cost']['total'] + $info['other_fee']['total'] + $info['commodity_adjustment_fee']['total'] + $info['fee']['total'];
             $infoList['list'][] = $info;
         }
 
