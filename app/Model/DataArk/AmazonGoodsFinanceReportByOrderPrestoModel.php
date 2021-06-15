@@ -1885,7 +1885,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //加入自定义指标
         $fba_target_key = [];
-        $this->getCustomTargetFields($fields,$custom_targets_list,$targets,$targets_temp, $datas,$fba_target_key,$datas['is_count']);
+        $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
+        $this->getCustomTargetFields($fields,$custom_targets_list,$targets,$targets_temp, $datas,$fba_target_key,$is_count);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
 
@@ -4679,7 +4680,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //加入自定义指标
         $fba_target_key = [];
-        $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$datas['is_count']);
+        $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
+        $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$is_count);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
 
