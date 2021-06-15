@@ -6,7 +6,6 @@ namespace App\Lib;
 
 use Aws\Athena\AthenaClient;
 use Aws\Credentials\Credentials;
-use phpDocumentor\Reflection\Types\False_;
 use Throwable;
 use RuntimeException;
 use GuzzleHttp\Client;
@@ -16,16 +15,12 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\MessageFormatter;
 
 use Psr\Log\LoggerInterface;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
 
-use Hyperf\Utils\Coroutine;
 use Hyperf\Utils\ApplicationContext;
-use Hyperf\Contract\ConfigInterface;
 use Hyperf\Logger\LoggerFactory;
-
 use Hyperf\Guzzle\PoolHandler;
-use Hyperf\Guzzle\RetryMiddleware;
+
+use Swoole\Coroutine;
 
 class Athena
 {
@@ -94,6 +89,12 @@ class Athena
     /** Query execution failed.  */
     const QUERY_STATE_FAILED = 'FAILED';
 
+    /** Query execution succeeded.  */
+    const QUERY_STATE_SUCCEEDED = 'SUCCEEDED';
+
+    /** Query execution cancelled.  */
+    const QUERY_STATE_CANCELLED = 'CANCELLED';
+
     protected $url = '';
 
     protected $config = [];
@@ -104,6 +105,10 @@ class Athena
 
     protected $httpHeaders = [];
 
+    protected $athenaClient = null;
+
+    protected $sleepAmountInMs = 50;
+
     protected static $connections = [];
 
     protected static $connectionKeys = [];
@@ -111,7 +116,29 @@ class Athena
     public static function getConnection(array $config, ?LoggerInterface $logger = null, ?ClientInterface $client = null)
     {
         if (null === $logger) {
-            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('presto', 'default');
+            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('athena', 'default');
+        }
+
+        if (empty($config) || !isset(
+            $config['athena_region'],
+            $config['athena_version'],
+            $config['athena_secret_key'],
+            $config['athena_access_key']
+        )) {
+            $logger->error('athena 连接参数错误', [$config]);
+            throw new RuntimeException('Athena connection config is required.');
+        }
+
+        if (!isset($config['athena_encryption_option'])) {
+            $config['athena_encryption_option'] = 'SSE_S3';
+        }
+
+        if (!is_string($config['athena_region']) || !is_string($config['athena_version'])
+            || !is_string($config['athena_secret_key']) || !is_string($config['athena_access_key'])
+            || !is_string($config['athena_encryption_option'])
+        ) {
+            $logger->error('athena 连接参数数据类型错误', [$config]);
+            throw new RuntimeException('Invalid athena connection config.');
         }
 
         // client 如果为 null，会自动实例化一个，因为这个实例化对象没有 set 到 DI 中
@@ -153,7 +180,7 @@ class Athena
     private static function createHttpClient(int $maxRetries, LoggerInterface $logger, bool $debug): ClientInterface
     {
         $handler = null;
-        if (Coroutine::inCoroutine()) {
+        if (Coroutine::getCid() > 0) {
             $handler = make(PoolHandler::class, [
                 'option' => [
                     'max_connections' => 50,
@@ -168,49 +195,12 @@ class Athena
             $stack->push(Middleware::log($logger, new MessageFormatter(MessageFormatter::DEBUG), 'DEBUG'));
         }
 
-        $stack->push(Middleware::retry(function(
-            $retries,
-            RequestInterface $req,
-            ResponseInterface $resp = null,
-            $exception = null
-        ) use (&$logger, $maxRetries) {
-            if ($resp) {
-                $statusCode = $resp->getStatusCode();
-                if (200 === $statusCode) {
-                    return false;
-                }
-
-                // If the client request returns an HTTP 503, that means the server was busy,
-                // and the client should try again in 50-100 milliseconds.
-                // Any HTTP status other than 503 or 200 means that the query has failed.
-                // v.a. https://prestodb.io/docs/current/develop/client-protocol.html#overview-of-query-processing
-                if (503 === $statusCode && $retries < $maxRetries) {
-                    return true;
-                }
-
-                $logger->error('anthea 请求失败', [
-                    'response' => (string)$resp->getBody(),
-                ]);
-            } else {
-                if ($exception) {
-                    $logger->error('anthea 请求异常', [
-                        'exception' => $exception instanceof Throwable ? $exception->getMessage() : $exception
-                    ]);
-                }
-            }
-
-            return false;
-        }, function() {
-            return rand(50, 100);
-        }), 'retry');
-
         return make(Client::class, [
             'config' => [
                 'handler' => $stack,
             ],
         ]);
     }
-
 
     /**
      * 转义字符串内的特殊字符
@@ -259,77 +249,74 @@ class Athena
         $this->config = $config;
         $this->logger = $logger;
         $this->httpClient = $client;
+        $this->sleepAmountInMs = abs(intval($config['sleep_amount_in_ms'] ?? 50));
 
+        $this->athenaClient = new AthenaClient([
+            'region' => $config['athena_region'],
+            'version' => $config['athena_version'],
+            'credentials' => new Credentials($config['athena_access_key'], $config['athena_secret_key']),
+        ]);
     }
 
     public function query(string $sql)
     {
-        $credentials = new Credentials($this->config['athena_access_key'], $this->config['athena_secret_key']);
-
-        $options = [
-            'credentials'   => $credentials,
-            'region'        => $this->config['athena_region'],
-            'version'       => $this->config['athena_version'],
-        ];
-//        $sql = 'SELECT * FROM (SELECT row_number() over() AS rn, * FROM ods.ods_dataark_b_user_admin WHERE rn BETWEEN 1 AND 2';
-//        $sql = "SELECT * FROM (
-//    SELECT row_number() over() AS rn, * FROM ($sql) as t)
-//WHERE rn BETWEEN 1 AND 100;";
-        $param_Query = [
-
+        $query = [
             'QueryString' => $sql, // REQUIRED
             'ResultConfiguration' => [
                 'EncryptionConfiguration' => [
                     'EncryptionOption' => $this->config['athena_encryption_option'], // REQUIRED
-//                    'KmsKey' => '<string>',
                 ],
-                'OutputLocation' =>$this->config['athena_output_location'],
             ],
-//            'WorkGroup' => '<string>',
         ];
-        try{
-            $athenaClient = new AthenaClient($options);
-            $result           = $athenaClient->startQueryExecution($param_Query);
+
+        if (isset($this->config['athena_output_location'])) {
+            $query['ResultConfiguration']['OutputLocation'] = $this->config['athena_output_location'];
+        }
+
+        try {
+            $result = $this->athenaClient->startQueryExecution($query);
             $QueryExecutionId = $result['QueryExecutionId'];
-            $i = 1;
-            do{
-                usleep(50000);//休眠一小段时间等待执行成功
-                $result1 = $athenaClient->getQueryExecution([
+            do {
+                // 休眠一小段时间等待执行成功
+                if (Coroutine::getCid() > 0) {
+                    Coroutine\System::sleep($this->sleepAmountInMs / 1000);
+                } else {
+                    usleep(intval($this->sleepAmountInMs * 1000));
+                }
+
+                $result = $this->athenaClient->getQueryExecution([
                     'QueryExecutionId' => $QueryExecutionId, // REQUIRED
                 ]);
-                $status = $result1['QueryExecution']['Status']['State'];
-                $i++;
-            }while($status == "QUEUED" or $status == "RUNNING");
-            if ($status == 'SUCCEEDED'){
-                $result = $athenaClient->getQueryResults([
+                $status = $result['QueryExecution']['Status']['State'];
+            } while ($status === self::QUERY_STATE_QUEUED || $status === self::QUERY_STATE_RUNNING);
+
+            if ($status === self::QUERY_STATE_SUCCEEDED) {
+                $result = $this->athenaClient->getQueryResults([
                     'QueryExecutionId' => $QueryExecutionId, // REQUIRED
                 ]);
-            }else{
+            } else {
                 $this->logger->error('athena sql执行未成功，status:', $status);
                 return false;
             }
-            $data   = $result->toArray();
-            $lists  = array();
-            $i = 0;
-            if (!empty($data['ResultSet']) && !empty($data['ResultSet']['Rows']) && count($data['ResultSet']['Rows']) > 1){
 
+            $lists = [];
+            $data = $result->toArray();
+            if (!empty($data['ResultSet']) && !empty($data['ResultSet']['Rows']) && count($data['ResultSet']['Rows']) > 1) {
                 $fields = $data['ResultSet']['Rows'][0]['Data'];
                 unset($data['ResultSet']['Rows'][0]);
-                foreach ($data['ResultSet']['Rows'] as $key => $datum){
-                    foreach ($fields as $k=> $value){
-                        $lists[$i][$value['VarCharValue']] = $datum['Data'][$k]['VarCharValue'];
-
+                foreach ($data['ResultSet']['Rows'] as $key => $datum) {
+                    $row = [];
+                    foreach ($fields as $k=> $value) {
+                        $row[$value['VarCharValue']] = $datum['Data'][$k]['VarCharValue'];
                     }
-                    $i++;
+                    $lists[] = $row;
                 }
-
             }
+
             return $lists;
-        }catch (\Exception $exception){
-            $this->logger->error('athena 异常出错了', $exception->getMessage());
+        } catch (Throwable $t) {
+            $this->logger->error('athena 异常出错了' . $t->getMessage());
             return false;
         }
     }
-
-
 }
