@@ -596,7 +596,7 @@ class AccountingService extends BaseService
             'id' => $request_data['id'],
         ];
 
-        $synchronouslyManagementTask = SynchronouslyManagementTaskModel::query()->where($where)->select("mouth")->first()->toArray();
+        $synchronouslyManagementTask = SynchronouslyManagementTaskModel::query()->where($where)->select(array("mmouth","myear"))->first()->toArray();
 
         if (empty($synchronouslyManagementTask)) {
             $data = [
@@ -607,7 +607,7 @@ class AccountingService extends BaseService
         }
 
         try {
-            SynchronouslyManagementTaskModel::query()->update(
+            SynchronouslyManagementTaskModel::query()->where($where)->update(
                 [
                     'synchronously_status' => $request_data['synchronously_status'],
                     'synchronously_info' => json_encode($request_data['synchronously_info']),
