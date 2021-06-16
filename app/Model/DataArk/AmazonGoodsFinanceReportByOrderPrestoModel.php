@@ -1429,7 +1429,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } elseif ($datas['finance_datas_origin'] == '2') {
                 $estimated_monthly_storage_fee_field = "";
                 if ($datas['is_month_table'] == 1){
-                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee_field + report.monthly_sku_estimated_monthly_storage_fee";
+                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee + report.monthly_sku_estimated_monthly_storage_fee";
                 }
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['amazon_fee'] = "SUM (report.report_goods_amazon_fee {$estimated_monthly_storage_fee_field})";
@@ -1870,7 +1870,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $estimated_monthly_storage_fee_field = "";
                 if ($datas['is_month_table'] == 1){
-                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee_field + report.monthly_sku_estimated_monthly_storage_fee";
+                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee + report.monthly_sku_estimated_monthly_storage_fee";
                 }
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit'.$repair_data.$estimated_monthly_storage_fee_field.')+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
@@ -2254,7 +2254,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } elseif ($datas['finance_datas_origin'] == '2') {
                     $estimated_monthly_storage_fee_field = "";
                     if ($datas['is_month_table'] == 1){
-                        $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee_field + report.monthly_sku_estimated_monthly_storage_fee";
+                        $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee + report.monthly_sku_estimated_monthly_storage_fee";
                     }
                     if ($datas['sale_datas_origin'] == '1') {
                         $repair_data .= " + report.byorder_sales_quota - report.report_sales_quota  ";
@@ -2308,7 +2308,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $rate_fields = $datas['currency_code'] == 'ORIGIN' ? " * 1.0000" : " * ({:RATE} / COALESCE(rates.rate ,1))";
                 $estimated_monthly_storage_fee_field = "";
                 if ($datas['is_month_table'] == 1){
-                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee_field + report.monthly_sku_estimated_monthly_storage_fee";
+                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee + report.monthly_sku_estimated_monthly_storage_fee";
                 }
                 if ($datas['sale_datas_origin'] == 1) {
 
@@ -2385,7 +2385,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } elseif ($datas['finance_datas_origin'] == '2') {
                     $estimated_monthly_storage_fee_field = "";
                     if ($datas['is_month_table'] == 1){
-                        $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee_field + report.monthly_sku_estimated_monthly_storage_fee";
+                        $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee + report.monthly_sku_estimated_monthly_storage_fee";
                     }
                     if ($datas['currency_code'] == 'ORIGIN') {
                         $fields['count_total'] = 'SUM(report.report_goods_amazon_fee'.$estimated_monthly_storage_fee_field.')';
@@ -2558,7 +2558,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'amazon_fba_monthly_storage_fee') {  //FBA月仓储费
-                $estimated_monthly_storage_fee_field = "report.report_estimated_monthly_storage_fee_field";
+                $estimated_monthly_storage_fee_field = "report.report_estimated_monthly_storage_fee";
                 if ($datas['is_month_table'] == 1){
                     $estimated_monthly_storage_fee_field = " report.monthly_sku_estimated_monthly_storage_fee";
                 }
@@ -2601,7 +2601,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $rate_fields = $datas['currency_code'] == 'ORIGIN' ? " * 1.0000" : " * ({:RATE} / COALESCE(rates.rate ,1))";
                 $estimated_monthly_storage_fee_field = "";
                 if ($datas['is_month_table'] == 1){
-                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee_field + report.monthly_sku_estimated_monthly_storage_fee";
+                    $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee + report.monthly_sku_estimated_monthly_storage_fee";
                 }
                 if ($datas['sale_datas_origin'] == 1) {
                     if ($datas['finance_datas_origin'] == '1') {
