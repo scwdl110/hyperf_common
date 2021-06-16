@@ -162,6 +162,30 @@ class DataArkController extends AbstractController
             }
         }
 
+        if (isset($params['where_parent']) && !empty($params['where_parent'])){//维度下钻需要的相关信息
+
+            if (!empty($params['where_parent']['parent_asin'])){
+                $where .= " AND amazon_goods.goods_parent_asin = '" . addslashes($params['where_parent']['parent_asin']) . "'" ;
+            }
+
+            if (!empty($params['where_parent']['isku_id'])){
+                $where .= " AND amazon_goods.goods_isku_id  = '" . intval($params['where_parent']['isku_id']) . "'" ;
+            }
+
+            if (!empty($params['where_parent']['class1_id'])){
+                $where .= " AND amazon_goods.goods_product_category_id_1 = '" . intval($params['where_parent']['class1_id']) . "'" ;
+            }
+
+            if (!empty($params['where_parent']['head_id'])){
+                $where .= " AND amazon_goods.isku_head_id  = '" . intval($params['where_parent']['head_id']) . "'" ;
+            }
+
+            if (!empty($params['where_parent']['developer_id'])){
+                $where .= " AND amazon_goods.isku_developer_id   = '" . intval($params['where_parent']['developer_id']) . "'" ;
+            }
+
+        }
+
         if ($params['show_type'] == 2 && $params['limit_num'] > 0 && $params['count_periods'] == 0) {
             $offset = 0;
             $limit = (int)$params['limit_num'] ;
