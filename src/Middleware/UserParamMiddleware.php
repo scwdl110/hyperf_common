@@ -33,7 +33,7 @@ class UserParamMiddleware implements MiddlewareInterface
             if(empty($user_info)){
                 $user_info = UserModel::query()->where(array('id'=>$user_id , 'status'=>1))->select("id as user_id", "dbhost", "codeno")->first();
                 if(!empty($user_info)){
-                    $redis->set('COMMON_API_USERINFO_'.$user_id ,json_encode($user_info));
+                    $redis->set('COMMON_API_USERINFO_'.$user_id ,json_encode($user_info->toArray()));
                 }else{
                     Log::getClient()->error('UserParamMiddleware:User Not Existed');
                     return Context::get(ResponseInterface::class)->withStatus(401, 'Unauthorized');
