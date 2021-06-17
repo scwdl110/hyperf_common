@@ -19,7 +19,7 @@ class Functions {
         }
         $newArray = [];
         foreach ($array as $k=>$v){
-            if(isset($v[$column]) && isset($newArray[$v[$column]])){
+            if(isset($v[$column])){
                 $newArray[$v[$column]] = $v;
             }
         }
