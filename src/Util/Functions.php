@@ -12,7 +12,7 @@ class Functions {
      * @param $column
      * @return array|bool
      */
-    public function arrayToFieldArray(array $array, $column)
+    public static function arrayToFieldArray(array $array, $column)
     {
         if(!$array){
             return false;
