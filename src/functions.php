@@ -92,3 +92,24 @@ function appendDbCodeno(string $name, int $type = 0): string
     }
     return $name;
 }
+
+
+/**
+ * 二维数组转化为某个字段为键值的数组
+ * @param array $array
+ * @param $column
+ * @return array|bool
+ */
+function array_to_field_array(array $array, $column)
+{
+    if(!$array){
+        return false;
+    }
+    $newArray = [];
+    foreach ($array as $k=>$v){
+        if(isset($v[$column]) && isset($newArray[$v[$column]])){
+            $newArray[$v[$column]] = $v;
+        }
+    }
+    return $newArray;
+}
