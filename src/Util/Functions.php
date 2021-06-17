@@ -9,10 +9,10 @@ class Functions {
     /**
      * 二维数组转化为某个字段为键值的数组
      * @param array $array
-     * @param $column
+     * @param string $column
      * @return array|bool
      */
-    public static function arrayToFieldArray(array $array, $column)
+    public static function arrayToFieldArray(array $array, string $column)
     {
         if(!$array){
             return false;
