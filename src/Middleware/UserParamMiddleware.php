@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Captainbi\Hyperf\Middleware;
 
 use App\Model\UserModel;
+use Captainbi\Hyperf\Util\Log;
 use Captainbi\Hyperf\Util\Redis;
 use Hyperf\Utils\Context;
 use Psr\Http\Message\ResponseInterface;
@@ -32,6 +33,9 @@ class UserParamMiddleware implements MiddlewareInterface
                 $user_info = UserModel::query()->where(array('id'=>$user_id , 'status'=>1))->select("admin_id", "user_id", "is_master", "dbhost", "codeno")->first();
                 if(!empty($user_info)){
                     $redis->set('COMMON_API_USERINFO_'.$user_id ,$user_info) ;
+                }else{
+                    Log::getClient()->error('UserParamMiddleware:User Not Existed');
+                    return Context::get(ResponseInterface::class)->withStatus(401, 'Unauthorized');
                 }
             }
 
