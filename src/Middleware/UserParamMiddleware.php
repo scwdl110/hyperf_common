@@ -31,7 +31,7 @@ class UserParamMiddleware implements MiddlewareInterface
             $redis = $redis->getClient();
             $user_info = $redis->get('COMMON_API_USERINFO_'.$user_id) ;
             if(empty($user_info)){
-                $user_info = UserModel::query()->where(array('id'=>$user_id , 'status'=>1))->select("user_id", "dbhost", "codeno")->first();
+                $user_info = UserModel::query()->where(array('id'=>$user_id , 'status'=>1))->select("id as user_id", "dbhost", "codeno")->first();
                 if(!empty($user_info)){
                     $redis->set('COMMON_API_USERINFO_'.$user_id ,$user_info) ;
                 }else{
