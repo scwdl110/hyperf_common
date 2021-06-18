@@ -3559,18 +3559,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = ".$this->dbhost;
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
 
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
 //            $table = "{$this->table_channel_day_report} AS report" ;
-            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = ".$this->dbhost;
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
 //            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
 //            $table = "{$this->table_channel_month_report} AS report" ;
-            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = ".$this->dbhost;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
         }else if($params['cost_count_type'] == 2 ){
 //            $table = "{$this->table_channel_month_report} AS report" ;
-            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = ".$this->dbhost;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
         } else {
             return [];
         }
