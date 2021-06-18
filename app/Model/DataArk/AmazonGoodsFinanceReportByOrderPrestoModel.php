@@ -3559,15 +3559,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "{$this->table_channel_day_report} AS report";
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
 
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
-            $table = "{$this->table_channel_day_report} AS report" ;
+//            $table = "{$this->table_channel_day_report} AS report" ;
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
 //            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
-            $table = "{$this->table_channel_month_report} AS report" ;
+//            $table = "{$this->table_channel_month_report} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
         }else if($params['cost_count_type'] == 2 ){
-            $table = "{$this->table_channel_month_report} AS report" ;
+//            $table = "{$this->table_channel_month_report} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.db_num = '{$this->dbhost}'";
         } else {
             return [];
         }
@@ -3928,7 +3931,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['operators'] = 'max(report.operation_user_admin_name)';
-            $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
         } elseif ($datas['count_dimension'] === 'site_group') {
@@ -3983,7 +3986,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['sale_order_number'] = "SUM ( report.bychannel_sales_volume )";
         }
 
-        if (in_array('sale_sales_quota', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('amazon_fee_rate', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('operate_fee_rate', $targets) || in_array('evaluation_fee_rate', $targets) || in_array('cpc_turnover_rate', $targets)) {  //商品销售额
+        if (in_array('sale_sales_quota', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('amazon_fee_rate', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('operate_fee_rate', $targets) || in_array('evaluation_fee_rate', $targets) || in_array('cpc_turnover_rate', $targets) || in_array('cpc_cost_rate', $targets)) {  //商品销售额
             if ($datas['sale_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['sale_sales_quota'] = "SUM ( report.byorder_sales_quota )";
@@ -4000,7 +4003,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         //订单金额
-        if (in_array('sale_sales_dollars', $targets) || in_array('cpc_cost_rate', $targets)) {
+        if (in_array('sale_sales_dollars', $targets) ) {
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['sale_sales_dollars'] = "SUM ( report.bychannel_sales_quota )";
             } else {
@@ -4468,7 +4471,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
-            $fields['cpc_cost_rate'] = "({$fields['cpc_cost']}) * 1.0000 / nullif({$fields['sale_sales_dollars']}, 0) ";
+            $fields['cpc_cost_rate'] = "({$fields['cpc_cost']}) * 1.0000 / nullif({$fields['sale_sales_quota']}, 0) ";
         }
         if (in_array('cpc_exposure', $targets) || in_array('cpc_click_rate', $targets)) {  //CPC曝光量
             $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3)";
@@ -4720,7 +4723,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['operators'] = 'max(report.operation_user_admin_name)';
-            $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } else if ($datas['count_dimension'] == 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
         } else if ($datas['count_dimension'] == 'site_group') {
@@ -5490,12 +5493,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) ');
                 }
             } else if ($time_target == 'cpc_cost_rate') {  //CPC花费占比
+                $sale_denominator = "report.byorder_sales_quota";
+                if ($datas['sale_datas_origin'] == '2') {
+                    $sale_denominator = "report.report_sales_quota";
+                }
+
                 if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0) )  * 1.0000 / nullif( SUM (report.bychannel_sales_quota ) , 0 )";
-                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0)', 'report.bychannel_sales_quota');
+                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0) )  * 1.0000 / nullif( SUM ({$sale_denominator} ) , 0 )";
+                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0)', $sale_denominator);
                 } else {
-                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif( SUM (report.bychannel_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) ) , 0 ) ";
-                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1))  ', 'report.bychannel_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))');
+                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif( SUM ({$sale_denominator} * ({:RATE} / COALESCE(rates.rate ,1)) ) , 0 ) ";
+                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1))  ', $sale_denominator.' * ({:RATE} / COALESCE(rates.rate ,1))');
                 }
             } else if ($time_target == 'cpc_exposure') {  //CPC曝光量
                 $fields['count_total'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3)";
