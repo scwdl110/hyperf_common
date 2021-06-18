@@ -3559,15 +3559,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "{$this->table_channel_day_report} AS report";
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.user_id_mod = ".$params['user_id'] % 20;
 
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
-            $table = "{$this->table_channel_day_report} AS report" ;
+//            $table = "{$this->table_channel_day_report} AS report" ;
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.user_id_mod = ".$params['user_id'] % 20;
 //            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
-            $table = "{$this->table_channel_month_report} AS report" ;
+//            $table = "{$this->table_channel_month_report} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.user_id_mod = ".$params['user_id'] % 20;
         }else if($params['cost_count_type'] == 2 ){
-            $table = "{$this->table_channel_month_report} AS report" ;
+//            $table = "{$this->table_channel_month_report} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id AND channel.user_id_mod = ".$params['user_id'] % 20;
         } else {
             return [];
         }
@@ -3928,7 +3931,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['operators'] = 'max(report.operation_user_admin_name)';
-            $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
         } elseif ($datas['count_dimension'] === 'site_group') {
@@ -4720,7 +4723,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['operators'] = 'max(report.operation_user_admin_name)';
-            $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } else if ($datas['count_dimension'] == 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
         } else if ($datas['count_dimension'] == 'site_group') {
