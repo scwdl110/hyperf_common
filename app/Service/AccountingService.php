@@ -260,11 +260,7 @@ class AccountingService extends BaseService
             $info['inventory_cost']['fba_inbound_transportation_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_fee'] * 100) / 100; //入仓运输费
             $info['inventory_cost']['fba_inbound_transportation_program_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_program_fee'] * 100) / 100; //FBA入境运输费
             $info['inventory_cost']['fba_overage_fee'] = floor($ChannelProfitReportInfo[0]['fba_overage_fee'] * 100) / 100; //库存仓储超量费
-            $info['inventory_cost']['total_amount'] = $info['inventory_cost']['fba_storage_fee'] + $info['inventory_cost']['fba_long_term_storage_fee'] +
-                $info['inventory_cost']['fba_disposal_fee'] + $info['inventory_cost']['fba_removal_fee'] + $info['inventory_cost']['restocking_fee'] +
-                $info['inventory_cost']['fba_inbound_convenience_fee'] + $info['inventory_cost']['fba_inbound_defect_fee'] + $info['inventory_cost']['labeling_fee'] +
-                $info['inventory_cost']['polybagging_fee'] + $info['inventory_cost']['fba_inbound_shipment_carton_level_info_fee'] + $info['inventory_cost']['fba_inbound_transportation_fee'] +
-                $info['inventory_cost']['fba_inbound_transportation_program_fee'] + $info['inventory_cost']['fba_overage_fee'];    //** 库存费用
+            $info['inventory_cost']['total_amount'] = $info['inventory_cost']['fba_storage_fee'] + $info['inventory_cost']['fba_long_term_storage_fee'] + $info['inventory_cost']['fba_disposal_fee'] + $info['inventory_cost']['fba_removal_fee'] + $info['inventory_cost']['restocking_fee'] + $info['inventory_cost']['fba_inbound_convenience_fee'] + $info['inventory_cost']['fba_inbound_defect_fee'] + $info['inventory_cost']['labeling_fee'] + $info['inventory_cost']['polybagging_fee'] + $info['inventory_cost']['fba_inbound_shipment_carton_level_info_fee'] + $info['inventory_cost']['fba_inbound_transportation_fee'] + $info['inventory_cost']['fba_inbound_transportation_program_fee'] + $info['inventory_cost']['fba_overage_fee'];    //** 库存费用
 
             //其他费用
             $info['other_fee']['other_amazon_fee'] = floor(($FinanceReportInfo[0]['other_amazon_fee'] + $ChannelProfitReportInfo[0]['other_amazon_fee']) * 100) / 100; //**其他亚马逊费用
@@ -282,10 +278,8 @@ class AccountingService extends BaseService
             $info['commodity_adjustment_fee']['missing_from_inbound'] = floor($FinanceReportInfo[0]['missing_from_inbound'] * 100) / 100; //入库丢失赔偿
             $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] = floor($FinanceReportInfo[0]['missing_from_inbound_clawback'] * 100) / 100; //入库丢失赔偿(夺回)
             $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] = floor($ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'] * 100) / 100;  //费用盘点-重量和尺寸更改 **
-            $info['commodity_adjustment_fee']['fee_adjustment'] = floor(($FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee']) * 100) / 100;  //其他商品调整费用 ？？
-            $info['commodity_adjustment_fee']['total_amount'] = $info['commodity_adjustment_fee']['ware_house_lost'] + $info['commodity_adjustment_fee']['ware_house_damage'] + $info['commodity_adjustment_fee']['reversal_reimbursement'] +
-                $info['commodity_adjustment_fee']['return_postage_billing_postage'] + $info['commodity_adjustment_fee']['missing_from_inbound'] + $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] +
-                $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] + $info['commodity_adjustment_fee']['fee_adjustment'] + $info['commodity_adjustment_fee']['total_amount'];  //** 商品调整费用
+            $info['commodity_adjustment_fee']['fee_adjustment'] = floor(($FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee']) * 100) / 100;  //其他商品调整费用
+            $info['commodity_adjustment_fee']['total_amount'] = $info['commodity_adjustment_fee']['ware_house_lost'] + $info['commodity_adjustment_fee']['ware_house_damage'] + $info['commodity_adjustment_fee']['reversal_reimbursement'] + $info['commodity_adjustment_fee']['return_postage_billing_postage'] + $info['commodity_adjustment_fee']['missing_from_inbound'] + $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] + $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] + $info['commodity_adjustment_fee']['fee_adjustment'];  //** 商品调整费用
 
             //费用
             $info['fee']['reserved_field16'] = floor($FinanceReportInfo[0]['reserved_field16'] * 100) / 100; //**  运营费用
@@ -293,9 +287,7 @@ class AccountingService extends BaseService
             $info['fee']['purchasing_cost'] = floor($FinanceReportInfo[0]['purchasing_cost'] * 100) / 100; //**  采购成本
             $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //** 头程物流（FBA）
             $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //**  物流（FBM）
-            $info['fee']['gross_profit'] =  $info['commodity_sales']['total_amount'] + $info['promotion_fee']['total_amount'] + $info['order_fee']['total_amount'] + $info['return_refund_fee']['total_amount'] + $info['inventory_cost']['total_amount'] +
-                $info['other_fee']['other_amazon_fee'] + $info['other_fee']['reserved_field17'] + $info['other_fee']['misc_adjustment'] + $info['other_fee']['review_enrollment_fee'] + $info['other_fee']['cpc_cost'] + $info['commodity_adjustment_fee']['total_amount'] +
-                $info['fee']['reserved_field16'] + $info['fee']['reserved_field10'] + $info['fee']['purchasing_cost'] + $info['fee']['logistics_head_course'] + $info['fee']['fbm'];  //**  毛利润
+            $info['fee']['gross_profit'] =  $info['commodity_sales']['total_amount'] + $info['promotion_fee']['total_amount'] + $info['order_fee']['total_amount'] + $info['return_refund_fee']['total_amount'] + $info['inventory_cost']['total_amount'] + $info['other_fee']['other_amazon_fee'] + $info['other_fee']['reserved_field17'] + $info['other_fee']['misc_adjustment'] + $info['other_fee']['review_enrollment_fee'] + $info['other_fee']['cpc_cost'] + $info['commodity_adjustment_fee']['total_amount'] + $info['fee']['reserved_field16'] + $info['fee']['reserved_field10'] + $info['fee']['purchasing_cost'] + $info['fee']['logistics_head_course'] + $info['fee']['fbm'];  //**  毛利润
 
             $infoList['list'][] = $info;
         }
