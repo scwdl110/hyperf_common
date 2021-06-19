@@ -168,6 +168,10 @@ class DataArkController extends AbstractController
                 $where .= " AND amazon_goods.goods_parent_asin = '" . addslashes($params['where_parent']['parent_asin']) . "'" ;
             }
 
+            if (!empty($params['where_parent']['asin'])){
+                $where .= " AND amazon_goods.goods_asin = '" . addslashes($params['where_parent']['asin']) . "'" ;
+            }
+
             if (!empty($params['where_parent']['isku_id'])){
                 $where .= " AND amazon_goods.goods_isku_id  = '" . intval($params['where_parent']['isku_id']) . "'" ;
             }
