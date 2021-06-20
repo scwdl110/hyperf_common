@@ -30,9 +30,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_amazon_goods_tags_rel' => 'ods.ods_dataark_g_amazon_goods_tags_rel_001',
         'table_amazon_fba_inventory_by_channel' => 'ods.ods_dataark_f_amazon_fba_inventory_by_channel_001',
         'table_amazon_goods_finance_report_by_order' => 'ods.ods_dataark_f_amazon_goods_finance_report_by_order_001',
+        'table_channel_monthly_profit_report' => 'ods.ods_dataark_f_monthly_profit_report_001',
+        'table_monthly_profit_report_by_sku' => 'ods.ods_dataark_f_monthly_profit_report_by_sku_001',
 
         'table_user_channel' => 'dim.dim_dataark_b_user_channel',
         'table_department_channel' => 'dim.dim_dataark_b_department_channel',
+        'table_goods_dim_report' => 'dim.dim_dataark_f_dw_goods_dim_report_{DBHOST}',
 
         'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_day_report' => 'dws.dws_dataark_f_dw_channel_day_report_{DBHOST}',
@@ -43,6 +46,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_operation_day_report' => 'dws.dws_dataark_f_dw_operation_day_report_{DBHOST}' ,
         'table_operation_week_report' => 'dws.dws_dataark_f_dw_operation_week_report_{DBHOST}',
         'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_{DBHOST}',
+
+        'table_dwd_goods_report' => 'dwd.dwd_dataark_f_dw_goods_report_{DBHOST}',
     ];
 
     protected $goodsCols = array(
@@ -278,7 +283,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $ods = config('misc.presto_schema_ods', 'ods');
         $dws = config('misc.presto_schema_dws', 'dws');
         $dim = config('misc.presto_schema_dim', 'dim');
-        $schemas = "{$ods}{$dws}{$dim}";
+        $dwd = config('misc.presto_schema_dwd', 'dwdslave');
+        $schemas = "{$ods}{$dws}{$dim}{$dwd}";
 
         $this->isReadAthena = $isReadAthena;
 
@@ -291,6 +297,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     'ods.' => $ods,
                     'dws.' => $dws,
                     'dim.' => $dim,
+                    'dwd.' => $dwd,
                 ][$schema] ?? substr($schema, 0, 3)) . substr($v, 3);
                 $v = str_replace('dim.dim_dataark_f_dw_goods_dim_report_', $dim.".dim_dataark_f_dw_goods_dim_report_", $v);
             }

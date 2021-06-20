@@ -3641,7 +3641,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if ($this->countDimensionChannel){
             //新增指标是店铺维度时  f_monthly_profit_report_001表year month为text，需转成int连表
-            $table .= " LEFT JOIN ods.ods_dataark_f_monthly_profit_report_{$this->codeno} as monthly_profit ON monthly_profit.db_num='{$this->dbhost}' AND monthly_profit.user_id = report.user_id AND monthly_profit.channel_id = report.channel_id AND CAST(monthly_profit.year AS INTEGER) = report.myear AND CAST(monthly_profit.month AS INTEGER) = report.mmonth";
+            $table .= " LEFT JOIN {$this->table_channel_monthly_profit_report} as monthly_profit ON monthly_profit.db_num='{$this->dbhost}' AND monthly_profit.user_id = report.user_id AND monthly_profit.channel_id = report.channel_id AND CAST(monthly_profit.year AS INTEGER) = report.myear AND CAST(monthly_profit.month AS INTEGER) = report.mmonth";
         }
 
         $having = '';
@@ -8358,8 +8358,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //                        sum(bychannel_monthly_sku_reserved_field47) as bychannel_monthly_sku_reserved_field47,
 //                        sum(bychannel_monthly_sku_reserved_field48) as bychannel_monthly_sku_reserved_field48,
 //                        sum(bychannel_monthly_sku_reserved_field49) as bychannel_monthly_sku_reserved_field49,
-            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
-			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $goods_table = "{$this->table_dwd_goods_report} AS dw_report
+			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
             $channel_field = "channel_id,myear,mmonth,mweek,max(mweekyear) as mweekyear,
                         max(mquarter) as mquarter,
                         max(site_id) as site_id,
@@ -8451,16 +8451,16 @@ SUM( bychannel_channel_profit ) as bychannel_channel_profit ,
 SUM( bychannel_channel_goods_adjustment_fee ) as bychannel_channel_goods_adjustment_fee ,
 max( bychannel_create_time ) as bychannel_create_time 
             ";
-            $channel_table = "(select {$channel_field} from dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} WHERE {$where_channel} group by  channel_id,myear,mmonth,mweek) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mweek = bychannel.mweek
+            $channel_table = "(select {$channel_field} from {$this->table_channel_day_report} WHERE {$where_channel} group by  channel_id,myear,mmonth,mweek) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mweek = bychannel.mweek
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth,dw_report.byorder_mweek";
             $goods_other_field = "dw_report.byorder_mweek as mweek,max(dw_report.byorder_mweekyear) as mweekyear,";
             $report_other_field = "COALESCE(goods.mweek ,bychannel.mweek) AS mweek,COALESCE(goods.mweekyear ,bychannel.mweekyear) AS mweekyear,concat(cast(goods.goods_operation_user_admin_id as varchar),'_',cast(COALESCE(goods.mweekyear ,bychannel.mweekyear) as varchar),'_',lpad(cast(COALESCE(goods.mweek ,bychannel.mweek) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
 
         }elseif ($table_type == 'month'){
-            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
-			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
-            $channel_table = "(select * from dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
+            $goods_table = "{$this->table_dwd_goods_report} AS dw_report
+			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $channel_table = "(select * from {$this->table_channel_month_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth";
             $goods_other_field = "max(dw_report.byorder_mquarter) as mquarter,";
@@ -8511,16 +8511,16 @@ max( bychannel_create_time ) as bychannel_create_time
 			sum(estimated_monthly_storage_fee ) as monthly_sku_estimated_monthly_storage_fee,
 			dw_report.mmonth
 	FROM
-		ods.ods_dataark_f_monthly_profit_report_by_sku_{$this->codeno} AS dw_report 
-		left JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id and dw_report.db_num = '".$this->dbhost."'  WHERE ".str_replace("dw_report.create_time","dw_report.start_time",str_replace("dw_report.byorder_","dw_report.",$where_dw_report_month_amazon_goods))." GROUP BY amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth) as goods_month ON goods.channel_id = goods_month.channel_id 
+		{$this->table_monthly_profit_report_by_sku} AS dw_report 
+		left JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id and dw_report.db_num = '".$this->dbhost."'  WHERE ".str_replace("dw_report.create_time","dw_report.start_time",str_replace("dw_report.byorder_","dw_report.",$where_dw_report_month_amazon_goods))." GROUP BY amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth) as goods_month ON goods.channel_id = goods_month.channel_id 
 		AND goods.myear = goods_month.myear 
 		AND goods.mmonth = goods_month.mmonth AND goods.goods_operation_user_admin_id = goods_month.goods_operation_user_admin_id ";
         }else{
 //            $goods_table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS dw_report
 //			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
-            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
-			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
-            $channel_table = "(select * from dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
+            $goods_table = "{$this->table_dwd_goods_report} AS dw_report
+			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $channel_table = "(select * from {$this->table_channel_day_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth,dw_report.byorder_mday";
             $goods_other_field = "dw_report.byorder_mday as mday,";
