@@ -33,6 +33,10 @@ use Hyperf\Contract\ConfigInterface;
 use Captainbi\Hyperf\Util\Unique;
 use Captainbi\Hyperf\Exception\BusinessException;
 use Captainbi\Hyperf\Util\Log;
+use Hyperf\DbConnection\Db;
+use Hyperf\Guzzle\ClientFactory;
+use Hyperf\Utils\ApplicationContext;
+
 
 class AccountingService extends BaseService
 {
@@ -616,7 +620,7 @@ class AccountingService extends BaseService
                 $siteMessageData = array(
                     "user_id" => $synchronouslyManagementTask['user_id'],
                     "user_admin_id" => $synchronouslyManagementTask['admin_id'],
-                    "message_type" => 23,
+                    "message_type" => 33,
                     "notice_type" => 3,
                     "message_title" => "数据同步提醒",
                     "message_content" => json_encode(array(
@@ -642,7 +646,7 @@ class AccountingService extends BaseService
                 $siteMessageData = array(
                     "user_id" => $synchronouslyManagementTask['user_id'],
                     "user_admin_id" => $synchronouslyManagementTask['admin_id'],
-                    "message_type" => 23,
+                    "message_type" => 33,
                     "notice_type" => 3,
                     "message_title" => "数据同步提醒",
                     "message_content" => json_encode(array(
@@ -674,6 +678,92 @@ class AccountingService extends BaseService
             Log::getClient()->error($e->getMessage());
             return $data;
         }
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => []
+        ];
+
+        return $data;
+    }
+
+    public function syncOps($request_data)
+    {
+        //验证
+        $rule = [
+            'ids' => 'required|string',
+            'uuid' => 'required|string',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $ids = explode(",", trim($request_data['ids'], ","));
+
+        Db::beginTransaction();
+
+        foreach ($ids as $id) {
+            try {
+                $where = [
+                    'id' => $id,
+                ];
+
+                $synchronouslyManagementTask = SynchronouslyManagementTaskModel::query()->where($where)->select(array("mmouth", "myear"))->first()->toArray();
+
+                if (empty($synchronouslyManagementTask)) {
+                    throw new \Exception(trans('auth.no_sync_id'));
+                }
+
+                $Host = "http://dev.open.amzcaptain.com";
+
+                $httpClient = (new ClientFactory(ApplicationContext::getContainer()))->create();
+
+                $begin_time = date('Y-m-01', strtotime($synchronouslyManagementTask['myear'] . "-" . $synchronouslyManagementTask['mmouth']));
+                $end_time = date('Y-m-d', strtotime("$begin_time +1 month -1 day"));
+
+                $params = array(
+                    'bill_type' => 27,
+                    'bill_start_time' => $begin_time,
+                    'bill_end_time' => $end_time,
+                    'kh_uid' => $request_data['uuid'],
+                    'id' => $id
+                );
+
+                $resp = $httpClient->post($Host . "/yxc/sync/syncVirtualBill", ['form_params' => $params]);
+
+                if ($resp->getStatusCode() == 200) {
+                    $rawResp = (string)$resp->getBody();
+
+                    $resp = @json_decode($rawResp, true);
+
+                    if ($resp['code'] != 1) {
+                        throw new \Exception($resp['msg']);
+                    }
+                } else {
+                    throw new \Exception(trans('auth.send_error'));
+                }
+
+                $synchronouslyManagementTaskRes = SynchronouslyManagementTaskModel::query()->where($where)->update(['synchronously_status' => 1]);
+
+                if (!$synchronouslyManagementTaskRes) {
+                    throw new \Exception(trans('common.error'));
+                }
+
+            } catch (\Exception $e) {
+                $data = [
+                    'code' => 0,
+                    'msg' => $e->getMessage(),
+                ];
+                Db::rollBack();
+                return $data;
+            }
+        }
+
+        Db::commit();
 
         $data = [
             'code' => 1,
