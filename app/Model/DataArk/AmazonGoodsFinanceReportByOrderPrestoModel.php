@@ -48,8 +48,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         'fba_sales_volume',
         'fba_need_replenish',
         'fba_predundancy_number',
-        //店铺月销售额
-        'sale_channel_month_goal'
     ];
 
     /**
