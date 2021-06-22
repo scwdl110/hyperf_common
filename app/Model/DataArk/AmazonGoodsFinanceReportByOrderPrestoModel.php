@@ -48,6 +48,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         'fba_sales_volume',
         'fba_need_replenish',
         'fba_predundancy_number',
+        //erp字段
+        'ark_erp_purchasing_num',
+        'ark_erp_send_num',
+        'ark_erp_good_num',
+        'ark_erp_bad_num',
+        'ark_erp_lock_num',
+        'ark_erp_goods_cost_total'
     ];
 
     /**
@@ -499,6 +506,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
+                if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                    $lists = $this->getGoodsErpData($lists , $fields , $datas) ;
+                }
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2) {
                     foreach ($lists as $k => $item) {
@@ -545,6 +555,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
                 if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                }
+                if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                    $lists = $this->getGoodsErpData($lists , $fields , $datas) ;
                 }
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2) {
@@ -1066,6 +1079,79 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }
+        return $lists;
+    }
+
+    protected function getGoodsErpData($lists = [], $fields = [], $datas = []){
+        if (empty($lists)){
+            return $lists;
+        }
+        if ($datas['show_type'] != 2){
+            return $lists;
+        }
+        if (!in_array($datas['count_dimension'], ['sku', 'isku'])){
+            return $lists;
+        }
+        if (empty($fields['ark_erp_purchasing_num']) && empty($fields['ark_erp_send_num']) && empty($fields['ark_erp_good_num']) && empty($fields['ark_erp_bad_num']) && empty($fields['ark_erp_lock_num']) && empty($fields['ark_erp_goods_cost_total'])){
+            return $lists;
+        }
+
+        $iskuIds = array_unique(array_column($lists, 'isku_id'));
+        $erpWhere = "user_id = {$lists[0]['user_id']} AND isku_id IN(".implode(',', $iskuIds).") AND is_delete = 0";
+
+        $selectFields = "user_id, isku_id";
+        if (!empty($fields['ark_erp_purchasing_num'])){ //采购在途
+            $selectFields .= ", SUM(purchasing_num) as ark_erp_purchasing_num";
+        }
+        if (!empty($fields['ark_erp_send_num'])){ //调拨在途
+            $selectFields .= ", SUM(send_num) as ark_erp_send_num";
+        }
+        if (!empty($fields['ark_erp_good_num'])){ //库存良品量
+            $selectFields .= ", SUM(good_num) as ark_erp_good_num";
+        }
+        if (!empty($fields['ark_erp_bad_num'])){ //库存次品量
+            $selectFields .= ", SUM(bad_num) as ark_erp_bad_num";
+        }
+        if (!empty($fields['ark_erp_lock_num'])){ //库存锁仓量
+            $selectFields .= ", SUM(lock_num) + SUM(lock_num_work_order) as ark_erp_lock_num";
+        }
+        if (!empty($fields['ark_erp_goods_cost_total'])){ //ERP在库总成本
+            //币种是人民币
+            $selectFields .= ", SUM(goods_cost * total_num) as ark_erp_goods_cost_total";
+        }
+
+        $erpIskuModel = new ErpStorageWarehouseIskuMySQLModel([], $this->dbhost, $this->codeno);
+        $erpIskuList = $erpIskuModel->select($erpWhere, $selectFields, "", "", "", "isku_id");
+        $mapIskuList = [];
+        if (!empty($erpIskuList)){
+            foreach ($erpIskuList as $val){
+                $mapIskuList[$val['isku_id']] = $val;
+            }
+        }
+
+        foreach ($lists as $key => $val){
+            if (!empty($fields['ark_erp_purchasing_num'])){
+                $val['ark_erp_purchasing_num'] = $mapIskuList[$val['isku_id']]['ark_erp_purchasing_num'] ? $mapIskuList[$val['isku_id']]['ark_erp_purchasing_num'] : null;
+            }
+            if (!empty($fields['ark_erp_send_num'])){
+                $val['ark_erp_send_num'] = $mapIskuList[$val['isku_id']]['ark_erp_send_num'] ? $mapIskuList[$val['isku_id']]['ark_erp_send_num'] : null;
+            }
+            if (!empty($fields['ark_erp_good_num'])){
+                $val['ark_erp_good_num'] = $mapIskuList[$val['isku_id']]['ark_erp_good_num'] ? $mapIskuList[$val['isku_id']]['ark_erp_good_num'] : null;
+            }
+            if (!empty($fields['ark_erp_bad_num'])){
+                $val['ark_erp_bad_num'] = $mapIskuList[$val['isku_id']]['ark_erp_bad_num'] ? $mapIskuList[$val['isku_id']]['ark_erp_bad_num'] : null;
+            }
+            if (!empty($fields['ark_erp_lock_num'])){
+                $val['ark_erp_lock_num'] = $mapIskuList[$val['isku_id']]['ark_erp_lock_num'] ? $mapIskuList[$val['isku_id']]['ark_erp_lock_num'] : null;
+            }
+            if (!empty($fields['ark_erp_goods_cost_total'])){
+                //币种是人民币
+                $val['ark_erp_goods_cost_total'] = $mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total'] ? $mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total'] : null;
+            }
+            $lists[$key] = $val;
+        }
+
         return $lists;
     }
 
@@ -1807,6 +1893,25 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         if (in_array('fba_special_purpose', $targets)) {  //FBA专用
             $fields['fba_special_purpose'] = '1';
+        }
+
+        if (in_array('ark_erp_purchasing_num', $targets)){ //采购在途
+            $fields['ark_erp_purchasing_num'] = '1';
+        }
+        if (in_array('ark_erp_send_num', $targets)){ //调拨在途
+            $fields['ark_erp_send_num'] = '1';
+        }
+        if (in_array('ark_erp_good_num', $targets)){ //库存良品量
+            $fields['ark_erp_good_num'] = '1';
+        }
+        if (in_array('ark_erp_bad_num', $targets)){ //库存次品量
+            $fields['ark_erp_bad_num'] = '1';
+        }
+        if (in_array('ark_erp_lock_num', $targets)){ //库存锁仓量
+            $fields['ark_erp_lock_num'] = '1';
+        }
+        if (in_array('ark_erp_goods_cost_total', $targets)){ //ERP在库总成本
+            $fields['ark_erp_goods_cost_total'] = '1';
         }
 
         if (in_array('cost_profit_total_income', $targets) || $isCalTotalPay) {   //总收入
