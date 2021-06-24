@@ -578,7 +578,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
                 if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
-                    $lists = $this->getGoodsErpData($lists , $fields , $datas) ;
+                    $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2) {
