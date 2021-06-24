@@ -4835,6 +4835,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['user_department_id'] = 'max(dc.user_department_id)';
         }else if($datas['count_dimension'] == 'admin_id'){
             $fields['admin_id'] = 'max(uc.admin_id)';
+            $fields['user_admin_id'] = 'max(uc.admin_id)';
         }
 
         $target_key = $datas['time_target'];
