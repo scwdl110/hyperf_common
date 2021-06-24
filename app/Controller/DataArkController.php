@@ -164,28 +164,102 @@ class DataArkController extends AbstractController
 
         if (isset($params['where_parent']) && !empty($params['where_parent'])){//维度下钻需要的相关信息
 
-            if (!empty($params['where_parent']['parent_asin'])){
-                $where .= " AND amazon_goods.goods_parent_asin = '" . addslashes($params['where_parent']['parent_asin']) . "'" ;
+            if($type == 1){
+                if (!empty($params['where_parent']['parent_asin'])){
+                    $where .= " AND amazon_goods.goods_parent_asin = '" . addslashes($params['where_parent']['parent_asin']) . "'" ;
+                }
+
+                if (!empty($params['where_parent']['asin'])){
+                    $where .= " AND amazon_goods.goods_asin = '" . addslashes($params['where_parent']['asin']) . "'" ;
+                }
+
+                if (!empty($params['where_parent']['goods_parent_asin'])){
+                    if($params['is_distinct_channel'] == 1){
+                        $where_strs = array();
+                        $goods_parent_asin = $params['where_parent']['goods_parent_asin'];
+                        foreach ($goods_parent_asin as $item){
+                            $where_strs[] = '( amazon_goods.channel_id = ' . $item['channel_id'] . ' AND amazon_goods.goods_parent_asin = ' . $item['channel_id'] . ')' ;
+                        }
+                        $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
+                        $where .= $where_str;
+                    }else{
+                        $params['where_parent']['goods_parent_asin'] = implode("','",explode(',',addslashes(array_column($params['where_parent']['goods_parent_asin'],'parent_asin'))));
+                        $where .= " AND amazon_goods.goods_parent_asin IN ('" . $params['where_parent']['goods_parent_asin'] . "')" ;
+                    }
+                }
+
+                if (!empty($params['where_parent']['goods_asin'])){
+                    if($params['is_distinct_channel'] == 1){
+                        $where_strs = array();
+                        $goods_asin = $params['where_parent']['goods_asin'];
+                        foreach ($goods_asin as $item){
+                            $where_strs[] = '( amazon_goods.channel_id = ' . $item['channel_id'] . ' AND amazon_goods.goods_asin = ' . $item['asin'] . ')' ;
+                        }
+                        $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
+                        $where .= $where_str;
+                    }else {
+                        $params['where_parent']['goods_asin'] = implode("','", explode(',', addslashes(array_column($params['where_parent']['goods_asin'],'asin'))));
+                        $where .= " AND amazon_goods.goods_asin IN ('" . $params['where_parent']['goods_asin'] . "')";
+                    }
+                }
+
+                if (!empty($params['where_parent']['goods_sku'])){
+                    if($params['is_distinct_channel'] == 1){
+                        $params['where_parent']['goods_sku'] = implode("','",explode(',',addslashes(array_column($params['where_parent']['goods_sku'],'goods_id'))));
+                        $where .= " AND report.amazon_goods_id IN ('" . $params['where_parent']['parent_asin'] . "')" ;
+                    }else {
+                        $params['where_parent']['goods_sku'] = implode("','", explode(',', addslashes(array_column($params['where_parent']['goods_sku'],'sku'))));
+                        $where .= " AND report.goods_sku IN ('" . intval($params['where_parent']['sku']) . "')";
+                    }
+                }
+
+                if (!empty($params['where_parent']['isku_id'])){
+                    $where .= " AND amazon_goods.goods_isku_id IN (" . intval($params['where_parent']['isku_id']) . ")" ;
+                }
+
+                if (!empty($params['where_parent']['group_id'])){
+                    $where .= " AND report.goods_group_id  IN (" . intval($params['where_parent']['group_id']) . ")" ;
+                }
+
+                if (!empty($params['where_parent']['tags_id'])){
+                    $where .= " AND tags_rel.tags_id  IN (" . intval($params['where_parent']['tags_id']) . ")" ;
+                }
+
+                if (!empty($params['where_parent']['class1_id'])){
+                    $where .= " AND amazon_goods.goods_product_category_id_1 IN (" . $params['where_parent']['class1_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['head_id'])){
+                    $where .= " AND amazon_goods.isku_head_id  IN (" . $params['where_parent']['head_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['developer_id'])){
+                    $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_parent']['developer_id'] . ")" ;
+                }
             }
 
-            if (!empty($params['where_parent']['asin'])){
-                $where .= " AND amazon_goods.goods_asin = '" . addslashes($params['where_parent']['asin']) . "'" ;
+            if($type == 0){
+                if (!empty($params['where_parent']['user_department_id'])){
+                    $where .= " AND dc.user_department_id IN (" . $params['where_parent']['user_department_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['admin_id'])){
+                    $where .= " AND uc.admin_id IN (" . $params['where_parent']['admin_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['channel_id'])){
+                    $where .= " AND report.channel_id IN (" . $params['where_parent']['channel_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['site_id'])){
+                    $where .= " AND report.site_id IN (" . $params['where_parent']['site_id'] . ")" ;
+                }
             }
 
-            if (!empty($params['where_parent']['isku_id'])){
-                $where .= " AND amazon_goods.goods_isku_id  = '" . intval($params['where_parent']['isku_id']) . "'" ;
-            }
-
-            if (!empty($params['where_parent']['class1_id'])){
-                $where .= " AND amazon_goods.goods_product_category_id_1 = '" . intval($params['where_parent']['class1_id']) . "'" ;
-            }
-
-            if (!empty($params['where_parent']['head_id'])){
-                $where .= " AND amazon_goods.isku_head_id  = '" . intval($params['where_parent']['head_id']) . "'" ;
-            }
-
-            if (!empty($params['where_parent']['developer_id'])){
-                $where .= " AND amazon_goods.isku_developer_id   = '" . intval($params['where_parent']['developer_id']) . "'" ;
+            if($type == 2){
+                if (!empty($params['where_parent']['operators_id'])){
+                    $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ")" ;
+                }
             }
 
         }
