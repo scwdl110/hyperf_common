@@ -9,6 +9,7 @@ use App\Model\AbstractPrestoModel;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use App\Service\CommonService;
+use Hyperf\Di\Annotation\Inject;
 use function App\getUserInfo;
 use Hyperf\Utils\Parallel;
 
