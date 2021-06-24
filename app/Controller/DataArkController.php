@@ -174,42 +174,43 @@ class DataArkController extends AbstractController
                 }
 
                 if (!empty($params['where_parent']['goods_parent_asin'])){
+                    $goods_parent_asin = json_decode($params['where_parent']['goods_parent_asin'],true);
                     if($params['is_distinct_channel'] == 1){
                         $where_strs = array();
-                        $goods_parent_asin = $params['where_parent']['goods_parent_asin'];
                         foreach ($goods_parent_asin as $item){
                             $where_strs[] = '( amazon_goods.channel_id = ' . $item['channel_id'] . ' AND amazon_goods.goods_parent_asin = ' . $item['channel_id'] . ')' ;
                         }
                         $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
                         $where .= $where_str;
                     }else{
-                        $params['where_parent']['goods_parent_asin'] = implode("','",explode(',',addslashes(array_column($params['where_parent']['goods_parent_asin'],'parent_asin'))));
+                        $params['where_parent']['goods_parent_asin'] = implode("','",array_column($goods_parent_asin,'parent_asin'));
                         $where .= " AND amazon_goods.goods_parent_asin IN ('" . $params['where_parent']['goods_parent_asin'] . "')" ;
                     }
                 }
 
                 if (!empty($params['where_parent']['goods_asin'])){
+                    $goods_asin = json_decode($params['where_parent']['goods_asin'],true);
                     if($params['is_distinct_channel'] == 1){
                         $where_strs = array();
-                        $goods_asin = $params['where_parent']['goods_asin'];
                         foreach ($goods_asin as $item){
                             $where_strs[] = '( amazon_goods.channel_id = ' . $item['channel_id'] . ' AND amazon_goods.goods_asin = ' . $item['asin'] . ')' ;
                         }
                         $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
                         $where .= $where_str;
                     }else {
-                        $params['where_parent']['goods_asin'] = implode("','", explode(',', addslashes(array_column($params['where_parent']['goods_asin'],'asin'))));
+                        $params['where_parent']['goods_asin'] = implode("','", array_column($goods_asin,'asin'));
                         $where .= " AND amazon_goods.goods_asin IN ('" . $params['where_parent']['goods_asin'] . "')";
                     }
                 }
 
                 if (!empty($params['where_parent']['goods_sku'])){
+                    $goods_sku = json_decode($params['where_parent']['goods_sku'],true);
                     if($params['is_distinct_channel'] == 1){
-                        $params['where_parent']['goods_sku'] = implode("','",explode(',',addslashes(array_column($params['where_parent']['goods_sku'],'goods_id'))));
-                        $where .= " AND report.amazon_goods_id IN ('" . $params['where_parent']['parent_asin'] . "')" ;
+                        $params['where_parent']['goods_sku'] = implode("','",array_column($goods_sku,'goods_id'));
+                        $where .= " AND report.amazon_goods_id IN ('" . $params['where_parent']['goods_sku'] . "')" ;
                     }else {
-                        $params['where_parent']['goods_sku'] = implode("','", explode(',', addslashes(array_column($params['where_parent']['goods_sku'],'sku'))));
-                        $where .= " AND report.goods_sku IN ('" . intval($params['where_parent']['sku']) . "')";
+                        $params['where_parent']['goods_sku'] = implode("','", array_column($goods_sku,'sku'));
+                        $where .= " AND report.goods_sku IN ('" . $params['where_parent']['goods_sku'] . "')";
                     }
                 }
 
