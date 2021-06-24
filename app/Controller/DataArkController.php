@@ -178,7 +178,7 @@ class DataArkController extends AbstractController
                     if($params['is_distinct_channel'] == 1){
                         $where_strs = array();
                         foreach ($goods_parent_asin as $item){
-                            $where_strs[] = '( amazon_goods.channel_id = ' . $item['channel_id'] . ' AND amazon_goods.goods_parent_asin = ' . $item['channel_id'] . ')' ;
+                            $where_strs[] = '( amazon_goods.goods_channel_id = ' . $item['channel_id'] . " AND amazon_goods.goods_parent_asin = '" . addslashes($item['parent_asin']) . "')" ;
                         }
                         $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
                         $where .= $where_str;
@@ -193,7 +193,7 @@ class DataArkController extends AbstractController
                     if($params['is_distinct_channel'] == 1){
                         $where_strs = array();
                         foreach ($goods_asin as $item){
-                            $where_strs[] = '( amazon_goods.channel_id = ' . $item['channel_id'] . ' AND amazon_goods.goods_asin = ' . $item['asin'] . ')' ;
+                            $where_strs[] = '( amazon_goods.goods_channel_id = ' . $item['channel_id'] . " AND amazon_goods.goods_asin = '" . addslashes($item['asin']) . "')";
                         }
                         $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
                         $where .= $where_str;
