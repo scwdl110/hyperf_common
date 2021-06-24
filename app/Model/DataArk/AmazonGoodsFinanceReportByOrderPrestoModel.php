@@ -57,6 +57,27 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         'ark_erp_goods_cost_total'
     ];
 
+    protected  $amzon_site = array(
+        1 => array("currency_code" => "USD", "currency_symbol" => "$", "code" => "US"),
+        2 => array("currency_code" => "CAD", "currency_symbol" => "C$", "code" => "CA"),
+        3 => array("currency_code" => "MXN", "currency_symbol" => "Mex$", "code" => "MX"),
+        4 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "DE"),
+        5 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "ES"),
+        6 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "FR"),
+        7 => array("currency_code" => "INR", "currency_symbol" => "₹", "code" => "IN"),
+        8 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "IT"),
+        9 => array("currency_code" => "GBP", "currency_symbol" => "£", "code" => "UK"),
+        10 => array("currency_code" => "CNY", "currency_symbol" => "￥", "code" => "CN"),
+        11 => array("currency_code" => "JPY", "currency_symbol" => "¥", "code" => "JP"),
+        12 => array("currency_code" => "AUD", "currency_symbol" => "A$", "code" => "AU"),
+        13 => array("currency_code" => "BRL", "currency_symbol" => "R$", "code" => "BR"),
+        14 => array("currency_code" => "TRY", "currency_symbol" => "₺", "code" => "TR"),
+        15 => array("currency_code" => "AED", "currency_symbol" => "AED", "code" => "AE"),
+        16 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "NL") ,
+        17 => array("currency_code" => "SAR", "currency_symbol" => "SAR", "code" => "SA"),
+        18 => array("currency_code" => "SGD", "currency_symbol" => "S$", "code" => "SG")
+    );
+
     /**
      * 获取商品维度统计列表(新增统计维度完成)
      * @param string $where
@@ -507,7 +528,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
                 if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
-                    $lists = $this->getGoodsErpData($lists , $fields , $datas) ;
+                    $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2) {
@@ -1082,7 +1103,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $lists;
     }
 
-    protected function getGoodsErpData($lists = [], $fields = [], $datas = []){
+    protected function getGoodsErpData($lists = [], $fields = [], $datas = [],$rate_info = []){
         if (empty($lists)){
             return $lists;
         }
@@ -1147,7 +1168,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if (!empty($fields['ark_erp_goods_cost_total'])){
                 //币种是人民币
-                $val['ark_erp_goods_cost_total'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total']) ? $mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total'] : null;
+                $to_currency_code = $this->amzon_site[$val['site_id']]['currency_code'];
+                $val['ark_erp_goods_cost_total'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total']) ? $this->currencyExchange($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total'],'CNY',$to_currency_code,$rate_info) : null;
             }
             $lists[$key] = $val;
         }
@@ -9308,6 +9330,36 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         return false;
+    }
+
+    public function currencyExchange($val = 0, $from_currency_code = 'USD', $to_currency_code = 'CNY', $rate_info = array())
+    {
+        if ($from_currency_code == $to_currency_code) {
+            return $val;
+        } else if ($val == 0) {
+            return 0;
+        } else {
+            //先转换成人民币
+            if ($from_currency_code == 'CNY') {
+                $val_cn = $val;
+            } else {
+                $rate1 = $rate_info[$from_currency_code];
+                if (empty($rate1)) {
+                    $rate1 = 1;
+                }
+                $val_cn = round(($val / $rate1), 2);
+            }
+            if ($to_currency_code == 'CNY') {
+                return $val_cn;
+            } else {
+                $rate2 = $rate_info[$to_currency_code];
+                if (empty($rate2)) {
+                    $rate2 = 1;
+                }
+                $val_rt = round($rate2 * $val_cn, 2);
+                return $val_rt;
+            }
+        }
     }
 
 }
