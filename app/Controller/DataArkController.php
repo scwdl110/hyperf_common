@@ -174,7 +174,7 @@ class DataArkController extends AbstractController
                 }
 
                 if (!empty($params['where_parent']['goods_parent_asin'])){
-                    $goods_parent_asin = json_decode($params['where_parent']['goods_parent_asin'],true);
+                    $goods_parent_asin = json_decode(base64_decode($params['where_parent']['goods_parent_asin']),true);
                     if($params['is_distinct_channel'] == 1){
                         $where_strs = array();
                         foreach ($goods_parent_asin as $item){
@@ -189,7 +189,7 @@ class DataArkController extends AbstractController
                 }
 
                 if (!empty($params['where_parent']['goods_asin'])){
-                    $goods_asin = json_decode($params['where_parent']['goods_asin'],true);
+                    $goods_asin = json_decode(base64_decode($params['where_parent']['goods_asin']),true);
                     if($params['is_distinct_channel'] == 1){
                         $where_strs = array();
                         foreach ($goods_asin as $item){
@@ -204,7 +204,7 @@ class DataArkController extends AbstractController
                 }
 
                 if (!empty($params['where_parent']['goods_sku'])){
-                    $goods_sku = json_decode($params['where_parent']['goods_sku'],true);
+                    $goods_sku = json_decode(base64_decode($params['where_parent']['goods_sku']),true);
                     if($params['is_distinct_channel'] == 1){
                         $params['where_parent']['goods_sku'] = implode("','",array_column($goods_sku,'goods_id'));
                         $where .= " AND report.amazon_goods_id IN ('" . $params['where_parent']['goods_sku'] . "')" ;
