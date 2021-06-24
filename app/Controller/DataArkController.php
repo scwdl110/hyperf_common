@@ -206,8 +206,8 @@ class DataArkController extends AbstractController
                 if (!empty($params['where_parent']['goods_sku'])){
                     $goods_sku = json_decode(base64_decode($params['where_parent']['goods_sku']),true);
                     if($params['is_distinct_channel'] == 1){
-                        $params['where_parent']['goods_sku'] = implode("','",array_column($goods_sku,'goods_id'));
-                        $where .= " AND report.amazon_goods_id IN ('" . $params['where_parent']['goods_sku'] . "')" ;
+                        $params['where_parent']['goods_sku'] = implode(",",array_column($goods_sku,'goods_id'));
+                        $where .= " AND report.amazon_goods_id IN (" . $params['where_parent']['goods_sku'] . ")" ;
                     }else {
                         $params['where_parent']['goods_sku'] = implode("','", array_column($goods_sku,'sku'));
                         $where .= " AND report.goods_sku IN ('" . $params['where_parent']['goods_sku'] . "')";
