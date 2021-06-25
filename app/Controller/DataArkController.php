@@ -226,14 +226,14 @@ class DataArkController extends AbstractController
                     $where .= " AND tags_rel.tags_id  IN (" . $params['where_parent']['tags_id'] . ")" ;
                 }
                 
-                if (!empty($params['where_parent']['class1_name'])){
-                    if (is_array($params['where_parent']['class1_name'])){
-                        $params['where_parent']['class1_name'] = implode("','", $params['where_parent']['class1_name']);
-                        $where .= " AND report.goods_product_category_name_1 IN ('" . $params['where_parent']['class1_name'] . "')" ;
-                    }else{
-                        $params['where_parent']['class1_name'] = implode("','", $params['where_parent']['class1_name']);
-                        $where .= " AND report.goods_product_category_name_1 = " . $params['where_parent']['class1_name'] ;
-                    }
+                if (!empty($params['where_parent']['class1'])){//数据对比 一级类目
+                    $params['where_parent']['class1'] = implode("','", json_decode(base64_decode($params['where_parent']['class1']),true));
+                    $where .= " AND report.goods_product_category_name_1 IN ('" . $params['where_parent']['class1'] . "')" ;
+                }
+
+                if (!empty($params['where_parent']['class1_name'])){//维度下钻 一级类目
+                    $params['where_parent']['class1_name'] = implode("','", $params['where_parent']['class1_name']);
+                    $where .= " AND report.goods_product_category_name_1 = " . $params['where_parent']['class1_name'] ;
                 }
 
                 if (!empty($params['where_parent']['head_id'])){
