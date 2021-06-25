@@ -43,7 +43,6 @@ class SyncTaskAddCrontab
                 ["client_id", "=", $userExtInfo['client_id']],
                 ["synchronously_method", "=", $userExtInfo['synchronously_method']],
                 ["synchronously_day", "=", $userExtInfo['synchronously_day']],
-                ["synchronously_method", "=", $userExtInfo['synchronously_method']],
                 ["myear", "=", date("Y", strtotime("last month"))],
                 ["mmouth", "=", date("m", strtotime("last month"))]
             ];
@@ -56,7 +55,6 @@ class SyncTaskAddCrontab
                     "client_id" => $userExtInfo['client_id'],
                     "synchronously_method" => $userExtInfo['synchronously_method'],
                     "synchronously_day" => $userExtInfo['synchronously_day'],
-                    "synchronously_method" => $userExtInfo['synchronously_method'],
                     "myear" => date("Y", strtotime("last month")),
                     "mmouth" => date("m", strtotime("last month"))
                 );
