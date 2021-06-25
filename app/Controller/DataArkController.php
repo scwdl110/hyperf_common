@@ -225,10 +225,15 @@ class DataArkController extends AbstractController
                 if (!empty($params['where_parent']['tags_id'])){
                     $where .= " AND tags_rel.tags_id  IN (" . $params['where_parent']['tags_id'] . ")" ;
                 }
-
-                if (!empty($params['where_parent']['class1_id'])){
-                    $params['where_parent']['class1_id'] = implode("','", explode(',',$params['where_parent']['class1_id']));
-                    $where .= " AND amazon_goods.goods_product_category_id_1 IN ('" . $params['where_parent']['class1_id'] . "')" ;
+                
+                if (!empty($params['where_parent']['class1_name'])){
+                    if (is_array($params['where_parent']['class1_name'])){
+                        $params['where_parent']['class1_name'] = implode("','", $params['where_parent']['class1_name']);
+                        $where .= " AND report.goods_product_category_name_1 IN ('" . $params['where_parent']['class1_name'] . "')" ;
+                    }else{
+                        $params['where_parent']['class1_name'] = implode("','", $params['where_parent']['class1_name']);
+                        $where .= " AND report.goods_product_category_name_1 = " . $params['where_parent']['class1_name'] ;
+                    }
                 }
 
                 if (!empty($params['where_parent']['head_id'])){
