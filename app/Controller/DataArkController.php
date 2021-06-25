@@ -215,19 +215,20 @@ class DataArkController extends AbstractController
                 }
 
                 if (!empty($params['where_parent']['isku_id'])){
-                    $where .= " AND amazon_goods.goods_isku_id IN (" . intval($params['where_parent']['isku_id']) . ")" ;
+                    $where .= " AND amazon_goods.goods_isku_id IN (" . $params['where_parent']['isku_id'] . ")" ;
                 }
 
                 if (!empty($params['where_parent']['group_id'])){
-                    $where .= " AND report.goods_group_id  IN (" . intval($params['where_parent']['group_id']) . ")" ;
+                    $where .= " AND report.goods_group_id  IN (" . $params['where_parent']['group_id'] . ")" ;
                 }
 
                 if (!empty($params['where_parent']['tags_id'])){
-                    $where .= " AND tags_rel.tags_id  IN (" . intval($params['where_parent']['tags_id']) . ")" ;
+                    $where .= " AND tags_rel.tags_id  IN (" . $params['where_parent']['tags_id'] . ")" ;
                 }
 
                 if (!empty($params['where_parent']['class1_id'])){
-                    $where .= " AND amazon_goods.goods_product_category_id_1 IN (" . $params['where_parent']['class1_id'] . ")" ;
+                    $params['where_parent']['class1_id'] = implode("','", explode(',',$params['where_parent']['class1_id']));
+                    $where .= " AND amazon_goods.goods_product_category_id_1 IN ('" . $params['where_parent']['class1_id'] . "')" ;
                 }
 
                 if (!empty($params['where_parent']['head_id'])){
