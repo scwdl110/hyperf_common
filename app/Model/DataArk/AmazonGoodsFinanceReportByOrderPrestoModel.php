@@ -1928,23 +1928,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['fba_special_purpose'] = '1';
         }
 
-        if (in_array('ark_erp_purchasing_num', $targets)){ //采购在途
-            $fields['ark_erp_purchasing_num'] = '1';
+        $erp_value = $datas['is_distinct_channel'] == 0 && $datas['count_dimension'] == 'sku' ? 'NULL' : '1';
+        if (in_array('ark_erp_purchasing_num', $targets)) { //采购在途
+            $fields['ark_erp_purchasing_num'] = $erp_value;
         }
-        if (in_array('ark_erp_send_num', $targets)){ //调拨在途
-            $fields['ark_erp_send_num'] = '1';
+        if (in_array('ark_erp_send_num', $targets)) { //调拨在途
+            $fields['ark_erp_send_num'] = $erp_value;
         }
-        if (in_array('ark_erp_good_num', $targets)){ //库存良品量
-            $fields['ark_erp_good_num'] = '1';
+        if (in_array('ark_erp_good_num', $targets)) { //库存良品量
+            $fields['ark_erp_good_num'] = $erp_value;
         }
-        if (in_array('ark_erp_bad_num', $targets)){ //库存次品量
-            $fields['ark_erp_bad_num'] = '1';
+        if (in_array('ark_erp_bad_num', $targets)) { //库存次品量
+            $fields['ark_erp_bad_num'] = $erp_value;
         }
-        if (in_array('ark_erp_lock_num', $targets)){ //库存锁仓量
-            $fields['ark_erp_lock_num'] = '1';
+        if (in_array('ark_erp_lock_num', $targets)) { //库存锁仓量
+            $fields['ark_erp_lock_num'] = $erp_value;
         }
-        if (in_array('ark_erp_goods_cost_total', $targets)){ //ERP在库总成本
-            $fields['ark_erp_goods_cost_total'] = '1';
+        if (in_array('ark_erp_goods_cost_total', $targets)) { //ERP在库总成本
+            $fields['ark_erp_goods_cost_total'] = $erp_value;
         }
 
         if (in_array('cost_profit_total_income', $targets) || $isCalTotalPay) {   //总收入
