@@ -232,7 +232,7 @@ class DataArkController extends AbstractController
                 }
 
                 if (!empty($params['where_parent']['class1_name'])){//维度下钻 一级类目
-                    $where .= " AND report.goods_product_category_name_1 = " . $params['where_parent']['class1_name'] ;
+                    $where .= " AND report.goods_product_category_name_1 = '{$params['where_parent']['class1_name']}' ";
                 }
 
                 if (!empty($params['where_parent']['head_id'])){
