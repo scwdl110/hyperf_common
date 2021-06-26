@@ -1121,6 +1121,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (!in_array($datas['count_dimension'], ['sku', 'isku'])){
             return $lists;
         }
+        if($datas['is_distinct_channel'] == 0 && $datas['count_dimension'] == 'sku'){
+            return $lists;
+        }
         if (empty($fields['ark_erp_purchasing_num']) && empty($fields['ark_erp_send_num']) && empty($fields['ark_erp_good_num']) && empty($fields['ark_erp_bad_num']) && empty($fields['ark_erp_lock_num']) && empty($fields['ark_erp_goods_cost_total'])){
             return $lists;
         }
