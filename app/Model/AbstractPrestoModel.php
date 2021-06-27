@@ -558,6 +558,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
             $result = Db::connection('bigdata_ads')->select($sql);
+            if (!empty($result)){
+                foreach ($result as $key => $value){
+                    $result[$key] = (array) $value;
+                }
+            }else{
+                $result = array();
+            }
         } else {
             $result = $this->presto->query($sql);
         }
