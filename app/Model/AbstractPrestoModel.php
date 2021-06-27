@@ -13,6 +13,7 @@ use GuzzleHttp\ClientInterface;
 use Hyperf\Utils\ApplicationContext;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Logger\LoggerFactory;
+use Hyperf\DbConnection\Db;
 
 abstract class AbstractPrestoModel implements BIModelInterface
 {
@@ -366,6 +367,26 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
     }
 
+    protected function toMysqlTable($sql)
+    {
+        $ods = config('misc.presto_schema_ods', 'ods');
+        $dws = config('misc.presto_schema_dws', 'dws');
+        $dim = config('misc.presto_schema_dim', 'dim');
+        $dwd = config('misc.presto_schema_dwd', 'dwdslave');
+
+        $schema = array(
+            $ods => 'ads',
+            $dws => 'ads',
+            $dim => 'ads',
+            $dwd => 'ads'
+        );
+        foreach ($schema as $key => $v) {
+            $sql = str_replace($key . '.', '', $sql);
+        }
+        return $sql;
+
+    }
+
     protected function getCache()
     {
         if (null === $this->cache) {
@@ -375,7 +396,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         return $this->cache;
     }
 
-    public function query(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300): array
+    public function query(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300, $isMysql): array
     {
         if ($bindings) {
             $this->lastSql = $psql = "PREPARE {$sql}; EXECUTE " . @join(',', $bindings);
@@ -391,7 +412,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
-        $result = $this->presto->query($sql, ...$bindings);
+        if ($isMysql) {
+            $sql = $this->toMysqlTable($sql);
+            $result = Db::connection('bigdata_ads')->select($sql);
+        } else {
+            $result = $this->presto->query($sql,...$bindings);
+        }
         if (false === $result) {
             $this->logger->error("sql: {$psql} error:执行sql异常");
             return [];
@@ -437,7 +463,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -526,7 +553,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($athena_sql) as t)  {$athena_limit}";//athena特有的分页写法
             }
         }
-        $result = $this->presto->query($sql);
+        if ($isMysql) {
+            $sql = $this->toMysqlTable($sql);
+            $result = Db::connection('bigdata_ads')->select($sql);
+        } else {
+            $result = $this->presto->query($sql);
+        }
         $this->lastSql = $sql;
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
@@ -602,7 +634,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $cols = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
 
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
