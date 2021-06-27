@@ -3559,15 +3559,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
-            $table = "{$this->table_channel_day_report} AS report";
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
 
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
-            $table = "{$this->table_channel_day_report} AS report" ;
+//            $table = "{$this->table_channel_day_report} AS report" ;
+            $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
 //            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
-            $table = "{$this->table_channel_month_report} AS report" ;
+//            $table = "{$this->table_channel_month_report} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
         }else if($params['cost_count_type'] == 2 ){
-            $table = "{$this->table_channel_month_report} AS report" ;
+//            $table = "{$this->table_channel_month_report} AS report" ;
+            $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
         } else {
             return [];
         }
@@ -3638,7 +3641,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if ($this->countDimensionChannel){
             //新增指标是店铺维度时  f_monthly_profit_report_001表year month为text，需转成int连表
-            $table .= " LEFT JOIN ods.ods_dataark_f_monthly_profit_report_{$this->codeno} as monthly_profit ON monthly_profit.db_num='{$this->dbhost}' AND monthly_profit.user_id = report.user_id AND monthly_profit.channel_id = report.channel_id AND CAST(monthly_profit.year AS INTEGER) = report.myear AND CAST(monthly_profit.month AS INTEGER) = report.mmonth";
+            $table .= " LEFT JOIN {$this->table_channel_monthly_profit_report} as monthly_profit ON monthly_profit.db_num='{$this->dbhost}' AND monthly_profit.user_id = report.user_id AND monthly_profit.channel_id = report.channel_id AND CAST(monthly_profit.year AS INTEGER) = report.myear AND CAST(monthly_profit.month AS INTEGER) = report.mmonth";
         }
 
         $having = '';
@@ -3928,7 +3931,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['operators'] = 'max(report.operation_user_admin_name)';
-            $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
         } elseif ($datas['count_dimension'] === 'site_group') {
@@ -3983,7 +3986,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['sale_order_number'] = "SUM ( report.bychannel_sales_volume )";
         }
 
-        if (in_array('sale_sales_quota', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('amazon_fee_rate', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('operate_fee_rate', $targets) || in_array('evaluation_fee_rate', $targets) || in_array('cpc_turnover_rate', $targets)) {  //商品销售额
+        if (in_array('sale_sales_quota', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('amazon_fee_rate', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('operate_fee_rate', $targets) || in_array('evaluation_fee_rate', $targets) || in_array('cpc_turnover_rate', $targets) || in_array('cpc_cost_rate', $targets)) {  //商品销售额
             if ($datas['sale_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['sale_sales_quota'] = "SUM ( report.byorder_sales_quota )";
@@ -4000,7 +4003,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         //订单金额
-        if (in_array('sale_sales_dollars', $targets) || in_array('cpc_cost_rate', $targets)) {
+        if (in_array('sale_sales_dollars', $targets) ) {
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['sale_sales_dollars'] = "SUM ( report.bychannel_sales_quota )";
             } else {
@@ -4468,7 +4471,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         if (in_array('cpc_cost_rate', $targets)) {  //CPC花费占比
-            $fields['cpc_cost_rate'] = "({$fields['cpc_cost']}) * 1.0000 / nullif({$fields['sale_sales_dollars']}, 0) ";
+            $fields['cpc_cost_rate'] = "({$fields['cpc_cost']}) * 1.0000 / nullif({$fields['sale_sales_quota']}, 0) ";
         }
         if (in_array('cpc_exposure', $targets) || in_array('cpc_click_rate', $targets)) {  //CPC曝光量
             $fields['cpc_exposure'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3)";
@@ -4720,7 +4723,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['operators'] = 'max(report.operation_user_admin_name)';
-            $fields['operation_user_admin_id'] = 'max(report.channel_operation_user_admin_id)';
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } else if ($datas['count_dimension'] == 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
         } else if ($datas['count_dimension'] == 'site_group') {
@@ -5490,12 +5493,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) ');
                 }
             } else if ($time_target == 'cpc_cost_rate') {  //CPC花费占比
+                $sale_denominator = "report.byorder_sales_quota";
+                if ($datas['sale_datas_origin'] == '2') {
+                    $sale_denominator = "report.report_sales_quota";
+                }
+
                 if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0) )  * 1.0000 / nullif( SUM (report.bychannel_sales_quota ) , 0 )";
-                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0)', 'report.bychannel_sales_quota');
+                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0) )  * 1.0000 / nullif( SUM ({$sale_denominator} ) , 0 )";
+                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost + report.byorder_cpc_sd_cost - COALESCE(report.bychannel_cpc_sb_cost,0)', $sale_denominator);
                 } else {
-                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif( SUM (report.bychannel_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) ) , 0 ) ";
-                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1))  ', 'report.bychannel_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))');
+                    $fields['count_total'] = " SUM ( report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1)) )  * 1.0000 / nullif( SUM ({$sale_denominator} * ({:RATE} / COALESCE(rates.rate ,1)) ) , 0 ) ";
+                    $time_fields = $this->getTimeFields($timeLine, ' report.byorder_cpc_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.byorder_cpc_sd_cost * ({:RATE} / COALESCE(rates.rate ,1)) -  COALESCE(report.bychannel_cpc_sb_cost,0) * ({:RATE} / COALESCE(rates.rate ,1))  ', $sale_denominator.' * ({:RATE} / COALESCE(rates.rate ,1))');
                 }
             } else if ($time_target == 'cpc_exposure') {  //CPC曝光量
                 $fields['count_total'] = "SUM ( report.byorder_reserved_field1 + report.byorder_reserved_field2 + report.bychannel_reserved_field3)";
@@ -6732,15 +6740,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (in_array('goods_adjust_fee', $targets)) { //商品调整费用
             if ($datas['finance_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['goods_adjust_fee'] = 'SUM(report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
+                    $fields['goods_adjust_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee) ELSE 0 END)';
                 } else {
-                    $fields['goods_adjust_fee'] = 'SUM(report.byorder_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) )';
+                    $fields['goods_adjust_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE 0 END)';
                 }
             } else {
                 if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['goods_adjust_fee'] = 'SUM(report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
+                    $fields['goods_adjust_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee) ELSE 0 END)';
                 } else {
-                    $fields['goods_adjust_fee'] = 'SUM(report.report_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) )';
+                    $fields['goods_adjust_fee'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE 0 END)';
                 }
             }
         }
@@ -7552,19 +7560,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 if ($datas['finance_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['count_total'] = 'SUM(report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
-                        $time_fields = $this->getTimeFields($time_line, 'report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee');
+                        $fields['count_total'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee) ELSE 0 END)';
+                        $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee) ELSE 0 END');
                     } else {
-                        $fields['count_total'] = 'SUM(report.byorder_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) )';
-                        $time_fields = $this->getTimeFields($time_line, 'report.byorder_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) ');
+                        $fields['count_total'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE 0 END)';
+                        $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE 0 END');
                     }
                 } else {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['count_total'] = 'SUM(report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee)';
-                        $time_fields = $this->getTimeFields($time_line, 'report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee');
+                        $fields['count_total'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee) ELSE 0 END)';
+                        $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_goods_adjustment_fee + report.bychannel_channel_goods_adjustment_fee) ELSE 0 END');
                     } else {
-                        $fields['count_total'] = 'SUM(report.report_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) )';
-                        $time_fields = $this->getTimeFields($time_line, 'report.report_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1))');
+                        $fields['count_total'] = 'SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE 0 END)';
+                        $time_fields = $this->getTimeFields($time_line, 'CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_goods_adjustment_fee  * ({:RATE} / COALESCE(rates.rate ,1)) +  report.bychannel_channel_goods_adjustment_fee * ({:RATE} / COALESCE(rates.rate ,1))) ELSE 0 END');
                     }
                 }
 
@@ -8350,8 +8358,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //                        sum(bychannel_monthly_sku_reserved_field47) as bychannel_monthly_sku_reserved_field47,
 //                        sum(bychannel_monthly_sku_reserved_field48) as bychannel_monthly_sku_reserved_field48,
 //                        sum(bychannel_monthly_sku_reserved_field49) as bychannel_monthly_sku_reserved_field49,
-            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
-			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $goods_table = "{$this->table_dwd_goods_report} AS dw_report
+			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
             $channel_field = "channel_id,myear,mmonth,mweek,max(mweekyear) as mweekyear,
                         max(mquarter) as mquarter,
                         max(site_id) as site_id,
@@ -8443,16 +8451,16 @@ SUM( bychannel_channel_profit ) as bychannel_channel_profit ,
 SUM( bychannel_channel_goods_adjustment_fee ) as bychannel_channel_goods_adjustment_fee ,
 max( bychannel_create_time ) as bychannel_create_time 
             ";
-            $channel_table = "(select {$channel_field} from dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} WHERE {$where_channel} group by  channel_id,myear,mmonth,mweek) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mweek = bychannel.mweek
+            $channel_table = "(select {$channel_field} from {$this->table_channel_day_report} WHERE {$where_channel} group by  channel_id,myear,mmonth,mweek) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mweek = bychannel.mweek
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth,dw_report.byorder_mweek";
             $goods_other_field = "dw_report.byorder_mweek as mweek,max(dw_report.byorder_mweekyear) as mweekyear,";
             $report_other_field = "COALESCE(goods.mweek ,bychannel.mweek) AS mweek,COALESCE(goods.mweekyear ,bychannel.mweekyear) AS mweekyear,concat(cast(goods.goods_operation_user_admin_id as varchar),'_',cast(COALESCE(goods.mweekyear ,bychannel.mweekyear) as varchar),'_',lpad(cast(COALESCE(goods.mweek ,bychannel.mweek) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
 
         }elseif ($table_type == 'month'){
-            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
-			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
-            $channel_table = "(select * from dws.dws_dataark_f_dw_channel_month_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
+            $goods_table = "{$this->table_dwd_goods_report} AS dw_report
+			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $channel_table = "(select * from {$this->table_channel_month_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth";
             $goods_other_field = "max(dw_report.byorder_mquarter) as mquarter,";
@@ -8503,16 +8511,16 @@ max( bychannel_create_time ) as bychannel_create_time
 			sum(estimated_monthly_storage_fee ) as monthly_sku_estimated_monthly_storage_fee,
 			dw_report.mmonth
 	FROM
-		ods.ods_dataark_f_monthly_profit_report_by_sku_{$this->codeno} AS dw_report 
-		left JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id and dw_report.db_num = '".$this->dbhost."'  WHERE ".str_replace("dw_report.create_time","dw_report.start_time",str_replace("dw_report.byorder_","dw_report.",$where_dw_report_month_amazon_goods))." GROUP BY amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth) as goods_month ON goods.channel_id = goods_month.channel_id 
+		{$this->table_monthly_profit_report_by_sku} AS dw_report 
+		left JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id and dw_report.db_num = '".$this->dbhost."'  WHERE ".str_replace("dw_report.create_time","dw_report.start_time",str_replace("dw_report.byorder_","dw_report.",$where_dw_report_month_amazon_goods))." GROUP BY amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth) as goods_month ON goods.channel_id = goods_month.channel_id 
 		AND goods.myear = goods_month.myear 
 		AND goods.mmonth = goods_month.mmonth AND goods.goods_operation_user_admin_id = goods_month.goods_operation_user_admin_id ";
         }else{
 //            $goods_table = "dws.dws_dataark_f_dw_goods_day_report_{$this->dbhost} AS dw_report
 //			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
-            $goods_table = "dwd.dwd_dataark_f_dw_goods_report_{$this->dbhost} AS dw_report
-			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
-            $channel_table = "(select * from dws.dws_dataark_f_dw_channel_day_report_{$this->dbhost} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
+            $goods_table = "{$this->table_dwd_goods_report} AS dw_report
+			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
+            $channel_table = "(select * from {$this->table_channel_day_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth,dw_report.byorder_mday";
             $goods_other_field = "dw_report.byorder_mday as mday,";
