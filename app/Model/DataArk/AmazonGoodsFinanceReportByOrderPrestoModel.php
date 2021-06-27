@@ -8179,7 +8179,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        $lists = $this->query($sql);
+        $lists = $this->query($sql, [], null, 300, $isMysql);
         return $lists;
     }
 
