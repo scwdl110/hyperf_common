@@ -3533,7 +3533,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($params['origin_create_start_time'] >= '1619798400' && $params['origin_create_end_time'] < '1622476800' && $params['count_dimension'] == 'channel_id') {
             $isMysql = true;
         }
-        $isMysql = true;
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         //没有按周期统计 ， 按指标展示
         if ($params['show_type'] == 2) {
