@@ -11,8 +11,8 @@ declare(strict_types=1);
  */
 return [
     'http' => [
-        \Captainbi\Hyperf\Middleware\CorsMiddleware::class,
-        \Captainbi\Hyperf\Middleware\OAuth2Middleware::class,
-        \Hyperf\Validation\Middleware\ValidationMiddleware::class,
+//        \Captainbi\Hyperf\Middleware\CorsMiddleware::class,
+//        \Captainbi\Hyperf\Middleware\OAuth2Middleware::class,
+//        \Hyperf\Validation\Middleware\ValidationMiddleware::class,
     ],
 ];
