@@ -718,7 +718,7 @@ class AccountingService extends BaseService
                     throw new \Exception(trans('auth.no_sync_id'));
                 }
 
-                $Host = "http://dev.open.amzcaptain.com";
+                $Host = env("OPEN_PLATFROM_URL");
 
                 $httpClient = (new ClientFactory(ApplicationContext::getContainer()))->create();
 

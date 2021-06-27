@@ -16,7 +16,7 @@ use App\Model\SynchronouslyManagementTaskModel;
 //singleton=true, onOneServer=true, mutexPool="default", mutexExpires=120,
 
 /**
- * @Crontab(name="SyncTaskAdd", rule="0 0 0 1 * *", callback="execute", memo="")
+ * @Crontab(name="SyncTaskAdd", rule="* *\/1 * * * *", callback="execute", memo="")
  */
 class SyncTaskAddCrontab
 {
