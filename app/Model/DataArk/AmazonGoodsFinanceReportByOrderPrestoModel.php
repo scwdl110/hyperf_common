@@ -3829,7 +3829,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $limit_num = $params['limit_num'] ;
         }
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
+            $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
@@ -3879,8 +3879,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group){
-                    $count = $this->getTotalNum($where, $table, $group);
+                $parallel->add(function () use($where, $table, $group, $isMysql) {
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
                     return $count;
                 });
 
