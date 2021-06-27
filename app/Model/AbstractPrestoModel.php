@@ -383,6 +383,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         foreach ($schema as $key => $v) {
             $sql = str_replace($key . '.', '', $sql);
         }
+        $sql = str_replace( '"', '', $sql);
         return $sql;
 
     }
