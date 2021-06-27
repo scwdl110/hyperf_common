@@ -3636,8 +3636,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $rt = $fields_arr = [];
         foreach ($fields as $field_name => $field) {
-            $fields_arr[] = $field . ' AS "' . $field_name . '"';
+            if ($isMysql) {
+                $fields_arr[] = $field . " AS '" . $field_name . "'";
+            } else {
+                $fields_arr[] = $field . ' AS "' . $field_name . '"';
+            }
         }
+
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 
