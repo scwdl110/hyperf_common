@@ -3525,7 +3525,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         int $day_param = 1
     ) {
         $fields = [];
-        //$isMysql = true;
+        $isMysql = false;
         //if ($params['origin_create_start_time'] >= time() - 86400 * 7 && $params['count_dimension'] == 'channel_id') {
         //    $isMysql = true;
         //}
