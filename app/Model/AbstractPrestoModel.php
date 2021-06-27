@@ -652,7 +652,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         if ($group) {
             $data = $data ?: '1';
-            if(stripos($group,'having') === false){
+            if (stripos($group, 'having') === false && stripos($group, ',') === false) {
                 $result = $this->getOne(
                     $where,
                     "count(distinct($group)) AS num",
@@ -665,7 +665,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     $isMysql
 
                 );
-            }else{
+            } else {
                 $result = $this->getOne(
                     '',
                     "COUNT(*) AS num",
