@@ -601,9 +601,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
     ): array {
-        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL);
+        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL, $isMysql);
 
         return $result[0] ?? [];
     }
@@ -660,7 +661,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     '',
                     $isJoin ,
                     $isCache,
-                    $cacheTTL
+                    $cacheTTL,
+                    $isMysql
 
                 );
             }else{
@@ -672,13 +674,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     '',
                     $isJoin,
                     $isCache,
-                    $cacheTTL
+                    $cacheTTL,
+                    $isMysql
                 );
             }
         } elseif (!empty($cols)) {
-            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL,$isMysql);
         } else {
-            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL,$isMysql);
         }
 
         return intval($result['num'] ?? 0);
