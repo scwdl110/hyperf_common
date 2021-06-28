@@ -1163,24 +1163,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         foreach ($lists as $key => $val){
             if (!empty($fields['ark_erp_purchasing_num'])){
-                $val['ark_erp_purchasing_num'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_purchasing_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_purchasing_num'] : null;
+                $val['ark_erp_purchasing_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_purchasing_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_purchasing_num'] : null;
             }
             if (!empty($fields['ark_erp_send_num'])){
-                $val['ark_erp_send_num'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_send_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_send_num'] : null;
+                $val['ark_erp_send_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_send_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_send_num'] : null;
             }
             if (!empty($fields['ark_erp_good_num'])){
-                $val['ark_erp_good_num'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_good_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_good_num'] : null;
+                $val['ark_erp_good_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_good_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_good_num'] : null;
             }
             if (!empty($fields['ark_erp_bad_num'])){
-                $val['ark_erp_bad_num'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_bad_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_bad_num'] : null;
+                $val['ark_erp_bad_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_bad_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_bad_num'] : null;
             }
             if (!empty($fields['ark_erp_lock_num'])){
-                $val['ark_erp_lock_num'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_lock_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_lock_num'] : null;
+                $val['ark_erp_lock_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_lock_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_lock_num'] : null;
             }
             if (!empty($fields['ark_erp_goods_cost_total'])){
                 //币种是人民币
                 $to_currency_code = $datas['currency_code'] != 'ORIGIN' ? $datas['currency_code'] : $this->amzon_site[$val['site_id']]['currency_code'];
-                $val['ark_erp_goods_cost_total'] = !empty($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total']) ? $this->commonService->currencyExchange($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total'],'CNY',$to_currency_code,$rate_info) : null;
+                $val['ark_erp_goods_cost_total'] = isset($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total']) ? $this->commonService->currencyExchange($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total'],'CNY',$to_currency_code,$rate_info) : null;
             }
             $lists[$key] = $val;
         }
