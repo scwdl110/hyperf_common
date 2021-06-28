@@ -16,13 +16,14 @@ use Psr\Log\LoggerInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
-use Hyperf\Utils\Coroutine;
 use Hyperf\Utils\ApplicationContext;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Logger\LoggerFactory;
 
 use Hyperf\Guzzle\PoolHandler;
 use Hyperf\Guzzle\RetryMiddleware;
+
+use Swoole\Coroutine as Co;
 
 class Presto
 {
@@ -101,6 +102,9 @@ class Presto
 
     protected $httpHeaders = [];
 
+    // @var int 等待 presto 请求的间隔时间，单位毫秒
+    protected $sleepAmountInMs = 50;
+
     protected static $connections = [];
 
     protected static $connectionKeys = [];
@@ -162,10 +166,10 @@ class Presto
     private static function createHttpClient(int $maxRetries, LoggerInterface $logger, bool $debug): ClientInterface
     {
         $handler = null;
-        if (Coroutine::inCoroutine()) {
+        if (Co::getCid() > 0) {
             $handler = make(PoolHandler::class, [
                 'option' => [
-                    'max_connections' => 50,
+                    'max_connections' => 25,
                 ],
             ]);
         }
@@ -267,6 +271,7 @@ class Presto
         $this->config = $config;
         $this->logger = $logger;
         $this->httpClient = $client;
+        $this->sleepAmountInMs = abs(intval($config['sleep_amount_in_ms'] ?? 50));
 
         $this->httpHeaders = [
             self::HEADER_USER => $config['user'],
@@ -301,6 +306,12 @@ class Presto
 
         $results = [$result];
         while ($result && isset($result['nextUri'])) {
+            if (Co::getCid() > 0) {
+                Co\System::sleep($this->sleepAmountInMs / 1000);
+            } else {
+                usleep(intval($this->sleepAmountInMs * 1000));
+            }
+
             $result = $this->nextUri($result['nextUri']);
             $results[] = $result;
         }
