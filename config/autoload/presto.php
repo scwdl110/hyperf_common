@@ -38,12 +38,32 @@ return (function() {
         'debug' => env('PRESTO_DEBUG_003', false),
     ];
 
+    $cluster4 = [
+        'server' => env('PRESTO_SERVER_004', 'http://127.0.0.1:8080'),
+        'user' => env('PRESTO_USER_004', 'user'),
+        'catalog' => env('PRESTO_CATALOG_004', 'system'),
+        'schema' => env('PRESTO_SCHEMA_004', 'runtime'),
+        'retries' => env('PRESTO_RETRIES_004', 3),
+        'logSql' => env('PRESTO_LOG_SQL_004', false),
+        'debug' => env('PRESTO_DEBUG_004', false),
+    ];
+
+    $cluster5 = [
+        'server' => env('PRESTO_SERVER_005', 'http://127.0.0.1:8080'),
+        'user' => env('PRESTO_USER_005', 'user'),
+        'catalog' => env('PRESTO_CATALOG_005', 'system'),
+        'schema' => env('PRESTO_SCHEMA_005', 'runtime'),
+        'retries' => env('PRESTO_RETRIES_005', 3),
+        'logSql' => env('PRESTO_LOG_SQL_005', false),
+        'debug' => env('PRESTO_DEBUG_005', false),
+    ];
+
     return [
         '001' => $cluster1,
         '002' => $cluster2,
         '003' => $cluster3,
-//        '004' => $cluster1,
-//        '005' => $cluster1,
+        '004' => $cluster4,
+        '005' => $cluster5,
 
 //        '006' => $cluster2,
 //        '007' => $cluster2,
