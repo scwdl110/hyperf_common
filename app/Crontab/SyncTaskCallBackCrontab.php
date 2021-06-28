@@ -33,7 +33,7 @@ class SyncTaskCallBackCrontab
         Log::getCrontabClient()->info("SyncTaskCallBack开始执行");
         $synchronouslyManagementTaskList = SynchronouslyManagementTaskModel::query()->where([
             ['synchronously_status', "=", 1],
-            ['synchronously_callback_time', ">=", time()],
+            ['synchronously_callback_time', "<=", time()],
         ])->select("id")->lockForUpdate()->get();
         foreach ($synchronouslyManagementTaskList as $synchronouslyManagementTask) {
             $Host = env("OPEN_PLATFROM_URL");
