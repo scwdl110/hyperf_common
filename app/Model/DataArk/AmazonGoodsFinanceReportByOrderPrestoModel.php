@@ -9,6 +9,7 @@ use App\Model\AbstractPrestoModel;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use function App\getUserInfo;
+use Hyperf\Utils\Exception\ParallelExecutionException;
 use Hyperf\Utils\Parallel;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
@@ -80,6 +81,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
+        $isMysql = $this->getIsMysql($datas);
         $datas['is_month_table'] = 0;
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_goods_day_report}" ;
@@ -124,7 +126,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $rt = array();
         $fields_arr = array();
         foreach ($fields as $field_name => $field) {
-            $fields_arr[] = $field . ' AS "' . $field_name . '"';
+            if ($isMysql){
+                $fields_arr[] = $field . " AS '" . $field_name . "'";
+
+            }else{
+                $fields_arr[] = $field . ' AS "' . $field_name . '"';
+
+            }
         }
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
@@ -484,7 +492,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $count = 0;
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group, true);
+            $count = $this->getTotalNum($where, $table, $group, true,$isMysql);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
@@ -492,9 +500,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['is_count'] == 1){
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true);
+                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, "", "", "", true);
+                    $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
@@ -517,20 +525,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['is_count'] == 1){
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true);
+                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else{
-                    $lists = $this->select($where, $field_data, $table,"","","",true);
+                    $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }else{
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group){
-                    $count = $this->getTotalNum($where, $table, $group,true);
+                $parallel->add(function () use($where, $table, $group,$isMysql){
+                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
                     return $count;
                 });
 
@@ -3495,6 +3503,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
     }
 
+    private function getIsMysql($params){
+        $isMysql = false;
+
+        if ($params['origin_create_start_time'] >= '1619798400' && $params['origin_create_end_time'] < '1622476800' && $params['count_dimension'] == 'channel_id' && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
+            $isMysql = true;
+        }
+        return $isMysql;
+    }
+
     /**
      * 获取非商品维度统计列表(新增统计维度完成)
      * @param string $where
@@ -3525,14 +3542,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         int $day_param = 1
     ) {
         $fields = [];
-        $isMysql = false;
-        //if ($params['origin_create_start_time'] >= time() - 86400 * 7 && $params['count_dimension'] == 'channel_id') {
-        //    $isMysql = true;
-        //}
-
-        if ($params['origin_create_start_time'] >= '1619798400' && $params['origin_create_end_time'] < '1622476800' && $params['count_dimension'] == 'channel_id') {
-            $isMysql = true;
-        }
+        $isMysql = $this->getIsMysql($params);
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         //没有按周期统计 ， 按指标展示
         if ($params['show_type'] == 2) {
@@ -3573,11 +3583,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
 //            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
         }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
-            $isMysql = false;
+//            $isMysql = false;
 //            $table = "{$this->table_channel_month_report} AS report" ;
             $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
         }else if($params['cost_count_type'] == 2 ){
-            $isMysql = false;
+//            $isMysql = false;
 //            $table = "{$this->table_channel_month_report} AS report" ;
             $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
         } else {
@@ -3843,7 +3853,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
                 if ($params['show_type'] == 2 && !empty($fields['sale_channel_month_goal'])){
                     $lists = $this->getUnGoodsChannelMothGoalData($lists, $params, $channel_arr,$currencyInfo, $exchangeCode) ;
@@ -3897,7 +3907,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Request', [$this->getLastSql()]);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode) ;
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
                 if ($params['show_type'] == 2 && !empty($fields['sale_channel_month_goal'])){
                     $lists = $this->getUnGoodsChannelMothGoalData($lists, $params, $channel_arr);
@@ -5911,7 +5921,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1')
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1',$isMysql = false)
     {
         if(empty($lists)){
             return $lists ;
@@ -5965,10 +5975,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'department'){
                 $where_strs = array_unique(array_column($where_arr , 'user_department_id')) ;
                 $where_str = 'dc.user_department_id IN (' . implode(',' , $where_strs) . ")" ;
+                $isMysql = false;
 
             }else if($datas['count_dimension'] == 'admin_id'){
                 $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
                 $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
+                $isMysql = false;
             }else{
                 $where_str = '1=1' ;
             }
@@ -5984,7 +5996,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
         $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
-        $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group);
+        $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group,'',null,300,$isMysql);
 
         $fbaDatas = array() ;
         if($fbaData){
