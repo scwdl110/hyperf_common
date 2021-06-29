@@ -641,7 +641,7 @@ class AccountingService extends BaseService
                             ),
                         ),
                         "remark" => "请前往金蝶云星辰系统内及时查收。",
-                        "url" => "/amzcaptain-authorized-centerAuthorizedList.php"
+                        "url" => "/amzcaptain-authorized-authorizationManagement.html"
                     )));
             } else {
                 $siteMessageData = array(
@@ -668,7 +668,7 @@ class AccountingService extends BaseService
                             ),
                         ),
                         "remark" => "请前往船长-应用授权管理页面处理。",
-                        "url" => "/amzcaptain-authorized-centerAuthorizedList.php"
+                        "url" => "/amzcaptain-authorized-authorizationManagement.html"
                     )));
             }
             SiteMessageModel::create($siteMessageData);
