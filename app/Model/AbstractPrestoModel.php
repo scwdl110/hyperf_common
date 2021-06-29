@@ -385,6 +385,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
         $sql = str_replace( '"', '', $sql);
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
+        $sql = str_replace( 'as varchar )', 'as char)', $sql);
+        $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
         return $sql;
 
     }
@@ -537,11 +539,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
         $athena_sql = $sql;
         $sql .= " {$limit}";
-        $this->lastSql = $sql;
-        $this->logSql();
-        if ($this->logDryRun()) {
-            return [];
-        }
+
 
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
         if ($this->isCache($isCache)) {
@@ -568,7 +566,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
         } else {
             $result = $this->presto->query($sql);
         }
+
         $this->lastSql = $sql;
+        $this->logSql();
+        if ($this->logDryRun()) {
+            return [];
+        }
+
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
             throw new RuntimeException('presto 查询失败');
