@@ -53,7 +53,6 @@ class SyncTaskAddCrontab
                     "client_id" => $userExtInfo['client_id'],
                     "synchronously_method" => $userExtInfo['synchronously_method'],
                     "synchronously_day" => $userExtInfo['synchronously_day'],
-                    'synchronously_callback_time' => time() + env("OPEN_CALLBACK_TIME",600),
                     "myear" => date("Y", strtotime("last month")),
                     "mmouth" => date("m", strtotime("last month"))
                 );
