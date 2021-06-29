@@ -749,7 +749,7 @@ class AccountingService extends BaseService
                     throw new \Exception(trans('auth.send_error'));
                 }
 
-                $synchronouslyManagementTaskRes = SynchronouslyManagementTaskModel::query()->where($where)->update(['synchronously_status' => 1]);
+                $synchronouslyManagementTaskRes = SynchronouslyManagementTaskModel::query()->where($where)->update(['synchronously_status' => 1,'synchronously_callback_time' => time() + env("OPEN_CALLBACK_TIME",600)]);
 
                 if (!$synchronouslyManagementTaskRes) {
                     throw new \Exception(trans('common.error'));
