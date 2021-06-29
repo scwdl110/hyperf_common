@@ -291,7 +291,7 @@ class AccountingService extends BaseService
             $info['fee']['purchasing_cost'] = floor($FinanceReportInfo[0]['purchasing_cost'] * 100) / 100; //**  采购成本
             $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //** 头程物流（FBA）
             $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //**  物流（FBM）
-            $info['fee']['gross_profit'] =  $info['commodity_sales']['total_amount'] + $info['promotion_fee']['total_amount'] + $info['order_fee']['total_amount'] + $info['return_refund_fee']['total_amount'] + $info['inventory_cost']['total_amount'] + $info['other_fee']['other_amazon_fee'] + $info['other_fee']['reserved_field17'] + $info['other_fee']['misc_adjustment'] + $info['other_fee']['review_enrollment_fee'] + $info['other_fee']['cpc_cost'] + $info['commodity_adjustment_fee']['total_amount'] + $info['fee']['reserved_field16'] + $info['fee']['reserved_field10'] + $info['fee']['purchasing_cost'] + $info['fee']['logistics_head_course'] + $info['fee']['fbm'];  //**  毛利润
+            $info['fee']['gross_profit'] = $info['commodity_sales']['total_amount'] + $info['promotion_fee']['total_amount'] + $info['order_fee']['total_amount'] + $info['return_refund_fee']['total_amount'] + $info['inventory_cost']['total_amount'] + $info['other_fee']['other_amazon_fee'] + $info['other_fee']['reserved_field17'] + $info['other_fee']['misc_adjustment'] + $info['other_fee']['review_enrollment_fee'] + $info['other_fee']['cpc_cost'] + $info['commodity_adjustment_fee']['total_amount'] + $info['fee']['reserved_field16'] + $info['fee']['reserved_field10'] + $info['fee']['purchasing_cost'] + $info['fee']['logistics_head_course'] + $info['fee']['fbm'];  //**  毛利润
 
             $infoList['list'][] = $info;
         }
@@ -623,6 +623,7 @@ class AccountingService extends BaseService
                     "message_type" => 33,
                     "notice_type" => 3,
                     "message_title" => "数据同步提醒",
+                    "send_time" => time(),
                     "message_content" => json_encode(array(
                         "title" => "数据同步提醒",
                         "content" => array(
@@ -649,6 +650,7 @@ class AccountingService extends BaseService
                     "message_type" => 33,
                     "notice_type" => 3,
                     "message_title" => "数据同步提醒",
+                    "send_time" => time(),
                     "message_content" => json_encode(array(
                         "title" => "数据同步提醒",
                         "content" => array(
