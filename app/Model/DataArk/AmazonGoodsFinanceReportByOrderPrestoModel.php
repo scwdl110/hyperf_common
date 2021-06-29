@@ -410,6 +410,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 if (!empty($group_str)) {
                     $where .= " AND report.goods_group_id  IN ( " . $group_str . ")";
+                }elseif ($group_str == 0){
+                    $where .= " AND report.goods_group_id = 0 ";
                 }
             }
             if (!empty($where_detail['operators_id'])) {
@@ -433,6 +435,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 if (!empty($tag_str)) {
                     $where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+                }elseif ($tag_str == 0){
+                    $where .= " AND tags_rel.tags_id  = 0 ";
                 }
             }
 
