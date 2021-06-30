@@ -9,17 +9,11 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-
 namespace App\Model;
 
-use Captainbi\Hyperf\Base\Model;
-
-class BaseModel extends Model
+class SynchronouslyManagementTaskModel extends BaseModel
 {
-    //时间戳字段
-    public $timestamps = true;
-    const CREATED_AT = 'create_time';
-    const UPDATED_AT = 'modified_time';
-    protected $dateFormat = 'U';
-
+    protected $table = 'synchronously_management_task';
+    //黑名单字段
+    protected $guarded = ['id'];
 }
