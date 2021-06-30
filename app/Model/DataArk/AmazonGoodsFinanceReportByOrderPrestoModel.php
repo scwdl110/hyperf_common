@@ -436,7 +436,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 if (!empty($tag_str)) {
                     if (in_array(0,$where_detail['tag_id'])){
-                        $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " ) OR  tags_rel.tags_id IS NULL ) ";
+                        $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " ) OR  tags_rel.tags_id IS NULL ) ) ";
 
                     }else{
                         $where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
