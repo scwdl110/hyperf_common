@@ -430,13 +430,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 if(is_array($where_detail['tag_id'])){
                     $tag_str = implode(',', $where_detail['tag_id']);
+                    if (in_array(0,$where_detail['tag_id'])){
+                        $tag_str .= ",NULL";
+                    }
                 }else{
                     $tag_str = $where_detail['tag_id'] ;
                 }
                 if (!empty($tag_str)) {
                     $where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
                 }elseif ($tag_str == 0){
-                    $where .= " AND (tags_rel.tags_id  = 0 or tags_rel.tags_id IS NULL)";
+                    $where .= " AND tags_rel.tags_id IN (0,NULL)";
                 }
             }
 
