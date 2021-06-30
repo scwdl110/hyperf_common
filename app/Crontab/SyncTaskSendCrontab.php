@@ -38,7 +38,7 @@ class SyncTaskSendCrontab
         $synchronouslyManagement = SynchronouslyManagementTaskModel::query()->where([
             ['synchronously_method', "=", 0],
             ['synchronously_status', "=", 0],
-            ['synchronously_day', "=", date("d", time())]],
+            ['synchronously_day', "=", date("d", time() + env("OPEN_TEST_TIME", 0))]],
         )->select("id", "uuid")->lockForUpdate()->get();
         $synchronouslyManagementCount = count($synchronouslyManagement);
 

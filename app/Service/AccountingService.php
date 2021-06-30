@@ -623,7 +623,7 @@ class AccountingService extends BaseService
                     "message_type" => 33,
                     "notice_type" => 3,
                     "message_title" => "数据同步提醒",
-                    "send_time" => time(),
+                    "send_time" => time() + env("OPEN_TEST_TIME", 0),
                     "message_content" => json_encode(array(
                         "title" => "数据同步提醒",
                         "content" => array(
@@ -650,7 +650,7 @@ class AccountingService extends BaseService
                     "message_type" => 33,
                     "notice_type" => 3,
                     "message_title" => "数据同步提醒",
-                    "send_time" => time(),
+                    "send_time" => time() + env("OPEN_TEST_TIME", 0),
                     "message_content" => json_encode(array(
                         "title" => "数据同步提醒",
                         "content" => array(
@@ -749,7 +749,7 @@ class AccountingService extends BaseService
                     throw new \Exception(trans('auth.send_error'));
                 }
 
-                $synchronouslyManagementTaskRes = SynchronouslyManagementTaskModel::query()->where($where)->update(['synchronously_status' => 1,'synchronously_callback_time' => time() + env("OPEN_CALLBACK_TIME",600)]);
+                $synchronouslyManagementTaskRes = SynchronouslyManagementTaskModel::query()->where($where)->update(['synchronously_status' => 1, 'synchronously_callback_time' => time() + env("OPEN_TEST_TIME", 0) + env("OPEN_CALLBACK_TIME", 600)]);
 
                 if (!$synchronouslyManagementTaskRes) {
                     throw new \Exception(trans('common.error'));
