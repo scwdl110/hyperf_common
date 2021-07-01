@@ -41,8 +41,8 @@ class SyncTaskAddCrontab
                 ["admin_id", "=", $userExtInfo['admin_id']],
                 ["user_id", "=", $userExtInfo['user_id']],
                 ["client_id", "=", $userExtInfo['client_id']],
-                ["myear", "=", date("Y", strtotime("last month"))],
-                ["mmouth", "=", date("m", strtotime("last month"))]
+                ["myear", "=", date("Y", strtotime("last month") + env("OPEN_TEST_TIME", 0))],
+                ["mmouth", "=", date("m", strtotime("last month") + env("OPEN_TEST_TIME", 0))]
             ];
             $synchronouslyManagementTask = SynchronouslyManagementTaskModel::where($where)->first();
             if ($synchronouslyManagementTask == null) {
@@ -53,8 +53,8 @@ class SyncTaskAddCrontab
                     "client_id" => $userExtInfo['client_id'],
                     "synchronously_method" => $userExtInfo['synchronously_method'],
                     "synchronously_day" => $userExtInfo['synchronously_day'],
-                    "myear" => date("Y", strtotime("last month")),
-                    "mmouth" => date("m", strtotime("last month"))
+                    "myear" => date("Y", strtotime("last month") + env("OPEN_TEST_TIME", 0)),
+                    "mmouth" => date("m", strtotime("last month") + env("OPEN_TEST_TIME", 0))
                 );
                 SynchronouslyManagementTaskModel::create($save_data);
             }
