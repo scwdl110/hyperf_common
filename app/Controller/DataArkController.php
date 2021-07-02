@@ -2,20 +2,14 @@
 
 namespace App\Controller;
 
-use Captainbi\Hyperf\Util\Logger;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use Captainbi\Hyperf\Util\Result;
-use Psr\Log\LoggerInterface;
 
 class DataArkController extends AbstractController
 {
     protected function init($type = 1)
     {
-        $this->logger = new Logger();
-
-        $this->logger->execute_log(0,0,'test');
-        return [];
 
         $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
