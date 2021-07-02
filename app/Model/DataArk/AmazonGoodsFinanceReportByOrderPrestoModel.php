@@ -3641,6 +3641,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+        $field_data = str_replace("{:DAY}", $day_param, $field_data);
 
         if ($params['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
@@ -3819,6 +3820,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $group = str_replace("{:DAY}", $day_param, $group);
+        $orderby = str_replace("{:DAY}", $day_param, $orderby);
         $limit_num = 0 ;
         $count = 0 ;
         if($params['show_type'] == 2 && $params['limit_num'] > 0 ){
@@ -6130,6 +6133,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //$where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+        $field_data = str_replace("{:DAY}", $day_param, $field_data);
 
 
 
@@ -6194,6 +6198,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $group = str_replace("{:DAY}", $day_param, $group);
+        $orderby = str_replace("{:DAY}", $day_param, $orderby);
         $limit_num = 0 ;
         $count = 0 ;
         if($datas['show_type'] == 2 && $datas['limit_num'] > 0 ){
