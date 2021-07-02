@@ -555,6 +555,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
+            $this->lastSql = $sql;
+            $this->logSql();
+            if ($this->logDryRun()) {
+                return [];
+            }
             $result = Db::connection('bigdata_ads')->select($sql);
             if (!empty($result)){
                 foreach ($result as $key => $value){
@@ -564,14 +569,15 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $result = array();
             }
         } else {
+            $this->lastSql = $sql;
+            $this->logSql();
+            if ($this->logDryRun()) {
+                return [];
+            }
             $result = $this->presto->query($sql);
         }
 
-        $this->lastSql = $sql;
-        $this->logSql();
-        if ($this->logDryRun()) {
-            return [];
-        }
+
 
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
