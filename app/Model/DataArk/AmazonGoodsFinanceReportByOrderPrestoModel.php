@@ -4187,29 +4187,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if(empty($repair_data)){
                 if ($datas['finance_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM(report.byorder_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM(report.byorder_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     }
                 } else {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM(report.report_channel_profit + report.bychannel_channel_profit) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM(report.report_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM(report.report_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     }
                 }
             }else{
                 if ($datas['finance_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM(report.byorder_channel_profit + report.bychannel_channel_profit {$repair_data}) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM(report.byorder_channel_profit + report.bychannel_channel_profit {$repair_data}) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM((report.byorder_channel_profit".$repair_data.") * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM((report.byorder_channel_profit".$repair_data.") * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     }
                 } else {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM(report.report_channel_profit + report.bychannel_channel_profit {$repair_data}) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM(report.report_channel_profit + report.bychannel_channel_profit {$repair_data}) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM((report.report_channel_profit".$repair_data.") * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']}";
+                        $fields['cost_profit_profit'] = "(SUM((report.report_channel_profit".$repair_data.") * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))) + {$fields['purchase_logistics_purchase_cost']} + {$fields['purchase_logistics_logistics_cost']})";
                     }
                 }
             }
@@ -6933,29 +6933,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if(empty($repair_data)){
                 if ($datas['finance_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.byorder_goods_profit ) END )+ $purchase_logistics";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.byorder_goods_profit ) END )+ $purchase_logistics)";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE (report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) ) END  ) + $purchase_logistics ";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE (report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) ) END  ) + $purchase_logistics) ";
                     }
                 } else {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.report_goods_profit {$estimated_monthly_storage_fee_field}) END  ) + $purchase_logistics";
+                        $fields['cost_profit_profit'] = "(SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.report_goods_profit {$estimated_monthly_storage_fee_field}) END  ) + $purchase_logistics)";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.report_goods_profit {$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END )+$purchase_logistics ";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.report_goods_profit {$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END )+$purchase_logistics) ";
                     }
                 }
             }else{
                 if ($datas['finance_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.byorder_goods_profit ) END )+ $purchase_logistics + SUM( (0 {$repair_data}))";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.byorder_goods_profit ) END )+ $purchase_logistics + SUM( (0 {$repair_data})))";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE (report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) ) END  ) + $purchase_logistics + SUM( (0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.byorder_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE (report.byorder_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) ) END  ) + $purchase_logistics + SUM( (0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1))))";
                     }
                 } else {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.report_goods_profit{$estimated_monthly_storage_fee_field} ) END  ) + $purchase_logistics + SUM( (0 {$repair_data}))";
+                        $fields['cost_profit_profit'] = "(SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.report_goods_profit{$estimated_monthly_storage_fee_field} ) END  ) + $purchase_logistics + SUM( (0 {$repair_data})))";
                     } else {
-                        $fields['cost_profit_profit'] = "SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.report_goods_profit{$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END )+$purchase_logistics  + SUM( (0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1)))";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.report_goods_profit{$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END )+$purchase_logistics  + SUM( (0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1))))";
                     }
                 }
             }
