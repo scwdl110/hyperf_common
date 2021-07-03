@@ -3511,7 +3511,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        }
         $today = strtotime(date("Y-m-d"));
         $start_time = $today - 15*86400;
-        if ($params['origin_create_start_time'] >= $start_time && $params['origin_create_end_time'] < $today &&  in_array($params['count_dimension'],array("channel_id","site_id")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
+        if ($params['origin_create_start_time'] >= $start_time && $params['origin_create_end_time'] < ($today+86400) &&  in_array($params['count_dimension'],array("channel_id","site_id")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
             $isMysql = true;
         }
 

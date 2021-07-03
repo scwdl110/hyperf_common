@@ -387,6 +387,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
         $sql = str_replace( 'as varchar )', 'as char)', $sql);
         $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
+        $this->logger->error("read_mysql:toMysqlTable");
         return $sql;
 
     }
