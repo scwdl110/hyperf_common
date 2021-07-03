@@ -135,7 +135,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+//        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1))","(COALESCE(rates.rate ,1))*1.000000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+
         $field_data = str_replace("{:DAY}", $day_param, $field_data);
 
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
@@ -3659,14 +3661,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
 
-        if ($isMysql){
+        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1))","(COALESCE(rates.rate ,1))*1.000000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
 
-            $field_data = str_replace("{:RATE}", $exchangeCode,str_replace("{:RATE} / COALESCE(rates.rate ,1))","round({:RATE} / COALESCE(rates.rate ,1)),4)", implode(',', $fields_arr)));
-
-        }else{
-            $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
-
-        }
 
         if ($params['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
@@ -6157,7 +6153,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
 
         //$where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
-        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+//        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1))","(COALESCE(rates.rate ,1))*1.000000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+
 
 
 
