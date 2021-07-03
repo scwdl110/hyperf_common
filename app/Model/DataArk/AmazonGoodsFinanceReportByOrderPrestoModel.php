@@ -3659,7 +3659,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
 
-        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+        if ($isMysql){
+
+            $field_data = str_replace("{:RATE}", $exchangeCode,str_replace("{:RATE} / COALESCE(rates.rate ,1))","round({:RATE} / COALESCE(rates.rate ,1)),4)", implode(',', $fields_arr)));
+
+        }else{
+            $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
+
+        }
 
         if ($params['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
