@@ -10,6 +10,7 @@ class DataArkController extends AbstractController
 {
     protected function init($type = 1)
     {
+
         $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
 
