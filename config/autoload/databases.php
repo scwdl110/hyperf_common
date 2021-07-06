@@ -2532,4 +2532,30 @@ return [
             ],
         ],
     ],
+    "bigdata_ads" => [
+        'driver' => env('DIGDATA_ADS_DB_DRIVER', 'mysql'),
+        'host' => env('DIGDATA_ADS_DB_HOST', 'localhost'),
+        'database' => env('DIGDATA_ADS_DB_DATABASE', 'hyperf'),
+        'port' => env('DIGDATA_ADS_DB_PORT', 3306),
+        'username' => env('DIGDATA_ADS_DB_USERNAME', 'root'),
+        'password' => env('DIGDATA_ADS_DB_PASSWORD', ''),
+        'charset' => env('DIGDATA_ADS_DB_CHARSET', 'utf8'),
+        'collation' => env('DIGDATA_ADS_DB_COLLATION', 'utf8_unicode_ci'),
+        'prefix' => env('DIGDATA_ADS_DB_PREFIX', ''),
+        'pool' => [
+            'min_connections' => 1,
+            'max_connections' => 100,
+            'connect_timeout' => 30.0,
+            'wait_timeout' => 3.0,
+            'heartbeat' => -1,
+            'max_idle_time' => (float) env('DIGDATA_ADS_DB_MAX_IDLE_TIME', 60),
+        ],
+        'commands' => [
+            'gen:model' => [
+                'path' => 'app/Model',
+                'force_casts' => true,
+                'inheritance' => 'Model',
+            ],
+        ],
+    ],
 ];

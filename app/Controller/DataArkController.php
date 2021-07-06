@@ -285,6 +285,9 @@ class DataArkController extends AbstractController
             );
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
             $params['origin_time']  = '  AND create_time >= ' .$params['search_start_time'] . ' AND create_time <= ' . $params['search_end_time'] ;
+            $params['origin_create_start_time'] = $params['search_start_time'];
+            $params['origin_create_end_time'] = $params['search_end_time'];
+
             $min_ym = date('Ym',$params['search_start_time']) ;
             $max_ym = date('Ym',$params['search_end_time']) ;
             $day_param = ($params['search_end_time'] + 1 - $params['search_start_time']) / 86400;
@@ -301,6 +304,8 @@ class DataArkController extends AbstractController
                     (int)$times['start'],
                     (int)$times['end']
                 );
+                $params['origin_create_start_time'] = $times['start'];
+                $params['origin_create_end_time'] = $times['end'];
                 $origin_time[] = sprintf(
                     '( create_time>=%d and create_time<=%d)',
                     (int)$times['start'],

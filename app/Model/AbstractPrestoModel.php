@@ -13,6 +13,7 @@ use GuzzleHttp\ClientInterface;
 use Hyperf\Utils\ApplicationContext;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Logger\LoggerFactory;
+use Hyperf\DbConnection\Db;
 
 abstract class AbstractPrestoModel implements BIModelInterface
 {
@@ -366,6 +367,31 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
     }
 
+    protected function toMysqlTable($sql)
+    {
+        $ods = config('misc.presto_schema_ods', 'ods');
+        $dws = config('misc.presto_schema_dws', 'dws');
+        $dim = config('misc.presto_schema_dim', 'dim');
+        $dwd = config('misc.presto_schema_dwd', 'dwdslave');
+
+        $schema = array(
+            $ods => 'ads',
+            $dws => 'ads',
+            $dim => 'ads',
+            $dwd => 'ads'
+        );
+        foreach ($schema as $key => $v) {
+            $sql = str_replace($key . '.', '', $sql);
+        }
+        $sql = str_replace( '"', '', $sql);
+        $sql = str_replace( 'as varchar)', 'as char)', $sql);
+        $sql = str_replace( 'as varchar )', 'as char)', $sql);
+        $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
+        $this->logger->error("read_mysql:toMysqlTable");
+        return $sql;
+
+    }
+
     protected function getCache()
     {
         if (null === $this->cache) {
@@ -375,7 +401,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         return $this->cache;
     }
 
-    public function query(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300): array
+    public function query(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300, $isMysql = false): array
     {
         if ($bindings) {
             $this->lastSql = $psql = "PREPARE {$sql}; EXECUTE " . @join(',', $bindings);
@@ -391,7 +417,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
 
-        $result = $this->presto->query($sql, ...$bindings);
+        if ($isMysql) {
+            $sql = $this->toMysqlTable($sql);
+            $result = Db::connection('bigdata_ads')->select($sql);
+        } else {
+            $result = $this->presto->query($sql,...$bindings);
+        }
         if (false === $result) {
             $this->logger->error("sql: {$psql} error:执行sql异常");
             return [];
@@ -437,7 +468,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -508,11 +540,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
         $athena_sql = $sql;
         $sql .= " {$limit}";
-        $this->lastSql = $sql;
-        $this->logSql();
-        if ($this->logDryRun()) {
-            return [];
-        }
+
 
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
         if ($this->isCache($isCache)) {
@@ -526,8 +554,32 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($athena_sql) as t)  {$athena_limit}";//athena特有的分页写法
             }
         }
-        $result = $this->presto->query($sql);
-        $this->lastSql = $sql;
+        if ($isMysql) {
+            $sql = $this->toMysqlTable($sql);
+            $this->lastSql = $sql;
+            $this->logSql();
+            if ($this->logDryRun()) {
+                return [];
+            }
+            $result = Db::connection('bigdata_ads')->select($sql);
+            if (!empty($result)){
+                foreach ($result as $key => $value){
+                    $result[$key] = (array) $value;
+                }
+            }else{
+                $result = array();
+            }
+        } else {
+            $this->lastSql = $sql;
+            $this->logSql();
+            if ($this->logDryRun()) {
+                return [];
+            }
+            $result = $this->presto->query($sql);
+        }
+
+
+
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
             throw new RuntimeException('presto 查询失败');
@@ -560,9 +612,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
     ): array {
-        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL);
+        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL, $isMysql);
 
         return $result[0] ?? [];
     }
@@ -602,14 +655,15 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $cols = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
 
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
 
         if ($group) {
             $data = $data ?: '1';
-            if(stripos($group,'having') === false){
+            if (stripos($group, 'having') === false && stripos($group, ',') === false) {
                 $result = $this->getOne(
                     $where,
                     "count(distinct($group)) AS num",
@@ -618,10 +672,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     '',
                     $isJoin ,
                     $isCache,
-                    $cacheTTL
+                    $cacheTTL,
+                    $isMysql
 
                 );
-            }else{
+            } else {
                 $result = $this->getOne(
                     '',
                     "COUNT(*) AS num",
@@ -630,13 +685,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     '',
                     $isJoin,
                     $isCache,
-                    $cacheTTL
+                    $cacheTTL,
+                    $isMysql
                 );
             }
         } elseif (!empty($cols)) {
-            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL,$isMysql);
         } else {
-            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL);
+            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL,$isMysql);
         }
 
         return intval($result['num'] ?? 0);
