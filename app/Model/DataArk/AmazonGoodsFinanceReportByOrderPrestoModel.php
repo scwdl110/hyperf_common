@@ -6019,6 +6019,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
         $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group,'',null,300,$isMysql);
+        if ($isMysql && !empty($fba_data)){
+            foreach ($fba_data as $key => $value){
+                $fba_data[$key] = (array) $value;
+            }
+        }
 
         $fbaDatas = array() ;
         if($fbaData){
