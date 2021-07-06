@@ -5945,6 +5945,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      */
     protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1',$isMysql = false)
     {
+        $isMysql = false;
         if(empty($lists)){
             return $lists ;
         } else {
