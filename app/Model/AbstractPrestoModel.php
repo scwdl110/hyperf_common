@@ -183,12 +183,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ),
         "isku_head_id_group" => array(
             'day' => "isku_head_id,report.myear,report.mmonth,report.mday",
-            'week' => "isku_head_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'week' => "isku_head_id,report.myear,report.mweekyear,mweek",
             'month' => "isku_head_id,report.myear,report.mmonth"
         ),
         "isku_developer_id_group" => array(
             'day' => "isku_developer_id,report.myear,report.mmonth,report.mday",
-            'week' => "isku_developer_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'week' => "isku_developer_id,report.myear,report.mweekyear,mweek",
             'month' => "isku_developer_id,report.myear,report.mmonth"
         ),
         "isku_head_id" => "isku_head_id",
