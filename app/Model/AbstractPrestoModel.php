@@ -173,7 +173,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ),
         "group_id_group" => array(
             'day' => "goods_group_id,report.myear,report.mmonth,report.mday",
-            'week' => "goods_group_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'week' => "goods_group_id,report.myear,report.mweekyear,mweek",
             'month' => "goods_group_id,report.myear,report.mmonth"
         ),
         "operation_user_admin_id_group" => array(
