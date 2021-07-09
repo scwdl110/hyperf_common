@@ -26,4 +26,22 @@ class Functions {
         return $newArray;
     }
 
+    /**
+     * 删除不要的数据
+     * @param $request_data
+     * @param $keys
+     * @return bool|array
+     */
+    public function unsetData($request_data,$keys){
+        if(!is_array($request_data) || !is_array($keys)){
+            return false;
+        }
+        foreach ($request_data as $k=>$v){
+            if(!in_array($k,$keys)){
+                unset($request_data[$k]);
+            }
+        }
+        return $request_data;
+    }
+
 }
