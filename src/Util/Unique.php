@@ -7,6 +7,7 @@ use Hyperf\Snowflake\IdGeneratorInterface;
 use Hyperf\Utils\ApplicationContext;
 
 class Unique {
+    
     /**
      * 返回雪花id
      * @return string
@@ -20,5 +21,15 @@ class Unique {
         return $snowflakeId;
     }
 
+    /***
+     * 数据库获取数组
+     * @param $items
+     * @return array
+     */
+
+    private function getArray($items)
+    {
+        return empty($items) ? array() : $items->toArray();
+    }
 
 }
