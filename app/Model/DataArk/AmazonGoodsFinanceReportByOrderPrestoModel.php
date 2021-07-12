@@ -8004,7 +8004,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $str = $item['formula'] ;
                         foreach ($formula_json_arr as $k => $f_key) {
                             if(!in_array($f_key,$operational_char_arr)) {
-                                if (!is_numeric($f_key) && !in_array($f_key, $ark_custom_param)) {
+                                if (!is_numeric($f_key)) {
                                     $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF({' . $f_key . '},0)', $str);//分母为0的处理
                                 }
                             }
@@ -8024,7 +8024,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $fba_target_key[] = $item['target_key'];
                             $str = $is_count ? "1" : "'{$item['formula']}'";
                         }
-                        $fields[$item['target_key']] = $str;
+                        $fields[$item['target_key']] = "try(" . $str . ")";
                     }
                 }
             }
