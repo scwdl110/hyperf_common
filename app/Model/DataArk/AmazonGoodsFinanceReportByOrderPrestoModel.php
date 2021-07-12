@@ -523,7 +523,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
                 //自定义公式涉及到fba
-                if ($datas['show_type'] == 2) {
+                if ($datas['show_type'] == 2 && !empty($lists)) {
                     foreach ($lists as $k => $item) {
                         foreach ($item as $key => $value) {
                             if (in_array($key, $fba_target_key)) {
@@ -570,7 +570,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
                 //自定义公式涉及到fba
-                if ($datas['show_type'] == 2) {
+                if ($datas['show_type'] == 2 && !empty($lists)) {
                     foreach ($lists as $k => $item) {
                         foreach ($item as $key => $value) {
                             if (in_array($key, $fba_target_key)) {
