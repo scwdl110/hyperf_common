@@ -8001,6 +8001,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $count = 0;
                     if(in_array($item['target_key'],$targets)){
                         $str = $item['formula'] ;
+                        $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
                         foreach ($formula_json_arr as $k => $f_key) {
                             if(!in_array($f_key,$operational_char_arr)) {
                                 if (!is_numeric($f_key)) {
@@ -8075,6 +8076,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function dealTimeTargets(&$fields,$custom_target,$time_line = array(),$time_fields_arr = array(),$target_key = "",$isMysql = false){
         $str = $custom_target['formula'] ;
+        $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
         $time_targets = $custom_target['formula_json'] ? json_decode($custom_target['formula_json'],true) : [] ;
         $formula_fields_arr = $custom_target['formula_fields'] ? explode(",",$custom_target['formula_fields']) : [];
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
