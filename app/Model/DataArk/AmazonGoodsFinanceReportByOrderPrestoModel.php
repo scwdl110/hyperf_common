@@ -8077,7 +8077,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $str = $custom_target['formula'] ;
         $time_targets = $custom_target['formula_json'] ? json_decode($custom_target['formula_json'],true) : [] ;
         $formula_fields_arr = $custom_target['formula_fields'] ? explode(",",$custom_target['formula_fields']) : [];
-        $ark_custom_param =  $this->ark_custom_params;//变量参数组
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
         foreach ($time_targets as $k => $f_key) {
             if(!in_array($f_key,$operational_char_arr)){
@@ -8093,8 +8092,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $str = 'NULL';
             }
         }
-        $fields['count_total'] = $str;
-        $fields[$target_key] = $str;
+        $fields['count_total'] =  $isMysql ? $str : "try(" . $str . ")";
+        $fields[$target_key] =  $isMysql ? $str : "try(" . $str . ")";
 
         $time_list = array_column($time_line, "key");
         foreach ($time_list as $date) {
