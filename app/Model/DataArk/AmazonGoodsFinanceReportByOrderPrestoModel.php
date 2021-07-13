@@ -5889,7 +5889,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['sale_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
                         $fields['count_total'] = "sum( report.byorder_sales_quota  + report.channel_fbm_safe_t_claim_demage)";
-                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota + + report.channel_fbm_safe_t_claim_demage");
+                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota + report.channel_fbm_safe_t_claim_demage");
                     } else {
                         $fields['count_total'] = "sum( report.byorder_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) +  report.channel_fbm_safe_t_claim_demage * ({:RATE} / COALESCE(rates.rate ,1)) )";
                         $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) + report.channel_fbm_safe_t_claim_demage * ({:RATE} / COALESCE(rates.rate ,1)) ");
@@ -5902,6 +5902,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fields['count_total'] = "sum( report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) )";
                         $time_fields = $this->getTimeFields($timeLine, "report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))");
                     }
+                }
+            } elseif ($time_target == 'sale_channel_month_goal') { //店铺月销售额目标
+                $this->countDimensionChannel = true;
+                if ($datas['currency_code'] != 'ORIGIN'){
+                    $fields['count_total'] = "SUM(monthly_profit.reserved_field11 / COALESCE(rates.rate, 1) * {:RATE})";
+                    $time_fields = $this->getTimeFields($timeLine, "monthly_profit.reserved_field11 / COALESCE(rates.rate, 1) * {:RATE}");
+                } else {
+                    $fields['count_total'] = "SUM(monthly_profit.reserved_field11)";
+                    $time_fields = $this->getTimeFields($timeLine, "monthly_profit.reserved_field11");
                 }
             } else if ($time_target == 'cost_profit_total_pay') { //总支出
                 if ($datas['finance_datas_origin'] == '1') {
@@ -8309,7 +8318,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
         }
-        if(strpos($str,' NULL ') !== false || strpos($str,'/ 0 ') !== false){
+        $str = preg_replace('/{[a-z,A-Z,0-9,-,_]*}/',0,$str);
+        if(strpos($str,' NULL ') !== false || strpos($str,'/ 0 ') !== false || strpos($str,'* 0 ') !== false){
             $rt = null;
         }else{
             $rt = eval("return $str;");
