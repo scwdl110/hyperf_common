@@ -152,9 +152,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
             'month' => "goods_sku,amazon_goods.goods_channel_id,report.myear,report.mmonth"
         ),
         "isku_group" => array(
-            'day' => "isku_isku,report.myear,report.mmonth,report.mday",
-            'week' => "isku_isku,report.myear,report.mweekyear,mweek",
-            'month' => "isku_isku,report.myear,report.mmonth"
+            'day' => "goods_isku_id,report.myear,report.mmonth,report.mday",
+            'week' => "goods_isku_id,report.myear,report.mweekyear,mweek",
+            'month' => "goods_isku_id,report.myear,report.mmonth"
         ),
         "site_id_group" => array(
             'day' => "goods_site_id,report.myear,report.mmonth,report.mday",

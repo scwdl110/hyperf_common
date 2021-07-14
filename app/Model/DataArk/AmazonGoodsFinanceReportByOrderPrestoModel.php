@@ -8,12 +8,20 @@ use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
+use App\Service\CommonService;
+use Hyperf\Di\Annotation\Inject;
 use function App\getUserInfo;
 use Hyperf\Utils\Exception\ParallelExecutionException;
 use Hyperf\Utils\Parallel;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
+    /**
+     * @Inject()
+     * @var CommonService
+     */
+    protected $commonService;
+
     protected $table = 'table_amazon_goods_finance_report_by_order';
 
     //按指标展现时 自定义算法和指标
@@ -49,9 +57,35 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         'fba_sales_volume',
         'fba_need_replenish',
         'fba_predundancy_number',
-        //店铺月销售额
-        'sale_channel_month_goal'
+        //erp字段
+        'ark_erp_purchasing_num',
+        'ark_erp_send_num',
+        'ark_erp_good_num',
+        'ark_erp_bad_num',
+        'ark_erp_lock_num',
+        'ark_erp_goods_cost_total'
     ];
+
+    protected  $amzon_site = array(
+        1 => array("currency_code" => "USD", "currency_symbol" => "$", "code" => "US"),
+        2 => array("currency_code" => "CAD", "currency_symbol" => "C$", "code" => "CA"),
+        3 => array("currency_code" => "MXN", "currency_symbol" => "Mex$", "code" => "MX"),
+        4 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "DE"),
+        5 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "ES"),
+        6 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "FR"),
+        7 => array("currency_code" => "INR", "currency_symbol" => "₹", "code" => "IN"),
+        8 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "IT"),
+        9 => array("currency_code" => "GBP", "currency_symbol" => "£", "code" => "UK"),
+        10 => array("currency_code" => "CNY", "currency_symbol" => "￥", "code" => "CN"),
+        11 => array("currency_code" => "JPY", "currency_symbol" => "¥", "code" => "JP"),
+        12 => array("currency_code" => "AUD", "currency_symbol" => "A$", "code" => "AU"),
+        13 => array("currency_code" => "BRL", "currency_symbol" => "R$", "code" => "BR"),
+        14 => array("currency_code" => "TRY", "currency_symbol" => "₺", "code" => "TR"),
+        15 => array("currency_code" => "AED", "currency_symbol" => "AED", "code" => "AE"),
+        16 => array("currency_code" => "EUR", "currency_symbol" => "€", "code" => "NL") ,
+        17 => array("currency_code" => "SAR", "currency_symbol" => "SAR", "code" => "SA"),
+        18 => array("currency_code" => "SGD", "currency_symbol" => "S$", "code" => "SG")
+    );
 
     /**
      * 获取商品维度统计列表(新增统计维度完成)
@@ -519,8 +553,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
-                if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
+                if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                }
+                if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                    $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2 && !empty($lists)) {
@@ -566,8 +603,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
-                if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
+                if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                }
+                if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                    $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2 && !empty($lists)) {
@@ -587,7 +627,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }
-        if(!empty($lists) && $datas['show_type'] = 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
+        if(!empty($lists) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
@@ -1089,6 +1129,83 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }
+        return $lists;
+    }
+
+    protected function getGoodsErpData($lists = [], $fields = [], $datas = [],$rate_info = []){
+        if (empty($lists)){
+            return $lists;
+        }
+        if ($datas['show_type'] != 2){
+            return $lists;
+        }
+        if (!in_array($datas['count_dimension'], ['sku', 'isku'])){
+            return $lists;
+        }
+        if($datas['is_distinct_channel'] == 0 && $datas['count_dimension'] == 'sku'){
+            return $lists;
+        }
+        if (empty($fields['ark_erp_purchasing_num']) && empty($fields['ark_erp_send_num']) && empty($fields['ark_erp_good_num']) && empty($fields['ark_erp_bad_num']) && empty($fields['ark_erp_lock_num']) && empty($fields['ark_erp_goods_cost_total'])){
+            return $lists;
+        }
+
+        $iskuIds = array_unique(array_column($lists, 'isku_id'));
+        $erpWhere = "user_id = {$lists[0]['user_id']} AND isku_id IN(".implode(',', $iskuIds).") AND is_delete = 0";
+
+        $selectFields = "user_id, isku_id";
+        if (!empty($fields['ark_erp_purchasing_num'])){ //采购在途
+            $selectFields .= ", SUM(purchasing_num) as ark_erp_purchasing_num";
+        }
+        if (!empty($fields['ark_erp_send_num'])){ //调拨在途
+            $selectFields .= ", SUM(send_num) as ark_erp_send_num";
+        }
+        if (!empty($fields['ark_erp_good_num'])){ //库存良品量
+            $selectFields .= ", SUM(good_num) as ark_erp_good_num";
+        }
+        if (!empty($fields['ark_erp_bad_num'])){ //库存次品量
+            $selectFields .= ", SUM(bad_num) as ark_erp_bad_num";
+        }
+        if (!empty($fields['ark_erp_lock_num'])){ //库存锁仓量
+            $selectFields .= ", SUM(lock_num) + SUM(lock_num_work_order) as ark_erp_lock_num";
+        }
+        if (!empty($fields['ark_erp_goods_cost_total'])){ //ERP在库总成本
+            //币种是人民币
+            $selectFields .= ", SUM(goods_cost * total_num) as ark_erp_goods_cost_total";
+        }
+
+        $erpIskuModel = new ErpStorageWarehouseIskuMySQLModel([], $this->dbhost, $this->codeno);
+        $erpIskuList = $erpIskuModel->select($erpWhere, $selectFields, "", "", "", "isku_id");
+        $mapIskuList = [];
+        if (!empty($erpIskuList)){
+            foreach ($erpIskuList as $val){
+                $mapIskuList[$val['isku_id']] = $val;
+            }
+        }
+
+        foreach ($lists as $key => $val){
+            if (!empty($fields['ark_erp_purchasing_num'])){
+                $val['ark_erp_purchasing_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_purchasing_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_purchasing_num'] : null;
+            }
+            if (!empty($fields['ark_erp_send_num'])){
+                $val['ark_erp_send_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_send_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_send_num'] : null;
+            }
+            if (!empty($fields['ark_erp_good_num'])){
+                $val['ark_erp_good_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_good_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_good_num'] : null;
+            }
+            if (!empty($fields['ark_erp_bad_num'])){
+                $val['ark_erp_bad_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_bad_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_bad_num'] : null;
+            }
+            if (!empty($fields['ark_erp_lock_num'])){
+                $val['ark_erp_lock_num'] = isset($mapIskuList[$val['isku_id']]['ark_erp_lock_num']) ? $mapIskuList[$val['isku_id']]['ark_erp_lock_num'] : null;
+            }
+            if (!empty($fields['ark_erp_goods_cost_total'])){
+                //币种是人民币
+                $to_currency_code = $datas['currency_code'] != 'ORIGIN' ? $datas['currency_code'] : $this->amzon_site[$val['site_id']]['currency_code'];
+                $val['ark_erp_goods_cost_total'] = isset($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total']) ? $this->commonService->currencyExchange($mapIskuList[$val['isku_id']]['ark_erp_goods_cost_total'],'CNY',$to_currency_code,$rate_info) : null;
+            }
+            $lists[$key] = $val;
+        }
+
         return $lists;
     }
 
@@ -1832,6 +1949,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['fba_special_purpose'] = '1';
         }
 
+        $erp_value = $datas['is_distinct_channel'] == 0 && $datas['count_dimension'] == 'sku' ? 'NULL' : '1';
+        if (in_array('ark_erp_purchasing_num', $targets)) { //采购在途
+            $fields['ark_erp_purchasing_num'] = $erp_value;
+        }
+        if (in_array('ark_erp_send_num', $targets)) { //调拨在途
+            $fields['ark_erp_send_num'] = $erp_value;
+        }
+        if (in_array('ark_erp_good_num', $targets)) { //库存良品量
+            $fields['ark_erp_good_num'] = $erp_value;
+        }
+        if (in_array('ark_erp_bad_num', $targets)) { //库存次品量
+            $fields['ark_erp_bad_num'] = $erp_value;
+        }
+        if (in_array('ark_erp_lock_num', $targets)) { //库存锁仓量
+            $fields['ark_erp_lock_num'] = $erp_value;
+        }
+        if (in_array('ark_erp_goods_cost_total', $targets)) { //ERP在库总成本
+            $fields['ark_erp_goods_cost_total'] = $erp_value;
+        }
+
         if (in_array('cost_profit_total_income', $targets) || $isCalTotalPay) {   //总收入
             if ($datas['sale_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
@@ -1981,6 +2118,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_is_new']                  = 'max(report.goods_is_new)';
                 $fields['up_status']                  = 'max(report.goods_up_status)';
                 $fields['isku_id']                       = 'max(report.goods_isku_id)';
+                $fields['goods_fnsku']                  = 'max(amazon_goods.goods_fnsku)';
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
                 $fields['class1'] = 'max(report.goods_product_category_name_1)';
@@ -3877,9 +4015,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
-                if ($params['show_type'] == 2 && !empty($fields['sale_channel_month_goal'])){
-                    $lists = $this->getUnGoodsChannelMothGoalData($lists, $params, $channel_arr,$currencyInfo, $exchangeCode) ;
-                }
                 //自定义公式涉及到fba
                 if ($params['show_type'] == 2 && !empty($lists)) {
                     foreach ($lists as $k => $item) {
@@ -3930,9 +4065,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger->info('getListByUnGoods Request', [$this->getLastSql()]);
                 if($params['show_type'] = 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
-                }
-                if ($params['show_type'] == 2 && !empty($fields['sale_channel_month_goal'])){
-                    $lists = $this->getUnGoodsChannelMothGoalData($lists, $params, $channel_arr);
                 }
                 //自定义公式涉及到fba
                 if ($params['show_type'] == 2 && !empty($lists)) {
@@ -4697,7 +4829,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //店铺月销售额目标
         if (in_array('sale_channel_month_goal', $targets)) {
-            $fields['sale_channel_month_goal'] = '1';
+            $this->countDimensionChannel = true;
+            if ($datas['currency_code'] != 'ORIGIN'){
+                $fields['sale_channel_month_goal'] = 'SUM(monthly_profit.reserved_field11 / COALESCE(rates.rate, 1) * {:RATE})';
+            }else{
+                $fields['sale_channel_month_goal'] = 'SUM(monthly_profit.reserved_field11)';
+            }
         }
 
         if (in_array('cost_profit_total_income', $targets) || in_array('cost_profit_total_pay', $targets)  ) {  //总收入
@@ -4778,6 +4915,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['user_department_id'] = 'max(dc.user_department_id)';
         }else if($datas['count_dimension'] == 'admin_id'){
             $fields['admin_id'] = 'max(uc.admin_id)';
+            $fields['user_admin_id'] = 'max(uc.admin_id)';
         }
 
         $target_key = $datas['time_target'];
@@ -5751,7 +5889,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['sale_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
                         $fields['count_total'] = "sum( report.byorder_sales_quota  + report.channel_fbm_safe_t_claim_demage)";
-                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota + + report.channel_fbm_safe_t_claim_demage");
+                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota + report.channel_fbm_safe_t_claim_demage");
                     } else {
                         $fields['count_total'] = "sum( report.byorder_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) +  report.channel_fbm_safe_t_claim_demage * ({:RATE} / COALESCE(rates.rate ,1)) )";
                         $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) + report.channel_fbm_safe_t_claim_demage * ({:RATE} / COALESCE(rates.rate ,1)) ");
@@ -5764,6 +5902,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fields['count_total'] = "sum( report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) )";
                         $time_fields = $this->getTimeFields($timeLine, "report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))");
                     }
+                }
+            } elseif ($time_target == 'sale_channel_month_goal') { //店铺月销售额目标
+                $this->countDimensionChannel = true;
+                if ($datas['currency_code'] != 'ORIGIN'){
+                    $fields['count_total'] = "SUM(monthly_profit.reserved_field11 / COALESCE(rates.rate, 1) * {:RATE})";
+                    $time_fields = $this->getTimeFields($timeLine, "monthly_profit.reserved_field11 / COALESCE(rates.rate, 1) * {:RATE}");
+                } else {
+                    $fields['count_total'] = "SUM(monthly_profit.reserved_field11)";
+                    $time_fields = $this->getTimeFields($timeLine, "monthly_profit.reserved_field11");
                 }
             } else if ($time_target == 'cost_profit_total_pay') { //总支出
                 if ($datas['finance_datas_origin'] == '1') {
@@ -6301,7 +6448,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $count = $limit_num ;
             }
         }
-        if(!empty($lists) && $datas['show_type'] = 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
+        if(!empty($lists) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
@@ -8164,17 +8311,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     public function count_custom_formula($formula = '' , $data = array()){
-        $str = $formula ;
-        foreach ($data as $key => $value) {
-            if(is_null($value)){
-                $value = 'NULL';
+        try{
+            $str = $formula ;
+            foreach ($data as $key => $value) {
+                if(is_null($value)){
+                    $value = 'NULL';
+                }
+                $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
             }
-            $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
-        }
-        if(strpos($str,' NULL ') !== false || strpos($str,'/ 0 ') !== false){
-            $rt = null;
-        }else{
+            $str = preg_replace('/{[a-z,A-Z,0-9,-,_]*}/',0,$str);
             $rt = eval("return $str;");
+        }catch (\Exception $e){
+            $rt = null;
         }
         return $rt ;
 
