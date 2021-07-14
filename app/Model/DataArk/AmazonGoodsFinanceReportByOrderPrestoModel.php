@@ -569,6 +569,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if($datas['show_type'] = 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
+
+                //获取rank数据
+                //var_dump(($datas['count_periods'] == 1 && ( !empty($fields['goods_rank']) || !empty($fields['goods_min_rank']) ) && $datas['is_distinct_channel'] == 1));
+                if($datas['count_periods'] == 1 && ( !empty($fields['goods_rank']) || !empty($fields['goods_min_rank']) ) && $datas['is_distinct_channel'] == 1){
+
+                    $lists = $this->getGoodsRankData($lists , $fields , $datas,$channel_arr) ;
+                }
+
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2) {
                     foreach ($lists as $k => $item) {
@@ -1090,6 +1098,94 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }
         return $lists;
+    }
+
+    protected function getGoodsRankData($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
+    {
+        if(empty($lists)){
+            return $lists ;
+        }else{
+            $amazon_fba_inventory_rank_md = new AmazonFbaInventoryRankMySQLModel([], $this->dbhost, $this->codeno);
+            $where = "g.user_id = " . intval($lists[0]['user_id']) ;
+            if (!empty($channel_arr)){
+                if (count($channel_arr)==1){
+                    $where .= " AND g.channel_id = ".intval(implode(",",$channel_arr));
+                }else{
+                    $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
+                }
+            }
+            $table = "g_amazon_fba_inventory_rank_{$this->codeno} as g" ;
+            if($datas['count_dimension'] == 'sku'){
+                if($datas['is_distinct_channel'] == 1){
+                    $table_group = 'g.id  , g.channel_id' ;
+                }
+            }else if($datas['count_dimension'] == 'asin'){
+                if($datas['is_distinct_channel'] == 1){
+                    $table_group = 'g.asin , g.channel_id' ;
+                }
+            }
+
+            $where_arr = array() ;
+            foreach($lists as $list1){
+                if($datas['count_dimension'] == 'sku'){
+                    if($datas['is_distinct_channel'] == 1) {
+                        $where_arr[] = array('sku' => self::escape($list1['sku']), 'channel_id' => $list1['channel_id']);
+                    }else{
+                        $where_arr[] = array('sku' => self::escape($list1['sku']));
+                    }
+                }else if($datas['count_dimension'] == 'asin'){
+                    if($datas['is_distinct_channel'] == 1) {
+                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id']);
+                    }else{
+                        $where_arr[] = array('asin' => self::escape($list1['asin']));
+                    }
+                }
+            }
+
+            if($datas['count_dimension'] == 'sku' || $datas['count_dimension'] == 'asin' || $datas['count_dimension'] == 'parent_asin'){
+                if($datas['is_distinct_channel'] == 1) {
+                    $whereDatas = array() ;
+                    foreach($where_arr as $wheres){
+                        $whereDatas[$wheres['channel_id']][] = $wheres[$datas['count_dimension']] ;
+                    }
+                    $where_strs = array() ;
+                    foreach($whereDatas as $cid => $wd){
+                        $str = "'" . implode("','" , $wd) . "'" ;
+                        if($datas['count_dimension'] == 'sku'){
+                            $where_strs[] = '( g.channel_id = ' . $cid . ' AND g.seller_sku ' . ' IN (' . $str . '))' ;
+                        }else{
+                            $where_strs[] = '( g.channel_id = ' . $cid . ' AND g.'.$datas['count_dimension'] . ' IN (' . $str . '))' ;
+                        }
+
+                    }
+                    $where_str = !empty($where_strs) ? "(".implode(' OR ' , $where_strs).")" : "";
+
+                }else{
+                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
+                    $str = "'" . implode("','" , $where_strs) . "'" ;
+                    if($datas['count_dimension'] == 'sku') {
+                        $where_str = 'g.seller_sku' . ' IN (' . $str . ') ';
+                    }else{
+                        $where_str = 'g.' . $datas['count_dimension'] . ' IN (' . $str . ') ';
+                    }
+                }
+            }
+        }
+        $where_str = !empty($where_str) ? $where_str . " AND " : "";
+        $where.= ' AND ' . $where_str." g.id > 0 AND g.create_time >= {$datas['origin_create_start_time']} AND g.create_time <= {$datas['origin_create_end_time']}" ;
+
+        $table_fields= ' min(g.rank>0) as rank_min,max(g.rank>0) as rank_max,min(g.min_rank>0) as min_rank_min,max(g.min_rank>0) as min_rank_max, myear,mmonth,mday' ;
+
+
+
+        $group = !empty($group) ? $group : "";
+        $rankDatas = array() ;
+        $rankData = $amazon_fba_inventory_rank_md->select($where , $table_fields, $table ,'','',$group) ;
+
+        $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+        $logger->info('getGoodsRankData Mysql:', [ $amazon_fba_inventory_rank_md->getLastSql()]);
+        var_dump($rankData);
+        return $rankData;
     }
 
     protected function handleGoodsFbaData($fba, $field, $is_distinct_channel = 0, $fbaDatas = array())
