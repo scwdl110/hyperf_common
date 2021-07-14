@@ -49,6 +49,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_{DBHOST}',
 
         'table_dwd_goods_report' => 'dwd.dwd_dataark_f_dw_goods_report_{DBHOST}',
+        'table_dws_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST}',
+        'table_dws_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DBHOST}',
     ];
 
     protected $goodsCols = array(
