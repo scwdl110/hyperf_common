@@ -8311,18 +8311,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     public function count_custom_formula($formula = '' , $data = array()){
-        $str = $formula ;
-        foreach ($data as $key => $value) {
-            if(is_null($value)){
-                $value = 'NULL';
+        try{
+            $str = $formula ;
+            foreach ($data as $key => $value) {
+                if(is_null($value)){
+                    $value = 'NULL';
+                }
+                $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
             }
-            $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
-        }
-        $str = preg_replace('/{[a-z,A-Z,0-9,-,_]*}/',0,$str);
-        if(strpos($str,' NULL ') !== false || strpos($str,'/ 0 ') !== false || strpos($str,'* 0 ') !== false){
-            $rt = null;
-        }else{
+            $str = preg_replace('/{[a-z,A-Z,0-9,-,_]*}/',0,$str);
             $rt = eval("return $str;");
+        }catch (\Exception $e){
+            $rt = null;
         }
         return $rt ;
 
