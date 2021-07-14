@@ -173,7 +173,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ),
         "group_id_group" => array(
             'day' => "goods_group_id,report.myear,report.mmonth,report.mday",
-            'week' => "goods_group_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'week' => "goods_group_id,report.myear,report.mweekyear,mweek",
             'month' => "goods_group_id,report.myear,report.mmonth"
         ),
         "operation_user_admin_id_group" => array(
@@ -183,12 +183,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ),
         "isku_head_id_group" => array(
             'day' => "isku_head_id,report.myear,report.mmonth,report.mday",
-            'week' => "isku_head_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'week' => "isku_head_id,report.myear,report.mweekyear,mweek",
             'month' => "isku_head_id,report.myear,report.mmonth"
         ),
         "isku_developer_id_group" => array(
             'day' => "isku_developer_id,report.myear,report.mmonth,report.mday",
-            'week' => "isku_developer_id,report.myear,report.mmonth,report.mweekyear,mweek",
+            'week' => "isku_developer_id,report.myear,report.mweekyear,mweek",
             'month' => "isku_developer_id,report.myear,report.mmonth"
         ),
         "isku_head_id" => "isku_head_id",
@@ -420,6 +420,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
             $result = Db::connection('bigdata_ads')->select($sql);
+            if (!empty($result)){
+                foreach ($result as $key => $value){
+                    $result[$key] = (array) $value;
+                }
+            }else{
+                $result = array();
+            }
         } else {
             $result = $this->presto->query($sql,...$bindings);
         }

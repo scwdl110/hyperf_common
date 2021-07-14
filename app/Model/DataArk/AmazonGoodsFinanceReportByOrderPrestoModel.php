@@ -560,7 +560,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
-                if ($datas['show_type'] == 2) {
+                if ($datas['show_type'] == 2 && !empty($lists)) {
                     foreach ($lists as $k => $item) {
                         foreach ($item as $key => $value) {
                             if (in_array($key, $fba_target_key)) {
@@ -610,7 +610,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
-                if ($datas['show_type'] == 2) {
+                if ($datas['show_type'] == 2 && !empty($lists)) {
                     foreach ($lists as $k => $item) {
                         foreach ($item as $key => $value) {
                             if (in_array($key, $fba_target_key)) {
@@ -3708,7 +3708,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $customTargetsList = $datas_ark_custom_target_md->getList("user_id = {$userId} AND target_type IN(1, 2) AND target_key IN ({$target_key_str}) AND count_dimension IN (1,3)");
             $this->customTargetsList = $customTargetsList;
 
-            $fields_arr = $this->getUnGoodsFields($params);
+            $fields_arr = $this->getUnGoodsFields($params,$isMysql);
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
@@ -3719,7 +3719,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $this->countDimensionChannel = true;
             }
 
-            $fields = $this->getUnGoodsTimeFields($params, $timeLine);
+            $fields = $this->getUnGoodsTimeFields($params, $timeLine,$isMysql);
         }
 
         if (empty($fields)) {
@@ -4099,7 +4099,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param $datas
      * @return array
      */
-    private function getUnGoodsFields($datas)
+    private function getUnGoodsFields($datas,$isMysql = false)
     {
         $fields = [];
         $fields['user_id'] = 'max(report.user_id)';
@@ -4892,12 +4892,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //加入自定义指标
         $fba_target_key = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
-        $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$is_count);
+        $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$is_count,$isMysql);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
 
     //按非商品维度,时间展示字段（新增统计维度完成）
-    protected function getUnGoodsTimeFields($datas, $timeLine)
+    protected function getUnGoodsTimeFields($datas, $timeLine,$isMysql = false)
     {
         $fields = [];
         $fields['user_id'] = 'max(report.user_id)';
@@ -5889,7 +5889,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['sale_datas_origin'] == '1') {
                     if ($datas['currency_code'] == 'ORIGIN') {
                         $fields['count_total'] = "sum( report.byorder_sales_quota  + report.channel_fbm_safe_t_claim_demage)";
-                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota + + report.channel_fbm_safe_t_claim_demage");
+                        $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota + report.channel_fbm_safe_t_claim_demage");
                     } else {
                         $fields['count_total'] = "sum( report.byorder_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) +  report.channel_fbm_safe_t_claim_demage * ({:RATE} / COALESCE(rates.rate ,1)) )";
                         $time_fields = $this->getTimeFields($timeLine, "report.byorder_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) + report.channel_fbm_safe_t_claim_demage * ({:RATE} / COALESCE(rates.rate ,1)) ");
@@ -5902,6 +5902,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fields['count_total'] = "sum( report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) )";
                         $time_fields = $this->getTimeFields($timeLine, "report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))");
                     }
+                }
+            } elseif ($time_target == 'sale_channel_month_goal') { //店铺月销售额目标
+                $this->countDimensionChannel = true;
+                if ($datas['currency_code'] != 'ORIGIN'){
+                    $fields['count_total'] = "SUM(monthly_profit.reserved_field11 / COALESCE(rates.rate, 1) * {:RATE})";
+                    $time_fields = $this->getTimeFields($timeLine, "monthly_profit.reserved_field11 / COALESCE(rates.rate, 1) * {:RATE}");
+                } else {
+                    $fields['count_total'] = "SUM(monthly_profit.reserved_field11)";
+                    $time_fields = $this->getTimeFields($timeLine, "monthly_profit.reserved_field11");
                 }
             } else if ($time_target == 'cost_profit_total_pay') { //总支出
                 if ($datas['finance_datas_origin'] == '1') {
@@ -6024,7 +6033,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $time_fields_arr[$time_target] = $time_fields ;
         }
         if($this->timeCustomTarget && $this->timeCustomTarget['target_type'] == 2){
-            $this->dealTimeTargets($fields, $this->timeCustomTarget,$timeLine,$time_fields_arr,$target_key);
+            $this->dealTimeTargets($fields, $this->timeCustomTarget,$timeLine,$time_fields_arr,$target_key,$isMysql);
         }else {
             if (!empty($time_fields) && is_array($time_fields)) {
                 foreach ($time_fields as $kt => $time_field) {
@@ -6083,6 +6092,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      */
     protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1',$isMysql = false)
     {
+        $isMysql = false;
         if(empty($lists)){
             return $lists ;
         } else {
@@ -6157,6 +6167,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
         $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group,'',null,300,$isMysql);
+        if ($isMysql && !empty($fba_data)){
+            foreach ($fba_data as $key => $value){
+                $fba_data[$key] = (array) $value;
+            }
+        }
 
         $fbaDatas = array() ;
         if($fbaData){
@@ -8098,10 +8113,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $fields;
     }
 
-    private function getCustomTargetFields(&$fields,$custom_targets_list,$targets = array(),$targets_temp = array(), $datas = [],&$fba_target_key = array(),$is_count = 0){
+    private function getCustomTargetFields(&$fields,$custom_targets_list,$targets = array(),$targets_temp = array(), $datas = [],&$fba_target_key = array(),$is_count = 0,$isMysql = false){
         $fba_field_exits = [];
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
-        $ark_custom_param = array_keys($this->ark_custom_params);
         if($custom_targets_list){
             foreach ($custom_targets_list as $item){
                 if ($item['target_type'] == 1)
@@ -8134,9 +8148,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $count = 0;
                     if(in_array($item['target_key'],$targets)){
                         $str = $item['formula'] ;
+                        $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
                         foreach ($formula_json_arr as $k => $f_key) {
                             if(!in_array($f_key,$operational_char_arr)) {
-                                if (!is_numeric($f_key) && !in_array($f_key, $ark_custom_param)) {
+                                if (!is_numeric($f_key)) {
                                     $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF({' . $f_key . '},0)', $str);//分母为0的处理
                                 }
                             }
@@ -8156,7 +8171,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $fba_target_key[] = $item['target_key'];
                             $str = $is_count ? "1" : "'{$item['formula']}'";
                         }
-                        $fields[$item['target_key']] = $str;
+                        $fields[$item['target_key']] = $isMysql ? $str : "try(" . $str . ")";
                     }
                 }
             }
@@ -8206,16 +8221,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $targets;
     }
 
-    private function dealTimeTargets(&$fields,$custom_target,$time_line = array(),$time_fields_arr = array(),$target_key = ""){
+    private function dealTimeTargets(&$fields,$custom_target,$time_line = array(),$time_fields_arr = array(),$target_key = "",$isMysql = false){
         $str = $custom_target['formula'] ;
+        $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
         $time_targets = $custom_target['formula_json'] ? json_decode($custom_target['formula_json'],true) : [] ;
         $formula_fields_arr = $custom_target['formula_fields'] ? explode(",",$custom_target['formula_fields']) : [];
-        $ark_custom_param =  $this->ark_custom_params;//变量参数组
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
-        $ark_custom_param = array_keys($ark_custom_param);
         foreach ($time_targets as $k => $f_key) {
             if(!in_array($f_key,$operational_char_arr)){
-                if(!is_numeric($f_key) && !in_array($f_key,$ark_custom_param)){
+                if(!is_numeric($f_key)){
                     $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF({' . $f_key . '},0)', $str);//分母为0的处理
                 }
             }
@@ -8227,15 +8241,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $str = 'NULL';
             }
         }
-        $fields['count_total'] = $str;
-        $fields[$target_key] = $str;
+        $fields['count_total'] =  $isMysql ? $str : "try(" . $str . ")";
+        $fields[$target_key] =  $isMysql ? $str : "try(" . $str . ")";
 
         $time_list = array_column($time_line, "key");
         foreach ($time_list as $date) {
             $str = $custom_target['formula'] ;
             foreach ($time_targets as $k => $f_key) {
                 if(!in_array($f_key,$operational_char_arr)){
-                    if(!is_numeric($f_key) && !in_array($f_key,$ark_custom_param)){
+                    if(!is_numeric($f_key)){
                         $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF({' . $f_key . '},0)', $str);//分母为0的处理
                     }
                 }
@@ -8247,7 +8261,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $str = 'NULL';
                 }
             }
-            $fields[strval($date)] = $str;
+            $fields[strval($date)] = $isMysql ? $str : "try(" . $str . ")";
         }
         //unset没选的字段
         if($time_targets){
@@ -8297,17 +8311,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     public function count_custom_formula($formula = '' , $data = array()){
-        $str = $formula ;
-        foreach ($data as $key => $value) {
-            if(is_null($value)){
-                $value = 'NULL';
+        try{
+            $str = $formula ;
+            foreach ($data as $key => $value) {
+                if(is_null($value)){
+                    $value = 'NULL';
+                }
+                $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
             }
-            $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
-        }
-        if(strpos($str,' NULL ') !== false || strpos($str,'/ 0 ') !== false){
-            $rt = null;
-        }else{
+            $str = preg_replace('/{[a-z,A-Z,0-9,-,_]*}/',0,$str);
             $rt = eval("return $str;");
+        }catch (\Exception $e){
+            $rt = null;
         }
         return $rt ;
 
