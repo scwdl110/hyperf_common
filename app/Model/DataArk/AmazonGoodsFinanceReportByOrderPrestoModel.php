@@ -1347,16 +1347,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_views_number'] = " sum( report.byorder_number_of_visits ) ";
         }
 
-        if(in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)){
-            $table = "{$this->table_goods_day_report} ";
-            $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-            $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                 $totals_view_session_lists = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
-            }else{
-                $total_views_session_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table);
-            }
-        }
+//        if(in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)){
+//            $table = "{$this->table_goods_day_report} ";
+//            $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
+//            $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+//            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
+//                 $totals_view_session_lists = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
+//            }else{
+//                $total_views_session_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table);
+//            }
+//        }
         if (in_array('goods_views_rate', $targets)) { //页面浏览次数百分比 (需要计算)
             //总流量次数
             $fields['goods_views_rate'] = $this->goodsViewsRateForGoods($datas);
@@ -10002,7 +10002,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $goods_buyer_visit_rate = 0;
 
         $table = "{$this->table_goods_day_report} ";
-        $where = $datas['origin_where'];
+        $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
+        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
         if ($datas['count_dimension'] == 'parent_asin'){
             $where .= " AND amazon_goods.goods_parent_asin != ''";
         }elseif ($datas['count_dimension'] == 'asin'){
@@ -10200,7 +10201,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $goods_views_rate = 0;
 
         $table = "{$this->table_goods_day_report} ";
-        $where = $datas['origin_where'];
+        $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
+        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
         if ($datas['count_dimension'] == 'parent_asin'){
             $where .= " AND amazon_goods.goods_parent_asin != ''";
         }elseif ($datas['count_dimension'] == 'asin'){
