@@ -10022,7 +10022,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth, report.mday";
                 $rateGroup = "report.channel_id, report.myear, report.mmonth, report.mday";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '','', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
