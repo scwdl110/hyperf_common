@@ -9378,7 +9378,7 @@ max( bychannel_create_time ) as bychannel_create_time
             $channel_table = "(select * from {$this->table_channel_month_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
 	    AND goods.goods_operation_pattern = 2";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth";
-            $goods_other_field = "max(dw_report.mquarter) as mquarter,sum(first_purchasing_cost ) as first_purchasing_cost,
+            $goods_other_field = "min(dw_report.mquarter) as mquarter,sum(first_purchasing_cost ) as first_purchasing_cost,
 			sum(first_logistics_head_course ) as first_logistics_head_course,
 			sum(fba_first_logistics_head_course) as fba_first_logistics_head_course,
 			sum(fbm_first_logistics_head_course ) as fbm_first_logistics_head_course,
