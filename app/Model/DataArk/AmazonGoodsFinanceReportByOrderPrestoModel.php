@@ -10010,7 +10010,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         if ($datas['is_count'] == 1){
-            $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', '', $table);
+            $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
             if (intval($total_user_sessions['total_user_sessions']) > 0) {
                 $goods_buyer_visit_rate = " SUM ( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
             }
@@ -10022,7 +10022,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth, report.mday";
                 $rateGroup = "report.channel_id, report.myear, report.mmonth, report.mday";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10035,7 +10035,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth, report.mday";
                 $rateGroup = "report.myear, report.mmonth, report.mday";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10053,7 +10053,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mweek";
                 $rateGroup = "report.channel_id, report.myear, report.mweek";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10066,7 +10066,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mweek";
                 $rateGroup = "report.myear, report.mweek";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10084,7 +10084,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth";
                 $rateGroup = "report.channel_id, report.myear, report.mmonth";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10097,7 +10097,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth";
                 $rateGroup = "report.myear, report.mmonth";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10115,7 +10115,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mquarter";
                 $rateGroup = "report.channel_id, report.myear, report.mquarter";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10128,7 +10128,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mquarter";
                 $rateGroup = "report.myear, report.mquarter";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10146,7 +10146,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear";
                 $rateGroup = "report.channel_id, report.myear";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10159,7 +10159,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear";
                 $rateGroup = "report.myear";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10175,7 +10175,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         {
             //无
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', '', $table,'','',"report.channel_id");
+                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
                 if (!empty($total_user_sessions)){
                     $case = " CASE ";
                     foreach ($total_user_sessions as $val){
@@ -10186,7 +10186,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $goods_buyer_visit_rate = $case;
                 }
             }elseif ($datas['is_count'] != 1){
-                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', '', $table);
+                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
                 if (intval($total_user_sessions['total_user_sessions']) > 0) {
                     $goods_buyer_visit_rate = " SUM ( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                 }
@@ -10195,252 +10195,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         return $goods_buyer_visit_rate;
     }
-
-    public function goodsBuyerVisitRateForGoodsTime($datas, $time_line){
-        $count_total = 0;
-        $time_fields = $this->get_time_fields($time_line, 0);
-
-        $table = "{$this->table_goods_day_report} ";
-        $where = $datas['origin_where'];
-        if ($datas['count_dimension'] == 'parent_asin'){
-            $where .= " AND amazon_goods.goods_parent_asin != ''";
-        }elseif ($datas['count_dimension'] == 'asin'){
-            $where .= " AND amazon_goods.goods_asin != ''";
-        }
-
-        if ($datas['is_count'] == 1){
-            $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', '', $table);
-            if (intval($total_user_sessions['total_user_sessions']) > 0) {
-                $count_total = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_user_sessions['total_user_sessions']) .", 2)";
-                $time_fields = $this->get_time_fields($time_line, " report.byorder_user_sessions  / round(" . intval($total_user_sessions['total_user_sessions']).", 2)");
-            }
-        }
-
-        if ($datas['count_periods'] == 1)
-        {
-            //日
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth, report.mday";
-                $rateGroup = "report.channel_id, report.myear, report.mmonth, report.mday";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} AND max(report.mday) = {$val['mday']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} AND report.mday = {$val['mday']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth, report.mday";
-                $rateGroup = "report.myear, report.mmonth, report.mday";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} AND max(report.mday) = {$val['mday']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} AND report.mday = {$val['mday']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 2)
-        {
-            //周
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mweek";
-                $rateGroup = "report.channel_id, report.myear, report.mweek";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mweek) = {$val['mweek']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mweek = {$val['mweek']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mweek";
-                $rateGroup = "report.myear, report.mweek";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mweek) = {$val['mweek']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} AND report.mweek = {$val['mweek']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 3)
-        {
-            //月
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth";
-                $rateGroup = "report.channel_id, report.myear, report.mmonth";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth";
-                $rateGroup = "report.myear, report.mmonth";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 4)
-        {
-            //季
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mquarter";
-                $rateGroup = "report.channel_id, report.myear, report.mquarter";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mquarter) = {$val['mquarter']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mquarter = {$val['mquarter']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mquarter";
-                $rateGroup = "report.myear, report.mquarter";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mquarter) = {$val['mquarter']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} AND report.mquarter = {$val['mquarter']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 5)
-        {
-            //年
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear";
-                $rateGroup = "report.channel_id, report.myear";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_user_sessions) as total_user_sessions, report.myear";
-                $rateGroup = "report.myear";
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} THEN SUM ( report.byorder_user_sessions ) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        else
-        {
-            //无
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', '', $table,'','',"report.channel_id");
-                if (!empty($total_user_sessions)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_user_sessions as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM (report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} THEN report.byorder_user_sessions * 1.0000 / round({$val['total_user_sessions']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', '', $table);
-                if (intval($total_user_sessions['total_user_sessions']) > 0) {
-                    $count_total = " SUM ( report.byorder_user_sessions ) / round(" . intval($total_user_sessions['total_user_sessions']) .", 2)";
-                    $time_fields = $this->get_time_fields($time_line, " report.byorder_user_sessions  / round(" . intval($total_user_sessions['total_user_sessions']).", 2)");
-                }
-            }
-        }
-
-        return ['count_total' => $count_total, 'time_fields' => $time_fields];
-    }
-
 
     public function goodsViewsRateForGoods($datas){
         $goods_views_rate = 0;
@@ -10455,7 +10209,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         if ($datas['is_count'] == 1){
             //总计
-            $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', '', $table);
+            $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
             if (intval($total_views_numbers['total_views_number']) > 0) {
                 $goods_views_rate = " SUM ( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
             }
@@ -10467,7 +10221,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth, report.mday";
                 $rateGroup = "report.channel_id, report.myear, report.mmonth, report.mday";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10480,7 +10234,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth, report.mday";
                 $rateGroup = "report.myear, report.mmonth, report.mday";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields,  $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10498,7 +10252,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mweek";
                 $rateGroup = "report.channel_id, report.myear, report.mweek";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10511,7 +10265,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mweek";
                 $rateGroup = "report.myear, report.mweek";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10529,7 +10283,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth";
                 $rateGroup = "report.channel_id, report.myear, report.mmonth";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10542,7 +10296,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth";
                 $rateGroup = "report.myear, report.mmonth";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10560,7 +10314,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mquarter";
                 $rateGroup = "report.channel_id, report.myear, report.mquarter";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10573,7 +10327,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mquarter";
                 $rateGroup = "report.myear, report.mquarter";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10591,7 +10345,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear";
                 $rateGroup = "report.channel_id, report.myear";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10604,7 +10358,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif ($datas['is_count'] != 1){
                 $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear";
                 $rateGroup = "report.myear";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, $table, '', '', $rateGroup);
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10620,7 +10374,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         {
             //无
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', '', $table, '', '', "report.channel_id");
+                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', $table, '', '', "report.channel_id");
                 if (!empty($total_views_numbers)){
                     $case = " CASE ";
                     foreach ($total_views_numbers as $val){
@@ -10631,7 +10385,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $goods_views_rate = $case;
                 }
             }elseif ($datas['is_count'] != 1){
-                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', '', $table);
+                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
                 if (intval($total_views_numbers['total_views_number']) > 0) {
                     $goods_views_rate = " SUM ( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
                 }
@@ -10639,251 +10393,5 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         return $goods_views_rate;
-    }
-
-    public function goodsViewsRateForGoodsTime($datas, $time_line){
-        $count_total = 0;
-        $time_fields = $this->get_time_fields($time_line, 0);
-
-        $table = "{$this->table_goods_day_report} ";
-        $where = $datas['origin_where'];
-        if ($datas['count_dimension'] == 'parent_asin'){
-            $where .= " AND amazon_goods.goods_parent_asin != ''";
-        }elseif ($datas['count_dimension'] == 'asin'){
-            $where .= " AND amazon_goods.goods_asin != ''";
-        }
-
-        if ($datas['is_count'] == 1){
-            //总计
-            $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', '', $table);
-            if (intval($total_views_numbers['total_views_number']) > 0) {
-                $count_total = "SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
-                $time_fields = $this->get_time_fields($time_line, "  report.byorder_number_of_visits  / round(" . intval($total_views_numbers['total_views_number']).', 2)');
-            }
-        }
-
-        if ($datas['count_periods'] == 1)
-        {
-            //日
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth, report.mday";
-                $rateGroup = "report.channel_id, report.myear, report.mmonth, report.mday";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_field = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} AND max(report.mday) = {$val['mday']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_field .= " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} AND report.mday = {$val['mday']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_field .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_field);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth, report.mday";
-                $rateGroup = "report.myear, report.mmonth, report.mday";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_field = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} AND max(report.mday) = {$val['mday']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_field .=  " WHEN report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} AND report.mday = {$val['mday']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_field .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_field);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 2)
-        {
-            //周
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mweek";
-                $rateGroup = "report.channel_id, report.myear, report.mweek";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mweek) = {$val['mweek']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mweek = {$val['mweek']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mweek";
-                $rateGroup = "report.myear, report.mweek";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mweek) = {$val['mweek']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} AND report.mweek = {$val['mweek']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 3)
-        {
-            //月
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth";
-                $rateGroup = "report.channel_id, report.myear, report.mmonth";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mmonth";
-                $rateGroup = "report.myear, report.mmonth";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mmonth) = {$val['mmonth']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} AND report.mmonth = {$val['mmonth']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 4)
-        {
-            //季
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mquarter";
-                $rateGroup = "report.channel_id, report.myear, report.mquarter";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} AND max(report.mquarter) = {$val['mquarter']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} AND report.mquarter = {$val['mquarter']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mquarter";
-                $rateGroup = "report.myear, report.mquarter";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} AND max(report.mquarter) = {$val['mquarter']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} AND report.mquarter = {$val['mquarter']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        elseif ($datas['count_periods'] == 5)
-        {
-            //年
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, report.myear";
-                $rateGroup = "report.channel_id, report.myear";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} AND max(report.myear) = {$val['myear']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} AND report.myear = {$val['myear']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear";
-                $rateGroup = "report.myear";
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", $rateFields, '', $table, '', '', $rateGroup);
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.myear) = {$val['myear']} THEN SUM (report.byorder_number_of_visits) * 1.0000 / round({$val['total_views_number']}, 2)";
-                        $case_fields .=  " WHEN report.myear = {$val['myear']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']}, 2)";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }
-        }
-        else
-        {
-            //无
-            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
-                $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', '', $table, '', '', "report.channel_id");
-                if (!empty($total_views_numbers)){
-                    $case = " CASE ";
-                    $case_fields = " CASE ";
-                    foreach ($total_views_numbers as $val){
-                        $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM ( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
-                        $case_fields .=  " WHEN report.channel_id = {$val['channel_id']} THEN report.byorder_number_of_visits * 1.0000 / round({$val['total_views_number']},2 )";
-                    }
-                    $case .= " ELSE 0 END";
-                    $case_fields .= " ELSE 0 END";
-
-                    $count_total = $case;
-                    $time_fields = $this->get_time_fields($time_line, $case_fields);
-                }
-            }elseif ($datas['is_count'] != 1){
-                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', '', $table);
-                if (intval($total_views_numbers['total_views_number']) > 0) {
-                    $count_total = "SUM ( report.byorder_number_of_visits ) / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
-                    $time_fields = $this->get_time_fields($time_line, "  report.byorder_number_of_visits  / round(" . intval($total_views_numbers['total_views_number']).', 2)');
-                }
-            }
-        }
-
-        return ['count_total' => $count_total, 'time_fields' => $time_fields];
     }
 }
