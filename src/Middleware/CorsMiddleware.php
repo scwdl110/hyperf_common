@@ -20,7 +20,7 @@ class CorsMiddleware implements MiddlewareInterface
         $response = $response->withHeader('Access-Control-Allow-Origin', $origin)
             ->withHeader('Access-Control-Allow-Credentials', 'true')
             // Headers 可以根据实际情况进行改写。
-            ->withHeader('Access-Control-Allow-Headers', 'uid,token,Keep-Alive,User-Agent,Cache-Control,Content-Type,HYPERF_SESSION_ID_Token')
+//            ->withHeader('Access-Control-Allow-Headers', 'uid,token,Keep-Alive,User-Agent,Cache-Control,Content-Type,HYPERF_SESSION_ID_Token')
             ->withHeader('Content-Type', 'application/json');
 
         Context::set(ResponseInterface::class, $response);
