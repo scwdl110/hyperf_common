@@ -11,38 +11,96 @@ use Hyperf\Utils\ApplicationContext;
 
 class UserPrivilege
 {
-    //是否拥有权限
+    /**
+     * 是否拥有权限
+     * @return bool
+     */
     public function isPrivilege()
     {
+        $menuResource = $this->getMenuResource();
+        if(!$menuResource['code']){
+            return false;
+        }
+
         $container = ApplicationContext::getContainer();
         // 通过 DI 容器直接注入
         $request = $container->get(RequestInterface::class);
         $requestData = $request->all();
         $url = $request->url();
+        $this->urlHasPrivilieg($url);
 
+    }
+
+
+    /**
+     * url判断权限
+     * @param $url
+     * @return bool
+     */
+    public function urlHasPrivilieg($url){
         //切割url
         $urlPathArr = explode('/', $url);
         $last = count($urlPathArr)-1;
 
-        //有漏的再增加
+        //有漏的再增加(判断权限)
         if(isset($requestData['m']) && isset($requestData['c']) && isset($requestData['a'])){
             //?m=&c=&a=
+            foreach ($menuResource as $k=>$v){
+                $urlArr = parse_url($v);
+                if(!isset($urlArr['query'])){
+                    continue;
+                }
+                $query = '&'.$urlArr['query'].'&';
+                preg_match_all('/&m=(.*)&/', $query, $modelArray);
+                preg_match_all('/&c=(.*)&/', $query, $controlArray);
+                preg_match_all('/&a=(.*)&/', $query, $methodArray);
+                if($modelArray[1] == $requestData['m'] && $controlArray[1] == $requestData['c'] && $methodArray[1] == $requestData['a']){
+                    return true;
+                }
+            }
 
-        }elseif(preg_match_all('/(.*)-(.*)-(.*)/', $urlPathArr[$last], $patArray)){
-            //m-c-a
+        }elseif(preg_match_all('/(.*)-(.*)-(.*)\.php/', $urlPathArr[$last], $patArray)){
+            //m-c-a.php
+            foreach ($menuResource as $k=>$v){
+                $urlArr = parse_url($v);
+                if(!isset($urlArr['path'])){
+                    continue;
+                }
+                preg_match_all('/(.*)-(.*)-(.*)\.php/', $urlArr['path'], $resultArray);
+                if($resultArray[1] == $patArray[1] && $resultArray[2] == $patArray[2] && $resultArray[3] == $patArray[3]){
+                    return true;
+                }
+            }
 
         }else{
-            preg_match_all('/(.*)\/(.*)\/(.*)/', $urlPathArr[$last], $patArray);
-            //m/c/a
+            $sourceUrlArr = parse_url($url);
+            if(!isset($sourceUrlArr['path'])){
+                return false;
+            }
+            preg_match_all('/(.*)\/(.*)\/(.*)$/', $sourceUrlArr['path'], $patArray);
+            foreach ($menuResource as $k=>$v){
+                $urlArr = parse_url($v);
+                if(!isset($urlArr['path'])){
+                    continue;
+                }
+                //m/c/a
+                preg_match_all('/(.*)\/(.*)\/(.*)$/', $urlArr['path'], $resultArray);
+                if($resultArray[1] == $patArray[1] && $resultArray[2] == $patArray[2] && $resultArray[3] == $patArray[3]){
+                    return true;
+                }
 
+                //剩下正常pathinfo不适配
+                //例子:id作为id的占位符
+                $sourcePath = preg_replace('/\d/', ':id', $sourceUrlArr['path']);
+                $newPath = preg_replace('/:(.*?)(?!\s)/', ':id', $urlArr['path']);
+                if($sourcePath==$newPath){
+                    return true;
+                }
+            }
 
-
-            //正常pathinfo不适配
-            //例子:id作为id的占位符
-            $urlArr = parse_url($url);
 
         }
-        return true;
+        return false;
     }
 
     /**
