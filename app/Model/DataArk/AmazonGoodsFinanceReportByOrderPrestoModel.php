@@ -2,6 +2,7 @@
 
 namespace App\Model\DataArk;
 
+use App\Lib\Redis;
 use App\Model\ChannelTargetsMySQLModel;
 use App\Model\SiteRateMySQLModel;
 use App\Model\UserAdminModel;
@@ -10111,7 +10112,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mweek";
                 $rateGroup = "report.channel_id, report.myear, report.mweek";
             }else{
-                $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, report.myear, report.mweek";
+                $rateFields = "SUM(report.byorder_number_of_visits) as total_views_number, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mweek";
                 $rateGroup = "report.myear, report.mweek";
             }
         }elseif ($datas['count_periods'] == 3) {
@@ -10142,7 +10143,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $rateGroup = "report.myear";
             }
         }
-        $total_numbers = $this->select($where, $rateFields, $table, '', '', $rateGroup);
+        //缓存
+        $cache_key = md5($where.$datas['count_periods'].$datas['count_dimension'].$datas['is_distinct_channel']);
+        $redis = new Redis();
+        $total_numbers = $redis->get($cache_key);
+        if(empty($total_numbers)){
+            $total_numbers = $this->select($where, $rateFields, $table, '', '', $rateGroup);
+            $redis->set($cache_key, $total_numbers, 300);
+        }
         if (!empty($total_numbers)) {
             $map = [];
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')) {
