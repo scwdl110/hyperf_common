@@ -13,9 +13,8 @@ class DataArkController extends AbstractController
 
         $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
-
         if (config('misc.dataark_log_req', false)) {
-            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'default');
+            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'dataark');
             $logger->info('request body', [$req, $userInfo]);
         }
 
@@ -226,7 +225,7 @@ class DataArkController extends AbstractController
                 if (!empty($params['where_parent']['tags_id'])){
                     $where .= " AND tags_rel.tags_id  IN (" . $params['where_parent']['tags_id'] . ")" ;
                 }
-                
+
                 if (!empty($params['where_parent']['class1'])){//数据对比 一级类目
                     $class1 = $params['where_parent']['class1'] ? json_decode(base64_decode($params['where_parent']['class1']),true) : "";
                     foreach ($class1 as $key => $class_value){
