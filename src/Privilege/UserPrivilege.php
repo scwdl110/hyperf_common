@@ -17,17 +17,17 @@ class UserPrivilege
      */
     public function isPrivilege()
     {
-        $menuResource = $this->getMenuResource();
-        if(!$menuResource['code']){
-            return false;
-        }
-
+//        $url = $request->url();
+//        $url = '/cgfd/m1/c1/a1/51';
+//        $url = '/cgfd/m1/c1/a1';
+        $url = '/gfdc/gfd/m1-c1-a1.php';
+//        $url = '/fsd/index.php?m=m1&c=c1&a=a1';
         $container = ApplicationContext::getContainer();
         // 通过 DI 容器直接注入
         $request = $container->get(RequestInterface::class);
         $requestData = $request->all();
-        $url = $request->url();
-        $this->urlHasPrivilieg($url);
+        $res = $this->urlHasPrivilege($url, $requestData);
+        return $res;
 
     }
 
@@ -37,64 +37,103 @@ class UserPrivilege
      * @param $url
      * @return bool
      */
-    public function urlHasPrivilieg($url){
-        //切割url
-        $urlPathArr = explode('/', $url);
-        $last = count($urlPathArr)-1;
+    public function urlHasPrivilege($url, $requestData){
+        //获取权限
+        $menuResource = $this->getMenuResource();
+        if(!$menuResource['code']){
+            return false;
+        }
+        $menuResource = $menuResource['resource'];
+
+        $sourceUrlArr = parse_url((string)$url);
+        if(!isset($sourceUrlArr['path'])){
+            return false;
+        }
 
         //有漏的再增加(判断权限)
         if(isset($requestData['m']) && isset($requestData['c']) && isset($requestData['a'])){
             //?m=&c=&a=
             foreach ($menuResource as $k=>$v){
-                $urlArr = parse_url($v);
+                $urlArr = parse_url((string)$v);
                 if(!isset($urlArr['query'])){
                     continue;
                 }
                 $query = '&'.$urlArr['query'].'&';
-                preg_match_all('/&m=(.*)&/', $query, $modelArray);
-                preg_match_all('/&c=(.*)&/', $query, $controlArray);
-                preg_match_all('/&a=(.*)&/', $query, $methodArray);
+                $mResult = preg_match('/&m=(.*?)&/', $query, $modelArray);
+                $cResult = preg_match('/&c=(.*?)&/', $query, $controlArray);
+                $aResult = preg_match('/&a=(.*?)&/', $query, $methodArray);
+                if(!$mResult || !$cResult || !$aResult){
+                    continue;
+                }
                 if($modelArray[1] == $requestData['m'] && $controlArray[1] == $requestData['c'] && $methodArray[1] == $requestData['a']){
                     return true;
                 }
             }
 
-        }elseif(preg_match_all('/(.*)-(.*)-(.*)\.php/', $urlPathArr[$last], $patArray)){
-            //m-c-a.php
-            foreach ($menuResource as $k=>$v){
-                $urlArr = parse_url($v);
-                if(!isset($urlArr['path'])){
-                    continue;
-                }
-                preg_match_all('/(.*)-(.*)-(.*)\.php/', $urlArr['path'], $resultArray);
-                if($resultArray[1] == $patArray[1] && $resultArray[2] == $patArray[2] && $resultArray[3] == $patArray[3]){
-                    return true;
-                }
-            }
 
         }else{
-            $sourceUrlArr = parse_url($url);
-            if(!isset($sourceUrlArr['path'])){
-                return false;
+            //是否有占位符
+            $placeholder = 0;
+            if(preg_match('/(\/\d+\/)|(\/\d+$)/', $sourceUrlArr['path'], $patArray)){
+                //例子:id作为id的占位符(先处理占位符)
+                $patterns = [
+                    '/\/\d+\//',
+                    '/\/\d+$/'
+                ];
+                $replacements = [
+                    "/:id/",
+                    "/:id"
+                ];
+                $sourceUrlArr['path'] = preg_replace($patterns, $replacements, $sourceUrlArr['path']);
+                $placeholder = 1;
             }
-            preg_match_all('/(.*)\/(.*)\/(.*)$/', $sourceUrlArr['path'], $patArray);
+
+            //剩下正常pathinfo
+            $sourcePathArr = explode('/',trim($sourceUrlArr['path'], '/'));
             foreach ($menuResource as $k=>$v){
                 $urlArr = parse_url($v);
                 if(!isset($urlArr['path'])){
                     continue;
                 }
-                //m/c/a
-                preg_match_all('/(.*)\/(.*)\/(.*)$/', $urlArr['path'], $resultArray);
-                if($resultArray[1] == $patArray[1] && $resultArray[2] == $patArray[2] && $resultArray[3] == $patArray[3]){
-                    return true;
+
+                if($placeholder){
+                    //占位符处理
+                    $patterns = [
+                        '/\/:(.*?)\//',
+                        '/\/:(.*)$/'
+                    ];
+                    $replacements = [
+                        "/:id/",
+                        "/:id"
+                    ];
+                    $urlArr['path'] = preg_replace($patterns, $replacements, $urlArr['path']);
                 }
 
-                //剩下正常pathinfo不适配
-                //例子:id作为id的占位符
-                $sourcePath = preg_replace('/\d/', ':id', $sourceUrlArr['path']);
-                $newPath = preg_replace('/:(.*?)(?!\s)/', ':id', $urlArr['path']);
-                if($sourcePath==$newPath){
-                    return true;
+
+                //m/c/a   /m-c-a.php
+                $pathArr = explode('/',trim($urlArr['path'], '/'));
+                if(end($pathArr) == end($sourcePathArr)){
+                    //退出标志
+                    $flag = 1;
+                    //相等计数
+                    $eqNum = 1;
+                    //总计数
+                    $totalNum = count($pathArr);
+                    while($flag){
+                        //往前对比
+                        $path = prev($pathArr);
+                        $sourcePath = prev($sourcePathArr);
+                        if($path === FALSE){
+                            $flag=0;
+                        }elseif($path==$sourcePath){
+                            $eqNum++;
+                        }
+                    }
+
+                    if($eqNum == $totalNum){
+                        return true;
+                    }
+                    var_dump($pathArr,$sourcePathArr);exit;
                 }
             }
 
