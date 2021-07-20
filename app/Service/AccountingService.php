@@ -17,6 +17,7 @@ use App\Model\CurrencyModel;
 use App\Model\ChannelModel;
 use App\Model\ChannelProfitReportModel;
 use App\Model\FinanceCurrencyModel;
+use App\Model\FinanceMoneyBackModel;
 use App\Model\SiteMessageModel;
 use App\Model\SynchronouslyManagementTaskModel;
 use App\Model\SystemCurrencyModel;
@@ -225,6 +226,15 @@ class AccountingService extends BaseService
                 ['create_time', '<=', $end_time],
                 ['user_id', '=', $userInfo['user_id']]
             ])->get());
+            $FinanceMoneyBackInfo = $this->getArray(FinanceMoneyBackModel::selectRaw("
+           sum( currency_amount ) AS money_back_amount
+        ")->where([
+                ['channel_id', '=', $list['id']],
+                ['financial_event_group_end_int', '>', $begin_time],
+                ['financial_event_group_start_int', '<', $end_time],
+                ['user_id', '=', $userInfo['user_id']],
+                ['fundtransfer_status', '=', 0]
+            ])->get());
 
             //促销费用
             $info['promotion_fee']['promote_discount'] = floor($FinanceReportInfo[0]['promote_discount'] * 100) / 100; //Promote折扣
@@ -288,6 +298,7 @@ class AccountingService extends BaseService
             //费用
             $info['fee']['reserved_field16'] = floor($FinanceReportInfo[0]['reserved_field16'] * 100) / 100; //**  运营费用
             $info['fee']['reserved_field10'] = floor($FinanceReportInfo[0]['reserved_field10'] * 100) / 100; //**  测评费用
+            $info['fee']['money_back_amount'] = floor($FinanceMoneyBackInfo[0]['money_back_amount'] * 100) / 100; //**  回款费用
             $info['fee']['purchasing_cost'] = floor($FinanceReportInfo[0]['purchasing_cost'] * 100) / 100; //**  采购成本
             $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //** 头程物流（FBA）
             $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //**  物流（FBM）
