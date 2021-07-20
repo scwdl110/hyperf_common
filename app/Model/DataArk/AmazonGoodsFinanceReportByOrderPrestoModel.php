@@ -1418,7 +1418,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             $goods_buyer_visit_rate = 0;
             $table = "{$this->table_goods_day_report}";
-            $where = $datas['origin_where'];
+            $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
+            $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
             if ($datas['count_dimension'] == 'parent_asin'){
                 $where .= " AND amazon_goods.goods_parent_asin != ''";
             }elseif ($datas['count_dimension'] == 'asin'){
