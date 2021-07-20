@@ -27,7 +27,7 @@ class Unique {
      * @return array
      */
 
-    private static function getArray($items)
+    public static function getArray($items)
     {
         return empty($items) ? array() : $items->toArray();
     }
