@@ -389,7 +389,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
         $sql = str_replace( 'as varchar )', 'as char)', $sql);
         $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
-        $this->logger->error("read_mysql:toMysqlTable");
+        $this->logger->error("read_mysql:toMysqlTable,$sql");
         return $sql;
 
     }
@@ -486,7 +486,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $where = empty($where) ? '' : " WHERE {$where}";
         $order = empty($order) ? '' : " ORDER BY {$order}";
         $group = empty($group) ? '' : " GROUP BY {$group}";
-        $limit = is_string($limit) || is_numeric($limit) ? trim((string)$limit) : '';
+        $limit = $mysql_limit = is_string($limit) || is_numeric($limit) ? trim((string)$limit) : '';
         $athena_limit = '';
         $is_only_limit = false;
         if (!empty($limit)) {
@@ -499,21 +499,25 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
                 // presto 语法必须 offset 在前，且不支持 limit 1,2 这种写法
                 $limit = " OFFSET {$offset} LIMIT {$limit}";
+
+                $mysql_limit = " LIMIT {$offset} , {$limit} ";
                 //athena 分页写法
                 $athena_offset = ($offset+1);
                 $athena_limit = " WHERE rn BETWEEN {$athena_offset} AND ".($athena_offset+$limit);
             } else {
                 if (is_numeric($limit)) {
-                    $limit = " LIMIT {$limit}";
+                    $limit = $mysql_limit = " LIMIT {$limit}";
                     $athena_limit = " LIMIT {$limit}";
                     $is_only_limit = true;
                 } elseif (1 === preg_match('/\s*offset\s+(\d+)\s+limit\s+(\d+)\s*/i', $limit, $m)) {
                     $limit = " OFFSET {$m[1]} LIMIT {$m[2]}";
+                    $mysql_limit = " LIMIT {$m[1]} , {$m[2]} ";
                     //athena 分页写法
                     $athena_offset = ($m[1]+1);
                     $athena_limit = " WHERE rn BETWEEN ".$athena_offset." AND ".($athena_offset+$m[2]);
                 } elseif (1 === preg_match('/\s*limit\s+(\d+)\s+offset\s+(\d+)\s*/i', $limit, $m)) {
                     $limit = " OFFSET {$m[2]} LIMIT {$m[1]}";
+                    $mysql_limit = " LIMIT {$m[2]} , {$m[1]} ";
                     //athena 分页写法
                     $athena_offset = ($m[2]+1);
                     $athena_limit = " WHERE rn BETWEEN ".$athena_offset." AND ".($athena_offset+$m[1]);
@@ -548,7 +552,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         }
         $athena_sql = $sql;
-        $sql .= " {$limit}";
+
+        if ($isMysql){
+            $sql .= " {$mysql_limit}";
+
+        }else{
+            $sql .= " {$limit}";
+
+        }
 
 
         $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
