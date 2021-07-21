@@ -22,12 +22,11 @@ class DataArkController extends AbstractController
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
         $params = $req['params'] ?? [];
-//        if ($req['is_count'] == 1){//总计的页数只能为1
-//            $page = 1;
-//        }else{
-//            $page = intval($req['page'] ?? 1);
-//        }
-        $page = intval($req['page'] ?? 1);
+        if (isset($req['is_count']) && $req['is_count'] == 1){//总计的页数只能为1
+            $page = 1;
+        }else{
+            $page = intval($req['page'] ?? 1);
+        }
         $limit = intval($req['rows'] ?? 100);
         $sort = trim(strval($req['sort'] ?? ''));
         $order = trim(strval($req['order'] ?? ''));
