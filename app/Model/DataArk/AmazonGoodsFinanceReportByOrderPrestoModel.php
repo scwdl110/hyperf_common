@@ -578,12 +578,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
+                echo '---------------------';
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else{
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
+                echo $this->getLastSql();
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }else{
@@ -8411,15 +8413,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($isJoin){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
-//                    $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
                     $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
                     $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
 
                 } else {
-
-                    if (strpos($table, '_day_report_')) {
+                    if (strpos($table, '_day_report_') && !strpos($table,'week_report' ) ) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
-                    } elseif (strpos($table,'_week_report_' )) {
+                    } elseif (strpos($table,'week_report' )) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
                     } elseif (strpos($table,'_month_report_')) {
                         $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['month'], $sql);
