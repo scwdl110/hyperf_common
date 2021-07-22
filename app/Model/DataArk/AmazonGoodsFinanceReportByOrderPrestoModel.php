@@ -8426,6 +8426,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }
+            if (strpos($table,'week_report' )){
+                $sql = str_replace('week_report' , 'report' , $sql);
+
+            }
         }
 
         $lists = $this->query($sql, [], null, 300, $isMysql);
