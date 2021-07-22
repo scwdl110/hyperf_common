@@ -578,14 +578,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
-                echo '---------------------';
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else{
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
-                echo $this->getLastSql();
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }else{
