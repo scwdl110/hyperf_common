@@ -505,6 +505,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             $target_wheres = $where_detail['target'] ?? '';
+            $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     if(!empty($fields[$target_where['key']])){
@@ -515,7 +516,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         if (empty($having)) {
                             $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                         } else {
-                            $having .= ' AND (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                            $having .= ' ' .$condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                         }
                     }
 
