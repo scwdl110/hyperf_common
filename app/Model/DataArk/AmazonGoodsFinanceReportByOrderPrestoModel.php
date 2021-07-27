@@ -7,6 +7,7 @@ use App\Model\ChannelTargetsMySQLModel;
 use App\Model\SiteRateMySQLModel;
 use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
+use Captainbi\Hyperf\Util\Log;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use App\Service\CommonService;
@@ -14,6 +15,7 @@ use Hyperf\Di\Annotation\Inject;
 use function App\getUserInfo;
 use Hyperf\Utils\Exception\ParallelExecutionException;
 use Hyperf\Utils\Parallel;
+use function Swoole\Coroutine\Http\get;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
@@ -606,6 +608,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } catch(ParallelExecutionException $e){
                     // $e->getResults() 获取协程中的返回值。
                     // $e->getThrowables() 获取协程中出现的异常。
+                    Log::getClient('dataark', 'dataark')->info('协程异常：', [$e->getMessage()]);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
