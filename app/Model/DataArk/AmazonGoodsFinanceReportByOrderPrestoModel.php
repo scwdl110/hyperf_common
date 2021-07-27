@@ -135,11 +135,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //没有按周期统计 ， 按指标展示
         if ($datas['show_type'] == 2) {
-            $fields_arr = $this->getGoodsFields($datas);
+            $fields_arr = $this->getGoodsFields($datas,$isMysql);
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
-            $fields = $this->getGoodsTimeFields($datas, $timeLine);
+            $fields = $this->getGoodsTimeFields($datas, $timeLine,$isMysql);
         }
 
         if (empty($fields)) {
@@ -613,10 +613,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //页面浏览次数百分比  买家访问次数百分比
                     $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
                 }
-                if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
+                if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
-                if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
@@ -1310,7 +1310,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     //获取商品维度指标字段(新增统计维度完成)
-    private function getGoodsFields($datas = array())
+    private function getGoodsFields($datas = array(),$isMysql = false)
     {
         $fields = array();
         $fields = $this->getGoodsTheSameFields($datas,$fields);
@@ -2108,7 +2108,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //加入自定义指标
         $fba_target_key = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
-        $this->getCustomTargetFields($fields,$custom_targets_list,$targets,$targets_temp, $datas,$fba_target_key,$is_count);
+        $this->getCustomTargetFields($fields,$custom_targets_list,$targets,$targets_temp, $datas,$fba_target_key,$is_count,$isMysql);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
 
@@ -2214,7 +2214,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     //按商品维度,时间展示字段（新增统计维度完成）
-    private function getGoodsTimeFields($datas = [], $time_line)
+    private function getGoodsTimeFields($datas = [], $time_line,$isMysql = false)
     {
         $fields = [];
         $fields = $this->getGoodsTheSameFields($datas,$fields);
@@ -3284,7 +3284,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $time_fields_arr[$time_target] = $time_fields;
         }
         if($custom_target && $custom_target['target_type'] == 2){
-            $this->dealTimeTargets($fields,$custom_target,$time_line,$time_fields_arr,$target_key);
+            $this->dealTimeTargets($fields,$custom_target,$time_line,$time_fields_arr,$target_key,$isMysql);
         }else {
             if (!empty($time_fields) && is_array($time_fields)) {
                 foreach ($time_fields as $kt => $time_field) {
