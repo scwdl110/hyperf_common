@@ -3728,9 +3728,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         //商品级
-        if ($params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && $params['method'] == "getListByGoods" &&($params['origin_create_start_time'] - $params['origin_create_end_time']) <= 31*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2){
-            $isMysql = true;
-        }
+//        if ($params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && $params['method'] == "getListByGoods" &&($params['origin_create_start_time'] - $params['origin_create_end_time']) <= 31*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2){
+//            $isMysql = true;
+//        }
 
         return $isMysql;
     }
