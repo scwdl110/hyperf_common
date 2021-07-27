@@ -28,9 +28,9 @@ return [
         [
             'name' => env('HYPERF_RPC_SERVER_NAME', 'jsonrpc-http'),
             'type' => (int)env('HYPERF_RPC_SERVER_TYPE', Server::SERVER_HTTP),
-            'host' => env('HYPERF_HOST', '0.0.0.0'),
-            'port' => (int)env('HYPERF_PORT', 9504),
-            'sock_type' => (int)env('HYPERF_SOCK_TYPE', SWOOLE_SOCK_TCP),
+            'host' => env('HYPERF_RPC_HOST', '0.0.0.0'),
+            'port' => (int)env('HYPERF_RPC_PORT', 9504),
+            'sock_type' => (int)env('HYPERF_RPC_SOCK_TYPE', SWOOLE_SOCK_TCP),
             'callbacks' => [
                 Event::ON_REQUEST => [\Hyperf\JsonRpc\HttpServer::class, 'onRequest'],
             ],
