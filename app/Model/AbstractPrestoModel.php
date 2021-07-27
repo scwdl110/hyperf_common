@@ -662,9 +662,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
     ): array {
-        return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL);
+        return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL,$isMysql);
     }
 
     /**

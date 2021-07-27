@@ -324,7 +324,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'tags_rel.tags_id  ' ;
                 $orderby = empty($orderby) ? ('tags_rel.tags_id ') : ($orderby . ' , tags_rel.tags_id');
             }
-            $where.= " AND CAST(tags_rel.tags_id  as bigint) > 0";
+            if ($isMysql){
+                $where.= " AND tags_rel.tags_id > 0";
+            }else{
+                $where.= " AND CAST(tags_rel.tags_id  as bigint) > 0";
+            }
         } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
@@ -1386,28 +1390,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if ($datas['is_count'] == 1){
                 //总计
-                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
+                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
                 if (intval($total_views_numbers['total_views_number']) > 0) {
-                    $goods_views_rate = " SUM ( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
+                    $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
                     //统计周期 无
                     if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                        $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', $table, '', '', "report.channel_id");
+                        $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', $table, '', '', "report.channel_id",false,null,300,$isMysql);
                         if (!empty($total_views_numbers)){
                             $case = " CASE ";
                             foreach ($total_views_numbers as $val){
-                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM ( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
+                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
                             }
                             $case .= " ELSE 0 END";
 
                             $goods_views_rate = $case;
                         }
                     }else{
-                        $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
+                        $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
                         if (intval($total_views_numbers['total_views_number']) > 0) {
-                            $goods_views_rate = " SUM ( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
+                            $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
                         }
                     }
                 }else{
@@ -1431,28 +1435,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where .= " AND amazon_goods.goods_asin != ''";
             }
             if ($datas['is_count'] == 1){
-                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
+                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
                 if (intval($total_user_sessions['total_user_sessions']) > 0) {
-                    $goods_buyer_visit_rate = " SUM ( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
+                    $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
                     //统计周期 无
                     if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                        $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
+                        $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id",false,null,300,$isMysql);
                         if (!empty($total_user_sessions)){
                             $case = " CASE ";
                             foreach ($total_user_sessions as $val){
-                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM (report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
+                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
                             }
                             $case .= " ELSE 0 END";
 
                             $goods_buyer_visit_rate = $case;
                         }
                     }else{
-                        $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
+                        $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
                         if (intval($total_user_sessions['total_user_sessions']) > 0) {
-                            $goods_buyer_visit_rate = " SUM ( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
+                            $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                         }
                     }
                 }else{
