@@ -421,7 +421,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
-            $result = Db::connection('bigdata_ads')->select($sql);
+            if (strpos($sql,'dw_goods_dim_report' )){
+                $result = Db::connection('bigdata_goods_ads')->select($sql);
+
+            }else{
+                $result = Db::connection('bigdata_ads')->select($sql);
+
+            }
             if (!empty($result)){
                 foreach ($result as $key => $value){
                     $result[$key] = (array) $value;
@@ -581,7 +587,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
             if ($this->logDryRun()) {
                 return [];
             }
-            $result = Db::connection('bigdata_ads')->select($sql);
+
+            if (strpos($table,'dw_goods_dim_report' )){
+                $result = Db::connection('bigdata_goods_ads')->select($sql);
+
+            }else{
+                $result = Db::connection('bigdata_ads')->select($sql);
+
+            }
             if (!empty($result)){
                 foreach ($result as $key => $value){
                     $result[$key] = (array) $value;
