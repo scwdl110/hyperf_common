@@ -1,5 +1,6 @@
 <?php
 
 return [
-    'uri' => env('CONSUL_URI', '127.0.0.1:8500'),
+    //注册的地址
+    'uri' => env('CONSUL_URI', 'http://127.0.0.1:8500'),
 ];

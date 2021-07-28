@@ -19,6 +19,7 @@
         "hyperf/command": "~2.1.0",
         "hyperf/config": "~2.1.0",
         "hyperf/config-apollo": "^2.1",
+        "hyperf/consul": "2.1",
         "hyperf/crontab": "^2.1",
         "hyperf/database": "~2.1.0",
         "hyperf/db": "^2.1",
