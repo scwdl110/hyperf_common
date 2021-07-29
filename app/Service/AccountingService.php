@@ -25,6 +25,7 @@ use App\Model\UserAdminModel;
 use App\Model\UserExtInfoModel;
 use App\Service\BaseService;
 use App\Model\FinanceReportModel;
+use Hyperf\RpcServer\Annotation\RpcService;
 use Hyperf\Utils\Context;
 use Hyperf\Utils\Coroutine;
 use Hyperf\Di\Annotation\Inject;
@@ -38,7 +39,9 @@ use Hyperf\DbConnection\Db;
 use Hyperf\Guzzle\ClientFactory;
 use Hyperf\Utils\ApplicationContext;
 
-
+/**
+ * @RpcService(name="AccountingService", protocol="jsonrpc-http", server="jsonrpc-http", publishTo="consul")
+ */
 class AccountingService extends BaseService
 {
 
