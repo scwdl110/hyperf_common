@@ -3735,8 +3735,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     private function getRemoveTaxField($params){
         $field = '';
 
-        if ($params['sale_datas_origin'] && $params['']){
-            $field =  "- ( CASE WHERE report.site_id IN (4,5,6,7,8,9,11,14,15,16,17,18) THEN report.byorder_tax ELSE 0 END )";
+        if ($params['sale_datas_origin'] == 1 ){
+            $tax = "byorder_tax";
+            if ($params['finance_datas_origin'] == 2){
+                $tax = "report_tax";
+            }
+            $field =  "- ( CASE WHEN report.site_id IN (4,5,6,7,8,9,11,14,15,16,17,18) THEN report.{$tax} ELSE 0 END )";
 
         }
 
