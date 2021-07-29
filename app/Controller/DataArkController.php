@@ -27,6 +27,7 @@ class DataArkController extends AbstractController
         }else{
             $page = intval($req['page'] ?? 1);
         }
+        $params['is_median'] = $params['is_median'] ?? 0;
         $limit = intval($req['rows'] ?? 100);
         $sort = trim(strval($req['sort'] ?? ''));
         $order = trim(strval($req['order'] ?? ''));

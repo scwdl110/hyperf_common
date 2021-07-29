@@ -116,7 +116,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
-        $datas['is_median'] = $datas['is_median'] ?? 0;
         $isMysql = $this->getIsMysql($datas);
         $datas['is_month_table'] = 0;
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
@@ -555,8 +554,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
             }elseif($datas['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,$isMysql);
-                $lists = $this->getMedianValue($datas['target'],$origin_sql,null,300,$isMysql);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,false);
+                $lists = $this->getMedianValue($datas['target'],$origin_sql,null,300,false);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
                 if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
@@ -592,8 +591,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }elseif($datas['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,$isMysql);
-                $lists = $this->getMedianValue($datas['target'],$origin_sql,null,300,$isMysql);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,false);
+                $lists = $this->getMedianValue($datas['target'],$origin_sql,null,300,false);
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql){
@@ -3766,7 +3765,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         int $day_param = 1
     ) {
         $fields = [];
-        $params['is_median'] = $params['is_median'] ?? 0;
         $isMysql = $this->getIsMysql($params);
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         //没有按周期统计 ， 按指标展示
@@ -4080,8 +4078,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
             }elseif($params['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,$isMysql);
-                $lists = $this->getMedianValue($params['target'],$origin_sql,null,300,$isMysql);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,false);
+                $lists = $this->getMedianValue($params['target'],$origin_sql,null,300,false);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
@@ -4110,8 +4108,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
             }elseif($params['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,$isMysql);
-                $lists = $this->getMedianValue($params['target'],$origin_sql,null,300,$isMysql);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,false);
+                $lists = $this->getMedianValue($params['target'],$origin_sql,null,300,false);
             }else{
 
                 $parallel = new Parallel();
@@ -6339,7 +6337,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
-        $datas['is_median'] = $datas['is_median'] ?? 0;
         $datas['is_month_table'] = 0;
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
