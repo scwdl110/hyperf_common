@@ -560,7 +560,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
                 if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
                     //页面浏览次数百分比  买家访问次数百分比
                     $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
