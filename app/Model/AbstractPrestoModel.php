@@ -615,6 +615,123 @@ abstract class AbstractPrestoModel implements BIModelInterface
     /**
      * 兼容 基础BI 的 model 操作
      *
+     * 执行sql查询
+     * @param $where 		查询条件[例`name`='$name']
+     * @param $data 		需要查询的字段值[例`name`,`gender`,`birthday`]
+     * @param $table 		查询表[默认当前模型表]
+     * @param $limit 		返回结果范围[例：10或10,10 默认为空]
+     * @param $order 		排序方式	[默认按数据库默认方式排序]
+     * @param $group 		分组方式	[默认为空]
+     * @param $is_cache     是否读取缓存数据
+     * @param $cacheTTL     缓存保存时间（秒）
+     * @return array		查询结果集数组
+     */
+    public function getSelectSql(
+        $where = '',
+        string $data = '*',
+        string $table = '',
+        $limit = '',
+        string $order = '',
+        string $group = '',
+        bool $isJoin = false ,
+        bool $isMysql = false
+    ): string {
+        $where = is_array($where) ? $this->sqls($where) : $where;
+        $table = $table !== '' ? $table : $this->table;
+
+        $where = empty($where) ? '' : " WHERE {$where}";
+        $order = empty($order) ? '' : " ORDER BY {$order}";
+        $group = empty($group) ? '' : " GROUP BY {$group}";
+        $limit = $mysql_limit = is_string($limit) || is_numeric($limit) ? trim((string)$limit) : '';
+        $athena_limit = '';
+        $is_only_limit = false;
+        if (!empty($limit)) {
+            // 兼容 $limit = '1', '1, 2', 'limit 1,2', 'limit 1 offset 2', 'offset 1 limit 2' 等形式
+            if (false !== strpos($limit, ',')) {
+                list($offset, $limit) = explode(',', $limit, 2);
+                if (1 === preg_match('/\s*limit\s+(\d+)/i', $offset, $m)) {
+                    $offset = $m[1];
+                }
+
+                // presto 语法必须 offset 在前，且不支持 limit 1,2 这种写法
+                $limit = " OFFSET {$offset} LIMIT {$limit}";
+
+                $mysql_limit = " LIMIT {$offset} , {$limit} ";
+                //athena 分页写法
+                $athena_offset = ($offset+1);
+                $athena_limit = " WHERE rn BETWEEN {$athena_offset} AND ".($athena_offset+$limit);
+            } else {
+                if (is_numeric($limit)) {
+                    $limit = $mysql_limit = " LIMIT {$limit}";
+                    $athena_limit = " LIMIT {$limit}";
+                    $is_only_limit = true;
+                } elseif (1 === preg_match('/\s*offset\s+(\d+)\s+limit\s+(\d+)\s*/i', $limit, $m)) {
+                    $limit = " OFFSET {$m[1]} LIMIT {$m[2]}";
+                    $mysql_limit = " LIMIT {$m[1]} , {$m[2]} ";
+                    //athena 分页写法
+                    $athena_offset = ($m[1]+1);
+                    $athena_limit = " WHERE rn BETWEEN ".$athena_offset." AND ".($athena_offset+$m[2]);
+                } elseif (1 === preg_match('/\s*limit\s+(\d+)\s+offset\s+(\d+)\s*/i', $limit, $m)) {
+                    $limit = " OFFSET {$m[2]} LIMIT {$m[1]}";
+                    $mysql_limit = " LIMIT {$m[2]} , {$m[1]} ";
+                    //athena 分页写法
+                    $athena_offset = ($m[2]+1);
+                    $athena_limit = " WHERE rn BETWEEN ".$athena_offset." AND ".($athena_offset+$m[1]);
+                }
+            }
+        }
+
+        $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
+
+        //商品级
+        //print_r($this->goodsCols);
+        if($isJoin){
+            foreach ($this->goodsCols as $key => $value){
+                if (!is_array($value)) {
+                    $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
+                    $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
+
+                } else {
+                    if (strpos($table, '_day_report_') && !strpos($table,'week_report' ) ) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
+                    } elseif (strpos($table,'week_report' )) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
+                    } elseif (strpos($table,'_month_report_')) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['month'], $sql);
+                    }
+                }
+            }
+            if (strpos($table,'week_report' )){
+                $sql = str_replace('week_report' , 'report' , $sql);
+
+            }
+
+        }
+        $athena_sql = $sql;
+
+        if ($isMysql){
+            $sql .= " {$mysql_limit}";
+
+        }else{
+            $sql .= " {$limit}";
+
+        }
+
+        if ($this->isReadAthena){
+            if (!$is_only_limit && !empty($athena_limit)) {
+                $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($athena_sql) as t)  {$athena_limit}";//athena特有的分页写法
+            }
+        }
+        if ($isMysql) {
+            $sql = $this->toMysqlTable($sql);
+        }
+
+        return $sql;
+    }
+
+    /**
+     * 兼容 基础BI 的 model 操作
+     *
      * @param $where 		查询条件[例`name`='$name']
      * @param $data 		需要查询的字段值[例`name`,`gender`,`birthday`]
      * @param $table 		查询表[默认当前模型表]

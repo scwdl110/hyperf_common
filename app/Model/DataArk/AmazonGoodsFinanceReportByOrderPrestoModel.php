@@ -553,6 +553,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
+            }elseif($datas['is_median'] == 1){
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,$isMysql);
+                $lists = $this->getMedianValue($datas['target'],$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
                 if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
@@ -587,6 +590,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
+            }elseif($datas['is_median'] == 1){
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,$isMysql);
+                $lists = $this->getMedianValue($datas['target'],$origin_sql,null,300,$isMysql);
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql){
@@ -4071,6 +4077,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
+            }elseif($params['is_median'] == 1){
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,$isMysql);
+                $lists = $this->getMedianValue($params['target'],$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
@@ -4098,6 +4107,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
+            }elseif($params['is_median'] == 1){
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,$isMysql);
+                $lists = $this->getMedianValue($params['target'],$origin_sql,null,300,$isMysql);
             }else{
 
                 $parallel = new Parallel();
@@ -6468,6 +6480,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit);
                 }
+            }elseif($datas['is_median'] == 1){
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group);
+                $lists = $this->getMedianValue($datas['target'],$origin_sql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
 
@@ -6482,6 +6497,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Total Request', [$this->getLastSql()]);
+            }elseif($datas['is_median'] == 1){
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group);
+                $lists = $this->getMedianValue($datas['target'],$origin_sql);
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
@@ -10261,6 +10279,41 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
 
+        return $lists;
+    }
+
+    /**
+     * 获取中位数
+     * @param string $targets
+     * @param string $origin_sql
+     * @param bool $isMysql
+     * @return array
+     */
+    public function getMedianValue($targets = "",$origin_sql = "",$isCache = null,$cacheTTL = 300,$isMysql = false){
+        $lists = array();
+        if(!empty($targets) && !empty($origin_sql)){
+            $targets = explode(',', $targets);
+            $sql = "with origin_table as ({$origin_sql}),";
+            $n = 1;
+            foreach ($targets as $target){
+                $sql .= "table{$n} as (select {$target},row_number() over(order by {$target}) num,count(*) over() cnt from origin_table),
+                    total_table{$n} as (select avg({$target}) as {$target} from table{$n} where if(cnt%2=0,num in (cnt/2,cnt/2+1),num=(cnt+1)/2)),";
+                $n++;
+            }
+            $sql = rtrim($sql,",");
+            $fields_tmp = "";
+            $tables_tmp = "";
+            for($i = 1;$i < $n;$i++){
+                $fields_tmp .= "total_table{$i}.*,";
+                $tables_tmp .= "total_table{$i},";
+            }
+            $fields_tmp = rtrim($fields_tmp,",");
+            $tables_tmp = rtrim($tables_tmp,",");
+            $sql .= "select {$fields_tmp} from {$tables_tmp}";
+            $lists = $this->query($sql, [], $isCache, $cacheTTL, $isMysql);
+            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+            $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
+        }
         return $lists;
     }
 }
