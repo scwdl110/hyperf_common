@@ -46,7 +46,8 @@ class AccountingService extends BaseService
 {
 
     /**
-     * @var RequestInterface
+     * @Inject()
+     * @var ServerRequestInterface
      */
     protected $request;
 
