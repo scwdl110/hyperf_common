@@ -117,8 +117,15 @@ class AccountingService extends BaseService
         $request_data['offset'] = $request_data['offset'] ?? 0;
         $request_data['limit'] = $request_data['limit'] ?? 10;
 
-        if($isRpc == false){
-            $userInfo = $this->getUserInfo();
+        if ($isRpc == true) {
+            $request = $this->request->withAttribute('userInfo', [
+                'admin_id' => $userInfo['admin_id'],
+                'user_id' => $userInfo['user_id'],
+                'is_master' => $userInfo['is_master'],
+                'dbhost' => $userInfo['dbhost'],
+                'codeno' => $userInfo['codeno'],
+            ]);
+            Context::set(ServerRequestInterface::class, $request);
         }
 
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
