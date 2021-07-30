@@ -93,7 +93,7 @@ class AccountingService extends BaseService
      * @param $request_data
      * @return array
      */
-    public function getFiancialProfitInfo($request_data)
+    public function getFiancialProfitInfo($request_data, $isRpc = false, $userInfo = array())
     {
         $rule = [
             'date' => 'required|date',
@@ -117,7 +117,9 @@ class AccountingService extends BaseService
         $request_data['offset'] = $request_data['offset'] ?? 0;
         $request_data['limit'] = $request_data['limit'] ?? 10;
 
-        $userInfo = $this->getUserInfo();
+        if($isRpc == false){
+            $userInfo = $this->getUserInfo();
+        }
 
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
         $shopListInfoquery = ChannelModel::select("id", "site_id", "title")->where([['user_id', '=', $userInfo['user_id']]]);
