@@ -6630,7 +6630,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets)) {  //亚马逊费用
-            if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field)){
+            if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field) && strpos($this->tax_field,'{:RATE') === false){
                 $this->tax_field .= "* ({:RATE} / COALESCE(rates.rate ,1)) ";
             }
             if ($datas['finance_datas_origin'] == '1') {
@@ -6873,7 +6873,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if (in_array('amazon_other_fee', $targets)) {  //其他亚马逊费用
-            if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field)){
+            if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field) && strpos($this->tax_field,'{:RATE') === false){
                 $this->tax_field .= "* ({:RATE} / COALESCE(rates.rate ,1)) ";
             }
             if ($datas['finance_datas_origin'] == '1') {
@@ -7203,7 +7203,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             $purchase_logistics = $fields['purchase_logistics_purchase_cost'] . ' + ' . $fields['purchase_logistics_logistics_cost'];
-            if (!empty($this->tax_field)){
+            if (!empty($this->tax_field) && strpos($this->tax_field,'{:RATE') === false){
                 $this->tax_field .= "* ({:RATE} / COALESCE(rates.rate ,1))";
             }
             if(empty($repair_data)){
@@ -7295,8 +7295,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fields['count_total'] = " sum( report.byorder_sales_volume  +  report.byorder_group_id) ";
                     $time_fields = $this->getTimeFields($time_line, "report.byorder_sales_volume  +  report.byorder_group_id");
                 } elseif ($datas['sale_datas_origin'] == '2') {
-                    $fields['count_total'] = " sum( report.report_sales_volume  +  report.byorder_group_id ) ";
-                    $time_fields = $this->getTimeFields($time_line, "report.report_sales_volume  +  report.byorder_group_id");
+                    $fields['count_total'] = " sum( report.report_sales_volume  +  report.report_group_id ) ";
+                    $time_fields = $this->getTimeFields($time_line, "report.report_sales_volume  +  report.report_group_id");
                 }
             } else if ($time_target == 'sale_many_channel_sales_volume') { //多渠道数量
                 if ($datas['sale_datas_origin'] == '1') {
@@ -7369,7 +7369,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'amazon_fee') {  //亚马逊费用
-                if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field)){
+                if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field) && strpos($this->tax_field,'{:RATE') === false){
                     $this->tax_field .= "* ({:RATE} / COALESCE(rates.rate ,1)) ";
                 }
                 if ($datas['finance_datas_origin'] == '1') {
@@ -7394,7 +7394,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'amazon_fee_rate') {  //亚马逊费用占比
-                if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field)){
+                if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field) && strpos($this->tax_field,'{:RATE') === false){
                     $this->tax_field .= "* ({:RATE} / COALESCE(rates.rate ,1)) ";
                 }
                 $estimated_monthly_storage_fee_field = "";
@@ -7665,7 +7665,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'amazon_other_fee') {  //其他亚马逊费用
-                if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field)){
+                if ($datas['currency_code'] != 'ORIGIN' && !empty($this->tax_field) && strpos($this->tax_field,'{:RATE') === false){
                     $this->tax_field .= "* ({:RATE} / COALESCE(rates.rate ,1)) ";
                 }
                 if ($datas['finance_datas_origin'] == '1') {
