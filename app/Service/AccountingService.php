@@ -127,6 +127,8 @@ class AccountingService extends BaseService
                 'codeno' => $userInfo['codeno'],
             ]);
             Context::set(ServerRequestInterface::class, $request);
+        } else {
+            $userInfo = $this->getUserInfo();
         }
 
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
@@ -239,15 +241,7 @@ class AccountingService extends BaseService
                 ['create_time', '<=', $end_time],
                 ['user_id', '=', $userInfo['user_id']]
             ])->get());
-            $FinanceMoneyBackInfo = $this->getArray(FinanceMoneyBackModel::selectRaw("
-           sum( currency_amount ) AS money_back_amount
-        ")->where([
-                ['channel_id', '=', $list['id']],
-                ['financial_event_group_end_int', '>', $begin_time],
-                ['financial_event_group_start_int', '<', $end_time],
-                ['user_id', '=', $userInfo['user_id']],
-                ['fundtransfer_status', '=', 0]
-            ])->get());
+
 
             //促销费用
             $info['promotion_fee']['promote_discount'] = floor($FinanceReportInfo[0]['promote_discount'] * 100) / 100; //Promote折扣
@@ -311,7 +305,6 @@ class AccountingService extends BaseService
             //费用
             $info['fee']['reserved_field16'] = floor($FinanceReportInfo[0]['reserved_field16'] * 100) / 100; //**  运营费用
             $info['fee']['reserved_field10'] = floor($FinanceReportInfo[0]['reserved_field10'] * 100) / 100; //**  测评费用
-            $info['fee']['money_back_amount'] = floor($FinanceMoneyBackInfo[0]['money_back_amount'] * 100) / 100; //**  回款费用
             $info['fee']['purchasing_cost'] = floor($FinanceReportInfo[0]['purchasing_cost'] * 100) / 100; //**  采购成本
             $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //** 头程物流（FBA）
             $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //**  物流（FBM）
@@ -328,6 +321,116 @@ class AccountingService extends BaseService
 
         return $data;
     }
+
+    /**
+     * 回款单
+     * @param $request_data
+     * @param bool $isRpc
+     * @param array $userInfo
+     * @return array
+     */
+
+    public function getMoneyCallBackInfo($request_data, $isRpc = false, $userInfo = array())
+    {
+        $rule = [
+            'date' => 'required|date',
+            'offset' => 'integer|filled',
+            'limit' => 'integer|filled',
+            'shop_ids' => 'string|filled',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $current_firstday = date('Y-m-01', strtotime($request_data['date']));
+        $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
+
+        $begin_time = strtotime($current_firstday . " 00:00:00");
+        $end_time = strtotime($current_lastday . " 23:59:59");
+
+        $request_data['offset'] = $request_data['offset'] ?? 0;
+        $request_data['limit'] = $request_data['limit'] ?? 10;
+
+        if ($isRpc == true) {
+            $request = $this->request->withAttribute('userInfo', [
+                'admin_id' => $userInfo['admin_id'],
+                'user_id' => $userInfo['user_id'],
+                'is_master' => $userInfo['is_master'],
+                'dbhost' => $userInfo['dbhost'],
+                'codeno' => $userInfo['codeno'],
+            ]);
+            Context::set(ServerRequestInterface::class, $request);
+        }else {
+            $userInfo = $this->getUserInfo();
+        }
+
+        $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
+        $shopListInfoquery = ChannelModel::select("id", "site_id", "title")->where([['user_id', '=', $userInfo['user_id']]]);
+
+        if ($userAdmin->is_master != 1) {
+            $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
+            $shopListInfoquery->whereIn('id', $ids);
+        }
+
+        if (isset($request_data['shop_ids'])) {
+            $shopListInfoquery->whereIn('id', explode(",", $request_data['shop_ids']));
+        }
+
+        $shopListInfoquery->where([
+            ['channel_type', '=', 2],
+            ['status', '=', 1]
+        ]);
+
+        $count = $shopListInfoquery->count();
+
+        $shopListId = $this->getArray($shopListInfoquery->orderBy('id', 'asc')->offset($request_data['offset'])->limit($request_data['limit'])->get());
+
+        $infoList = array('total' => $count, 'list' => array());
+
+        $rateList = $this->getExchangeRate($userInfo['user_id']);
+
+        foreach ($shopListId as $key => $list) {
+
+            $info = array();
+
+            //商品销售额
+            $info['shop_id'] = $list['id'];
+            $info['shop_name'] = $list['title'];
+
+            foreach ($rateList as $rate) {
+                if ((is_array($rate['site_id']) && in_array($list['site_id'], $rate['site_id'])) || $list['site_id'] == $rate['site_id']) {
+                    $info['currency_id'] = $rate['id'];
+                    $info['exchang_rate'] = $rate['exchang_rate'];
+                }
+            }
+
+            $FinanceMoneyBackInfo = $this->getArray(FinanceMoneyBackModel::selectRaw("
+            sum( currency_amount ) AS money_back_amount
+            ")->where([
+                ['channel_id', '=', $list['id']],
+                ['financial_event_group_end_int', '>', $begin_time],
+                ['financial_event_group_start_int', '<', $end_time],
+                ['user_id', '=', $userInfo['user_id']],
+                ['fundtransfer_status', '=', 0]
+            ])->get());
+
+            $info['money_back_amount'] = floor($FinanceMoneyBackInfo[0]['money_back_amount'] * 100) / 100; //**  回款费用
+
+            $infoList['list'][] = $info;
+        }
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => $infoList
+        ];
+
+        return $data;
+    }
+
 
     /**
      * 拉取当前用户的店铺信息
