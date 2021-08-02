@@ -3,11 +3,13 @@
 namespace App\Model\DataArk;
 
 use App\Lib\Redis;
+use App\Model\Ads\VipUserBigData;
 use App\Model\ChannelTargetsMySQLModel;
 use App\Model\SiteRateMySQLModel;
 use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
 use Captainbi\Hyperf\Util\Log;
+use Hyperf\DbConnection\Db;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use App\Service\CommonService;
@@ -3734,8 +3736,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $isMysql = true;
         }
         //商品级
-        if ($params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") &&($params['origin_create_start_time'] - $params['origin_create_end_time']) <= 31*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2 && $params['user_id'] == 266){
-            $isMysql = true;
+        if ($params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") &&($params['origin_create_start_time'] - $params['origin_create_end_time']) <= 31*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2){
+            $redis = new Redis();
+            $goods_mysql_user = $redis->get("goods_mysql_user");
+
+            if (empty($goods_mysql_user)){
+                $goods_mysql_user = Db::connection('bigdata_goods_ads')->table("vip_user_big_data")->pluck('user_id')->toArray();
+                $redis->set("goods_mysql_user",$goods_mysql_user);
+            }
+            if (is_array($goods_mysql_user) && !in_array($params['user_id'],$goods_mysql_user)){
+                $isMysql = true;
+
+            }else{
+                $isMysql = false;
+            }
         }
         return $isMysql;
     }
