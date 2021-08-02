@@ -590,7 +590,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
-                $count = !empty($lists) ? $lists['num'] : 0;
+                $count = !empty($lists) && !empty($lists['num']) ? $lists['num'] : 0;
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }elseif($datas['is_median'] == 1){
@@ -8420,7 +8420,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if(stripos($value,"min(") !== false){
                 $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-            }elseif (stripos($value,"max(") !== false || stripos($value,"count(") !== false){
+            }elseif (stripos($value,"max(") !== false){
+                $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+            }elseif (stripos($value,"count(") !== false){
                 $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
             }elseif($value == 'NULL'){
                 $fields_tmp[] = "NULL" . ' AS "' . $key_value . '"';
