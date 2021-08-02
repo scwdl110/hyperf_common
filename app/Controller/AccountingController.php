@@ -479,6 +479,21 @@ class AccountingController extends BaseController
     }
 
     /**
+     * 第三方店铺信息
+     * @RequestMapping(path="shop_info", methods="post")
+     * @return mixed
+     */
+    public function postShopInfo()
+    {
+        $request_data = $this->request->all();
+        $data = $this->service->getShopList($request_data);
+        if ($data['code'] == 0) {
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'], $data['msg']);
+    }
+
+    /**
      * @OA\Get(
      *     path="/accounting/exchange_rate_list",
      *     summary="汇率接口",
@@ -678,6 +693,22 @@ class AccountingController extends BaseController
     {
         $request_data = $this->request->all();
         $data = $this->service->bindUser($request_data);
+        if ($data['code'] == 0) {
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'], $data['msg']);
+    }
+
+
+    /**
+     * 同步接口
+     * @RequestMapping(path="syncOp", methods="post")
+     * @return mixed
+     */
+    public function syncOp()
+    {
+        $request_data = $this->request->all();
+        $data = $this->service->syncOp($request_data);
         if ($data['code'] == 0) {
             return Result::fail([], $data['msg']);
         }

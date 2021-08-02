@@ -13,9 +13,8 @@ class DataArkController extends AbstractController
 
         $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
-
         if (config('misc.dataark_log_req', false)) {
-            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'default');
+            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'dataark');
             $logger->info('request body', [$req, $userInfo]);
         }
 
@@ -23,7 +22,11 @@ class DataArkController extends AbstractController
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
         $params = $req['params'] ?? [];
-        $page = intval($req['page'] ?? 1);
+        if (isset($params['is_count']) && $params['is_count'] == 1){//总计的页数只能为1
+            $page = 1;
+        }else{
+            $page = intval($req['page'] ?? 1);
+        }
         $limit = intval($req['rows'] ?? 100);
         $sort = trim(strval($req['sort'] ?? ''));
         $order = trim(strval($req['order'] ?? ''));
@@ -161,6 +164,119 @@ class DataArkController extends AbstractController
             } elseif (isset($eqs[$params['count_dimension']])) {
                 $where .= " AND {$eqs[$params['count_dimension']]}=" . intval($searchVal);
             }
+        }
+
+        if (isset($params['where_parent']) && !empty($params['where_parent'])){//维度下钻需要的相关信息
+
+            if($type == 1){
+                if (!empty($params['where_parent']['parent_asin'])){
+                    $where .= " AND amazon_goods.goods_parent_asin = '" . addslashes($params['where_parent']['parent_asin']) . "'" ;
+                }
+
+                if (!empty($params['where_parent']['asin'])){
+                    $where .= " AND amazon_goods.goods_asin = '" . addslashes($params['where_parent']['asin']) . "'" ;
+                }
+
+                if (!empty($params['where_parent']['goods_parent_asin'])){
+                    $goods_parent_asin = json_decode(base64_decode($params['where_parent']['goods_parent_asin']),true);
+                    if($params['is_distinct_channel'] == 1){
+                        $where_strs = array();
+                        foreach ($goods_parent_asin as $item){
+                            $where_strs[] = '( amazon_goods.goods_channel_id = ' . $item['channel_id'] . " AND amazon_goods.goods_parent_asin = '" . addslashes($item['parent_asin']) . "')" ;
+                        }
+                        $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
+                        $where .= $where_str;
+                    }else{
+                        $params['where_parent']['goods_parent_asin'] = implode("','",array_column($goods_parent_asin,'parent_asin'));
+                        $where .= " AND amazon_goods.goods_parent_asin IN ('" . $params['where_parent']['goods_parent_asin'] . "')" ;
+                    }
+                }
+
+                if (!empty($params['where_parent']['goods_asin'])){
+                    $goods_asin = json_decode(base64_decode($params['where_parent']['goods_asin']),true);
+                    if($params['is_distinct_channel'] == 1){
+                        $where_strs = array();
+                        foreach ($goods_asin as $item){
+                            $where_strs[] = '( amazon_goods.goods_channel_id = ' . $item['channel_id'] . " AND amazon_goods.goods_asin = '" . addslashes($item['asin']) . "')";
+                        }
+                        $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
+                        $where .= $where_str;
+                    }else {
+                        $params['where_parent']['goods_asin'] = implode("','", array_column($goods_asin,'asin'));
+                        $where .= " AND amazon_goods.goods_asin IN ('" . $params['where_parent']['goods_asin'] . "')";
+                    }
+                }
+
+                if (!empty($params['where_parent']['goods_sku'])){
+                    $goods_sku = json_decode(base64_decode($params['where_parent']['goods_sku']),true);
+                    if($params['is_distinct_channel'] == 1){
+                        $params['where_parent']['goods_sku'] = implode(",",array_column($goods_sku,'goods_id'));
+                        $where .= " AND report.amazon_goods_id IN (" . $params['where_parent']['goods_sku'] . ")" ;
+                    }else {
+                        $params['where_parent']['goods_sku'] = implode("','", array_column($goods_sku,'sku'));
+                        $where .= " AND report.goods_sku IN ('" . $params['where_parent']['goods_sku'] . "')";
+                    }
+                }
+
+                if (!empty($params['where_parent']['isku_id'])){
+                    $where .= " AND amazon_goods.goods_isku_id IN (" . $params['where_parent']['isku_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['group_id'])){
+                    $where .= " AND report.goods_group_id  IN (" . $params['where_parent']['group_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['tags_id'])){
+                    $where .= " AND tags_rel.tags_id  IN (" . $params['where_parent']['tags_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['class1'])){//数据对比 一级类目
+                    $class1 = $params['where_parent']['class1'] ? json_decode(base64_decode($params['where_parent']['class1']),true) : "";
+                    foreach ($class1 as $key => $class_value){
+                        $class1[$key] = htmlspecialchars(trim($class_value), ENT_NOQUOTES);;
+                    }
+                    $params['where_parent']['class1'] = implode("','", $class1);
+                    $where .= " AND report.goods_product_category_name_1 IN ('" . $params['where_parent']['class1'] . "')" ;
+                }
+
+                if (!empty($params['where_parent']['class1_name'])){//维度下钻 一级类目
+                    $class1_name = htmlspecialchars(trim($params['where_parent']['class1_name']), ENT_NOQUOTES);
+                    $where .= " AND report.goods_product_category_name_1 = '{$class1_name}' ";
+                }
+
+                if (!empty($params['where_parent']['head_id'])){
+                    $where .= " AND amazon_goods.isku_head_id  IN (" . $params['where_parent']['head_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['developer_id'])){
+                    $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_parent']['developer_id'] . ")" ;
+                }
+            }
+
+            if($type == 0){
+                if (!empty($params['where_parent']['user_department_id'])){
+                    $where .= " AND dc.user_department_id IN (" . $params['where_parent']['user_department_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['admin_id'])){
+                    $where .= " AND uc.admin_id IN (" . $params['where_parent']['admin_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['channel_id'])){
+                    $where .= " AND report.channel_id IN (" . $params['where_parent']['channel_id'] . ")" ;
+                }
+
+                if (!empty($params['where_parent']['site_id'])){
+                    $where .= " AND report.site_id IN (" . $params['where_parent']['site_id'] . ")" ;
+                }
+            }
+
+            if($type == 2){
+                if (!empty($params['where_parent']['operators_id'])){
+                    $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ")" ;
+                }
+            }
+
         }
 
         if ($params['show_type'] == 2 && $params['limit_num'] > 0 && $params['count_periods'] == 0) {

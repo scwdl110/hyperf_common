@@ -20,9 +20,7 @@ use Hyperf\Utils\Str;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
-/**
- * @Listener
- */
+
 class DbQueryExecutedListener implements ListenerInterface
 {
     /**

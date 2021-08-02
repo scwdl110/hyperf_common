@@ -13,4 +13,5 @@ return [
     'no_jwt' => '用户不存在',
     'no_authorization' => 'authorization不存在',
     'no_authorized' => '用户未授权',
+    'no_sync_id'=>'同步任务id有误'
 ];

@@ -17,6 +17,8 @@ use App\Model\CurrencyModel;
 use App\Model\ChannelModel;
 use App\Model\ChannelProfitReportModel;
 use App\Model\FinanceCurrencyModel;
+use App\Model\SiteMessageModel;
+use App\Model\SynchronouslyManagementTaskModel;
 use App\Model\SystemCurrencyModel;
 use App\Model\UserAdminModel;
 use App\Model\UserExtInfoModel;
@@ -31,6 +33,10 @@ use Hyperf\Contract\ConfigInterface;
 use Captainbi\Hyperf\Util\Unique;
 use Captainbi\Hyperf\Exception\BusinessException;
 use Captainbi\Hyperf\Util\Log;
+use Hyperf\DbConnection\Db;
+use Hyperf\Guzzle\ClientFactory;
+use Hyperf\Utils\ApplicationContext;
+
 
 class AccountingService extends BaseService
 {
@@ -189,6 +195,7 @@ class AccountingService extends BaseService
 
             $info['commodity_sales']['fba_sales_quota'] = floor($FinanceReportInfo[0]['fba_sales_quota'] * 100) / 100; //FBA销售额
             $info['commodity_sales']['fbm_sales_quota'] = floor($FinanceReportInfo[0]['fbm_sales_quota'] * 100) / 100; //FBM销售额
+            $info['commodity_sales']['total_amount'] = $info['commodity_sales']['fba_sales_quota'] + $info['commodity_sales']['fbm_sales_quota']; //**商品销售额
 
             $ChannelProfitReportInfo = $this->getArray(ChannelProfitReportModel::selectRaw("
             ifnull(sum(coupon_redemption_fee + coupon_payment_eventList_tax),0) as coupon,
@@ -224,12 +231,15 @@ class AccountingService extends BaseService
             $info['promotion_fee']['cpc_sb_cost'] = floor($FinanceReportInfo[0]['cpc_sb_cost'] * 100) / 100; //退款返还Promote折扣
             $info['promotion_fee']['coupon'] = floor($ChannelProfitReportInfo[0]['coupon'] * 100) / 100;  //coupon优惠券
             $info['promotion_fee']['run_lightning_deal_fee'] = floor($ChannelProfitReportInfo[0]['run_lightning_deal_fee'] * 100) / 100;  //RunLightningDealFee
+            $info['promotion_fee']['total_amount'] = $info['promotion_fee']['promote_discount'] + $info['promotion_fee']['cpc_sb_cost'] + $info['promotion_fee']['coupon'] + $info['promotion_fee']['run_lightning_deal_fee'];   //**促销费用
 
             //订单费用
             $info['order_fee']['platform_sales_commission'] = floor($FinanceReportInfo[0]['platform_sales_commission'] * 100) / 100;  //亚马逊销售佣金
             $info['order_fee']['fba_generation_delivery_cost'] = floor($FinanceReportInfo[0]['fba_generation_delivery_cost'] * 100) / 100; //FBA代发货费用 **
             $info['order_fee']['profit'] = floor($FinanceReportInfo[0]['profit'] * 100) / 100;  //多渠道配送费
             $info['order_fee']['other_order_fee'] = floor(($FinanceReportInfo[0]['amazon_fee'] - $FinanceReportInfo[0]['platform_sales_commission'] - $FinanceReportInfo[0]['fba_generation_delivery_cost'] - $FinanceReportInfo[0]['profit']) * 100) / 100; //其他订单费用 **
+            $info['order_fee']['total_amount'] = $info['order_fee']['platform_sales_commission'] + $info['order_fee']['fba_generation_delivery_cost'] + $info['order_fee']['profit'] + $info['order_fee']['other_order_fee'];  //**订单费用
+
 
             //退货退款费用
             $info['return_refund_fee']['return_and_return_commission'] = floor($FinanceReportInfo[0]['return_and_return_commission'] * 100) / 100;  //退款扣除佣金
@@ -237,6 +247,8 @@ class AccountingService extends BaseService
             $info['return_refund_fee']['return_and_return_sales_commission'] = floor($FinanceReportInfo[0]['return_and_return_sales_commission'] * 100) / 100; //返还亚马逊销售佣金
             $info['return_refund_fee']['returnshipping'] = floor($FinanceReportInfo[0]['returnshipping'] * 100) / 100; //返还运费
             $info['return_refund_fee']['refund_variableclosingfee'] = floor($FinanceReportInfo[0]['refund_variableclosingfee'] * 100) / 100; //可变结算费-退款
+            $info['return_refund_fee']['total_amount'] = $info['return_refund_fee']['return_and_return_commission'] + $info['return_refund_fee']['fba_refund_treatment_fee'] + $info['return_refund_fee']['return_and_return_sales_commission'] + $info['return_refund_fee']['returnshipping'] + $info['return_refund_fee']['refund_variableclosingfee'];  //**退货退款费用
+
 
             //库存费用
             $info['inventory_cost']['fba_storage_fee'] = floor($ChannelProfitReportInfo[0]['fba_storage_fee'] * 100) / 100; //FBA月仓储费用
@@ -252,13 +264,15 @@ class AccountingService extends BaseService
             $info['inventory_cost']['fba_inbound_transportation_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_fee'] * 100) / 100; //入仓运输费
             $info['inventory_cost']['fba_inbound_transportation_program_fee'] = floor($ChannelProfitReportInfo[0]['fba_inbound_transportation_program_fee'] * 100) / 100; //FBA入境运输费
             $info['inventory_cost']['fba_overage_fee'] = floor($ChannelProfitReportInfo[0]['fba_overage_fee'] * 100) / 100; //库存仓储超量费
+            $info['inventory_cost']['total_amount'] = $info['inventory_cost']['fba_storage_fee'] + $info['inventory_cost']['fba_long_term_storage_fee'] + $info['inventory_cost']['fba_disposal_fee'] + $info['inventory_cost']['fba_removal_fee'] + $info['inventory_cost']['restocking_fee'] + $info['inventory_cost']['fba_inbound_convenience_fee'] + $info['inventory_cost']['fba_inbound_defect_fee'] + $info['inventory_cost']['labeling_fee'] + $info['inventory_cost']['polybagging_fee'] + $info['inventory_cost']['fba_inbound_shipment_carton_level_info_fee'] + $info['inventory_cost']['fba_inbound_transportation_fee'] + $info['inventory_cost']['fba_inbound_transportation_program_fee'] + $info['inventory_cost']['fba_overage_fee'];    //** 库存费用
 
             //其他费用
-            $info['other_fee']['other_amazon_fee'] = floor(($FinanceReportInfo[0]['other_amazon_fee'] + $ChannelProfitReportInfo[0]['other_amazon_fee']) * 100) / 100; //其他亚马逊费用 **
-            $info['other_fee']['reserved_field17'] = floor($FinanceReportInfo[0]['reserved_field17'] * 100) / 100; //VAT
-            $info['other_fee']['misc_adjustment'] = floor($ChannelProfitReportInfo[0]['misc_adjustment'] * 100) / 100; //其他
-            $info['other_fee']['review_enrollment_fee'] = floor($ChannelProfitReportInfo[0]['review_enrollment_fee'] * 100) / 100; //早期评论者计划
-            $info['other_fee']['cpc_cost'] = floor($ChannelProfitReportInfo[0]['cpc_cost'] * 100) / 100; //cpc 花费
+            $info['other_fee']['other_amazon_fee'] = floor(($FinanceReportInfo[0]['other_amazon_fee'] + $ChannelProfitReportInfo[0]['other_amazon_fee']) * 100) / 100; //**其他亚马逊费用
+            $info['other_fee']['reserved_field17'] = floor($FinanceReportInfo[0]['reserved_field17'] * 100) / 100; //**VAT
+            $info['other_fee']['misc_adjustment'] = floor($ChannelProfitReportInfo[0]['misc_adjustment'] * 100) / 100; //**其他
+            $info['other_fee']['review_enrollment_fee'] = floor($ChannelProfitReportInfo[0]['review_enrollment_fee'] * 100) / 100; // **早期评论者计划
+            $info['other_fee']['cpc_cost'] = floor($ChannelProfitReportInfo[0]['cpc_cost'] * 100) / 100;   //**cpc花费
+
 
             //商品调整费用
             $info['commodity_adjustment_fee']['ware_house_lost'] = floor($FinanceReportInfo[0]['ware_house_lost'] * 100) / 100;  //FBA仓丢失赔款
@@ -268,14 +282,16 @@ class AccountingService extends BaseService
             $info['commodity_adjustment_fee']['missing_from_inbound'] = floor($FinanceReportInfo[0]['missing_from_inbound'] * 100) / 100; //入库丢失赔偿
             $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] = floor($FinanceReportInfo[0]['missing_from_inbound_clawback'] * 100) / 100; //入库丢失赔偿(夺回)
             $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] = floor($ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee'] * 100) / 100;  //费用盘点-重量和尺寸更改 **
-            $info['commodity_adjustment_fee']['fee_adjustment'] = floor(($FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee']) * 100) / 100;  //其他商品调整费用 ？？
+            $info['commodity_adjustment_fee']['fee_adjustment'] = floor(($FinanceReportInfo[0]['fee_adjustment'] + $ChannelProfitReportInfo[0]['fee_adjustment'] - $FinanceReportInfo[0]['ware_house_lost'] - $FinanceReportInfo[0]['ware_house_damage'] - $FinanceReportInfo[0]['reversal_reimbursement'] - $ChannelProfitReportInfo[0]['return_postage_billing_postage'] - $FinanceReportInfo[0]['missing_from_inbound'] - $FinanceReportInfo[0]['missing_from_inbound_clawback'] - $ChannelProfitReportInfo[0]['fba_per_unit_fulfillment_fee']) * 100) / 100;  //其他商品调整费用
+            $info['commodity_adjustment_fee']['total_amount'] = $info['commodity_adjustment_fee']['ware_house_lost'] + $info['commodity_adjustment_fee']['ware_house_damage'] + $info['commodity_adjustment_fee']['reversal_reimbursement'] + $info['commodity_adjustment_fee']['return_postage_billing_postage'] + $info['commodity_adjustment_fee']['missing_from_inbound'] + $info['commodity_adjustment_fee']['missing_from_inbound_clawback'] + $info['commodity_adjustment_fee']['fba_per_unit_fulfillment_fee'] + $info['commodity_adjustment_fee']['fee_adjustment'];  //** 商品调整费用
 
             //费用
-            $info['fee']['reserved_field16'] = floor($FinanceReportInfo[0]['reserved_field16'] * 100) / 100; //运营费用
-            $info['fee']['reserved_field10'] = floor($FinanceReportInfo[0]['reserved_field10'] * 100) / 100; //测评费用
-            $info['fee']['purchasing_cost'] = floor($FinanceReportInfo[0]['purchasing_cost'] * 100) / 100; //采购成本 **
-            $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //头程物流（FBA） **
-            $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //物流（FBM） **
+            $info['fee']['reserved_field16'] = floor($FinanceReportInfo[0]['reserved_field16'] * 100) / 100; //**  运营费用
+            $info['fee']['reserved_field10'] = floor($FinanceReportInfo[0]['reserved_field10'] * 100) / 100; //**  测评费用
+            $info['fee']['purchasing_cost'] = floor($FinanceReportInfo[0]['purchasing_cost'] * 100) / 100; //**  采购成本
+            $info['fee']['logistics_head_course'] = floor($FinanceReportInfo[0]['logistics_head_course'] * 100) / 100; //** 头程物流（FBA）
+            $info['fee']['fbm'] = floor($FinanceReportInfo[0]['fbm'] * 100) / 100; //**  物流（FBM）
+            $info['fee']['gross_profit'] = $info['commodity_sales']['total_amount'] + $info['promotion_fee']['total_amount'] + $info['order_fee']['total_amount'] + $info['return_refund_fee']['total_amount'] + $info['inventory_cost']['total_amount'] + $info['other_fee']['other_amazon_fee'] + $info['other_fee']['reserved_field17'] + $info['other_fee']['misc_adjustment'] + $info['other_fee']['review_enrollment_fee'] + $info['other_fee']['cpc_cost'] + $info['commodity_adjustment_fee']['total_amount'] + $info['fee']['reserved_field16'] + $info['fee']['reserved_field10'] + $info['fee']['purchasing_cost'] + $info['fee']['logistics_head_course'] + $info['fee']['fbm'];  //**  毛利润
 
             $infoList['list'][] = $info;
         }
@@ -302,6 +318,7 @@ class AccountingService extends BaseService
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
             'shop_id' => 'integer|filled',
+            'no_limit' => 'integer|filled'
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -324,7 +341,7 @@ class AccountingService extends BaseService
         }
 
         if (isset($request_data['shop_id'])) {
-            $shopListInfoquery->where('id', 'like', '%' . $request_data['shop_id'] . '%');
+            $shopListInfoquery->where('id', '=', $request_data['shop_id']);
         }
 
         if ($userAdmin->is_master != 1) {
@@ -341,10 +358,13 @@ class AccountingService extends BaseService
 
         $count = $shopListInfoquery->count();
 
-        $request_data['offset'] = $request_data['offset'] ?? 0;
-        $request_data['limit'] = $request_data['limit'] ?? 10;
-
-        $shopListInfo = $this->getArray($shopListInfoquery->offset($request_data['offset'])->limit($request_data['limit'])->get());
+        if (isset($request_data['no_limit']) && $request_data['no_limit'] == 1) {
+            $shopListInfo = $this->getArray($shopListInfoquery->get());
+        } else {
+            $request_data['offset'] = $request_data['offset'] ?? 0;
+            $request_data['limit'] = $request_data['limit'] ?? 10;
+            $shopListInfo = $this->getArray($shopListInfoquery->offset($request_data['offset'])->limit($request_data['limit'])->get());
+        }
 
         foreach ($shopListInfo as $key => $value) {
             $info[$key]['shop_id'] = $value['id'];
@@ -555,5 +575,204 @@ class AccountingService extends BaseService
 //        }
 
         return ['code' => 1, 'msg' => 'success', 'data' => array()];
+    }
+
+
+    public function syncOp($request_data)
+    {
+        //验证
+        $rule = [
+            'id' => 'required|integer',
+            'synchronously_status' => 'required|integer',
+            'synchronously_info' => 'required|string',
+            'synchronously_time' => 'required|integer'
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $where = [
+            'id' => $request_data['id'],
+        ];
+
+        $synchronouslyManagementTask = $this->getArray(SynchronouslyManagementTaskModel::query()->where($where)->select(array("user_id", "admin_id", "mmouth", "myear"))->first());
+
+        if (empty($synchronouslyManagementTask)) {
+            $data = [
+                'code' => 0,
+                'msg' => trans('auth.no_sync_id'),
+            ];
+            return $data;
+        }
+
+        try {
+            SynchronouslyManagementTaskModel::query()->where($where)->update(
+                [
+                    'synchronously_status' => $request_data['synchronously_status'],
+                    'synchronously_info' => $request_data['synchronously_info'],
+                    'synchronously_time' => $request_data['synchronously_time']
+                ]);
+
+            if ($request_data['synchronously_status'] == 2) {
+                $siteMessageData = array(
+                    "user_id" => $synchronouslyManagementTask['user_id'],
+                    "user_admin_id" => $synchronouslyManagementTask['admin_id'],
+                    "message_type" => 33,
+                    "notice_type" => 3,
+                    "message_title" => "数据同步提醒",
+                    "send_time" => time() + env("OPEN_TEST_TIME", 0),
+                    "message_content" => json_encode(array(
+                        "title" => "数据同步提醒",
+                        "content" => array(
+                            array(
+                                "key" => "同步内容",
+                                "value" => $synchronouslyManagementTask["myear"] . "-" . $synchronouslyManagementTask["mmouth"] . "期财务数据",
+                            ),
+                            array(
+                                "key" => "接收方",
+                                "value" => "金蝶云星辰",
+                            ),
+                            array(
+                                "key" => "状态",
+                                "value" => "同步成功",
+                            ),
+                        ),
+                        "remark" => "请前往金蝶云星辰系统内及时查收。",
+                        "url" => "/amzcaptain-authorized-authorizationManagement.html"
+                    )));
+            } else {
+                $siteMessageData = array(
+                    "user_id" => $synchronouslyManagementTask['user_id'],
+                    "user_admin_id" => $synchronouslyManagementTask['admin_id'],
+                    "message_type" => 33,
+                    "notice_type" => 3,
+                    "message_title" => "数据同步提醒",
+                    "send_time" => time() + env("OPEN_TEST_TIME", 0),
+                    "message_content" => json_encode(array(
+                        "title" => "数据同步提醒",
+                        "content" => array(
+                            array(
+                                "key" => "同步内容",
+                                "value" => $synchronouslyManagementTask["myear"] . "-" . $synchronouslyManagementTask["mmouth"] . "期财务数据",
+                            ),
+                            array(
+                                "key" => "接收方",
+                                "value" => "金蝶云星辰",
+                            ),
+                            array(
+                                "key" => "状态",
+                                "value" => "同步失败",
+                            ),
+                        ),
+                        "remark" => "请前往船长-应用授权管理页面处理。",
+                        "url" => "/amzcaptain-authorized-authorizationManagement.html"
+                    )));
+            }
+            SiteMessageModel::create($siteMessageData);
+        } catch (\Exception $e) {
+            $data = [
+                'code' => 0,
+                'msg' => trans('common.error'),
+            ];
+            Log::getClient()->error($e->getMessage());
+            return $data;
+        }
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => []
+        ];
+
+        return $data;
+    }
+
+    public function syncOps($request_data)
+    {
+        //验证
+        $rule = [
+            'ids' => 'required|string',
+            'uuid' => 'required|string',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+        $ids = explode(",", trim($request_data['ids'], ","));
+
+        Db::beginTransaction();
+
+        foreach ($ids as $id) {
+            try {
+                $where = [
+                    'id' => $id,
+                ];
+
+                $synchronouslyManagementTask = SynchronouslyManagementTaskModel::query()->where($where)->select(array("mmouth", "myear"))->first()->toArray();
+
+                if (empty($synchronouslyManagementTask)) {
+                    throw new \Exception(trans('auth.no_sync_id'));
+                }
+
+                $Host = env("OPEN_PLATFROM_URL");
+
+                $httpClient = (new ClientFactory(ApplicationContext::getContainer()))->create();
+
+                $begin_time = date('Y-m-01', strtotime($synchronouslyManagementTask['myear'] . "-" . $synchronouslyManagementTask['mmouth']));
+                $end_time = date('Y-m-d', strtotime("$begin_time +1 month -1 day"));
+
+                $params = array(
+                    'bill_type' => 27,
+                    'bill_start_time' => $begin_time,
+                    'bill_end_time' => $end_time,
+                    'kh_uid' => $request_data['uuid'],
+                    'id' => $id
+                );
+
+                $resp = $httpClient->post($Host . "/yxc/sync/syncVirtualBill", ['form_params' => $params]);
+
+                if ($resp->getStatusCode() == 200) {
+                    $rawResp = (string)$resp->getBody();
+
+                    $resp = @json_decode($rawResp, true);
+
+                    if ($resp['code'] != 1) {
+                        throw new \Exception($resp['msg']);
+                    }
+                } else {
+                    throw new \Exception(trans('auth.send_error'));
+                }
+
+                $synchronouslyManagementTaskRes = SynchronouslyManagementTaskModel::query()->where($where)->update(['synchronously_status' => 1, 'synchronously_callback_time' => time() + env("OPEN_TEST_TIME", 0) + env("OPEN_CALLBACK_TIME", 600)]);
+
+                if (!$synchronouslyManagementTaskRes) {
+                    throw new \Exception(trans('common.error'));
+                }
+
+            } catch (\Exception $e) {
+                $data = [
+                    'code' => 0,
+                    'msg' => $e->getMessage(),
+                ];
+                Db::rollBack();
+                return $data;
+            }
+        }
+
+        Db::commit();
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => []
+        ];
+
+        return $data;
     }
 }
