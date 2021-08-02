@@ -4077,6 +4077,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($params['is_count'] == 1){
+                if($params['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
@@ -4105,6 +4108,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($params['is_count'] == 1){
+                if($params['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
@@ -6480,6 +6486,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
+                if($datas['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group);
+                }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
@@ -6495,6 +6504,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
+                if($datas['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group);
+                }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
