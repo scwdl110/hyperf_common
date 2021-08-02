@@ -582,15 +582,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
-                if($datas['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
-                }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
+                $field_data .= ",count(*) as num";
                 if(!empty($where_detail['target'])){
+                    $fields['num'] = "count(*)";
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else{
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
+                $count = !empty($lists) ? $lists['num'] : 0;
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }elseif($datas['is_median'] == 1){
@@ -8420,7 +8420,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if(stripos($value,"min(") !== false){
                 $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-            }elseif (stripos($value,"max(") !== false){
+            }elseif (stripos($value,"max(") !== false || stripos($value,"count(") !== false){
                 $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
             }elseif($value == 'NULL'){
                 $fields_tmp[] = "NULL" . ' AS "' . $key_value . '"';
