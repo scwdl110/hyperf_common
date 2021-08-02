@@ -548,11 +548,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
+                $field_data .= ",count(*) as num";
                 if(!empty($where_detail['target'])){
+                    $fields['num'] = "count(*)";
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
+                $count = !empty($lists) && !empty($lists['num']) ? $lists['num'] : 110;
             }elseif($datas['is_median'] == 1){
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,false);
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,false);
@@ -590,7 +593,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
-                $count = !empty($lists) && !empty($lists['num']) ? $lists['num'] : 0;
+                $count = !empty($lists) && !empty($lists['num']) ? $lists['num'] : 110;
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }elseif($datas['is_median'] == 1){
