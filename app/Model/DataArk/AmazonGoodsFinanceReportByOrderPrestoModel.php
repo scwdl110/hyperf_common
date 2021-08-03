@@ -3740,7 +3740,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($params['finance_datas_origin'] == 2){
                 $tax = "report_tax";
             }
-            $field =  "- ( CASE WHEN report.site_id IN (4,5,6,7,8,9,11,14,15,16,17,18) THEN report.{$tax} ELSE 0 END )";
+            //3,4,5,6,7,8,9,11,16
+            $field =  "- ( CASE WHEN report.site_id IN (3,4,5,6,7,8,9,11,16) THEN report.{$tax} ELSE 0 END )";
 
         }
 
