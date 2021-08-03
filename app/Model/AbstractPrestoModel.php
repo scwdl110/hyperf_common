@@ -415,7 +415,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if ($this->isCache($isCache)) {
             $result = $this->getCache()->get($cacheKey);
             if (!empty($result)) {
-//                return $result;
+                return $result;
             }
         }
 
