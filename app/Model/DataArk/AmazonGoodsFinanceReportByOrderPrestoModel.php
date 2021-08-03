@@ -10311,7 +10311,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      */
     public function getMedianValue($datas = array(),$origin_sql = "",$isCache = null,$cacheTTL = 300,$isMysql = false){
         $lists = array();
-        $targets = $datas['show_type'] == 2 ? $datas['target'] : $datas['time_target'];
+        $targets = !empty($datas['median_target']) ? $datas['median_target'] : '';
         if(!empty($targets) && !empty($origin_sql)){
             $targets = explode(',', $targets);
             $sql = "with origin_table as ({$origin_sql}),";
