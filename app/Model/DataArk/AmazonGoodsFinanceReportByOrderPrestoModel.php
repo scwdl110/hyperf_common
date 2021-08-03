@@ -1233,12 +1233,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['count_periods'] != '1'){//不是按天直接返回
                 foreach ($lists as $key => $value){
                     if ($datas['count_periods'] == 0){
-                        if (isset($value['goods_min_rank'])){
-                            $lists[$key]['goods_min_rank'] = $value['goods_min_rank_min'] == $value['goods_min_rank_max']?$value['goods_min_rank_min']:($value['goods_min_rank_min']."~".$value['goods_min_rank_max']);
+                        if(($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin') && $datas['is_distinct_channel'] == 1){
+                            if (isset($value['goods_min_rank'])){
+                                $lists[$key]['goods_min_rank'] = $value['goods_min_rank_min'];
+                            }
+                            if (isset($value['goods_rank'])){
+                                $lists[$key]['goods_rank'] = $value['goods_rank_min'] ;
+                            }
+                        }else {
+                            if (isset($value['goods_min_rank'])){
+                                $lists[$key]['goods_min_rank'] = $value['goods_min_rank_min'] == $value['goods_min_rank_max']?$value['goods_min_rank_min']:($value['goods_min_rank_min']."~".$value['goods_min_rank_max']);
+                            }
+                            if (isset($value['goods_rank'])){
+                                $lists[$key]['goods_rank'] = $value['goods_rank_min'] == $value['goods_rank_max']?$value['goods_rank_min']:($value['goods_rank_min']."~".$value['goods_rank_max']);
+                            }
                         }
-                        if (isset($value['goods_rank'])){
-                            $lists[$key]['goods_rank'] = $value['goods_rank_min'] == $value['goods_rank_max']?$value['goods_rank_min']:($value['goods_rank_min']."~".$value['goods_rank_max']);
-                        }
+
                     }else{
                         if (isset($value['goods_min_rank'])){
                             $lists[$key]['goods_min_rank'] = "-";
