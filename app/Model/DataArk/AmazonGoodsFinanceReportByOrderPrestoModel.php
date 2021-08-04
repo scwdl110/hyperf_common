@@ -3767,7 +3767,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $tax = "report_tax";
             }
             //3,4,5,6,7,8,9,11,16
-            $field =  "- ( CASE WHEN report.site_id IN (3,4,5,6,7,8,9,11,16) THEN report.{$tax} ELSE 0 END )";
+            $field =  "- ( CASE WHEN report.site_id IN (4,5,6,7,8,9,11,16) THEN report.{$tax} ELSE 0 END )";
 
         }
 
