@@ -1301,7 +1301,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }else if($datas['count_dimension'] == 'isku'){
                 $where.= " AND ext.id > 0 ";
-                $group_fields_tmp = 'isku';
+                $group_fields_tmp = 'isku_id';
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = g.amazon_goods_id " ;
                 $table_fields =  'max(ext.isku_id) as isku_id' ;
             }else if($datas['count_dimension'] == 'class1'){
@@ -1385,7 +1385,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where_str = !empty($where_str) ? $where_str . " AND " : "";
         $where.= ' AND ' . $where_str." g.id > 0 AND g.create_time >= {$datas['origin_create_start_time']} AND g.create_time <= {$datas['origin_create_end_time']}" ;
 
-        $table_fields= !empty($table_group) ? $table_fields."," : "";
+        $table_fields= !empty($table_fields) ? $table_fields."," : "";
         $table_fields.= 'min(g.rank) as goods_rank_min,max(g.rank) as goods_rank_max,min(g.min_rank) as goods_min_rank_min,max(g.min_rank) as goods_min_rank_max, myear,mmonth,mday' ;
 
 
