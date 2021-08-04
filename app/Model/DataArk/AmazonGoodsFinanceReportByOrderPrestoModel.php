@@ -557,8 +557,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
             }elseif($datas['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,false);
-                $lists = $this->getMedianValue($datas,$origin_sql,null,300,false);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,$isMysql);
+                $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
                 if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
@@ -597,8 +597,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
             }elseif($datas['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,false);
-                $lists = $this->getMedianValue($datas,$origin_sql,null,300,false);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,true,$isMysql);
+                $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql){
@@ -3734,7 +3734,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        }
         $today = strtotime(date("Y-m-d"));
         $start_time = $today - 15*86400;
-        if ($params['origin_create_start_time'] >= $start_time && $params['origin_create_end_time'] < ($today+86400) &&  in_array($params['count_dimension'],array("channel_id","site_id")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
+        if (!$params['is_median'] && $params['origin_create_start_time'] >= $start_time && $params['origin_create_end_time'] < ($today+86400) &&  in_array($params['count_dimension'],array("channel_id","site_id")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
             $isMysql = true;
         }
 
@@ -4087,8 +4087,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
             }elseif($params['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,false);
-                $lists = $this->getMedianValue($params,$origin_sql,null,300,false);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,$isMysql);
+                $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
@@ -4120,8 +4120,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
             }elseif($params['is_median'] == 1){
-                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,false);
-                $lists = $this->getMedianValue($params,$origin_sql,null,300,false);
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, '', '', $group,false,$isMysql);
+                $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
 
                 $parallel = new Parallel();
