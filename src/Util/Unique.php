@@ -32,4 +32,19 @@ class Unique {
         return empty($items) ? array() : $items->toArray();
     }
 
+
+    /**
+     * 获取当前时间（可设置）
+     * @return false|int
+     */
+
+    public static function getSetOrCurrentTime()
+    {
+        if(env("OPEN_TEST_TIME") != null){
+            return strtotime(env("OPEN_TEST_TIME"));
+        } else{
+            return time();
+        }
+    }
+
 }
