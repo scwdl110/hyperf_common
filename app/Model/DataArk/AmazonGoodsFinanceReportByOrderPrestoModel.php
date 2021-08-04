@@ -3,10 +3,13 @@
 namespace App\Model\DataArk;
 
 use App\Lib\Redis;
+use App\Model\Ads\VipUserBigData;
 use App\Model\ChannelTargetsMySQLModel;
 use App\Model\SiteRateMySQLModel;
 use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
+use Captainbi\Hyperf\Util\Log;
+use Hyperf\DbConnection\Db;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use App\Service\CommonService;
@@ -14,6 +17,7 @@ use Hyperf\Di\Annotation\Inject;
 use function App\getUserInfo;
 use Hyperf\Utils\Exception\ParallelExecutionException;
 use Hyperf\Utils\Parallel;
+use function Swoole\Coroutine\Http\get;
 
 class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 {
@@ -116,6 +120,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
+        $datas['method'] = "getListByGoods";
         $isMysql = $this->getIsMysql($datas);
         $datas['is_month_table'] = 0;
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
@@ -134,11 +139,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //没有按周期统计 ， 按指标展示
         if ($datas['show_type'] == 2) {
-            $fields_arr = $this->getGoodsFields($datas);
+            $fields_arr = $this->getGoodsFields($datas,$isMysql);
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
-            $fields = $this->getGoodsTimeFields($datas, $timeLine);
+            $fields = $this->getGoodsTimeFields($datas, $timeLine,$isMysql);
         }
 
         if (empty($fields)) {
@@ -321,7 +326,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'tags_rel.tags_id  ' ;
                 $orderby = empty($orderby) ? ('tags_rel.tags_id ') : ($orderby . ' , tags_rel.tags_id');
             }
-            $where.= " AND CAST(tags_rel.tags_id  as bigint) > 0";
+            if ($isMysql){
+                $where.= " AND tags_rel.tags_id > 0";
+            }else{
+                $where.= " AND CAST(tags_rel.tags_id  as bigint) > 0";
+            }
         } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
@@ -553,7 +562,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
                 if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
                     //页面浏览次数百分比  买家访问次数百分比
                     $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
@@ -605,6 +614,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } catch(ParallelExecutionException $e){
                     // $e->getResults() 获取协程中的返回值。
                     // $e->getThrowables() 获取协程中出现的异常。
+                    Log::getClient('dataark', 'dataark')->info('协程异常：', [$e->getMessage()]);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
@@ -612,10 +622,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //页面浏览次数百分比  买家访问次数百分比
                     $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
                 }
-                if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
+                if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
-                if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
                 //自定义公式涉及到fba
@@ -1309,7 +1319,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     //获取商品维度指标字段(新增统计维度完成)
-    private function getGoodsFields($datas = array())
+    private function getGoodsFields($datas = array(),$isMysql = false)
     {
         $fields = array();
         $fields = $this->getGoodsTheSameFields($datas,$fields);
@@ -1382,28 +1392,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if ($datas['is_count'] == 1){
                 //总计
-                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
+                $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
                 if (intval($total_views_numbers['total_views_number']) > 0) {
-                    $goods_views_rate = " SUM ( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
+                    $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
                     //统计周期 无
                     if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                        $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', $table, '', '', "report.channel_id");
+                        $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', $table, '', '', "report.channel_id",false,null,300,$isMysql);
                         if (!empty($total_views_numbers)){
                             $case = " CASE ";
                             foreach ($total_views_numbers as $val){
-                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM ( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
+                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
                             }
                             $case .= " ELSE 0 END";
 
                             $goods_views_rate = $case;
                         }
                     }else{
-                        $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table);
+                        $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
                         if (intval($total_views_numbers['total_views_number']) > 0) {
-                            $goods_views_rate = " SUM ( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
+                            $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
                         }
                     }
                 }else{
@@ -1427,28 +1437,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where .= " AND amazon_goods.goods_asin != ''";
             }
             if ($datas['is_count'] == 1){
-                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
+                $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
                 if (intval($total_user_sessions['total_user_sessions']) > 0) {
-                    $goods_buyer_visit_rate = " SUM ( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
+                    $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
                     //统计周期 无
                     if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                        $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
+                        $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id",false,null,300,$isMysql);
                         if (!empty($total_user_sessions)){
                             $case = " CASE ";
                             foreach ($total_user_sessions as $val){
-                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM (report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
+                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
                             }
                             $case .= " ELSE 0 END";
 
                             $goods_buyer_visit_rate = $case;
                         }
                     }else{
-                        $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table);
+                        $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
                         if (intval($total_user_sessions['total_user_sessions']) > 0) {
-                            $goods_buyer_visit_rate = " SUM ( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
+                            $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                         }
                     }
                 }else{
@@ -2107,7 +2117,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //加入自定义指标
         $fba_target_key = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
-        $this->getCustomTargetFields($fields,$custom_targets_list,$targets,$targets_temp, $datas,$fba_target_key,$is_count);
+        $this->getCustomTargetFields($fields,$custom_targets_list,$targets,$targets_temp, $datas,$fba_target_key,$is_count,$isMysql);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
 
@@ -2213,7 +2223,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     //按商品维度,时间展示字段（新增统计维度完成）
-    private function getGoodsTimeFields($datas = [], $time_line)
+    private function getGoodsTimeFields($datas = [], $time_line,$isMysql = false)
     {
         $fields = [];
         $fields = $this->getGoodsTheSameFields($datas,$fields);
@@ -3283,7 +3293,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $time_fields_arr[$time_target] = $time_fields;
         }
         if($custom_target && $custom_target['target_type'] == 2){
-            $this->dealTimeTargets($fields,$custom_target,$time_line,$time_fields_arr,$target_key);
+            $this->dealTimeTargets($fields,$custom_target,$time_line,$time_fields_arr,$target_key,$isMysql);
         }else {
             if (!empty($time_fields) && is_array($time_fields)) {
                 foreach ($time_fields as $kt => $time_field) {
@@ -3721,10 +3731,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        }
         $today = strtotime(date("Y-m-d"));
         $start_time = $today - 15*86400;
-        if ($params['origin_create_start_time'] >= $start_time && $params['origin_create_end_time'] < ($today+86400) &&  in_array($params['count_dimension'],array("channel_id","site_id")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
+        //店铺级
+        if ($params['origin_create_start_time'] >= $start_time && $params['origin_create_end_time'] < ($today+86400) &&  in_array($params['count_dimension'],array("channel_id","site_id"))  && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
             $isMysql = true;
         }
+        //商品级
+        if ($params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") && abs($params['origin_create_end_time'] - $params['origin_create_start_time']) <= 15*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2){
+            $redis = new Redis();
+            $goods_mysql_user = $redis->get("goods_mysql_user");
 
+            if (empty($goods_mysql_user)){
+                $goods_mysql_user = Db::connection('bigdata_goods_ads')->table("vip_user_big_data")->pluck('user_id')->toArray();
+                $redis->set("goods_mysql_user",$goods_mysql_user);
+            }
+            if (is_array($goods_mysql_user) && !in_array($params['user_id'],$goods_mysql_user)){
+                $isMysql = true;
+
+            }else{
+                $isMysql = false;
+            }
+        }
         return $isMysql;
     }
 
