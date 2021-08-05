@@ -158,6 +158,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($where_detail)) {
             $where_detail = array();
         }
+        if (!empty($where_detail['tag_id'])) {
+            if(is_array($where_detail['tag_id'])){
+                $tag_str = implode(',', $where_detail['tag_id']);
+
+            }else{
+                $tag_str = $where_detail['tag_id'] ;
+            }
+            if (!empty($tag_str)) {
+                if (in_array(0,explode(",",$tag_str))){
+                    $isMysql = false;
+                }
+            }elseif ($tag_str == 0){
+                $isMysql = false;
+            }
+        }
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
@@ -483,7 +498,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             if (!empty($where_detail['tag_id'])) {
                 if (strpos($group, 'tags_rel.tags_id') === false) {
-                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}'";
+                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 ";
 
                 }
                 if(is_array($where_detail['tag_id'])){
@@ -494,7 +509,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 if (!empty($tag_str)) {
                     if (in_array(0,explode(",",$tag_str))){
-                        $isMysql = false;
                         $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
 
                     }else{
@@ -502,7 +516,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     }
                 }elseif ($tag_str == 0){
-                    $isMysql = false;
                     $where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
                 }
             }
