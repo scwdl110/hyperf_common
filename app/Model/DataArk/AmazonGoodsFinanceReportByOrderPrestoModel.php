@@ -494,6 +494,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 if (!empty($tag_str)) {
                     if (in_array(0,explode(",",$tag_str))){
+                        $isMysql = false;
                         $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
 
                     }else{
@@ -501,6 +502,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     }
                 }elseif ($tag_str == 0){
+                    $isMysql = false;
                     $where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
                 }
             }
