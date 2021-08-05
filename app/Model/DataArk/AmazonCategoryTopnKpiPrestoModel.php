@@ -21,13 +21,13 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
     protected $table = 'table_amazon_idm_category01_topn_kpi';
 
     /**
-     * 获取商品维度统计列表(新增统计维度完成)
+     * 获取行业数据对比数据
      * @param string $where
      * @param array $params
-     * @param string $limitgoods
-     * @param string $order
-     * @param int $count_tip 获取统计的数据信息 0-获取列表和总条数 1-仅仅获取列表 2-仅获取总条数
-     * @param array $channel_arr
+     * @param string $limit
+     * @param array $currencyInfo
+     * @param string $exchangeCode
+     * @param int $userId
      * @return array
      * @author: 林志敏
      */
@@ -35,8 +35,6 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $where = '',
         $params = [],
         $limit = '',
-        $sort = '',
-        $order = '',
         array $currencyInfo = [],
         $exchangeCode = '1',
         int $userId = 0
@@ -67,11 +65,6 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             return [];
         }
 
-        $orderby = '';
-        if (!empty($order) && !empty($sort) && !empty($fields[$sort])) {
-            $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
-        }
-
         $rt = array();
         $fields_arr = array();
         foreach ($fields as $field_name => $field) {
@@ -90,7 +83,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $count = 0;
-        $lists = $this->select($where, $field_data, $table, $limit, $orderby);
+        $lists = $this->select($where, $field_data, $table, $limit);
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
         $logger->info('getListByGoods Request', [$this->getLastSql()]);
 

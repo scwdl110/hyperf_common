@@ -443,8 +443,6 @@ class DataArkController extends AbstractController
         $req = $this->request->all();
         $page = intval($req['page'] ?? 1);
         $limit = intval($req['rows'] ?? 100);
-        $sort = trim(strval($req['sort'] ?? ''));
-        $order = trim(strval($req['order'] ?? ''));
         $currencyInfo = $req['currencyInfo'] ?? [];
         $exchangeCode = $req['exchangeCode'] ?? '1';
         $params = $req['params'] ?? [];
@@ -480,8 +478,6 @@ class DataArkController extends AbstractController
             $where,
             $params,
             $limit,
-            $sort,
-            $order,
             $currencyInfo,
             $exchangeCode,
             $userInfo['user_id']
