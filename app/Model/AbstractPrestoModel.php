@@ -424,7 +424,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
-            $result = Db::connection('bigdata_ads')->select($sql);
+            if (strpos($sql,'dw_goods_dim_report' )){
+                $result = Db::connection('bigdata_goods_ads')->select($sql);
+
+            }else{
+                $result = Db::connection('bigdata_ads')->select($sql);
+
+            }
             if (!empty($result)){
                 foreach ($result as $key => $value){
                     $result[$key] = (array) $value;
@@ -584,7 +590,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
             if ($this->logDryRun()) {
                 return [];
             }
-            $result = Db::connection('bigdata_ads')->select($sql);
+
+            if (strpos($table,'dw_goods_dim_report' )){
+                $result = Db::connection('bigdata_goods_ads')->select($sql);
+
+            }else{
+                $result = Db::connection('bigdata_ads')->select($sql);
+
+            }
             if (!empty($result)){
                 foreach ($result as $key => $value){
                     $result[$key] = (array) $value;
@@ -769,9 +782,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         string $group = '',
         bool $isJoin = false ,
         ?bool $isCache = null,
-        int $cacheTTL = 300
+        int $cacheTTL = 300,
+        bool $isMysql = false
     ): array {
-        return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL);
+        return $this->getOne($where, $data, $table, $order, $group, $isJoin ,$isCache, $cacheTTL,$isMysql);
     }
 
     /**
@@ -803,7 +817,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         if ($group) {
             $data = $data ?: '1';
-            if (stripos($group, 'having') === false && stripos($group, ',') === false) {
+            if (stripos($group, 'having') === false && stripos($group, ',') === false && !$isMysql) {
                 $result = $this->getOne(
                     $where,
                     "count(distinct($group)) AS num",
