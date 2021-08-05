@@ -41,14 +41,25 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $exchangeCode = '1',
         int $userId = 0
     ) {
-        $category_level = $params['category_level'] ?? 1;//1-一级类目 3-三级类目
-        $product_category_name = $params['product_category_name'] ?? '';//类目名称
+        $category_level = intval($params['category_level'] ?? 1);//1-一级类目 3-三级类目
+        $product_category_name = trim($params['product_category_name'] ?? '');//类目名称
+        $site_id = intval($params['site_id'] ?? 0);//类目名称
         if($category_level == 1){
             $table = "{$this->table_dws_idm_category01_topn_kpi} AS report" ;
-            $where = !empty($where) ? $where . " AND report.product_category_name_1 = '{$product_category_name}'" : "report.product_category_name_1 = {$product_category_name}";
+            $where .= sprintf(
+                "%s report.product_category_name_1='%s' AND report.site_id=%d",
+                $where ? ' AND' : '',
+                $product_category_name,
+                $site_id
+            );
         }else{
             $table = "{$this->table_dws_idm_category03_topn_kpi} AS report" ;
-            $where = !empty($where) ? $where . " AND report.product_category_name_3 = '{$product_category_name}'" : "report.product_category_name_3 = {$product_category_name}";
+            $where .= sprintf(
+                "%s report.product_category_name_3='%s' AND report.site_id=%d",
+                $where ? ' AND' : '',
+                $product_category_name,
+                $site_id
+            );
         }
 
         $fields = $this->getIndustryFields($params);
