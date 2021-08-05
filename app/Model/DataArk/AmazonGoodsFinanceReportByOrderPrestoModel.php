@@ -1052,7 +1052,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where .= ' AND ext.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
             }
-            if (!empty($datas['where_detail']['tag_id']) && !empty(trim($datas['where_detail']['tag_id']))){
+            if (!empty($datas['where_detail']['tag_id']) ){
+                if(is_array($datas['where_detail']['tag_id'])){
+                    $tag_str = implode(',', $datas['where_detail']['tag_id']);
+
+                }else{
+                    $tag_str = $datas['where_detail']['tag_id'] ;
+                }
                 if ($datas['count_dimension'] != 'tags'){
                     if($datas['count_dimension'] == 'group' || $datas['count_dimension'] == 'isku'){
                         $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
@@ -1063,7 +1069,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id ";
                     }
                 }
-                $where .=' AND tags_rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
+                $where .=' AND tags_rel.tags_id IN (' .  trim($tag_str) . ' ) ';
             }
         }
         $table_fields = !empty($table_fields) ? $table_fields . " , " : "";
