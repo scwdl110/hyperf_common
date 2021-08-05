@@ -436,4 +436,99 @@ class DataArkController extends AbstractController
 
         return $result;
     }
+
+    public function getIndustryKpi()
+    {
+        $userInfo = $this->request->getAttribute('userInfo');
+        $req = $this->request->all();
+        $page = intval($req['page'] ?? 1);
+        $limit = intval($req['rows'] ?? 100);
+        $sort = trim(strval($req['sort'] ?? ''));
+        $order = trim(strval($req['order'] ?? ''));
+        $currencyInfo = $req['currencyInfo'] ?? [];
+        $exchangeCode = $req['exchangeCode'] ?? '1';
+        $params = $req['params'] ?? [];
+        $target = trim($params['target'] ?? '');
+        $productCategoryName = trim($params['product_category_name'] ?? '');
+        $timeType = intval($params['time_type'] ?? 0);
+        $searchStartTime = intval(date('Ymd',strtotime($params['search_start_time'] ?? '')));
+        $searchEndTime = intval(date('Ymd',strtotime($params['search_end_time'] ?? '')));
+        $offset = ($page - 1) * $limit;
+        $result = ['lists' => [], 'count' => 0];
+        $where = '';
+
+        if(empty($target) || empty($productCategoryName)){
+            return Result::success($result);
+        }
+
+        if ($timeType === 99) {
+            $where .= sprintf(
+                '%s report.yyyymmdd>=%d and report.yyyymmdd<=%d',
+                $where ? ' AND' : '',
+                $searchStartTime,
+                $searchEndTime
+            );
+        }else{
+            return Result::success($result);
+        }
+
+        $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
+        $className = "\\App\\Model\\DataArk\\AmazonCategoryTopnKpiPrestoModel";
+        $amazonCategoryTopnKpiPrestoMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
+        $amazonCategoryTopnKpiPrestoMD->dryRun(env('APP_TEST_RUNNING', false));
+        $result = $amazonCategoryTopnKpiPrestoMD->getIndustryTopnKpi(
+            $where,
+            $params,
+            $limit,
+            $sort,
+            $order,
+            $currencyInfo,
+            $exchangeCode,
+            $userInfo['user_id']
+        );
+
+        //TODO 中台有数据了去掉
+        $tmp = [
+            [
+                "time" => '2021-08-02',
+                "goods_visitors_up" => 3000,
+                "goods_visitors_down"=> 2500,
+                "sale_sales_volume_up"=> 300,
+                "sale_sales_volume_down"=> 250,
+                "sale_sales_quota_up"=> 3300,
+                "sale_sales_quota_down"=> 3100,
+                "goods_conversion_rate_up"=> 0.25,
+                "goods_conversion_rate_down"=> 0.15
+            ],
+            [
+                "time" => '2021-08-03',
+                "goods_visitors_up" => 3100,
+                "goods_visitors_down"=> 2100,
+                "sale_sales_volume_up"=> 310,
+                "sale_sales_volume_down"=> 210,
+                "sale_sales_quota_up"=> 3100,
+                "sale_sales_quota_down"=> 3000,
+                "goods_conversion_rate_up"=> 0.35,
+                "goods_conversion_rate_down"=> 0.25
+            ],
+            [
+                "time" => '2021-08-04',
+                "goods_visitors_up" => 3300,
+                "goods_visitors_down"=> 2600,
+                "sale_sales_volume_up"=> 323,
+                "sale_sales_volume_down"=> 234,
+                "sale_sales_quota_up"=> 3322,
+                "sale_sales_quota_down"=> 3133,
+                "goods_conversion_rate_up"=> 0.65,
+                "goods_conversion_rate_down"=> 0.35
+            ]
+        ];
+        $result = ['lists' => $tmp, 'count' => 3];
+
+        if (!isset($result['lists'])) {
+            $result = ['lists' => [], 'count' => 0];
+        }
+
+        return Result::success($result);
+    }
 }

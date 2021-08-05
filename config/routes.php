@@ -18,6 +18,7 @@ Router::get('/favicon.ico', function () {
 Router::post('/dataark/unGoodsDatas', "App\Controller\DataArkController@getUnGoodsDatas");
 Router::post('/dataark/goodsDatas', "App\Controller\DataArkController@getGoodsDatas");
 Router::post('/dataark/operatorsDatas', "App\Controller\DataArkController@getOperatorsDatas");
+Router::post('/dataark/getIndustryKpi', "App\Controller\DataArkController@getIndustryKpi");
 
 Router::post('/test/awsskd', "App\Controller\TestAwsController@testAws");
 
