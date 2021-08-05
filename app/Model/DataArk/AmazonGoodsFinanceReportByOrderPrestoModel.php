@@ -3769,6 +3769,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $isMysql = false;
             }
         }
+        if($params['is_median']){
+            $isMysql = false;
+        }
         return $isMysql;
     }
 
