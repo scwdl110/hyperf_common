@@ -158,6 +158,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($where_detail)) {
             $where_detail = array();
         }
+        if (!empty($where_detail['tag_id'])) {
+            if(is_array($where_detail['tag_id'])){
+                $tag_str = implode(',', $where_detail['tag_id']);
+
+            }else{
+                $tag_str = $where_detail['tag_id'] ;
+            }
+            if (!empty($tag_str)) {
+                if (in_array(0,explode(",",$tag_str))){
+                    $isMysql = false;
+                }
+            }elseif ($tag_str == 0){
+                $isMysql = false;
+            }
+        }
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
@@ -483,7 +498,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             if (!empty($where_detail['tag_id'])) {
                 if (strpos($group, 'tags_rel.tags_id') === false) {
-                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}'";
+                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 ";
 
                 }
                 if(is_array($where_detail['tag_id'])){
@@ -1050,7 +1065,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where .= ' AND ext.is_care = ' . (intval($datas['where_detail']['is_care'])==1?1:0);
             }
-            if (!empty($datas['where_detail']['tag_id']) && !empty(trim($datas['where_detail']['tag_id']))){
+            if (!empty($datas['where_detail']['tag_id']) ){
+                if(is_array($datas['where_detail']['tag_id'])){
+                    $tag_str = implode(',', $datas['where_detail']['tag_id']);
+
+                }else{
+                    $tag_str = $datas['where_detail']['tag_id'] ;
+                }
                 if ($datas['count_dimension'] != 'tags'){
                     if($datas['count_dimension'] == 'group' || $datas['count_dimension'] == 'isku'){
                         $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
@@ -1061,7 +1082,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id ";
                     }
                 }
-                $where .=' AND tags_rel.tags_id IN (' .  trim($datas['where_detail']['tag_id']) . ' ) ';
+                $where .=' AND tags_rel.tags_id IN (' .  trim($tag_str) . ' ) ';
             }
         }
         $table_fields = !empty($table_fields) ? $table_fields . " , " : "";
