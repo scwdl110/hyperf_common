@@ -8484,7 +8484,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         foreach ($fields as $key => $value){
             $key_value = $key;
             if($key == "group"){
-                $key_value = $key = $isMysql ? "`group`" : '"group"';
+                $key = $isMysql ? '`group`' : '"group"';
+                $key_value = $isMysql ? '`group`' : $key_value;
             }
             if(stripos($value,"min(") !== false){
                 $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
