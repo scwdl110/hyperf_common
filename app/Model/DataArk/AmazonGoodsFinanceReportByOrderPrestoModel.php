@@ -4136,9 +4136,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
-                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
-                }
+//                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+//                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
+//                }
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
@@ -4164,9 +4164,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit, '', '', false, null, 300, $isMysql);
                 }
-                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
-                }
+//                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+//                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
+//                }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
             }else{
