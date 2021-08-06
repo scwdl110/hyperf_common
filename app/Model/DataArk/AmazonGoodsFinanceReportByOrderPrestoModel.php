@@ -8482,7 +8482,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $str = $formula ;
             foreach ($data as $key => $value) {
                 if(is_null($value)){
-                    $value = 'NULL';
+                    $str = 'NULL';
+                    break;
                 }
                 $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
             }
