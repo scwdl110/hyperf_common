@@ -96,67 +96,13 @@ class AccountingService extends BaseService
      */
     public function getFiancialProfitInfo($request_data, $isRpc = false, $userInfo = array())
     {
-        $rule = [
-            'date' => 'required|date',
-            'offset' => 'integer|filled',
-            'limit' => 'integer|filled',
-            'shop_ids' => 'string|filled',
-        ];
+        $res = $this->getShopInfo($request_data, $isRpc, $userInfo);
 
-        $res = $this->validate($request_data, $rule);
+        $rateList = $this->getExchangeRate($res['user_info']['user_id']);
 
-        if ($res['code'] == 0) {
-            return $res;
-        }
+        $infoList = array('total' => $res['count'], 'list' => array());
 
-        $current_firstday = date('Y-m-01', strtotime($request_data['date']));
-        $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
-
-        $begin_time = strtotime($current_firstday . " 00:00:00");
-        $end_time = strtotime($current_lastday . " 23:59:59");
-
-        $request_data['offset'] = $request_data['offset'] ?? 0;
-        $request_data['limit'] = $request_data['limit'] ?? 10;
-
-        if ($isRpc == true) {
-            $request = $this->request->withAttribute('userInfo', [
-                'admin_id' => $userInfo['admin_id'],
-                'user_id' => $userInfo['user_id'],
-                'is_master' => $userInfo['is_master'],
-                'dbhost' => $userInfo['dbhost'],
-                'codeno' => $userInfo['codeno'],
-            ]);
-            Context::set(ServerRequestInterface::class, $request);
-        } else {
-            $userInfo = $this->getUserInfo();
-        }
-
-        $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
-        $shopListInfoquery = ChannelModel::select("id", "site_id", "title")->where([['user_id', '=', $userInfo['user_id']]]);
-
-        if ($userAdmin->is_master != 1) {
-            $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
-            $shopListInfoquery->whereIn('id', $ids);
-        }
-
-        if (isset($request_data['shop_ids'])) {
-            $shopListInfoquery->whereIn('id', explode(",", $request_data['shop_ids']));
-        }
-
-        $shopListInfoquery->where([
-            ['channel_type', '=', 2],
-            ['status', '=', 1]
-        ]);
-
-        $count = $shopListInfoquery->count();
-
-        $shopListId = $this->getArray($shopListInfoquery->orderBy('id', 'asc')->offset($request_data['offset'])->limit($request_data['limit'])->get());
-
-        $infoList = array('total' => $count, 'list' => array());
-
-        $rateList = $this->getExchangeRate($userInfo['user_id']);
-
-        foreach ($shopListId as $key => $list) {
+        foreach ($res['shopListInfo'] as $key => $list) {
 
             $info = array();
 
@@ -191,9 +137,9 @@ class AccountingService extends BaseService
             ifnull(sum(ware_house_lost + ware_house_damage + ware_house_lost_manual + ware_house_damage_exception + reversal_reimbursement + disposal_fee + free_replacement_refund_items + removal_order_lost + incorrect_fees_items + missing_from_inbound_clawback + missing_from_inbound + inbound_carrier_damage + multichannel_order_lost + payment_retraction_items + reserved_field19),0) AS fee_adjustment
         ")->where([
                 ['channel_id', '=', $list['id']],
-                ['create_time', '>=', $begin_time],
-                ['create_time', '<=', $end_time],
-                ['user_id', '=', $userInfo['user_id']]
+                ['create_time', '>=', $res['begin_time']],
+                ['create_time', '<=', $res['end_time']],
+                ['user_id', '=', $res['user_info']['user_id']]
             ])->get());
 
             //$Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
@@ -237,9 +183,9 @@ class AccountingService extends BaseService
             ifnull(sum(charge_back_recovery + cs_error_non_itemized + return_postage_billing_postage + re_evaluation + subscription_fee_correction + incorrect_fees_non_itemized + buyer_recharge + multichannel_order_late + non_subscription_fee_adj + fba_per_unit_fulfillment_fee + misc_adjustment),0) AS fee_adjustment
         ")->where([
                 ['channel_id', '=', $list['id']],
-                ['create_time', '>=', $begin_time],
-                ['create_time', '<=', $end_time],
-                ['user_id', '=', $userInfo['user_id']]
+                ['create_time', '>=', $res['begin_time']],
+                ['create_time', '<=', $res['end_time']],
+                ['user_id', '=', $res['user_info']['user_id']]
             ])->get());
 
 
@@ -332,67 +278,11 @@ class AccountingService extends BaseService
 
     public function getMoneyCallBackInfo($request_data, $isRpc = false, $userInfo = array())
     {
-        $rule = [
-            'date' => 'required|date',
-            'offset' => 'integer|filled',
-            'limit' => 'integer|filled',
-            'shop_ids' => 'string|filled',
-        ];
+        $res = $this->getShopInfo($request_data, $isRpc, $userInfo);
 
-        $res = $this->validate($request_data, $rule);
+        $rateList = $this->getExchangeRate($res['user_info']['user_id']);
 
-        if ($res['code'] == 0) {
-            return $res;
-        }
-
-        $current_firstday = date('Y-m-01', strtotime($request_data['date']));
-        $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
-
-        $begin_time = strtotime($current_firstday . " 00:00:00");
-        $end_time = strtotime($current_lastday . " 23:59:59");
-
-        $request_data['offset'] = $request_data['offset'] ?? 0;
-        $request_data['limit'] = $request_data['limit'] ?? 10;
-
-        if ($isRpc == true) {
-            $request = $this->request->withAttribute('userInfo', [
-                'admin_id' => $userInfo['admin_id'],
-                'user_id' => $userInfo['user_id'],
-                'is_master' => $userInfo['is_master'],
-                'dbhost' => $userInfo['dbhost'],
-                'codeno' => $userInfo['codeno'],
-            ]);
-            Context::set(ServerRequestInterface::class, $request);
-        }else {
-            $userInfo = $this->getUserInfo();
-        }
-
-        $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
-        $shopListInfoquery = ChannelModel::select("id", "site_id", "title")->where([['user_id', '=', $userInfo['user_id']]]);
-
-        if ($userAdmin->is_master != 1) {
-            $ids = $userAdmin->check_prv_ids != null ? explode(',', $userAdmin->check_prv_ids) : array(0);
-            $shopListInfoquery->whereIn('id', $ids);
-        }
-
-        if (isset($request_data['shop_ids'])) {
-            $shopListInfoquery->whereIn('id', explode(",", $request_data['shop_ids']));
-        }
-
-        $shopListInfoquery->where([
-            ['channel_type', '=', 2],
-            ['status', '=', 1]
-        ]);
-
-        $count = $shopListInfoquery->count();
-
-        $shopListId = $this->getArray($shopListInfoquery->orderBy('id', 'asc')->offset($request_data['offset'])->limit($request_data['limit'])->get());
-
-        $infoList = array('total' => $count, 'list' => array());
-
-        $rateList = $this->getExchangeRate($userInfo['user_id']);
-
-        foreach ($shopListId as $key => $list) {
+        foreach ($res['shopListInfo'] as $key => $list) {
 
             $info = array();
 
@@ -411,14 +301,15 @@ class AccountingService extends BaseService
             sum( currency_amount ) AS money_back_amount
             ")->where([
                 ['channel_id', '=', $list['id']],
-                ['financial_event_group_end_int', '>', $begin_time],
-                ['financial_event_group_start_int', '<', $end_time],
-                ['user_id', '=', $userInfo['user_id']],
+                ['financial_event_group_end_int', '>', $res['begin_time']],
+                ['financial_event_group_start_int', '<', $res['end_time']],
+                ['user_id', '=', $res['user_info']['user_id']],
                 ['fundtransfer_status', '=', 0]
             ])->get());
 
             $info['money_back_amount'] = floor($FinanceMoneyBackInfo[0]['money_back_amount'] * 100) / 100; //**  回款费用
 
+            $infoList['total'] = $res['count'];
             $infoList['list'][] = $info;
         }
 
@@ -437,7 +328,32 @@ class AccountingService extends BaseService
      * @param $request_data
      * @return array
      */
-    public function getShopList($request_data)
+    public function getShopList($request_data, $isRpc = false, $userInfo = array())
+    {
+        $res = $this->getShopInfo($request_data, $isRpc, $userInfo);
+
+        $info = array();
+
+        foreach ($res['shopListInfo'] as $key => $value) {
+            $info[$key]['shop_id'] = $value['id'];
+            $info[$key]['shop_name'] = $value['title'];
+            $info[$key]['modified_time'] = $value['modified_time'];
+        }
+
+        $data = [
+            'code' => 1,
+            'msg' => 'success',
+            'data' => array(
+                'total' => $res['count'],
+                'list' => $info
+            )
+        ];
+
+        return $data;
+    }
+
+
+    private function getShopInfo($request_data, $isRpc = false, $userInfo = array())
     {
         $rule = [
             'date_time' => 'integer|filled',
@@ -445,7 +361,9 @@ class AccountingService extends BaseService
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
             'shop_id' => 'integer|filled',
-            'no_limit' => 'integer|filled'
+            'no_limit' => 'integer|filled',
+            'country_site' => 'integer|filled',
+            'site_id' => 'integer|filled',
         ];
 
         $res = $this->validate($request_data, $rule);
@@ -454,14 +372,47 @@ class AccountingService extends BaseService
             return $res;
         }
 
+        $current_firstday = date('Y-m-01', strtotime($request_data['date']));
+        $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
 
-        $info = array();
+        $begin_time = strtotime($current_firstday . " 00:00:00");
+        $end_time = strtotime($current_lastday . " 23:59:59");
 
-        $userInfo = $this->getUserInfo();
+        if ($isRpc == true) {
+            $request = $this->request->withAttribute('userInfo', [
+                'admin_id' => $userInfo['admin_id'],
+                'user_id' => $userInfo['user_id'],
+                'is_master' => $userInfo['is_master'],
+                'dbhost' => $userInfo['dbhost'],
+                'codeno' => $userInfo['codeno'],
+            ]);
+            Context::set(ServerRequestInterface::class, $request);
+        } else {
+            $userInfo = $this->getUserInfo();
+        }
 
         $userAdmin = UserAdminModel::query()->where('id', $userInfo['admin_id'])->select('is_master', 'check_prv_ids')->first();
 
-        $shopListInfoquery = ChannelModel::select("id", "title", "modified_time")->where([['user_id', '=', $userInfo['user_id']]]);
+        $shopListInfoquery = ChannelModel::select("id", "title", "site_id", "modified_time")->where([['user_id', '=', $userInfo['user_id']]]);
+
+        $country_info = $this->config->get('common.amzon_site_country1');
+
+        if (isset($request_data['country_site'])) {
+            $request_data['site_id'] = '';
+            foreach ($country_info as $country) {
+                if ($country['site_group_id'] == $request_data['country_site']) {
+                    $request_data['site_id'] .= $country['id'] . ',';
+                }
+            }
+            $request_data['site_id'] = trim($request_data['site_id'], ',');
+        }
+
+        if (isset($request_data['site_id'])) {
+
+            $request_data['site_id'] = explode(",", $request_data['site_id']);
+
+            $shopListInfoquery->whereIn('site_id', $request_data['site_id']);
+        }
 
         if (isset($request_data['shop_name'])) {
             $shopListInfoquery->where('title', 'like', '%' . $request_data['shop_name'] . '%');
@@ -493,22 +444,8 @@ class AccountingService extends BaseService
             $shopListInfo = $this->getArray($shopListInfoquery->offset($request_data['offset'])->limit($request_data['limit'])->get());
         }
 
-        foreach ($shopListInfo as $key => $value) {
-            $info[$key]['shop_id'] = $value['id'];
-            $info[$key]['shop_name'] = $value['title'];
-            $info[$key]['modified_time'] = $value['modified_time'];
-        }
 
-        $data = [
-            'code' => 1,
-            'msg' => 'success',
-            'data' => array(
-                'total' => $count,
-                'list' => $info
-            )
-        ];
-
-        return $data;
+        return array('count' => $count, 'shopListInfo' => $shopListInfo, 'begin_time' => $begin_time, 'end_time' => $end_time, 'user_info' => $userInfo);
     }
 
     /**
