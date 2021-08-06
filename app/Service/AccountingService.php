@@ -355,6 +355,8 @@ class AccountingService extends BaseService
 
     private function getShopInfo($request_data, $isRpc = false, $userInfo = array())
     {
+        isset($request['date']) && $request['date_time'] = $request['date'];
+
         $rule = [
             'date_time' => 'integer|filled',
             'offset' => 'integer|filled',
