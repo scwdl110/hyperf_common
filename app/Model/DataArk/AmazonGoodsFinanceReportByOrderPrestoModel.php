@@ -1033,12 +1033,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!is_array($datas['where_detail'])){
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
             }
-            if (!empty($datas['where_detail']['group_id']) && !empty(trim($datas['where_detail']['group_id']))){
+            if (!empty($datas['where_detail']['group_id'])){
+                if(is_array($datas['where_detail']['group_id'])){
+                    $group_str = implode(',', $datas['where_detail']['group_id']);
+
+                }else{
+                    $group_str = $datas['where_detail']['group_id'] ;
+                }
                 if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
                     $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
                     $is_rel_status = true;
                 }
-                $where .= ' AND ext.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
+                $where .= ' AND ext.group_id IN (' . $group_str . ') ' ;
             }
             /*if (!empty($datas['where_detail']['transport_mode']) && !empty(trim($datas['where_detail']['transport_mode']))){
                 $where .= ' AND g.Transport_mode = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
