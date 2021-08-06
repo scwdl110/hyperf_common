@@ -4136,6 +4136,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
+                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
+                }
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
@@ -4161,6 +4164,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit, '', '', false, null, 300, $isMysql);
                 }
+                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
+                }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
             }else{
@@ -4184,6 +4190,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } catch(ParallelExecutionException $e){
                     // $e->getResults() 获取协程中的返回值。
                     // $e->getThrowables() 获取协程中出现的异常。
+                    Log::getClient('dataark', 'dataark')->info('协程异常：', [$e->getMessage()]);
+
                 }
 
 
@@ -6216,7 +6224,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1',$isMysql = false)
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1',$isMysql = false,$is_count = 0)
     {
         $isMysql = false;
         if(empty($lists)){
@@ -6224,36 +6232,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else {
             $table = "{$this->table_amazon_fba_inventory_by_channel} as c";
             $where = 'c.user_id = ' . $lists[0]['user_id'] ." AND c.db_num = '".$this->dbhost."'";
-            if (!empty($channel_arr)){
-                if (count($channel_arr)==1){
-                    $where .= " AND c.channel_id = ".intval(implode(",",$channel_arr));
-                }else{
-                    $where .= " AND c.channel_id IN (".implode(",",$channel_arr).")";
-                }
-            }
-            if($datas['count_dimension'] == 'channel_id'){
-                $fba_fields = $group = 'c.channel_id' ;
-            }else if($datas['count_dimension'] == 'site_id'){
-                $fba_fields = $group = 'c.site_id' ;
-            }else if($datas['count_dimension'] == 'department') { //部门
-                $fba_fields = $group = 'dc.user_department_id ,c.area_id' ;
-                $table .= " LEFT JOIN {$this->table_department_channel} as dc ON dc.user_id = c.user_id and dc.channel_id = c.channel_id " ;
-            }else if($datas['count_dimension'] == 'admin_id'){ //子账号
-                $fba_fields = $group = 'uc.admin_id , c.area_id' ;
-                $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
-            }
-            $where_arr = array() ;
-            foreach($lists as $list1){
-                if($datas['count_dimension'] == 'channel_id'){
-                    $where_arr[] = array( 'channel_id'=>$list1['channel_id'] , 'site_id'=>$list1['site_id']) ;
-                }else if($datas['count_dimension'] == 'site_id'){
-                    $where_arr[] = array('site_id'=>$list1['site_id']) ;
-                }else if($datas['count_dimension'] == 'department'){
-                    $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
-                }else if($datas['count_dimension'] == 'admin_id'){
-                    $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
-                }
-            }
             if ($datas['currency_code'] != 'ORIGIN') {
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
@@ -6262,29 +6240,68 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
 
-            if($datas['count_dimension'] == 'channel_id'){
-                $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
-                $where_str = 'c.channel_id IN (' . implode(',' , $where_strs) . ")" ;
-            }else if($datas['count_dimension'] == 'site_id'){
-                $where_strs = array_unique(array_column($where_arr , 'site_id')) ;
-                $where_str = 'c.site_id IN (' . implode(',' , $where_strs) . ")" ;
-            }else if($datas['count_dimension'] == 'department'){
-                $where_strs = array_unique(array_column($where_arr , 'user_department_id')) ;
-                $where_str = 'dc.user_department_id IN (' . implode(',' , $where_strs) . ")" ;
-                $isMysql = false;
-
-            }else if($datas['count_dimension'] == 'admin_id'){
-                $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
-                $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
-                $isMysql = false;
-            }else{
-                $where_str = '1=1' ;
+            if (!empty($channel_arr)){
+                if (count($channel_arr)==1){
+                    $where .= " AND c.channel_id = ".intval(implode(",",$channel_arr));
+                }else{
+                    $where .= " AND c.channel_id IN (".implode(",",$channel_arr).")";
+                }
             }
+            if ($is_count == 1 or $datas['count_dimension'] == 'all_channels'){
+                $fba_fields = 'max(c.channel_id) as channel_id' ;
+                $group = '';
+                $where_str = '1=1' ;
+            }else{
+                if($datas['count_dimension'] == 'channel_id'){
+                    $fba_fields = $group = 'c.channel_id' ;
+                }else if($datas['count_dimension'] == 'site_id'){
+                    $fba_fields = $group = 'c.site_id' ;
+                }else if($datas['count_dimension'] == 'department') { //部门
+                    $fba_fields = $group = 'dc.user_department_id ,c.area_id' ;
+                    $table .= " LEFT JOIN {$this->table_department_channel} as dc ON dc.user_id = c.user_id and dc.channel_id = c.channel_id " ;
+                }else if($datas['count_dimension'] == 'admin_id'){ //子账号
+                    $fba_fields = $group = 'uc.admin_id , c.area_id' ;
+                    $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
+                }
+                $where_arr = array() ;
+                foreach($lists as $list1){
+                    if($datas['count_dimension'] == 'channel_id'){
+                        $where_arr[] = array( 'channel_id'=>$list1['channel_id'] , 'site_id'=>$list1['site_id']) ;
+                    }else if($datas['count_dimension'] == 'site_id'){
+                        $where_arr[] = array('site_id'=>$list1['site_id']) ;
+                    }else if($datas['count_dimension'] == 'department'){
+                        $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
+                    }else if($datas['count_dimension'] == 'admin_id'){
+                        $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
+                    }
+                }
+
+
+                if($datas['count_dimension'] == 'channel_id'){
+                    $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
+                    $where_str = 'c.channel_id IN (' . implode(',' , $where_strs) . ")" ;
+                }else if($datas['count_dimension'] == 'site_id'){
+                    $where_strs = array_unique(array_column($where_arr , 'site_id')) ;
+                    $where_str = 'c.site_id IN (' . implode(',' , $where_strs) . ")" ;
+                }else if($datas['count_dimension'] == 'department'){
+                    $where_strs = array_unique(array_column($where_arr , 'user_department_id')) ;
+                    $where_str = 'dc.user_department_id IN (' . implode(',' , $where_strs) . ")" ;
+                    $isMysql = false;
+
+                }else if($datas['count_dimension'] == 'admin_id'){
+                    $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
+                    $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
+                    $isMysql = false;
+                }else{
+                    $where_str = '1=1' ;
+                }
+            }
+
+            $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelPrestoModel($this->dbhost, $this->codeno);
+            $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
+            $where.= ' AND ' . $where_str ;
         }
 
-        $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelPrestoModel($this->dbhost, $this->codeno);
-        $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
-        $where.= ' AND ' . $where_str ;
         if ($datas['currency_code'] == 'ORIGIN') {
             $fba_fields .= " , sum(DISTINCT(c.yjzhz))  as fba_goods_value";
         } else {
@@ -6332,6 +6349,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
                     }
 
+                }else{
+                    $fbaDatas[] = $fba ;
                 }
             }
         }
@@ -6344,6 +6363,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_data = empty($fbaDatas[$list2['user_department_id']]) ? array() :  $fbaDatas[$list2['user_department_id']];
             }else if($datas['count_dimension'] == 'admin_id'){
                 $fba_data = empty($fbaDatas[$list2['admin_id']]) ? array() :  $fbaDatas[$list2['admin_id']];
+            }else{
+                $fba_data = empty($fbaDatas[0]) ? array() :  $fbaDatas[0];
             }
             if (!empty($fields['fba_goods_value'])) {  //在库总成本
                 $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
