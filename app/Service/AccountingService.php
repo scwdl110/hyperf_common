@@ -356,6 +356,7 @@ class AccountingService extends BaseService
     private function getShopInfo($request_data, $isRpc = false, $userInfo = array())
     {
         isset($request['date']) && $request['date_time'] = $request['date'];
+        !isset($request['date_time']) && $request['date_time'] = "2021-05";
 
         $rule = [
             'date_time' => 'integer|filled',
@@ -374,11 +375,12 @@ class AccountingService extends BaseService
             return $res;
         }
 
-        $current_firstday = date('Y-m-01', strtotime($request_data['date']));
+        $current_firstday = date('Y-m-01', strtotime($request['date_time']));
         $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
 
         $begin_time = strtotime($current_firstday . " 00:00:00");
         $end_time = strtotime($current_lastday . " 23:59:59");
+
 
         if ($isRpc == true) {
             $request = $this->request->withAttribute('userInfo', [
