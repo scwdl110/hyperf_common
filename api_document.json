@@ -33,7 +33,7 @@
                 "properties": {
                   "date_time": {
                     "description": "日期",
-                    "type": "date"
+                    "type": "string"
                   },
                   "offset": {
                     "description": "偏移量",
@@ -375,7 +375,7 @@
       }
     },
     "/accounting/moneycallback": {
-      "get": {
+      "post": {
         "tags": [
           "accounting"
         ],
@@ -402,7 +402,7 @@
                 "properties": {
                   "date_time": {
                     "description": "日期",
-                    "type": "date"
+                    "type": "string"
                   },
                   "offset": {
                     "description": "偏移量",
@@ -527,7 +527,7 @@
                 "properties": {
                   "date_time": {
                     "description": "日期",
-                    "type": "date"
+                    "type": "string"
                   },
                   "offset": {
                     "description": "偏移量",
