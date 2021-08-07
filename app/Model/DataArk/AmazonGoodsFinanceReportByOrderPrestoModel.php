@@ -9597,10 +9597,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if ($table_type == 'week'){
             $goods_table = "{$this->table_dws_goods_day_report} AS dw_report
 			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
-            $channel_field = "channel.operation_user_admin_id as operation_user_admin_id,channel_id,myear,mmonth,mweek,max(mweekyear) as mweekyear,
+            $channel_field = "max(channel.operation_user_admin_id) as operation_user_admin_id,channel_id,myear,mmonth,mweek,max(mweekyear) as mweekyear,
                         max(mquarter) as mquarter,
-                        max(site_id) as site_id,
-                        max(user_id) as user_id,
+                        max(dw_report.site_id) as site_id,
+                        max(dw_report.user_id) as user_id,
                         SUM( bychannel_sales_quota ) as bychannel_sales_quota ,
                        
 SUM( bychannel_fba_sales_quota ) as bychannel_fba_sales_quota ,
