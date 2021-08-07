@@ -9592,7 +9592,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $where_dw_report_amazon_goods .= " ".str_replace("create_time",'dw_report.create_time',$create_time_tmp);
 
 
-        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".($datas['user_id'] % 20)." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("dw_report.",'',$ym_where);
+        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".($datas['user_id'] % 20)." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
         $goods_month_table = '';
         if ($table_type == 'week'){
             $goods_table = "{$this->table_dws_goods_day_report} AS dw_report
