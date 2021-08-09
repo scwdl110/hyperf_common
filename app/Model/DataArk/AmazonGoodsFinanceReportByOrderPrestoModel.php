@@ -1291,7 +1291,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }else if($datas['count_dimension'] == 'parent_asin'){
                 $group_fields_tmp = 'parent_asin';
-                $table .= " LEFT JOIN g_amazon_goods_{$this->codeno} as amazon_goods ON g.amazon_goods_id = amazon_goods.id";
+                $table .= " LEFT JOIN g_amazon_goods_{$this->codeno} as amazon_goods ON g.user_id = amazon_goods.user_id AND g.channel_id = amazon_goods.channel_id AND g.seller_sku = amazon_goods.SKU ";
                 $table_fields =  'amazon_goods.parent_asin as parent_asin , amazon_goods.channel_id' ;
                 $where.= " AND amazon_goods.id > 0 ";
                 if($datas['is_distinct_channel'] == 1){
@@ -1302,7 +1302,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where.= " AND ext.id > 0 ";
                 $group_fields_tmp = 'isku_id';
-                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = g.amazon_goods_id " ;
+                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON g.user_id = ext.user_id AND g.channel_id = ext.channel_id AND g.seller_sku = ext.sku " ;
                 $table_fields =  'max(ext.isku_id) as isku_id' ;
             }else if($datas['count_dimension'] == 'class1'){
                 //分类暂时没有 ，因为需要跨库查询
@@ -1310,7 +1310,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'group'){ //分组
                 $where.= " AND ext.id > 0 ";
                 $group_fields_tmp = 'group_id';
-                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = g.amazon_goods_id " ;
+                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON g.user_id = ext.user_id AND g.channel_id = ext.channel_id AND g.seller_sku = ext.sku " ;
                 $table_fields = 'max(ext.group_id) as group_id' ;
                 $table_group = ' ext.group_id,g.myear,g.mmonth,g.mday' ;
 
@@ -1319,6 +1319,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where.= " AND ext.id > 0 ";
                 $group_fields_tmp = 'tags_id';
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = g.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
+                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON g.user_id = ext.user_id AND g.channel_id = ext.channel_id AND g.seller_sku = ext.sku LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id  " ;
                 $table_fields =  'tags_rel.tags_id ' ;
                 $table_group = 'tags_rel.tags_id ,g.myear,g.mmonth,g.mday' ;
 
