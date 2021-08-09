@@ -1347,6 +1347,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }else{
                         $where_arr[] = array('asin' => self::escape($list1['asin']));
                     }
+                }else if($datas['count_dimension'] == 'parent_asin'){
+                    if($datas['is_distinct_channel'] == 1) {
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id']);
+                    }else{
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
+                    }
+                }else if($datas['count_dimension'] == 'class1'){
+                    //分类暂时没有 ，因为需要跨库查询
+                }else if($datas['count_dimension'] == 'group'){
+                    $where_arr[] = array('group_id'=>$list1['group_id']) ;
+                }else if($datas['count_dimension'] == 'tags'){  //标签
+                    $where_arr[] = array('tags_id'=>$list1['tags_id']) ;
+                }else if($datas['count_dimension'] == 'head_id'){  //负责人
+                    //负责人暂时没有 ，因为需要跨库查询
+                }else if($datas['count_dimension'] == 'developer_id'){ //开发人
+                    //开发人暂时没有 ，因为需要跨库查询
+                }else if($datas['count_dimension'] == 'isku'){ //开发人
+                    $where_arr[] = array('isku_id'=>$list1['isku_id']) ;
+                }else {
+                    $where_arr[] = array('channel_id'=>$list1['channel_id']) ;
                 }
             }
 
@@ -1380,6 +1400,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $str = "'" . implode("','" , $where_strs) . "'" ;
                     $where_str = $search_field . ' IN (' . $str . ') ';
                 }
+            }else if($datas['count_dimension'] == 'class1'){
+                //分类暂时没有 ，因为需要跨库查询
+            }else if($datas['count_dimension'] == 'group'){
+                $where_strs = array_unique(array_column($where_arr , 'group_id')) ;
+                $where_str = 'ext.group_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else if($datas['count_dimension'] == 'tags'){ //标签
+                $where_strs = array_unique(array_column($where_arr , 'tags_id')) ;
+                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else if($datas['count_dimension'] == 'head_id'){
+                //负责人暂时没有 ，因为需要跨库查询
+            }else if($datas['count_dimension'] == 'developer_id'){
+                //开发人员暂时没有 ，因为需要跨库查询
+            }else if($datas['count_dimension'] == 'isku'){
+                $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
+                $where_str = 'ext.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else{
+                $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
+                $where_str = 'g.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
             }
         }
         $where_str = !empty($where_str) ? $where_str . " AND " : "";
