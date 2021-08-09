@@ -944,9 +944,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'channel_id' ;
                 }else{
-                    $table_fields =  'g.id' ;
+                    $table_fields =  'g.id,g.user_id' ;
                     $table_group = 'g.id' ;
-                    $fba_fields = $group = 'id' ;
+                    $fba_fields = 'id,user_id' ;
+                    $group = 'user_id' ;
                 }
             }else if($datas['count_dimension'] == 'goods_channel'){
                 $table_fields = 'rel.channel_id' ;
