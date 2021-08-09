@@ -1281,6 +1281,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $table_group = ' g.seller_sku,g.myear,g.mmonth,g.mday' ;
                 }
             }else if($datas['count_dimension'] == 'asin'){
+                return $lists;
                 $group_fields_tmp = 'asin';
                 if($datas['is_distinct_channel'] == 1){
                     $table_fields = 'max(g.asin) as asin  , g.channel_id' ;
@@ -1290,6 +1291,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $table_group = ' g.asin,g.myear,g.mmonth,g.mday' ;
                 }
             }else if($datas['count_dimension'] == 'parent_asin'){
+                return $lists;
                 $group_fields_tmp = 'parent_asin';
                 $table .= " LEFT JOIN g_amazon_goods_{$this->codeno} as amazon_goods ON g.user_id = amazon_goods.user_id AND g.channel_id = amazon_goods.channel_id AND g.seller_sku = amazon_goods.SKU ";
                 $table_fields =  'amazon_goods.parent_asin as parent_asin , amazon_goods.channel_id' ;
