@@ -987,6 +987,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //开发人暂时没有 ，因为需要跨库查询
                 }else if($datas['count_dimension'] == 'isku'){ //开发人
                     $where_arr[] = array('isku_id'=>$list1['isku_id']) ;
+                }else if($datas['count_dimension'] == 'all_goods'){ //合计商品
+                    //暂时没有
                 }else {
                     $where_arr[] = array('channel_id'=>$list1['channel_id']) ;
                 }
@@ -1034,6 +1036,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
                 $where_str = 'ext.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else if($datas['count_dimension'] == 'all_goods'){
+                $where_str = '';
             }else{
                 $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
                 $where_str = 'rel.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
@@ -1127,7 +1131,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($datas['count_dimension'] == 'isku'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',$datas['is_distinct_channel'],$fbaDatas);
                 }elseif($datas['count_dimension'] == 'all_goods'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fbaDatas = $this->handleGoodsFbaData($fba,'user_id',$datas['is_distinct_channel'],$fbaDatas);
                 }elseif($datas['count_dimension'] == 'goods_channel'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',$datas['is_distinct_channel'],$fbaDatas);
                 }
@@ -1165,6 +1169,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_data = empty($fbaDatas[$list2['developer_id']]) ? array() : $fbaDatas[$list2['developer_id']] ;
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_data = empty($fbaDatas[$list2['isku_id']]) ? array() : $fbaDatas[$list2['isku_id']] ;
+            }else if($datas['count_dimension'] == 'all_goods'){
+                $fba_data = empty($fbaDatas[$list2['user_id']]) ? array() : $fbaDatas[$list2['user_id']] ;
             }
 
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
