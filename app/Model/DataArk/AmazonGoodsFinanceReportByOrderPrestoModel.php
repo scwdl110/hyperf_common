@@ -2162,6 +2162,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fields['goods_id'] = 'max(report.amazon_goods_id)';
         $fields['site_country_id'] = 'max(report.site_id)';
 
+        if ($datas['is_distinct_channel'] != '1'){
+            $fields['channel_num'] = 'COUNT(DISTINCT(report.channel_id))';
+            $fields['channel_id'] = 'max(report.channel_id)';
+        }
+
         if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['goods_price_min'] = 'min(report.goods_price)';
