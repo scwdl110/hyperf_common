@@ -1046,12 +1046,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!is_array($datas['where_detail'])){
                 $datas['where_detail'] = json_decode($datas['where_detail'],true);
             }
-            if (!empty($datas['where_detail']['group_id']) && !empty(trim($datas['where_detail']['group_id']))){
+            if (!empty($datas['where_detail']['group_id'])){
+                if(is_array($datas['where_detail']['group_id'])){
+                    $group_str = implode(',', $datas['where_detail']['group_id']);
+
+                }else{
+                    $group_str = $datas['where_detail']['group_id'] ;
+                }
                 if($datas['count_dimension'] != 'group' && $datas['count_dimension'] != 'tags' && $datas['count_dimension'] != 'isku'){
                     $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = rel.amazon_goods_id " ;
                     $is_rel_status = true;
                 }
-                $where .= ' AND ext.group_id IN (' . $datas['where_detail']['group_id'] . ') ' ;
+                $where .= ' AND ext.group_id IN (' . $group_str . ') ' ;
             }
             /*if (!empty($datas['where_detail']['transport_mode']) && !empty(trim($datas['where_detail']['transport_mode']))){
                 $where .= ' AND g.Transport_mode = ' . ($datas['where_detail']['transport_mode'] == 'FBM' ? 1 : 2);
@@ -4214,6 +4220,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } catch(ParallelExecutionException $e){
                     // $e->getResults() 获取协程中的返回值。
                     // $e->getThrowables() 获取协程中出现的异常。
+                    Log::getClient('dataark', 'dataark')->info('协程异常：', [$e->getMessage()]);
+
                 }
 
 
@@ -6246,7 +6254,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param array $channel_arr
      * @return array
      */
-    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1',$isMysql = false)
+    protected function getUnGoodsFbaData($lists = [], $fields = [], $datas = [], $channel_arr = [], $currencyInfo = [], $exchangeCode = '1',$isMysql = false,$is_count = 0)
     {
         $isMysql = false;
         if(empty($lists)){
@@ -6254,36 +6262,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else {
             $table = "{$this->table_amazon_fba_inventory_by_channel} as c";
             $where = 'c.user_id = ' . $lists[0]['user_id'] ." AND c.db_num = '".$this->dbhost."'";
-            if (!empty($channel_arr)){
-                if (count($channel_arr)==1){
-                    $where .= " AND c.channel_id = ".intval(implode(",",$channel_arr));
-                }else{
-                    $where .= " AND c.channel_id IN (".implode(",",$channel_arr).")";
-                }
-            }
-            if($datas['count_dimension'] == 'channel_id'){
-                $fba_fields = $group = 'c.channel_id' ;
-            }else if($datas['count_dimension'] == 'site_id'){
-                $fba_fields = $group = 'c.site_id' ;
-            }else if($datas['count_dimension'] == 'department') { //部门
-                $fba_fields = $group = 'dc.user_department_id ,c.area_id' ;
-                $table .= " LEFT JOIN {$this->table_department_channel} as dc ON dc.user_id = c.user_id and dc.channel_id = c.channel_id " ;
-            }else if($datas['count_dimension'] == 'admin_id'){ //子账号
-                $fba_fields = $group = 'uc.admin_id , c.area_id' ;
-                $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
-            }
-            $where_arr = array() ;
-            foreach($lists as $list1){
-                if($datas['count_dimension'] == 'channel_id'){
-                    $where_arr[] = array( 'channel_id'=>$list1['channel_id'] , 'site_id'=>$list1['site_id']) ;
-                }else if($datas['count_dimension'] == 'site_id'){
-                    $where_arr[] = array('site_id'=>$list1['site_id']) ;
-                }else if($datas['count_dimension'] == 'department'){
-                    $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
-                }else if($datas['count_dimension'] == 'admin_id'){
-                    $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
-                }
-            }
             if ($datas['currency_code'] != 'ORIGIN') {
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
@@ -6292,29 +6270,68 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
 
-            if($datas['count_dimension'] == 'channel_id'){
-                $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
-                $where_str = 'c.channel_id IN (' . implode(',' , $where_strs) . ")" ;
-            }else if($datas['count_dimension'] == 'site_id'){
-                $where_strs = array_unique(array_column($where_arr , 'site_id')) ;
-                $where_str = 'c.site_id IN (' . implode(',' , $where_strs) . ")" ;
-            }else if($datas['count_dimension'] == 'department'){
-                $where_strs = array_unique(array_column($where_arr , 'user_department_id')) ;
-                $where_str = 'dc.user_department_id IN (' . implode(',' , $where_strs) . ")" ;
-                $isMysql = false;
-
-            }else if($datas['count_dimension'] == 'admin_id'){
-                $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
-                $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
-                $isMysql = false;
-            }else{
-                $where_str = '1=1' ;
+            if (!empty($channel_arr)){
+                if (count($channel_arr)==1){
+                    $where .= " AND c.channel_id = ".intval(implode(",",$channel_arr));
+                }else{
+                    $where .= " AND c.channel_id IN (".implode(",",$channel_arr).")";
+                }
             }
+            if ($is_count == 1 or $datas['count_dimension'] == 'all_channels'){
+                $fba_fields = 'max(c.channel_id) as channel_id' ;
+                $group = '';
+                $where_str = '1=1' ;
+            }else{
+                if($datas['count_dimension'] == 'channel_id'){
+                    $fba_fields = $group = 'c.channel_id' ;
+                }else if($datas['count_dimension'] == 'site_id'){
+                    $fba_fields = $group = 'c.site_id' ;
+                }else if($datas['count_dimension'] == 'department') { //部门
+                    $fba_fields = $group = 'dc.user_department_id ,c.area_id' ;
+                    $table .= " LEFT JOIN {$this->table_department_channel} as dc ON dc.user_id = c.user_id and dc.channel_id = c.channel_id " ;
+                }else if($datas['count_dimension'] == 'admin_id'){ //子账号
+                    $fba_fields = $group = 'uc.admin_id , c.area_id' ;
+                    $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
+                }
+                $where_arr = array() ;
+                foreach($lists as $list1){
+                    if($datas['count_dimension'] == 'channel_id'){
+                        $where_arr[] = array( 'channel_id'=>$list1['channel_id'] , 'site_id'=>$list1['site_id']) ;
+                    }else if($datas['count_dimension'] == 'site_id'){
+                        $where_arr[] = array('site_id'=>$list1['site_id']) ;
+                    }else if($datas['count_dimension'] == 'department'){
+                        $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
+                    }else if($datas['count_dimension'] == 'admin_id'){
+                        $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
+                    }
+                }
+
+
+                if($datas['count_dimension'] == 'channel_id'){
+                    $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
+                    $where_str = 'c.channel_id IN (' . implode(',' , $where_strs) . ")" ;
+                }else if($datas['count_dimension'] == 'site_id'){
+                    $where_strs = array_unique(array_column($where_arr , 'site_id')) ;
+                    $where_str = 'c.site_id IN (' . implode(',' , $where_strs) . ")" ;
+                }else if($datas['count_dimension'] == 'department'){
+                    $where_strs = array_unique(array_column($where_arr , 'user_department_id')) ;
+                    $where_str = 'dc.user_department_id IN (' . implode(',' , $where_strs) . ")" ;
+                    $isMysql = false;
+
+                }else if($datas['count_dimension'] == 'admin_id'){
+                    $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
+                    $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
+                    $isMysql = false;
+                }else{
+                    $where_str = '1=1' ;
+                }
+            }
+
+            $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelPrestoModel($this->dbhost, $this->codeno);
+            $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
+            $where.= ' AND ' . $where_str ;
         }
 
-        $amazon_fba_inventory_by_channel_md = new AmazonFbaInventoryByChannelPrestoModel($this->dbhost, $this->codeno);
-        $amazon_fba_inventory_by_channel_md->dryRun(env('APP_TEST_RUNNING', false));
-        $where.= ' AND ' . $where_str ;
         if ($datas['currency_code'] == 'ORIGIN') {
             $fba_fields .= " , sum(DISTINCT(c.yjzhz))  as fba_goods_value";
         } else {
@@ -6362,6 +6379,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
                     }
 
+                }else{
+                    $fbaDatas[] = $fba ;
                 }
             }
         }
@@ -6374,6 +6393,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_data = empty($fbaDatas[$list2['user_department_id']]) ? array() :  $fbaDatas[$list2['user_department_id']];
             }else if($datas['count_dimension'] == 'admin_id'){
                 $fba_data = empty($fbaDatas[$list2['admin_id']]) ? array() :  $fbaDatas[$list2['admin_id']];
+            }else{
+                $fba_data = empty($fbaDatas[0]) ? array() :  $fbaDatas[0];
             }
             if (!empty($fields['fba_goods_value'])) {  //在库总成本
                 $lists[$k]['fba_goods_value'] = empty($fba_data) ? null : $fba_data['fba_goods_value'] ;
@@ -8522,7 +8543,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         foreach ($fields as $key => $value){
             $key_value = $key;
             if($key == "group"){
-                $key = '"group"';
+                $key = $isMysql ? '`group`' : '"group"';
+                $key_value = $isMysql ? '`group`' : $key_value;
             }
             if(stripos($value,"min(") !== false){
                 $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
@@ -8920,7 +8942,7 @@ max( bychannel_create_time ) as bychannel_create_time
             $goods_table = "{$this->table_dwd_goods_report} AS dw_report
 			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.byorder_amazon_goods_id = amazon_goods.es_id";
             $channel_table = "(select * from {$this->table_channel_day_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
-	    AND goods.goods_operation_pattern = 2";
+	    AND goods.goods_operation_pattern != 1";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.byorder_myear,dw_report.byorder_mmonth,dw_report.byorder_mday";
             $goods_other_field = "dw_report.byorder_mday as mday,";
             $report_other_field = "COALESCE(goods.mday ,bychannel.mday) AS mday,concat(cast(goods.goods_operation_user_admin_id as  varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0'),'_',lpad(cast(COALESCE(goods.mday ,bychannel.mday) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
@@ -9610,15 +9632,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $where_dw_report_amazon_goods .= " ".str_replace("create_time",'dw_report.create_time',$create_time_tmp);
 
 
-        $where_channel = "user_id = {$datas['user_id']} AND user_id_mod = ".($datas['user_id'] % 20)." AND channel_id IN (".$datas['operation_channel_ids'].") ".$datas['origin_time']." AND ".str_replace("report.",'',$ym_where);
+        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".($datas['user_id'] % 20)." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
         $goods_month_table = '';
         if ($table_type == 'week'){
             $goods_table = "{$this->table_dws_goods_day_report} AS dw_report
 			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
-            $channel_field = "channel_id,myear,mmonth,mweek,max(mweekyear) as mweekyear,
+            $channel_field = "max(channel.operation_user_admin_id) as operation_user_admin_id,channel_id,myear,mmonth,mweek,max(mweekyear) as mweekyear,
                         max(mquarter) as mquarter,
-                        max(site_id) as site_id,
-                        max(user_id) as user_id,
+                        max(dw_report.site_id) as site_id,
+                        max(dw_report.user_id) as user_id,
                         SUM( bychannel_sales_quota ) as bychannel_sales_quota ,
                        
 SUM( bychannel_fba_sales_quota ) as bychannel_fba_sales_quota ,
@@ -9706,18 +9728,18 @@ SUM( bychannel_channel_profit ) as bychannel_channel_profit ,
 SUM( bychannel_channel_goods_adjustment_fee ) as bychannel_channel_goods_adjustment_fee ,
 max( bychannel_create_time ) as bychannel_create_time 
             ";
-            $channel_table = "(select {$channel_field} from {$this->table_channel_day_report} WHERE {$where_channel} group by  channel_id,myear,mmonth,mweek) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mweek = bychannel.mweek
-	    AND goods.goods_operation_pattern = 2";
+            $channel_table = "(select {$channel_field} from {$this->table_channel} as  channel JOIN {$this->table_channel_day_report} as dw_report on channel.id  = dw_report.channel_id WHERE {$where_channel} group by  channel_id,myear,mmonth,mweek) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mweek = bychannel.mweek
+	    AND goods.goods_operation_pattern != 1";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth,dw_report.mweek";
             $goods_other_field = "dw_report.mweek as mweek,max(dw_report.mweekyear) as mweekyear,";
-            $report_other_field = "COALESCE(goods.mweek ,bychannel.mweek) AS mweek,COALESCE(goods.mweekyear ,bychannel.mweekyear) AS mweekyear,concat(cast(goods.goods_operation_user_admin_id as varchar),'_',cast(COALESCE(goods.mweekyear ,bychannel.mweekyear) as varchar),'_',lpad(cast(COALESCE(goods.mweek ,bychannel.mweek) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
+            $report_other_field = "COALESCE(goods.mweek ,bychannel.mweek) AS mweek,COALESCE(goods.mweekyear ,bychannel.mweekyear) AS mweekyear,concat(cast(COALESCE(goods.goods_operation_user_admin_id ,bychannel.operation_user_admin_id) as varchar),'_',cast(COALESCE(goods.mweekyear ,bychannel.mweekyear) as varchar),'_',lpad(cast(COALESCE(goods.mweek ,bychannel.mweek) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
 
         }
         elseif ($table_type == 'month'){
             $goods_table = "{$this->table_dws_goods_month_report} AS dw_report
 			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
-            $channel_table = "(select * from {$this->table_channel_month_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
-	    AND goods.goods_operation_pattern = 2";
+            $channel_table = "(select channel.operation_user_admin_id as operation_user_admin_id,dw_report.* from {$this->table_channel} as  channel JOIN {$this->table_channel_month_report} as dw_report on channel.id  = dw_report.channel_id WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth 
+	    AND goods.goods_operation_pattern != 1";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth";
             $goods_other_field = "min(dw_report.mquarter) as mquarter,sum(first_purchasing_cost ) as first_purchasing_cost,
 			sum(first_logistics_head_course ) as first_logistics_head_course,
@@ -9758,7 +9780,7 @@ max( bychannel_create_time ) as bychannel_create_time
             COALESCE(goods.monthly_sku_reserved_field48 ,bychannel.monthly_sku_reserved_field48) as monthly_sku_reserved_field48,
             COALESCE(goods.monthly_sku_reserved_field49 ,bychannel.monthly_sku_reserved_field49) as monthly_sku_reserved_field49,
             COALESCE(goods.monthly_sku_estimated_monthly_storage_fee ,0) as monthly_sku_estimated_monthly_storage_fee,
-            concat(cast(goods.goods_operation_user_admin_id as varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as  varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
+            concat(cast(COALESCE(goods.goods_operation_user_admin_id ,bychannel.operation_user_admin_id) as varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as  varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
 
             $goods_month_table = "";
         }
@@ -9767,11 +9789,11 @@ max( bychannel_create_time ) as bychannel_create_time
 //			Right JOIN dim.dim_dataark_f_dw_goods_dim_report_{$this->dbhost} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
             $goods_table = "{$this->table_dws_goods_day_report} AS dw_report
 			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
-            $channel_table = "(select * from {$this->table_channel_day_report} WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
-	    AND goods.goods_operation_pattern = 2";
+            $channel_table = "(select channel.operation_user_admin_id as operation_user_admin_id,dw_report.* from {$this->table_channel} as  channel  JOIN {$this->table_channel_day_report} as dw_report on channel.id  = dw_report.channel_id WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday
+	    AND goods.goods_operation_pattern != 1";
             $goods_group = "amazon_goods.goods_operation_user_admin_id,amazon_goods.goods_channel_id,dw_report.myear,dw_report.mmonth,dw_report.mday";
             $goods_other_field = "dw_report.mday as mday,";
-            $report_other_field = "COALESCE(goods.mday ,bychannel.mday) AS mday,concat(cast(goods.goods_operation_user_admin_id as  varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0'),'_',lpad(cast(COALESCE(goods.mday ,bychannel.mday) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
+            $report_other_field = "COALESCE(goods.mday ,bychannel.mday) AS mday,concat(cast(COALESCE(goods.goods_operation_user_admin_id ,bychannel.operation_user_admin_id) as  varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0'),'_',lpad(cast(COALESCE(goods.mday ,bychannel.mday) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
 
         }
 
@@ -10025,9 +10047,9 @@ COALESCE(bychannel.bychannel_reserved_field1,0) as channel_fbm_safe_t_claim_dema
 COALESCE(goods.channel_id ,bychannel.channel_id) AS channel_id ,
 COALESCE(goods.site_id ,bychannel.site_id) AS site_id ,
 COALESCE(goods.user_id ,bychannel.user_id) AS user_id ,
-COALESCE(goods.myear ,bychannel.channel_id) AS myear ,
-COALESCE(goods.mmonth ,bychannel.channel_id) AS mmonth ,
-COALESCE(goods.goods_operation_user_admin_id ,0) AS goods_operation_user_admin_id ,
+COALESCE(goods.myear ,bychannel.myear) AS myear ,
+COALESCE(goods.mmonth ,bychannel.mmonth) AS mmonth ,
+COALESCE(goods.goods_operation_user_admin_id ,bychannel.operation_user_admin_id) AS goods_operation_user_admin_id ,
 COALESCE(goods.create_time ,bychannel.bychannel_create_time) AS create_time ,
 {$report_other_field}
 COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern 
