@@ -1251,10 +1251,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     }else{
                         if (isset($value['goods_min_rank'])){
-                            $lists[$key]['goods_min_rank'] = "-";
+                            $lists[$key]['goods_min_rank'] = "—";
                         }
                         if (isset($value['goods_rank'])){
-                            $lists[$key]['goods_rank'] = "-";
+                            $lists[$key]['goods_rank'] = "—";
                         }
                     }
                 }
@@ -1412,10 +1412,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }else{
                     if (isset($value['goods_min_rank'])){
-                        $lists[$key]['goods_min_rank'] = "-";
+                        $lists[$key]['goods_min_rank'] = "—";
                     }
                     if (isset($value['goods_rank'])){
-                        $lists[$key]['goods_rank'] = "-";
+                        $lists[$key]['goods_rank'] = "—";
                     }
                 }
 
@@ -1423,10 +1423,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }else{
             foreach ($lists as $key => $value){
                 if (isset($value['goods_min_rank'])){
-                    $lists[$key]['goods_min_rank'] = "-";
+                    $lists[$key]['goods_min_rank'] = "—";
                 }
                 if (isset($value['goods_rank'])){
-                    $lists[$key]['goods_rank'] = "-";
+                    $lists[$key]['goods_rank'] = "—";
                 }
             }
         }
