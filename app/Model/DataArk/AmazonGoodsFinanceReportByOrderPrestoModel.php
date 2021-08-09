@@ -1132,7 +1132,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($datas['count_dimension'] == 'isku'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',$datas['is_distinct_channel'],$fbaDatas);
                 }elseif($datas['count_dimension'] == 'all_goods'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'user_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fba_data_field = $datas['is_distinct_channel'] == 1 ? 'channel_id' : 'user_id';
+                    $fbaDatas = $this->handleGoodsFbaData($fba,$fba_data_field,$datas['is_distinct_channel'],$fbaDatas);
                 }elseif($datas['count_dimension'] == 'goods_channel'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',$datas['is_distinct_channel'],$fbaDatas);
                 }
@@ -1171,7 +1172,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_data = empty($fbaDatas[$list2['isku_id']]) ? array() : $fbaDatas[$list2['isku_id']] ;
             }else if($datas['count_dimension'] == 'all_goods'){
-                $fba_data = empty($fbaDatas[$list2['user_id']]) ? array() : $fbaDatas[$list2['user_id']] ;
+                $fba_data_field = $datas['is_distinct_channel'] == 1 ? 'channel_id' : 'user_id';
+                $fba_data = empty($fbaDatas[$list2[$fba_data_field]]) ? array() : $fbaDatas[$list2[$fba_data_field]] ;
             }
 
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
