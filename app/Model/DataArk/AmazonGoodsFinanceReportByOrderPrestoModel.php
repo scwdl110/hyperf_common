@@ -1320,7 +1320,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
                 $where.= " AND ext.id > 0 ";
                 $group_fields_tmp = 'tags_id';
-                $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON ext.amazon_goods_id = g.amazon_goods_id LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id " ;
                 $table.= " LEFT JOIN g_amazon_goods_ext_{$this->codeno} as ext ON g.user_id = ext.user_id AND g.channel_id = ext.channel_id AND g.seller_sku = ext.sku LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id  " ;
                 $table_fields =  'tags_rel.tags_id ' ;
                 $table_group = 'tags_rel.tags_id ,g.myear,g.mmonth,g.mday' ;
