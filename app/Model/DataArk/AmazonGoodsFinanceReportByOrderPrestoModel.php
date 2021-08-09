@@ -1355,6 +1355,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fields = array();
         $fields = $this->getGoodsTheSameFields($datas,$fields);
 
+        if ($datas['is_distinct_channel'] != '1'){
+            $fields['channel_num'] = 'COUNT(DISTINCT(report.channel_id))';
+            $fields['channel_id'] = 'max(report.channel_id)';
+        }
+
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
@@ -4244,6 +4249,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fields = [];
         $fields['user_id'] = 'max(report.user_id)';
         $fields['site_country_id'] = 'max(report.site_id)';
+
 
         if ($datas['count_dimension'] === 'channel_id') {
             $fields['site_id'] = 'max(report.site_id)';
