@@ -1384,15 +1384,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }else if($datas['count_dimension'] == 'asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id'],'all_sku_field'=>explode('_D_',$list1['all_sku_field']));
+                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id']);
                     }else{
-                        $where_arr[] = array('asin' => self::escape($list1['asin']),'all_sku_field'=>explode('_D_',$list1['all_sku_field']));
+                        $where_arr[] = array('asin' => self::escape($list1['asin']));
                     }
                 }else if($datas['count_dimension'] == 'parent_asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id'],'all_sku_field'=>explode('_D_',$list1['all_sku_field']));
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id']);
                     }else{
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']),'all_sku_field'=>explode('_D_',$list1['all_sku_field']));
+                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
                     }
                 }else if($datas['count_dimension'] == 'class1'){
                     //分类暂时没有 ，因为需要跨库查询
