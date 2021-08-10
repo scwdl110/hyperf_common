@@ -449,8 +449,8 @@ class DataArkController extends AbstractController
         $target = trim($params['target'] ?? '');
         $productCategoryName = trim($params['product_category_name'] ?? '');
         $timeType = intval($params['time_type'] ?? 0);
-        $searchStartTime = intval(date('Ymd',strtotime($params['search_start_time'] ?? '')));
-        $searchEndTime = intval(date('Ymd',strtotime($params['search_end_time'] ?? '')));
+        $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
+        $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
         $offset = ($page - 1) * $limit;
         $result = ['lists' => [], 'count' => 0];
         $where = '';
@@ -461,7 +461,7 @@ class DataArkController extends AbstractController
 
         if ($timeType === 99) {
             $where .= sprintf(
-                '%s report.yyyymmdd>=%d and report.yyyymmdd<=%d',
+                "%s report.dt>='%s' and report.dt<='%s'",
                 $where ? ' AND' : '',
                 $searchStartTime,
                 $searchEndTime
