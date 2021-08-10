@@ -1271,7 +1271,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return $lists ;
         }else{
             $is_day_other_field = ($datas['count_periods'] == '1' && (!in_array($datas['count_dimension'],['sku','asin','parent_asin'])))?true:false;
-            if ($datas['count_periods'] != '1' && $is_day_other_field){//不是按天直接返回
+            if ($datas['count_periods'] != '1' or $is_day_other_field){//不是按天直接返回
                 foreach ($lists as $key => $value){
                     if ($datas['count_periods'] == 0 or $is_day_other_field){
                         if(($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin') && $datas['is_distinct_channel'] == 1){
