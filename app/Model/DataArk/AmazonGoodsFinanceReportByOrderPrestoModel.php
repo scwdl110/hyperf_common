@@ -1415,26 +1415,27 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['count_dimension'] == 'sku'){
                     $search_field = "g.seller_sku";
                 }elseif ($datas['count_dimension'] == 'asin'){
-                    $search_field = "g.seller_sku";
+                    $search_field = "g.asin";
                 }else{
-                    $search_field = "g.seller_sku";
+                    $search_field = "amazon_goods.parent_asin";
                 }
 
-                if (in_array($datas['count_dimension'],['asin','parent_asin'])){
-                    $all_sku_field_tmp = array_column($where_arr , 'all_sku_field');
-                    $all_sku_field = array();
-                    foreach ($all_sku_field_tmp as $value){
-                        foreach ($value as $v){
-                            if (!empty($v)){
-                                $all_sku_field[] = self::escape($v);
-                            }
-                        }
-                    }
-                    $where_strs = array_unique($all_sku_field);
-                }else{
-                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
-
-                }
+//                if (in_array($datas['count_dimension'],['asin','parent_asin'])){
+//                    $all_sku_field_tmp = array_column($where_arr , 'all_sku_field');
+//                    $all_sku_field = array();
+//                    foreach ($all_sku_field_tmp as $value){
+//                        foreach ($value as $v){
+//                            if (!empty($v)){
+//                                $all_sku_field[] = self::escape($v);
+//                            }
+//                        }
+//                    }
+//                    $where_strs = array_unique($all_sku_field);
+//                }else{
+//                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
+//
+//                }
+                $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
                 $str = "'" . implode("','" , $where_strs) . "'" ;
                 $where_str = $search_field . ' IN (' . $str . ') ';
             }else if($datas['count_dimension'] == 'class1'){
