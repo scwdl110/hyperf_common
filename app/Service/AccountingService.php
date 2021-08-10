@@ -96,6 +96,26 @@ class AccountingService extends BaseService
      */
     public function getFiancialProfitInfo($request_data, $isRpc = false, $userInfo = array())
     {
+        isset($request_data['date']) && $request_data['date_time'] = $request_data['date'];
+        !isset($request_data['date_time']) && $request_data['date_time'] = "2021-05";
+
+        $rule = [
+            'date_time' => 'string|filled',
+            'offset' => 'integer|filled',
+            'limit' => 'integer|filled',
+            'shop_name' => 'string|filled',
+            'shop_id' => 'integer|filled',
+            'no_limit' => 'integer|filled',
+            'country_site' => 'integer|filled',
+            'site_id' => 'integer|filled',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
         $res = $this->getShopInfo($request_data, $isRpc, $userInfo);
 
         $rateList = $this->getExchangeRate($res['user_info']['user_id']);
@@ -278,6 +298,26 @@ class AccountingService extends BaseService
 
     public function getMoneyCallBackInfo($request_data, $isRpc = false, $userInfo = array())
     {
+        isset($request_data['date']) && $request_data['date_time'] = $request_data['date'];
+        !isset($request_data['date_time']) && $request_data['date_time'] = "2021-05";
+
+        $rule = [
+            'date_time' => 'string|filled',
+            'offset' => 'integer|filled',
+            'limit' => 'integer|filled',
+            'shop_name' => 'string|filled',
+            'shop_id' => 'integer|filled',
+            'no_limit' => 'integer|filled',
+            'country_site' => 'integer|filled',
+            'site_id' => 'integer|filled',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
         $res = $this->getShopInfo($request_data, $isRpc, $userInfo);
 
         $rateList = $this->getExchangeRate($res['user_info']['user_id']);
@@ -330,6 +370,27 @@ class AccountingService extends BaseService
      */
     public function getShopList($request_data, $isRpc = false, $userInfo = array())
     {
+        isset($request_data['date']) && $request_data['date_time'] = $request_data['date'];
+        !isset($request_data['date_time']) && $request_data['date_time'] = "2021-05";
+
+        $rule = [
+            'date_time' => 'string|filled',
+            'offset' => 'integer|filled',
+            'limit' => 'integer|filled',
+            'shop_name' => 'string|filled',
+            'shop_id' => 'integer|filled',
+            'no_limit' => 'integer|filled',
+            'country_site' => 'integer|filled',
+            'site_id' => 'integer|filled',
+        ];
+
+        $res = $this->validate($request_data, $rule);
+
+        if ($res['code'] == 0) {
+            return $res;
+        }
+
+
         $res = $this->getShopInfo($request_data, $isRpc, $userInfo);
 
         $info = array();
@@ -355,27 +416,7 @@ class AccountingService extends BaseService
 
     private function getShopInfo($request_data, $isRpc = false, $userInfo = array())
     {
-        isset($request['date']) && $request['date_time'] = $request['date'];
-        !isset($request['date_time']) && $request['date_time'] = "2021-05";
-
-        $rule = [
-            'date_time' => 'integer|filled',
-            'offset' => 'integer|filled',
-            'limit' => 'integer|filled',
-            'shop_name' => 'string|filled',
-            'shop_id' => 'integer|filled',
-            'no_limit' => 'integer|filled',
-            'country_site' => 'integer|filled',
-            'site_id' => 'integer|filled',
-        ];
-
-        $res = $this->validate($request_data, $rule);
-
-        if ($res['code'] == 0) {
-            return $res;
-        }
-
-        $current_firstday = date('Y-m-01', strtotime($request['date_time']));
+        $current_firstday = date('Y-m-01', strtotime($request_data['date_time']));
         $current_lastday = date('Y-m-d', strtotime("$current_firstday +1 month -1 day"));
 
         $begin_time = strtotime($current_firstday . " 00:00:00");
