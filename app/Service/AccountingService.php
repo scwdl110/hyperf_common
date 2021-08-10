@@ -104,7 +104,7 @@ class AccountingService extends BaseService
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
-            'shop_id' => 'integer|filled',
+            'shop_ids' => 'integer|filled',
             'no_limit' => 'integer|filled',
             'country_site' => 'integer|filled',
             'site_id' => 'integer|filled',
@@ -306,7 +306,7 @@ class AccountingService extends BaseService
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
-            'shop_id' => 'integer|filled',
+            'shop_ids' => 'integer|filled',
             'no_limit' => 'integer|filled',
             'country_site' => 'integer|filled',
             'site_id' => 'integer|filled',
@@ -378,7 +378,7 @@ class AccountingService extends BaseService
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
-            'shop_id' => 'integer|filled',
+            'shop_ids' => 'integer|filled',
             'no_limit' => 'integer|filled',
             'country_site' => 'integer|filled',
             'site_id' => 'integer|filled',
@@ -463,8 +463,8 @@ class AccountingService extends BaseService
             $shopListInfoquery->where('title', 'like', '%' . $request_data['shop_name'] . '%');
         }
 
-        if (isset($request_data['shop_id'])) {
-            $shopListInfoquery->where('id', '=', $request_data['shop_id']);
+        if (isset($request_data['shop_ids'])) {
+            $shopListInfoquery->where('id', '=', $request_data['shop_ids']);
         }
 
         if ($userAdmin->is_master != 1) {
