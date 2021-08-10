@@ -87,7 +87,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
         $logger->info('getListByGoods Request', [$this->getLastSql()]);
 
-        $rt['lists'] = empty($lists) ? array() : $lists;
+        $rt['lists'] = empty($lists) || empty($lists[0]['time']) ? array() : $lists;
         $rt['count'] = intval($count);
         return $rt;
     }
