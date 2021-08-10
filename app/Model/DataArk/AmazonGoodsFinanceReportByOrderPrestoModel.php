@@ -134,7 +134,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //没有按周期统计 ， 按指标展示
         if ($datas['show_type'] == 2) {
-            $fields_arr = $this->getGoodsFields($datas);
+            $fields_arr = $this->getGoodsFields($datas,$isMysql);
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
@@ -1570,7 +1570,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     //获取商品维度指标字段(新增统计维度完成)
-    private function getGoodsFields($datas = array())
+    private function getGoodsFields($datas = array(),$is_mysql = false)
     {
         $fields = array();
         $fields = $this->getGoodsTheSameFields($datas,$fields);
@@ -1618,7 +1618,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_min_rank_max'] = " max(nullif(report.goods_min_rank,0))";
         }
 //        if ($datas['count_periods'] == '1' && $datas['show_type'] == '2' && (in_array('goods_rank', $targets) || in_array('goods_min_rank', $targets)) && in_array($datas['count_dimension'],['asin','parent_asin'])){
-//            $fields['all_sku_field'] = "GROUP_CONCAT(report.sku)";
+//            if ($is_mysql){
+//                $fields['all_sku_field'] = "GROUP_CONCAT(amazon_goods.goods_sku,'_D_')";
+//
+//            }else{
+//                $fields['all_sku_field'] = "GROUP_CONCAT(report.sku,'_D_')";
+//
+//            }
 //        }
         if (in_array('goods_views_number', $targets)) { //页面浏览次数
             $fields['goods_views_number'] = " sum( report.byorder_number_of_visits ) ";
