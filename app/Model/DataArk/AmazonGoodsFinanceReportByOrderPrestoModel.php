@@ -1475,6 +1475,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             foreach ($lists as $key => $value){
+                if (isset($value['all_sku_field'])){
+                    unset($lists[$key]['all_sku_field']);
+                }
                 $fields_tmp = $value[$group_fields_tmp].($value['time']);
                 if (isset($rankData_tmp[$fields_tmp])){
 
@@ -1654,7 +1657,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['all_sku_field'] = "GROUP_CONCAT(amazon_goods.goods_sku SEPARATOR '_D_')";
 
             }else{
-                $fields['all_sku_field'] = "GROUP_CONCAT(report.sku,'_D_')";
+                $fields['all_sku_field'] = "array_join(array_agg(amazon_goods.goods_sku), '_D_')";
 
             }
         }
