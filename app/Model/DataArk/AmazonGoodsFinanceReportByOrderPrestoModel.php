@@ -2674,11 +2674,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 } elseif ($datas['refund_datas_origin'] == '2') {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['count_total'] = "sum( report.report_refund )";
-                        $time_fields = $this->getTimeFields($time_line, "report.report_refund ");
+                        $fields['count_total'] = "sum( 0 - report.report_refund )";
+                        $time_fields = $this->getTimeFields($time_line, "(0 - report.report_refund) ");
                     } else {
-                        $fields['count_total'] = "sum( report.report_refund * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        $time_fields = $this->getTimeFields($time_line, "report.report_refund * ({:RATE} / COALESCE(rates.rate ,1)) ");
+                        $fields['count_total'] = "sum( (0 - report.report_refund) * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+                        $time_fields = $this->getTimeFields($time_line, " (0 - report.report_refund) * ({:RATE} / COALESCE(rates.rate ,1)) ");
                     }
                 }
             } else if ($time_target == 'sale_refund_rate') {  //退款率
@@ -5410,11 +5410,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 } elseif ($datas['refund_datas_origin'] == '2') {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['count_total'] = "sum( report.report_refund )";
-                        $time_fields = $this->getTimeFields($timeLine, "report.report_refund ");
+                        $fields['count_total'] = "sum( 0 - report.report_refund )";
+                        $time_fields = $this->getTimeFields($timeLine, "(0 - report.report_refund) ");
                     } else {
-                        $fields['count_total'] = "sum( report.report_refund * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        $time_fields = $this->getTimeFields($timeLine, "report.report_refund * ({:RATE} / COALESCE(rates.rate ,1)) ");
+                        $fields['count_total'] = "sum( (0 - report.report_refund) * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+                        $time_fields = $this->getTimeFields($timeLine, "(0 - report.report_refund) * ({:RATE} / COALESCE(rates.rate ,1)) ");
                     }
                 }
             } else if ($time_target == 'sale_refund_rate') {  //退款率
