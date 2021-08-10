@@ -649,7 +649,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
 
                 //获取rank数据
-                if (!empty($lists)){
+                if (!empty($lists) && $datas['is_count'] == 0){
                     $lists = $this->getGoodsRankData($lists , $fields , $datas,$channel_arr) ;
                 }
 
