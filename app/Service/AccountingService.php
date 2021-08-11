@@ -104,7 +104,7 @@ class AccountingService extends BaseService
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
-            'shop_ids' => 'integer|filled',
+            'shop_ids' => 'string|filled',
             'no_limit' => 'integer|filled',
             'country_site' => 'integer|filled',
             'site_id' => 'integer|filled',
@@ -161,8 +161,6 @@ class AccountingService extends BaseService
                 ['create_time', '<=', $res['end_time']],
                 ['user_id', '=', $res['user_info']['user_id']]
             ])->get());
-
-            //$Currency = CurrencyModel::select('id', 'exchang_rate')->where(['id' => $list['site_id']])->first()->toArray();
 
             foreach ($rateList as $rate) {
                 if ((is_array($rate['site_id']) && in_array($list['site_id'], $rate['site_id'])) || $list['site_id'] == $rate['site_id']) {
@@ -306,7 +304,7 @@ class AccountingService extends BaseService
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
-            'shop_ids' => 'integer|filled',
+            'shop_ids' => 'string|filled',
             'no_limit' => 'integer|filled',
             'country_site' => 'integer|filled',
             'site_id' => 'integer|filled',
@@ -378,7 +376,7 @@ class AccountingService extends BaseService
             'offset' => 'integer|filled',
             'limit' => 'integer|filled',
             'shop_name' => 'string|filled',
-            'shop_ids' => 'integer|filled',
+            'shop_ids' => 'string|filled',
             'no_limit' => 'integer|filled',
             'country_site' => 'integer|filled',
             'site_id' => 'integer|filled',
