@@ -1267,13 +1267,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     protected function getGoodsRankData($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
     {
+//        var_dump(111);
         if(empty($lists) or ( empty($fields['goods_rank']) and empty($fields['goods_min_rank']) )){
             return $lists ;
         }else{
-            $is_day_other_field = ($datas['count_periods'] == '1' && (!in_array($datas['count_dimension'],['sku','asin','parent_asin'])))?true:false;
-            if ($datas['count_periods'] != '1' or $is_day_other_field){//不是按天直接返回
+
+            if (!($datas['count_periods'] == '1' && in_array($datas['count_dimension'],['sku','asin']) && $datas['is_distinct_channel'] == 1)){//不是按日的按sku按天直接返回
                 foreach ($lists as $key => $value){
-                    if ($datas['count_periods'] == 0 or $is_day_other_field){
+                    if ($datas['count_periods'] <= 1 && in_array($datas['count_dimension'],['sku','asin','parent_asin'])){//只有商品维度才为
                         if(($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin') && $datas['is_distinct_channel'] == 1){
                             if (isset($value['goods_min_rank'])){
                                 $lists[$key]['goods_min_rank'] = $value['goods_min_rank_min'];
@@ -1303,20 +1304,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             $amazon_fba_inventory_rank_md = new AmazonFbaInventoryRankMySQLModel([], $this->dbhost, $this->codeno);
             $where = "g.user_id = " . intval($lists[0]['user_id']) ;
-            if (!empty($channel_arr)){
-                if (count($channel_arr)==1){
-                    $where .= " AND g.channel_id = ".intval(implode(",",$channel_arr));
-                }else{
-                    $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
-                }
-            }
+//            if (!empty($channel_arr)){//只取列表的
+//                if (count($channel_arr)==1){
+//                    $where .= " AND g.channel_id = ".intval(implode(",",$channel_arr));
+//                }else{
+//                    $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
+//                }
+//            }
             $table = "g_amazon_fba_inventory_rank_{$this->codeno} as g" ;
 
             if($datas['count_dimension'] == 'sku'){
                 $group_fields_tmp = 'sku';
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = 'max(g.seller_sku) as sku , g.channel_id' ;
-                    $table_group = 'g.id  , g.channel_id' ;
+                    $table_fields = '(g.seller_sku) as sku , g.channel_id' ;
+                    $table_group = '' ;
                 }else{
                     $table_fields = 'max(g.seller_sku) as sku , g.id' ;
                     $table_group = ' g.seller_sku,g.myear,g.mmonth,g.mday' ;
@@ -1324,8 +1325,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'asin'){
                 $group_fields_tmp = 'asin';
                 if($datas['is_distinct_channel'] == 1){
-                    $table_fields = 'max(g.asin) as asin  , g.channel_id' ;
-                    $table_group = 'g.asin,g.channel_id,g.myear,g.mmonth,g.mday' ;
+                    $table_fields = '(g.asin) as asin  , g.channel_id' ;
+                    $table_group = '' ;
                 }else{
                     $table_fields =  'max(g.asin) as asin  , g.id' ;
                     $table_group = ' g.asin,g.myear,g.mmonth,g.mday' ;
@@ -1384,7 +1385,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }else if($datas['count_dimension'] == 'asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id']);
+                        $where_arr[] = array('asin' => self::escape($list1['asin']),'sku' => self::escape($list1['all_sku_field']), 'channel_id' => $list1['channel_id']);
                     }else{
                         $where_arr[] = array('asin' => self::escape($list1['asin']));
                     }
@@ -1415,12 +1416,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['count_dimension'] == 'sku'){
                     $search_field = "g.seller_sku";
                 }elseif ($datas['count_dimension'] == 'asin'){
-                    $search_field = "g.asin";
+                    $search_field = "g.seller_sku";
                 }else{
                     $search_field = "amazon_goods.parent_asin";
                 }
 
-//                if (in_array($datas['count_dimension'],['asin','parent_asin'])){
+                if (in_array($datas['count_dimension'],['asin'])){
 //                    $all_sku_field_tmp = array_column($where_arr , 'all_sku_field');
 //                    $all_sku_field = array();
 //                    foreach ($all_sku_field_tmp as $value){
@@ -1430,14 +1431,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //                            }
 //                        }
 //                    }
-//                    $where_strs = array_unique($all_sku_field);
-//                }else{
-//                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
-//
-//                }
-                $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
+                    $where_strs = array_unique(array_column($where_arr , 'sku'));
+                }else{
+                    $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
+
+                }
+//                $where_strs = array_unique(array_column($where_arr , $datas['count_dimension'])) ;
+                $where_channel_arr = array_unique(array_column($where_arr , 'channel_id')) ;
+
                 $str = "'" . implode("','" , $where_strs) . "'" ;
                 $where_str = $search_field . ' IN (' . $str . ') ';
+                $where_str .= " AND g.channel_id IN (".implode(",",$where_channel_arr).")";
             }else if($datas['count_dimension'] == 'class1'){
                 //分类暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'group'){
@@ -1653,12 +1657,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_min_rank_min'] = " min(nullif(report.goods_min_rank,0))";
             $fields['goods_min_rank_max'] = " max(nullif(report.goods_min_rank,0))";
         }
-        if ($datas['count_periods'] == '1' && $datas['show_type'] == '2' && (in_array('goods_rank', $targets) || in_array('goods_min_rank', $targets)) && in_array($datas['count_dimension'],['asin','parent_asin'])){
+        if ($datas['count_periods'] == '1' && $datas['show_type'] == '2' && (in_array('goods_rank', $targets) || in_array('goods_min_rank', $targets)) && in_array($datas['count_dimension'],['asin'])){
             if ($isMysql){
-                $fields['all_sku_field'] = "GROUP_CONCAT(amazon_goods.goods_sku SEPARATOR '_D_')";
+//                $fields['all_sku_field'] = "GROUP_CONCAT(amazon_goods.goods_sku SEPARATOR '_D_')";
+                $fields['all_sku_field'] = "max(amazon_goods.goods_sku)";
 
             }else{
-                $fields['all_sku_field'] = "array_join(array_agg(amazon_goods.goods_sku), '_D_')";
+//                $fields['all_sku_field'] = "array_join(array_agg(amazon_goods.goods_sku), '_D_')";
+                $fields['all_sku_field'] = "max(amazon_goods.goods_sku)";
 
             }
         }
