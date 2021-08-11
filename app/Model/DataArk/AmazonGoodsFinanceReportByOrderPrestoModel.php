@@ -1471,7 +1471,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where.= ' AND ' . $where_str." g.id > 0 AND g.create_time >= {$datas['origin_create_start_time']} AND g.create_time <= {$datas['origin_create_end_time']}" ;
 
         $table_fields= !empty($table_fields) ? $table_fields."," : "";
-        $table_fields.= 'min(g.rank) as goods_rank_min,max(g.rank) as goods_rank_max,min(g.min_rank) as goods_min_rank_min,max(g.min_rank) as goods_min_rank_max, myear,mmonth,mday' ;
+        $table_fields.= '(g.rank) as goods_rank_min,(g.rank) as goods_rank_max,(g.min_rank) as goods_min_rank_min,(g.min_rank) as goods_min_rank_max, myear,mmonth,mday' ;
 
 
 
