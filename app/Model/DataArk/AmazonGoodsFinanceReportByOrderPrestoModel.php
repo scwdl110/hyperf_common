@@ -592,6 +592,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
+
+                //获取rank数据
+                if (!empty($lists) && $datas['is_count'] == 0 && $datas['show_type'] == 2 ){
+                    $lists = $this->getGoodsRankData($lists , $fields , $datas,$channel_arr) ;
+                }
                 //自定义公式涉及到fba
                 if ($datas['show_type'] == 2 && !empty($lists)) {
                     foreach ($lists as $k => $item) {
@@ -649,7 +654,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
 
                 //获取rank数据
-                if (!empty($lists) && $datas['is_count'] == 0){
+                if (!empty($lists) && $datas['is_count'] == 0 && $datas['show_type'] == 2 ){
                     $lists = $this->getGoodsRankData($lists , $fields , $datas,$channel_arr) ;
                 }
 
