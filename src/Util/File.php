@@ -44,7 +44,7 @@ class File {
         do {
             try {
                 $result = $uploader->upload();
-                if ($result["@metadata"]["statusCode"] != '200' && !isset($result["ObjectURL"]) && !$result["ObjectURL"]) {
+                if ($result["@metadata"]["statusCode"] != '200' && (!isset($result["ObjectURL"]) || !$result["ObjectURL"])) {
                     $this->logger->error('提交s3失败');
                     return false;
                 }
