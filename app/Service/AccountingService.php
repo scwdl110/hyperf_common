@@ -462,7 +462,10 @@ class AccountingService extends BaseService
         }
 
         if (isset($request_data['shop_ids'])) {
-            $shopListInfoquery->where('id', '=', $request_data['shop_ids']);
+
+            $request_data['shop_ids'] = explode(",", $request_data['shop_ids']);
+
+            $shopListInfoquery->whereIn('id', $request_data['shop_ids']);
         }
 
         if ($userAdmin->is_master != 1) {
