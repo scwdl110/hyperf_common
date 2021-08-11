@@ -172,6 +172,7 @@ class AccountingService extends BaseService
             //商品销售额
             $info['shop_id'] = $list['id'];
             $info['shop_name'] = $list['title'];
+            $info['code'] = $list['code'];
 
             $info['commodity_sales']['fba_sales_quota'] = floor($FinanceReportInfo[0]['fba_sales_quota'] * 100) / 100; //FBA销售额
             $info['commodity_sales']['fbm_sales_quota'] = floor($FinanceReportInfo[0]['fbm_sales_quota'] * 100) / 100; //FBM销售额
@@ -347,6 +348,7 @@ class AccountingService extends BaseService
 
             $info['money_back_amount'] = floor($FinanceMoneyBackInfo[0]['money_back_amount'] * 100) / 100; //**  回款费用
 
+            $info['code'] = $list['code'];
             $infoList['total'] = $res['count'];
             $infoList['list'][] = $info;
         }
@@ -397,6 +399,7 @@ class AccountingService extends BaseService
             $info[$key]['shop_id'] = $value['id'];
             $info[$key]['shop_name'] = $value['title'];
             $info[$key]['modified_time'] = $value['modified_time'];
+            $info[$key]['code'] = $value['code'];
         }
 
         $data = [
@@ -490,8 +493,18 @@ class AccountingService extends BaseService
             $shopListInfo = $this->getArray($shopListInfoquery->offset($request_data['offset'])->limit($request_data['limit'])->get());
         }
 
+        $data = array();
 
-        return array('count' => $count, 'shopListInfo' => $shopListInfo, 'begin_time' => $begin_time, 'end_time' => $end_time, 'user_info' => $userInfo);
+        foreach ($country_info as $country) {
+            foreach ($shopListInfo as $shop) {
+                if ($country['id'] == $shop['site_id']) {
+                    $shop['code'] = $country['code'];
+                    $data[] = $shop;
+                }
+            }
+        }
+
+        return array('count' => $count, 'shopListInfo' => $data, 'begin_time' => $begin_time, 'end_time' => $end_time, 'user_info' => $userInfo);
     }
 
     /**
