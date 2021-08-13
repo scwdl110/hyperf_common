@@ -106,6 +106,14 @@
                                       "description": "汇率",
                                       "type": "number"
                                     },
+                                    "site_id": {
+                                      "description": "站点id",
+                                      "type": "number"
+                                    },
+                                    "currency_symbol": {
+                                      "description": "货币符号",
+                                      "type": "string"
+                                    },
                                     "commodity_sales": {
                                       "type": "array",
                                       "items": {
@@ -480,6 +488,14 @@
                                 "money_back_amount": {
                                   "description": "回款金额",
                                   "type": "integer"
+                                },
+                                "site_id": {
+                                  "description": "站点id",
+                                  "type": "number"
+                                },
+                                "currency_symbol": {
+                                  "description": "货币符号",
+                                  "type": "string"
                                 }
                               },
                               "type": "object"
