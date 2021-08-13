@@ -173,6 +173,8 @@ class AccountingService extends BaseService
             $info['shop_id'] = $list['id'];
             $info['shop_name'] = $list['title'];
             $info['code'] = $list['code'];
+            $info['site_id'] = $list['site_id'];
+            $info['currency_symbol'] = $list['currency_symbol'];
 
             $info['commodity_sales']['fba_sales_quota'] = floor($FinanceReportInfo[0]['fba_sales_quota'] * 100) / 100; //FBA销售额
             $info['commodity_sales']['fbm_sales_quota'] = floor($FinanceReportInfo[0]['fbm_sales_quota'] * 100) / 100; //FBM销售额
@@ -328,6 +330,8 @@ class AccountingService extends BaseService
             //商品销售额
             $info['shop_id'] = $list['id'];
             $info['shop_name'] = $list['title'];
+            $info['site_id'] = $list['site_id'];
+            $info['currency_symbol'] = $list['currency_symbol'];
 
             foreach ($rateList as $rate) {
                 if ((is_array($rate['site_id']) && in_array($list['site_id'], $rate['site_id'])) || $list['site_id'] == $rate['site_id']) {
@@ -400,6 +404,8 @@ class AccountingService extends BaseService
             $info[$key]['shop_name'] = $value['title'];
             $info[$key]['modified_time'] = $value['modified_time'];
             $info[$key]['code'] = $value['code'];
+            $info[$key]['site_id'] = $value['site_id'];
+            $info[$key]['currency_symbol'] = $value['currency_symbol'];
         }
 
         $data = [
@@ -499,6 +505,7 @@ class AccountingService extends BaseService
             foreach ($shopListInfo as $shop) {
                 if ($country['id'] == $shop['site_id']) {
                     $shop['code'] = $country['code'];
+                    $shop['currency_symbol'] = $country['currency_symbol'];
                     $data[] = $shop;
                 }
             }
