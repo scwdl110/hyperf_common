@@ -2444,9 +2444,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_id'] = 'max(report.site_id)';
             if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
                 if ($isMysql){
-                    $fields['all_channel_id'] = "GROUP_CONCAT(report.channel_id)";
+//                    $fields['all_channel_id'] = "GROUP_CONCAT(report.channel_id)";
                 }else{
-                    $fields['all_channel_id'] = "array_join(array_agg(report.channel_id), ',')";
+//                    $fields['all_channel_id'] = "array_join(array_agg(report.channel_id), ',')";
                 }
             }
 
