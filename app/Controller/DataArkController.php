@@ -447,7 +447,6 @@ class DataArkController extends AbstractController
         $exchangeCode = $req['exchangeCode'] ?? '1';
         $params = $req['params'] ?? [];
         $target = trim($params['target'] ?? '');
-        $productCategoryName = trim($params['product_category_name'] ?? '');
         $timeType = intval($params['time_type'] ?? 0);
         $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
         $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
@@ -455,7 +454,7 @@ class DataArkController extends AbstractController
         $result = ['lists' => [], 'count' => 0];
         $where = '';
 
-        if(empty($target) || empty($productCategoryName)){
+        if(empty($target)){
             return Result::success($result);
         }
 

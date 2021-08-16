@@ -40,22 +40,26 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         int $userId = 0
     ) {
         $category_level = intval($params['category_level'] ?? 1);//1-一级类目 3-三级类目
-        $product_category_name = trim($params['product_category_name'] ?? '');//类目名称
+        $product_category_name_1 = trim($params['product_category_name_1'] ?? '');//一级类目名称
+        $product_category_name_2 = trim($params['product_category_name_2'] ?? '');//二级类目名称
+        $product_category_name_3 = trim($params['product_category_name_3'] ?? '');//三级类目名称
         $site_id = intval($params['site_id'] ?? 0);//类目名称
         if($category_level == 1){
             $table = "{$this->table_dws_idm_category01_topn_kpi} AS report" ;
             $where .= sprintf(
                 "%s report.product_category_name_1='%s' AND report.site_id=%d",
                 $where ? ' AND' : '',
-                $product_category_name,
+                $product_category_name_1,
                 $site_id
             );
         }else{
             $table = "{$this->table_dws_idm_category03_topn_kpi} AS report" ;
             $where .= sprintf(
-                "%s report.product_category_name_3='%s' AND report.site_id=%d",
+                "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s' AND report.site_id=%d",
                 $where ? ' AND' : '',
-                $product_category_name,
+                $product_category_name_1,
+                $product_category_name_2,
+                $product_category_name_3,
                 $site_id
             );
         }
