@@ -556,7 +556,7 @@
                     "description": "店铺名称",
                     "type": "string"
                   },
-                  "shop_id": {
+                  "shop_ids": {
                     "description": "店铺ID",
                     "type": "integer"
                   },
