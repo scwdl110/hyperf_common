@@ -45,6 +45,24 @@ class Functions {
     }
 
 
+    /**
+     * 获取mac地址
+     * @return string|null
+     */
+    public function getMacAddress(): ?string
+    {
+        $macAddresses = swoole_get_local_mac();
+
+        foreach ($macAddresses as $name => $address) {
+            if ($address && $address !== '00:00:00:00:00:00') {
+                return $name . ':' . str_replace(':', '', $address);
+            }
+        }
+
+        return null;
+    }
+
+
     
 
 }
