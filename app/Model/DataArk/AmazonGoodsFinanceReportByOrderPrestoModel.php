@@ -1480,7 +1480,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (!empty($rankData)){
             $rankData_tmp = array();
             foreach ($rankData as $value){
-                $fields_tmp = $value[$group_fields_tmp].($value['myear'].'-'.$value['mmonth'].'-'.$value['mday']);
+                $fields_tmp = $value[$group_fields_tmp]."_".$value['channel_id'].($value['myear'].'-'.$value['mmonth'].'-'.$value['mday']);
                 $rankData_tmp[$fields_tmp] = $value;
             }
 
@@ -1488,7 +1488,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if (isset($value['all_sku_field'])){
                     unset($lists[$key]['all_sku_field']);
                 }
-                $fields_tmp = $value[$group_fields_tmp].($value['time']);
+                $fields_tmp = $value[$group_fields_tmp]."_".$value['channel_id'].($value['time']);
                 if (isset($rankData_tmp[$fields_tmp])){
 
 
