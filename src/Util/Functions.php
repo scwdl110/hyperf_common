@@ -49,7 +49,7 @@ class Functions {
      * 获取mac地址
      * @return string|null
      */
-    public function getMacAddress(): ?string
+    public static function getMacAddress(): ?string
     {
         $macAddresses = swoole_get_local_mac();
 
