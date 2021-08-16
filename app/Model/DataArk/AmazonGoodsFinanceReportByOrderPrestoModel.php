@@ -1618,7 +1618,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     private function getGoodsFields($datas = array(),$isMysql = false)
     {
         $fields = array();
-        $fields = $this->getGoodsTheSameFields($datas,$fields);
+        $fields = $this->getGoodsTheSameFields($datas,$fields,$isMysql);
 
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
@@ -2433,7 +2433,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
 
-    private function getGoodsTheSameFields($datas,$fields){
+    private function getGoodsTheSameFields($datas,$fields,$isMysql = false){
         $fields['user_id'] = 'max(report.user_id)';
         $fields['goods_id'] = 'max(report.amazon_goods_id)';
         $fields['site_country_id'] = 'max(report.site_id)';
@@ -2442,6 +2442,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['channel_num'] = 'COUNT(DISTINCT(report.channel_id))';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['site_id'] = 'max(report.site_id)';
+            if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
+                if ($isMysql){
+                    $fields['all_channel_id'] = "GROUP_CONCAT(report.channel_id)";
+                }else{
+                    $fields['all_channel_id'] = "array_join(array_agg(report.channel_id), ',')";
+                }
+            }
+
+
         }
 
         if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
@@ -2544,7 +2553,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     private function getGoodsTimeFields($datas = [], $time_line,$isMysql = false)
     {
         $fields = [];
-        $fields = $this->getGoodsTheSameFields($datas,$fields);
+        $fields = $this->getGoodsTheSameFields($datas,$fields,$isMysql);
 
         if($datas['time_target'] == 'goods_views_rate' || $datas['time_target'] == 'goods_buyer_visit_rate'){
             $table = "{$this->table_goods_day_report} ";
