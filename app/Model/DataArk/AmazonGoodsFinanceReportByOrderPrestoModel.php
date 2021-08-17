@@ -4072,8 +4072,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $redis->set("goods_mysql_user",$goods_mysql_user);
             }
             if (is_array($goods_mysql_user) && !in_array($params['user_id'],$goods_mysql_user)){
-//                $isMysql = true;
-                $isMysql = false;//临时改为读presto
+                $isMysql = true;
+//                $isMysql = false;//临时改为读presto
 
             }else{
                 $isMysql = false;
