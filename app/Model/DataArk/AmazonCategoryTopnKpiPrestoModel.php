@@ -49,7 +49,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $where .= sprintf(
                 "%s report.product_category_name_1='%s' AND report.site_id=%d",
                 $where ? ' AND' : '',
-                $product_category_name_1,
+                htmlspecialchars(trim($product_category_name_1), ENT_NOQUOTES),
                 $site_id
             );
         }else{
@@ -57,9 +57,9 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $where .= sprintf(
                 "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s' AND report.site_id=%d",
                 $where ? ' AND' : '',
-                $product_category_name_1,
-                $product_category_name_2,
-                $product_category_name_3,
+                htmlspecialchars(trim($product_category_name_1), ENT_NOQUOTES),
+                htmlspecialchars(trim($product_category_name_2), ENT_NOQUOTES),
+                htmlspecialchars(trim($product_category_name_3), ENT_NOQUOTES),
                 $site_id
             );
         }
