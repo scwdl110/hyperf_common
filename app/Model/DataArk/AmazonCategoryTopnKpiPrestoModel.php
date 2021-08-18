@@ -80,7 +80,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = "report.dt ASC";
-        $count = $this->count($where, $table);;
+        $count = $this->count($where, $table);
         $lists = $this->select($where, $field_data, $table, $limit,$orderby);
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
         $logger->info('getListByGoods Request', [$this->getLastSql()]);
