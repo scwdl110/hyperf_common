@@ -80,9 +80,8 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = "report.dt ASC";
-        $group = "report.dt";
-        $count = $this->count($where, $table, $group);;
-        $lists = $this->select($where, $field_data, $table, $limit,$orderby,$group);
+        $count = $this->count($where, $table);;
+        $lists = $this->select($where, $field_data, $table, $limit,$orderby);
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
         $logger->info('getListByGoods Request', [$this->getLastSql()]);
 
@@ -101,23 +100,23 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $periodsDay = intval($datas['periods_day'] ?? 1);
         $periodsDay = $periodsDay < 10 ? str_pad($periodsDay,2,"0",STR_PAD_LEFT) : $periodsDay;
 
-        $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+        $fields['time'] = "report.dt";
 
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
-            $fields['goods_visitors_up'] = "SUM(report.user_sessions_{$periodsDay}day_top{$topNUp}_avg)";
-            $fields['goods_visitors_down'] = "SUM(report.user_sessions_{$periodsDay}day_top{$topNDown}_avg)";
+            $fields['goods_visitors_up'] = "report.user_sessions_{$periodsDay}day_top{$topNUp}_avg";
+            $fields['goods_visitors_down'] = "report.user_sessions_{$periodsDay}day_top{$topNDown}_avg";
         }
         if (in_array('sale_sales_volume', $targets)) {  // 销量
-            $fields['sale_sales_volume_up'] = "SUM(report.sales_volume_{$periodsDay}day_top{$topNUp}_avg)";
-            $fields['sale_sales_volume_down'] = "SUM(report.sales_volume_{$periodsDay}day_top{$topNDown}_avg)";
+            $fields['sale_sales_volume_up'] = "report.sales_volume_{$periodsDay}day_top{$topNUp}_avg";
+            $fields['sale_sales_volume_down'] = "report.sales_volume_{$periodsDay}day_top{$topNDown}_avg";
         }
         if (in_array('sale_sales_quota', $targets)) {  // 销售额
-            $fields['sale_sales_quota_up'] = "SUM(report.sales_quota_{$periodsDay}day_top{$topNUp}_avg * {:RATE})";
-            $fields['sale_sales_quota_down'] = "SUM(report.sales_quota_{$periodsDay}day_top{$topNDown}_avg * {:RATE})";
+            $fields['sale_sales_quota_up'] = "report.sales_quota_{$periodsDay}day_top{$topNUp}_avg * {:RATE}";
+            $fields['sale_sales_quota_down'] = "report.sales_quota_{$periodsDay}day_top{$topNDown}_avg * {:RATE}";
         }
         if (in_array('goods_conversion_rate', $targets)) { //转化率
-            $fields['goods_conversion_rate_up'] = "SUM(report.user_sessions_{$periodsDay}day_top{$topNUp}_cr)";
-            $fields['goods_conversion_rate_down'] = "SUM(report.user_sessions_{$periodsDay}day_top{$topNDown}_cr)";
+            $fields['goods_conversion_rate_up'] = "report.user_sessions_{$periodsDay}day_top{$topNUp}_cr";
+            $fields['goods_conversion_rate_down'] = "report.user_sessions_{$periodsDay}day_top{$topNDown}_cr";
         }
         return $fields;
     }
