@@ -533,6 +533,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             $target_wheres = $where_detail['target'] ?? '';
+            $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     if(!empty($fields[$target_where['key']])){
@@ -543,7 +544,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         if (empty($having)) {
                             $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                         } else {
-                            $having .= ' AND (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                            $having .= ' ' .$condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                         }
                     }
 
@@ -574,12 +575,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
+                if($datas['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
+                }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
+            }elseif($datas['is_median'] == 1){
+                $median_limit = !empty($datas['limit_num']) ? $limit : '';
+                $median_order = !empty($datas['limit_num']) ? $orderby : '';
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,true,$isMysql);
+                $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
                 if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
@@ -611,6 +620,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
+                if($datas['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
+                }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
@@ -619,6 +631,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
+            }elseif($datas['is_median'] == 1){
+                $median_limit = !empty($datas['limit_num']) ? $limit : '';
+                $median_order = !empty($datas['limit_num']) ? $orderby : '';
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,true,$isMysql);
+                $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql){
@@ -676,7 +693,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }
-        if(!empty($lists) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
+        if(!empty($lists) && empty($datas['is_median']) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
@@ -942,9 +959,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $table_group = 'g.id , rel.channel_id' ;
                     $fba_fields = $group = 'channel_id' ;
                 }else{
-                    $table_fields =  'g.id' ;
+                    $table_fields =  'g.id,g.user_id' ;
                     $table_group = 'g.id' ;
-                    $fba_fields = $group = 'id' ;
+                    $fba_fields = 'id,user_id' ;
+                    $group = 'user_id' ;
                 }
             }else if($datas['count_dimension'] == 'goods_channel'){
                 $table_fields = 'rel.channel_id' ;
@@ -985,6 +1003,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //开发人暂时没有 ，因为需要跨库查询
                 }else if($datas['count_dimension'] == 'isku'){ //开发人
                     $where_arr[] = array('isku_id'=>$list1['isku_id']) ;
+                }else if($datas['count_dimension'] == 'all_goods'){ //合计商品
+                    //暂时没有
                 }else {
                     $where_arr[] = array('channel_id'=>$list1['channel_id']) ;
                 }
@@ -1032,6 +1052,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else if($datas['count_dimension'] == 'isku'){
                 $where_strs = array_unique(array_column($where_arr , 'isku_id')) ;
                 $where_str = 'ext.isku_id IN (' . implode(',' , $where_strs) . ' ) ';
+            }else if($datas['count_dimension'] == 'all_goods'){
+                $where_str = '';
             }else{
                 $where_strs = array_unique(array_column($where_arr , 'channel_id')) ;
                 $where_str = 'rel.channel_id IN (' . implode(',' , $where_strs) . ' ) ';
@@ -1125,7 +1147,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($datas['count_dimension'] == 'isku'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'isku_id',$datas['is_distinct_channel'],$fbaDatas);
                 }elseif($datas['count_dimension'] == 'all_goods'){
-                    $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',$datas['is_distinct_channel'],$fbaDatas);
+                    $fba_data_field = $datas['is_distinct_channel'] == 1 ? 'channel_id' : 'user_id';
+                    $fbaDatas = $this->handleGoodsFbaData($fba,$fba_data_field,$datas['is_distinct_channel'],$fbaDatas);
                 }elseif($datas['count_dimension'] == 'goods_channel'){
                     $fbaDatas = $this->handleGoodsFbaData($fba,'channel_id',$datas['is_distinct_channel'],$fbaDatas);
                 }
@@ -1163,6 +1186,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_data = empty($fbaDatas[$list2['developer_id']]) ? array() : $fbaDatas[$list2['developer_id']] ;
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_data = empty($fbaDatas[$list2['isku_id']]) ? array() : $fbaDatas[$list2['isku_id']] ;
+            }else if($datas['count_dimension'] == 'all_goods'){
+                $fba_data_field = $datas['is_distinct_channel'] == 1 ? 'channel_id' : 'user_id';
+                $fba_data = empty($fbaDatas[$list2[$fba_data_field]]) ? array() : $fbaDatas[$list2[$fba_data_field]] ;
             }
 
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
@@ -2474,6 +2500,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if($datas['is_distinct_channel'] == '1'){
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
+                $fields['goods_product_category_name_1'] = 'max(report.goods_product_category_name_1)';
+                $fields['goods_product_category_name_2'] = 'max(report.goods_product_category_name_2)';
+                $fields['goods_product_category_name_3'] = 'max(report.goods_product_category_name_3)';
             }
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
@@ -2489,7 +2518,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['parent_asin'] = "max(report.goods_parent_asin)";
                 $fields['channel_id'] = 'max(report.channel_id)';
                 $fields['site_id'] = 'max(report.site_id)';
-
+                $fields['goods_product_category_name_1'] = 'max(report.goods_product_category_name_1)';
+                $fields['goods_product_category_name_2'] = 'max(report.goods_product_category_name_2)';
+                $fields['goods_product_category_name_3'] = 'max(report.goods_product_category_name_3)';
             }
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
@@ -4079,6 +4110,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $isMysql = false;
             }
         }
+        if($params['is_median']){
+            $isMysql = false;
+        }
         return $isMysql;
     }
 
@@ -4398,6 +4432,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (!empty($where_detail)) {
             $target_wheres = $where_detail['target'] ?? '';
+            $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     $where_value = $target_where['value'];
@@ -4407,7 +4442,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if (empty($having)) {
                         $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                     } else {
-                        $having .= ' AND (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                        $having .= ' ' . $condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                     }
                 }
             }
@@ -4433,15 +4468,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($params['is_count'] == 1){
+                if($params['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
-//                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-//                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
-//                }
+            }elseif($params['is_median'] == 1){
+                $median_limit = !empty($params['limit_num']) ? $limit : '';
+                $median_order = !empty($params['limit_num']) ? $orderby : '';
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,false,$isMysql);
+                $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
@@ -4461,17 +4501,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($params['is_count'] == 1){
+                if($params['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit, '', '', false, null, 300, $isMysql);
                 }
-//                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
-//                    $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql,1) ;
-//                }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
+            }elseif($params['is_median'] == 1){
+                $median_limit = !empty($params['limit_num']) ? $limit : '';
+                $median_order = !empty($params['limit_num']) ? $orderby : '';
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,false,$isMysql);
+                $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
 
                 $parallel = new Parallel();
@@ -4519,7 +4564,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $count = $limit_num ;
             }
         }
-        if(!empty($lists) && $params['show_type'] == 2 && $params['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$params['sort_target']]) && !empty($params['sort_target']) && !empty($params['sort_order'])){
+        if(!empty($lists) && empty($params['is_median']) && $params['show_type'] == 2 && $params['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$params['sort_target']]) && !empty($params['sort_target']) && !empty($params['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC ;
@@ -6815,6 +6860,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (!empty($where_detail)) {
             $target_wheres = empty($where_detail['target']) ? array() : $where_detail['target'];
+            $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
                     if(!empty($fields[$target_where['key']])){
@@ -6825,7 +6871,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         if (empty($having)) {
                             $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                         } else {
-                            $having .= ' AND (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                            $having .= ' ' . $condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
                         }
                     }
                 }
@@ -6852,18 +6898,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
+                if($datas['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group);
+                }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit);
                 }
+            }elseif($datas['is_median'] == 1){
+                $median_limit = !empty($datas['limit_num']) ? $limit : '';
+                $median_order = !empty($datas['limit_num']) ? $orderby : '';
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group);
+                $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
 
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
+                if($datas['total_status'] == 1){
+                    $count = $this->getTotalNum($where, $table, $group);
+                }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
@@ -6872,6 +6929,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Total Request', [$this->getLastSql()]);
+            }elseif($datas['is_median'] == 1){
+                $median_limit = !empty($datas['limit_num']) ? $limit : '';
+                $median_order = !empty($datas['limit_num']) ? $orderby : '';
+                $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group);
+                $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
@@ -6900,7 +6962,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $count = $limit_num ;
             }
         }
-        if(!empty($lists) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
+        if(!empty($lists) && empty($datas['is_median']) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
@@ -8785,7 +8847,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $str = $formula ;
             foreach ($data as $key => $value) {
                 if(is_null($value)){
-                    $value = 'NULL';
+                    $str = 'NULL';
+                    break;
                 }
                 $str = str_replace('{'.$key.'}' , " " . $value . " ", $str);
             }
@@ -8809,6 +8872,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if(stripos($value,"min(") !== false){
                 $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
             }elseif (stripos($value,"max(") !== false){
+                $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+            }elseif (stripos($value,"count(") !== false){
                 $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
             }elseif($value == 'NULL'){
                 $fields_tmp[] = "NULL" . ' AS "' . $key_value . '"';
@@ -10670,6 +10735,42 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
 
+        return $lists;
+    }
+
+    /**
+     * 获取中位数
+     * @param string $targets
+     * @param string $origin_sql
+     * @param bool $isMysql
+     * @return array
+     */
+    public function getMedianValue($datas = array(),$origin_sql = "",$isCache = null,$cacheTTL = 300,$isMysql = false){
+        $lists = array();
+        $targets = !empty($datas['median_target']) ? $datas['median_target'] : '';
+        if(!empty($targets) && !empty($origin_sql)){
+            $targets = explode(',', $targets);
+            $sql = "with origin_table as ({$origin_sql}),";
+            $n = 1;
+            foreach ($targets as $target){
+                $sql .= "table{$n} as (select {$target},row_number() over(order by {$target}) num,count(*) over() cnt from origin_table),
+                    total_table{$n} as (select avg({$target}) as {$target} from table{$n} where if(cnt%2=0,num in (cnt/2,cnt/2+1),num=(cnt+1)/2)),";
+                $n++;
+            }
+            $sql = rtrim($sql,",");
+            $fields_tmp = "";
+            $tables_tmp = "";
+            for($i = 1;$i < $n;$i++){
+                $fields_tmp .= "total_table{$i}.*,";
+                $tables_tmp .= "total_table{$i},";
+            }
+            $fields_tmp = rtrim($fields_tmp,",");
+            $tables_tmp = rtrim($tables_tmp,",");
+            $sql .= "select {$fields_tmp} from {$tables_tmp}";
+            $lists = $this->query($sql, [], $isCache, $cacheTTL, $isMysql);
+            $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
+            $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
+        }
         return $lists;
     }
 }
