@@ -75,15 +75,8 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $fields_arr[] = $field . ' AS "' . $field_name . '"';
         }
 
-        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.000000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
-
-        if ($params['currency_code'] != 'ORIGIN') {
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-            } else {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = {$userId}  ";
-            }
-        }
+        //行业数据金额存的是人民币
+        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
 
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = "report.dt ASC";
@@ -119,8 +112,8 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $fields['sale_sales_volume_down'] = "SUM(report.sales_volume_{$periodsDay}day_top{$topNDown}_avg)";
         }
         if (in_array('sale_sales_quota', $targets)) {  // 销售额
-            $fields['sale_sales_quota_up'] = "SUM(report.sales_quota_{$periodsDay}day_top{$topNUp}_avg)";
-            $fields['sale_sales_quota_down'] = "SUM(report.sales_quota_{$periodsDay}day_top{$topNDown}_avg)";
+            $fields['sale_sales_quota_up'] = "SUM(report.sales_quota_{$periodsDay}day_top{$topNUp}_avg * {:RATE})";
+            $fields['sale_sales_quota_down'] = "SUM(report.sales_quota_{$periodsDay}day_top{$topNDown}_avg * {:RATE})";
         }
         if (in_array('goods_conversion_rate', $targets)) { //转化率
             $fields['goods_conversion_rate_up'] = "SUM(report.user_sessions_{$periodsDay}day_top{$topNUp}_cr)";
