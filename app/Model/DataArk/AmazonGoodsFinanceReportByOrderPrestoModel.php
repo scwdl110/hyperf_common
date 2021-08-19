@@ -4068,7 +4068,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $goods_mysql_user = $redis->get("goods_mysql_user");
 
             if (empty($goods_mysql_user)){
-                $goods_mysql_user = Db::connection('bigdata_goods_ads')->table("vip_user_big_data")->pluck('user_id')->toArray();
+                $goods_mysql_user = Db::connection('bigdata_goods_ads_001')->table("vip_user_big_data")->pluck('user_id')->toArray();//只有001有这个用户数据
                 $redis->set("goods_mysql_user",$goods_mysql_user);
             }
             if (is_array($goods_mysql_user) && !in_array($params['user_id'],$goods_mysql_user)){
