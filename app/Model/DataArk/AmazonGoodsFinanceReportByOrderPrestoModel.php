@@ -2468,11 +2468,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['channel_num'] = 'COUNT(DISTINCT(report.channel_id))';
             $fields['channel_id'] = 'max(report.channel_id)';
             $fields['site_id'] = 'max(report.site_id)';
-            if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
+            if (in_array($datas['count_dimension'],['parent_asin','asin','sku'])){
                 if ($isMysql){
-//                    $fields['all_channel_id'] = "GROUP_CONCAT(report.channel_id)";
+                    $fields['all_channel_id'] = "GROUP_CONCAT(DISTINCT report.channel_id)";
                 }else{
-//                    $fields['all_channel_id'] = "array_join(array_agg(report.channel_id), ',')";
+                    $fields['all_channel_id'] = "array_join(array_agg(DISTINCT report.channel_id), ',')";
                 }
             }
 
@@ -2551,6 +2551,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['class1'] = 'max(report.goods_product_category_name_1)';
                 $fields['group'] = 'max(report.goods_group_name)';
                 $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
+            }else{
+                if ($isMysql){
+                    $fields['asin'] = "GROUP_CONCAT(DISTINCT report.goods_asin)";
+                }else{
+                    $fields['asin'] = "array_join(array_agg(DISTINCT report.goods_asin), ',')";
+                }
             }
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
