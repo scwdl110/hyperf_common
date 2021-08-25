@@ -27,6 +27,8 @@ class DataArkController extends AbstractController
         }else{
             $page = intval($req['page'] ?? 1);
         }
+        $params['is_median'] = $params['is_median'] ?? 0;
+        $params['total_status'] = $params['total_status'] ?? 0;
         $limit = intval($req['rows'] ?? 100);
         $sort = trim(strval($req['sort'] ?? ''));
         $order = trim(strval($req['order'] ?? ''));
@@ -433,5 +435,57 @@ class DataArkController extends AbstractController
         }
 
         return $result;
+    }
+
+    public function getIndustryKpi()
+    {
+        $userInfo = $this->request->getAttribute('userInfo');
+        $req = $this->request->all();
+        $page = intval($req['page'] ?? 1);
+        $limit = intval($req['rows'] ?? 100);
+        $currencyInfo = $req['currencyInfo'] ?? [];
+        $exchangeCode = $req['exchangeCode'] ?? '1';
+        $params = $req['params'] ?? [];
+        $target = trim($params['target'] ?? '');
+        $timeType = intval($params['time_type'] ?? 0);
+        $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
+        $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
+        $offset = ($page - 1) * $limit;
+        $result = ['lists' => [], 'count' => 0];
+        $where = '';
+
+        if(empty($target)){
+            return Result::success($result);
+        }
+
+        if ($timeType === 99) {
+            $where .= sprintf(
+                "%s report.dt>='%s' and report.dt<='%s'",
+                $where ? ' AND' : '',
+                $searchStartTime,
+                $searchEndTime
+            );
+        }else{
+            return Result::success($result);
+        }
+
+        $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
+        $className = "\\App\\Model\\DataArk\\AmazonCategoryTopnKpiPrestoModel";
+        $amazonCategoryTopnKpiPrestoMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
+        $amazonCategoryTopnKpiPrestoMD->dryRun(env('APP_TEST_RUNNING', false));
+        $result = $amazonCategoryTopnKpiPrestoMD->getIndustryTopnKpi(
+            $where,
+            $params,
+            $limit,
+            $currencyInfo,
+            $exchangeCode,
+            $userInfo['user_id']
+        );
+
+        if (!isset($result['lists'])) {
+            $result = ['lists' => [], 'count' => 0];
+        }
+
+        return Result::success($result);
     }
 }
