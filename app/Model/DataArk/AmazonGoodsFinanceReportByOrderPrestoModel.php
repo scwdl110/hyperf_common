@@ -646,7 +646,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
                     return $count;
                 });
-                $table_sessions_views = "{$this->table_dws_goods_day_report}";
+                $table_sessions_views = "{$this->table_dws_goods_day_report} AS report";
                 $parallel->add(function () use($datas,$fields,$isMysql,$table_sessions_views){
                     $total_user_sessions_views = array();
                     if ($datas['count_periods'] == 0 &&  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate'){
@@ -10626,9 +10626,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     }
 
     public function getGoodsViewsVisitRate($lists, $fields, $datas,$isMysql = false,$table = ''){
-        $table = !empty($table)?$table: "{$this->table_dws_goods_day_report}";
+        $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'];
 
 
         if ($datas['count_periods'] == 0 && $datas['is_count'] == 0){//统计周期 无

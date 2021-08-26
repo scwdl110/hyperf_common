@@ -56,12 +56,14 @@ class DataArkController extends AbstractController
         if (count($channelIds) > 1) {
             $params['operation_channel_ids'] = implode(',' , $channelIds);
             $where = "report.user_id={$userInfo['user_id']} AND report.channel_id IN (" . implode(',', $channelIds) . ')';
+            $params['user_sessions_where'] = $where;
             if ($type == 1) {
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id IN (" . implode(',', $channelIds) . ')';
             }
         } else {
             $params['operation_channel_ids'] = $channelIds[0];
             $where = "report.user_id={$userInfo['user_id']} AND report.channel_id={$channelIds[0]}";
+            $params['user_sessions_where'] = $where;
             if ($type == 1) {
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id={$channelIds[0]}";
             }
