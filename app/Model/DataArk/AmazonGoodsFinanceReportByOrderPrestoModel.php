@@ -591,10 +591,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
-                if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
-                    //页面浏览次数百分比  买家访问次数百分比
-                    $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
+                $total_user_sessions_views = array();
+                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate'){
+                    $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
+
                 }
+                $lists = $this->handleReturnGoodsList($lists,$datas,$fields,$total_user_sessions_views);
+
+//                if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
+//                    //页面浏览次数百分比  买家访问次数百分比
+//                    $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
+//                }
                 if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
@@ -670,7 +677,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     Log::getClient('dataark', 'dataark')->info('协程异常：', [$e->getMessage()]);
                 }
 
-                $lists = $this->handleReturnGoodsList($lists,$datas);
+                $lists = $this->handleReturnGoodsList($lists,$datas,$fields,$total_user_sessions_views);
 
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
@@ -10603,6 +10610,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     }
 
     public function getGoodsViewsVisitRate($lists, $fields, $datas,$isMysql = false,$table = ''){
+        if ((empty($fields['goods_views_rate']) && empty($fields['goods_buyer_visit_rate']))){
+            return array();
+        }
         $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
         $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'];
@@ -10610,16 +10620,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $total_user_sessions_views = array();
 
         if ($datas['count_periods'] == 0 && $datas['is_count'] == 0){//统计周期 无
-            if (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])){
-                if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                    $total_user_sessions_views = $this->select($where, 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',"report.channel_id",false,null,300,$isMysql);
-                    if (!empty($total_user_sessions_views)){
-                        $total_user_sessions_views = array_column($total_user_sessions_views,null,'channel_id');
-                    }
-                }else{
-                    $total_user_sessions_views = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
-
+//            if (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])){
+//
+//            }
+            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
+                $total_user_sessions_views = $this->select($where, 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',"report.channel_id",false,null,300,$isMysql);
+                if (!empty($total_user_sessions_views)){
+                    $total_user_sessions_views = array_column($total_user_sessions_views,null,'channel_id');
                 }
+            }else{
+                $total_user_sessions_views = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
+
             }
 
             return $total_user_sessions_views;
@@ -10840,7 +10851,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @param $datas
      * @return mixed
      */
-    private function handleReturnGoodsList($lists ,$datas){
+    private function handleReturnGoodsList($lists ,$datas,$fields,$total_user_sessions_views){
         if (empty($lists)){
             return array();
         }
