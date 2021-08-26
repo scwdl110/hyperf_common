@@ -2598,6 +2598,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['sku'] = "max(report.goods_sku)";
             $fields['image'] = 'max(report.goods_image)';
             $fields['title'] = 'max(report.goods_title)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
+
             if($datas['is_distinct_channel'] == '1'){
 
                 $fields['asin'] = "max(report.goods_asin)";
@@ -2609,7 +2611,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_is_care']                 = 'max(report.goods_is_care)';
                 $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
                 $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
                 $fields['isku_id']                       = 'max(report.goods_isku_id)';
                 $fields['goods_fnsku']                  = 'max(amazon_goods.goods_fnsku)';
                 $fields['channel_id'] = 'max(report.channel_id)';
