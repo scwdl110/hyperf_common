@@ -1757,7 +1757,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_views_number'] = " SUM(report.byorder_number_of_visits)";
             }
             //总流量次数
-            $goods_views_rate = '0';
+            $goods_views_rate = '1';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
             $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
@@ -1816,7 +1816,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!in_array('goods_visitors', $targets)){
                 $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
             }
-            $goods_buyer_visit_rate = '0';
+            $goods_buyer_visit_rate = '1';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
             $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
