@@ -601,7 +601,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
                 $total_user_sessions_views = array();
-                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate'){
+                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort']){
                     $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
 
                 }
@@ -665,7 +665,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $table_sessions_views = "{$this->table_dws_goods_day_report} AS report";
                 $parallel->add(function () use($datas,$fields,$isMysql,$table_sessions_views){
                     $total_user_sessions_views = array();
-                    if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate'){
+                    if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort']){
                         $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql,$table_sessions_views);
 
                     }
@@ -1746,7 +1746,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            }
 //        }$params['force_sort']
         $total_user_sessions_views = array();
-        if (((in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate') && $datas['count_periods'] == 0 && $datas['is_count'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'])){//按无且有排序才使用
+        if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) ){//按无且有排序才使用
             $fields['goods_buyer_visit_rate'] = in_array('goods_buyer_visit_rate', $targets)?'1':'0';
             $fields['goods_views_rate'] = in_array('goods_views_rate', $targets) ?'1':'0';
             $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
@@ -1757,7 +1757,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_views_number'] = " SUM(report.byorder_number_of_visits)";
             }
             //总流量次数
-            $goods_views_rate = '1';
+            $goods_views_rate = '0';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
             $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
@@ -1816,7 +1816,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!in_array('goods_visitors', $targets)){
                 $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
             }
-            $goods_buyer_visit_rate = '1';
+            $goods_buyer_visit_rate = '0';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
             $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
@@ -10648,12 +10648,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if ((empty($fields['goods_views_rate']) && empty($fields['goods_buyer_visit_rate']))){
             return array();
         }
-        if ((isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'])){//包含新增筛选直接过滤
-            return array();
-        }
-        if (($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')){
-            return array();
-        }
+
         $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
         $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'].str_replace('create_time',"report.create_time",$datas['origin_time']);
