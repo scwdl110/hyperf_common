@@ -4156,6 +4156,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function getIsMysql($params){
         $isMysql = false;
+        return $isMysql;
 //        if ($params['user_id'] == 343459){
 //            return true;
 //        }
