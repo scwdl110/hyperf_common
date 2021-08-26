@@ -142,7 +142,7 @@ class DataArkController extends AbstractController
                 if($matchType == 'eq'){
                     $where .= " AND report.goods_title = '" . $searchVal . "'" ;
                 }else {
-                    $where .= " AND report.goods_title like '%" . $searchVal . "%'";
+                    $where .= " AND LOWER(report.goods_title) like '%" . strtolower($searchVal) . "%'";
                 }
             }
 
