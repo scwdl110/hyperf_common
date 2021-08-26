@@ -1781,9 +1781,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $goods_views_rate = $case;
                         }
                     }else{
-                        if (intval($total_user_sessions_views['total_views_number']) > 0) {
-                            $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_user_sessions_views['total_views_number']) .', 2)';
+                        if (!empty($total_user_sessions_views)){
+                            if (intval($total_user_sessions_views['total_views_number']) > 0) {
+                                $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_user_sessions_views['total_views_number']) .', 2)';
+                            }
                         }
+
                     }
                 }else{
                     $goods_views_rate = '1';
@@ -1828,9 +1831,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $goods_buyer_visit_rate = $case;
                         }
                     }else{
-                        if (intval($total_user_sessions_views['total_user_sessions']) > 0) {
-                            $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions_views['total_user_sessions']).', 2)';
+                        if (!empty($total_user_sessions_views)){
+                            if (intval($total_user_sessions_views['total_user_sessions']) > 0) {
+                                $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions_views['total_user_sessions']).', 2)';
+                            }
                         }
+
                     }
                 }else{
                     $goods_buyer_visit_rate = '1';
@@ -10615,7 +10621,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'];
+        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'].str_replace('create_time',"report.create_time",$datas['origin_time']);
 
         $total_user_sessions_views = array();
 
