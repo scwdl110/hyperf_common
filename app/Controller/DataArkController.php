@@ -32,6 +32,7 @@ class DataArkController extends AbstractController
         $limit = intval($req['rows'] ?? 100);
         $sort = trim(strval($req['sort'] ?? ''));
         $order = trim(strval($req['order'] ?? ''));
+        $params['force_sort'] = $sort;
         $channelIds = $req['channelIds'] ?? [];
         $countTip = intval($req['countTip'] ?? 0);
         $currencyInfo = $req['currencyInfo'] ?? [];
@@ -56,12 +57,14 @@ class DataArkController extends AbstractController
         if (count($channelIds) > 1) {
             $params['operation_channel_ids'] = implode(',' , $channelIds);
             $where = "report.user_id={$userInfo['user_id']} AND report.channel_id IN (" . implode(',', $channelIds) . ')';
+            $params['user_sessions_where'] = $where;
             if ($type == 1) {
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id IN (" . implode(',', $channelIds) . ')';
             }
         } else {
             $params['operation_channel_ids'] = $channelIds[0];
             $where = "report.user_id={$userInfo['user_id']} AND report.channel_id={$channelIds[0]}";
+            $params['user_sessions_where'] = $where;
             if ($type == 1) {
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id={$channelIds[0]}";
             }
@@ -139,7 +142,7 @@ class DataArkController extends AbstractController
                 if($matchType == 'eq'){
                     $where .= " AND report.goods_title = '" . $searchVal . "'" ;
                 }else {
-                    $where .= " AND report.goods_title like '%" . $searchVal . "%'";
+                    $where .= " AND LOWER(report.goods_title) like '%" . strtolower($searchVal) . "%'";
                 }
             }
 

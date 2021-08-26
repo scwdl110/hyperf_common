@@ -140,6 +140,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }else{
             return [];
         }
+        $datas['is_use_goods_view_sort'] = false;
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
+        if (empty($where_detail)) {
+            $where_detail = array();
+        }else{
+            if (!empty($where_detail['target'])){
+                $target_key_arr = array_column($where_detail['target'],'key');
+                if (!empty($target_key_arr) && (in_array("goods_views_rate",$target_key_arr) || in_array("goods_buyer_visit_rate",$target_key_arr))){
+                    $datas['is_use_goods_view_sort'] = true;
+                }
+            }
+        }
 
         //没有按周期统计 ， 按指标展示
         if ($datas['show_type'] == 2) {
@@ -154,10 +166,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [];
         }
 
-        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
-        if (empty($where_detail)) {
-            $where_detail = array();
-        }
+
         if (!empty($where_detail['tag_id'])) {
             if(is_array($where_detail['tag_id'])){
                 $tag_str = implode(',', $where_detail['tag_id']);
@@ -591,10 +600,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
-                if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
-                    //页面浏览次数百分比  买家访问次数百分比
-                    $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
+                $total_user_sessions_views = array();
+                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
+                    $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
+
                 }
+                $lists = $this->handleReturnGoodsList($lists,$datas,$fields,$total_user_sessions_views);
+
+//                if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
+//                    //页面浏览次数百分比  买家访问次数百分比
+//                    $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
+//                }
                 if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
@@ -646,23 +662,38 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
                     return $count;
                 });
+                $table_sessions_views = "{$this->table_dws_goods_day_report} AS report";
+                $parallel->add(function () use($datas,$fields,$isMysql,$table_sessions_views){
+                    $total_user_sessions_views = array();
+                    if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
+                        $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql,$table_sessions_views);
+
+                    }
+                    return $total_user_sessions_views;
+                });
+
+
 
                 try{
                     // $results 结果为 [1, 2]
                     $results = $parallel->wait();
                     $lists = $results[0];
                     $count = $results[1];
+                    $total_user_sessions_views = $results[2];
                 } catch(ParallelExecutionException $e){
                     // $e->getResults() 获取协程中的返回值。
                     // $e->getThrowables() 获取协程中出现的异常。
                     Log::getClient('dataark', 'dataark')->info('协程异常：', [$e->getMessage()]);
                 }
+
+                $lists = $this->handleReturnGoodsList($lists,$datas,$fields,$total_user_sessions_views);
+
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Request', [$this->getLastSql()]);
-                if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
-                    //页面浏览次数百分比  买家访问次数百分比
-                    $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
-                }
+//                if (!empty($lists) && $datas['show_type'] == 2 && (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])) && $datas['is_count'] != 1 && $datas['count_periods'] > 0){
+//                    //页面浏览次数百分比  买家访问次数百分比
+//                    $lists = $this->getGoodsViewsVisitRate($lists, $fields, $datas);
+//                }
                 if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
                 }
@@ -1713,13 +1744,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            }else{
 //                $total_views_session_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table);
 //            }
-//        }
+//        }$params['force_sort']
+        $total_user_sessions_views = array();
+        if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || $datas['is_median'] == 1){//按无且有排序才使用
+            $fields['goods_buyer_visit_rate'] = in_array('goods_buyer_visit_rate', $targets)?'1':'0';
+            $fields['goods_views_rate'] = in_array('goods_views_rate', $targets) ?'1':'0';
+            $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
+
+        }
         if (in_array('goods_views_rate', $targets)) { //页面浏览次数百分比 (需要计算)
             if (!in_array('goods_views_number', $targets)) {
                 $fields['goods_views_number'] = " SUM(report.byorder_number_of_visits)";
             }
             //总流量次数
-            $goods_views_rate = 0;
+            $goods_views_rate = '1';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
             $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
@@ -1733,26 +1771,39 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
                 if (intval($total_views_numbers['total_views_number']) > 0) {
                     $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
+                }else{
+                    $goods_views_rate = '0';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
                     //统计周期 无
                     if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                        $total_views_numbers = $this->select($where." AND byorder_number_of_visits > 0", 'report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number', $table, '', '', "report.channel_id",false,null,300,$isMysql);
-                        if (!empty($total_views_numbers)){
+
+                        if (!empty($total_user_sessions_views)){
                             $case = " CASE ";
-                            foreach ($total_views_numbers as $val){
-                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
+                            $i = 0;
+                            foreach ($total_user_sessions_views as $val){
+                                if ($val['total_views_number'] > 0){
+                                    $i++;
+                                    $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
+                                }
+
                             }
                             $case .= " ELSE 0 END";
+                            if ($i>0){
+                                $goods_views_rate = $case;
 
-                            $goods_views_rate = $case;
+                            }else{
+                                $goods_views_rate = 0;
+                            }
                         }
                     }else{
-                        $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
-                        if (intval($total_views_numbers['total_views_number']) > 0) {
-                            $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
+                        if (!empty($total_user_sessions_views)){
+                            if (intval($total_user_sessions_views['total_views_number']) > 0) {
+                                $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_user_sessions_views['total_views_number']) .', 2)';
+                            }
                         }
+
                     }
                 }else{
                     $goods_views_rate = '1';
@@ -1765,7 +1816,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!in_array('goods_visitors', $targets)){
                 $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
             }
-            $goods_buyer_visit_rate = 0;
+            $goods_buyer_visit_rate = '1';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
             $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
@@ -1778,26 +1829,41 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
                 if (intval($total_user_sessions['total_user_sessions']) > 0) {
                     $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
+                }else{
+                    $goods_buyer_visit_rate = '0';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
                     //统计周期 无
                     if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                        $total_user_sessions = $this->select($where." AND byorder_user_sessions > 0", 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id",false,null,300,$isMysql);
-                        if (!empty($total_user_sessions)){
+
+                        if (!empty($total_user_sessions_views)){
                             $case = " CASE ";
-                            foreach ($total_user_sessions as $val){
-                                $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
+                            $i = 0;
+                            foreach ($total_user_sessions_views as $val){
+                                if ($val['total_user_sessions'] > 0){
+                                    $i++;
+                                    $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
+                                }
+
                             }
                             $case .= " ELSE 0 END";
+                            if ($i>0){
+                                $goods_buyer_visit_rate = $case;
 
-                            $goods_buyer_visit_rate = $case;
+                            }else{
+                                $goods_buyer_visit_rate = 0;
+                            }
+
+
                         }
                     }else{
-                        $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
-                        if (intval($total_user_sessions['total_user_sessions']) > 0) {
-                            $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
+                        if (!empty($total_user_sessions_views)){
+                            if (intval($total_user_sessions_views['total_user_sessions']) > 0) {
+                                $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions_views['total_user_sessions']).', 2)';
+                            }
                         }
+
                     }
                 }else{
                     $goods_buyer_visit_rate = '1';
@@ -2532,6 +2598,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['sku'] = "max(report.goods_sku)";
             $fields['image'] = 'max(report.goods_image)';
             $fields['title'] = 'max(report.goods_title)';
+            $fields['up_status']                  = 'max(report.goods_up_status)';
+
             if($datas['is_distinct_channel'] == '1'){
 
                 $fields['asin'] = "max(report.goods_asin)";
@@ -2543,7 +2611,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_is_care']                 = 'max(report.goods_is_care)';
                 $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
                 $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-                $fields['up_status']                  = 'max(report.goods_up_status)';
                 $fields['isku_id']                       = 'max(report.goods_isku_id)';
                 $fields['goods_fnsku']                  = 'max(amazon_goods.goods_fnsku)';
                 $fields['channel_id'] = 'max(report.channel_id)';
@@ -4089,7 +4156,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function getIsMysql($params){
         $isMysql = false;
-
+//        if ($params['user_id'] == 343459){
+//            return true;
+//        }
 //        if ($params['origin_create_start_time'] >= '1619798400' && $params['origin_create_end_time'] < '1622476800' &&  !in_array($params['count_dimension'],array("site_group","admin_id","department","operators")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
 //            $isMysql = true;
 //        }
@@ -10576,10 +10645,40 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return false;
     }
 
-    public function getGoodsViewsVisitRate($lists, $fields, $datas){
-        $table = "{$this->table_goods_day_report}";
+    public function getGoodsViewsVisitRate($lists, $fields, $datas,$isMysql = false,$table = ''){
+        if ((empty($fields['goods_views_rate']) && empty($fields['goods_buyer_visit_rate']))){
+            return array();
+        }
+
+        $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'].str_replace('create_time',"report.create_time",$datas['origin_time']);
+
+        $total_user_sessions_views = array();
+
+        if ($datas['count_periods'] == 0 && $datas['is_count'] == 0){//统计周期 无
+//            if (!empty($fields['goods_views_rate']) || !empty($fields['goods_buyer_visit_rate'])){
+//
+//            }
+            if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
+                $total_user_sessions_views = $this->select($where, 'report.channel_id, SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',"report.channel_id",false,null,300,$isMysql);
+                if (!empty($total_user_sessions_views)){
+                    $total_user_sessions_views = array_column($total_user_sessions_views,null,'channel_id');
+                }
+            }else{
+                $total_user_sessions_views = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
+
+            }
+
+            return $total_user_sessions_views;
+        }
+
+        if ($datas['is_count'] == 1){
+            return $total_user_sessions_views;
+        }
+
+
+
 
         $rateFields = "report.channel_id, SUM(report.byorder_number_of_visits) as total_views_number, SUM(report.byorder_user_sessions) as total_user_sessions, report.myear, report.mmonth";
         $rateGroup = "report.channel_id, report.myear, report.mmonth";
@@ -10665,6 +10764,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         'total_user_sessions' => $val['total_user_sessions']
                     ];
                 }
+
+                return $map;
                 foreach ($lists as $key => $val){
                     if (!empty($fields['goods_views_rate'])){
                         if (!empty($map[$val['channel_id']][$val['time']]['total_views_number'])){
@@ -10710,6 +10811,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         'total_user_sessions' => $val['total_user_sessions']
                     ];
                 }
+                return $map;
                 foreach ($lists as $key => $val){
                     if (!empty($fields['goods_views_rate'])){
                         if (!empty($map[$val['time']]['total_views_number'])){
@@ -10779,4 +10881,94 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         return $lists;
     }
+
+    /**
+     * 处理返回结果
+     * @param $lists
+     * @param $datas
+     * @return mixed
+     */
+    private function handleReturnGoodsList($lists ,$datas,$fields,$total_user_sessions_views){
+        if (empty($lists)){
+            return array();
+        }
+
+        foreach ($lists as $key => $list){
+            if (  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
+
+                if (!empty($fields['goods_buyer_visit_rate'])){
+                    $lists[$key]['goods_buyer_visit_rate'] = 0;
+                }
+                if (!empty($fields['goods_views_rate'])){
+                    $lists[$key]['goods_views_rate'] = 0;
+                }
+            }
+
+            if (!empty($total_user_sessions_views)){
+                if ($datas['count_periods'] == 0){
+                    if ($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
+                        if (!empty($fields['goods_buyer_visit_rate']) && isset($total_user_sessions_views[$list['channel_id']]) && $total_user_sessions_views[$list['channel_id']]['total_user_sessions'] > 0){
+                            $lists[$key]['goods_buyer_visit_rate'] = round($lists[$key]['goods_visitors']/$total_user_sessions_views[$list['channel_id']]['total_user_sessions'],4);
+                        }
+
+                        if (!empty($fields['goods_views_rate']) && isset($total_user_sessions_views[$list['channel_id']]) && $total_user_sessions_views[$list['channel_id']]['total_views_number'] > 0){
+                            $lists[$key]['goods_views_rate'] = round($lists[$key]['goods_views_number']/$total_user_sessions_views[$list['channel_id']]['total_views_number'],4);
+                        }
+                    }else{
+                        if (!empty($fields['goods_buyer_visit_rate']) && isset($total_user_sessions_views['total_user_sessions']) && $total_user_sessions_views['total_user_sessions'] > 0){
+                            $lists[$key]['goods_buyer_visit_rate'] = round($lists[$key]['goods_visitors']/$total_user_sessions_views['total_user_sessions'],4);
+                        }
+
+                        if (!empty($fields['goods_views_rate']) && isset($total_user_sessions_views['total_views_number']) && $total_user_sessions_views['total_views_number'] > 0){
+                            $lists[$key]['goods_views_rate'] = round($lists[$key]['goods_views_number']/$total_user_sessions_views['total_views_number'],4);
+                        }
+                    }
+                }else{
+
+                    if ($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
+                        if (!empty($fields['goods_views_rate'])){
+                            if (!empty($total_user_sessions_views[$list['channel_id']][$list['time']]['total_views_number'])){
+                                $lists[$key]['goods_views_rate'] = $list['goods_views_number'] / $total_user_sessions_views[$list['channel_id']][$list['time']]['total_views_number'];
+                            }else{
+                                $lists[$key]['goods_views_rate'] = 0;
+                            }
+                        }
+
+                        if (!empty($fields['goods_buyer_visit_rate'])){
+                            if (!empty($total_user_sessions_views[$list['channel_id']][$list['time']]['total_user_sessions'])){
+                                $lists[$key]['goods_buyer_visit_rate'] = $list['goods_visitors'] / $total_user_sessions_views[$list['channel_id']][$list['time']]['total_user_sessions'];
+                            }else{
+                                $lists[$key]['goods_buyer_visit_rate'] = 0;
+                            }
+                        }
+                    }else{
+                        if (!empty($fields['goods_views_rate'])){
+                            if (!empty($total_user_sessions_views[$list['time']]['total_views_number'])){
+                                $lists[$key]['goods_views_rate'] = $list['goods_views_number'] / $total_user_sessions_views[$list['time']]['total_views_number'];
+                            }else{
+                                $lists[$key]['goods_views_rate'] = 0;
+                            }
+                        }
+
+                        if (!empty($fields['goods_buyer_visit_rate'])){
+                            if (!empty($total_user_sessions_views[$list['time']]['total_user_sessions'])){
+                                $lists[$key]['goods_buyer_visit_rate'] = $list['goods_visitors'] / $total_user_sessions_views[$list['time']]['total_user_sessions'];
+                            }else{
+                                $lists[$key]['goods_buyer_visit_rate'] = 0;
+                            }
+                        }
+
+                    }
+
+                }
+
+            }
+
+
+
+        }
+
+        return $lists;
+    }
+
 }
