@@ -10911,7 +10911,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }
                     }else{
                         if (!empty($fields['goods_views_rate'])){
-                            if (!empty($total_user_sessions_views[$lists['time']]['total_views_number'])){
+                            if (!empty($total_user_sessions_views[$list['time']]['total_views_number'])){
                                 $lists[$key]['goods_views_rate'] = $list['goods_views_number'] / $total_user_sessions_views[$list['time']]['total_views_number'];
                             }else{
                                 $lists[$key]['goods_views_rate'] = 0;
