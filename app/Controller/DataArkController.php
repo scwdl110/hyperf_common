@@ -32,6 +32,7 @@ class DataArkController extends AbstractController
         $limit = intval($req['rows'] ?? 100);
         $sort = trim(strval($req['sort'] ?? ''));
         $order = trim(strval($req['order'] ?? ''));
+        $params['force_sort'] = $sort;
         $channelIds = $req['channelIds'] ?? [];
         $countTip = intval($req['countTip'] ?? 0);
         $currencyInfo = $req['currencyInfo'] ?? [];

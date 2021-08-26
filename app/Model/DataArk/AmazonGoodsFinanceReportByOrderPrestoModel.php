@@ -140,6 +140,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }else{
             return [];
         }
+        $datas['is_use_goods_view_sort'] = false;
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
+        if (empty($where_detail)) {
+            $where_detail = array();
+        }else{
+            if (!empty($where_detail['target'])){
+                $target_key_arr = array_column($where_detail['target'],'key');
+                if (!empty($target_key_arr) && (in_array("goods_views_rate",$target_key_arr) || in_array("goods_buyer_visit_rate",$target_key_arr))){
+                    $datas['is_use_goods_view_sort'] = true;
+                }
+            }
+        }
 
         //没有按周期统计 ， 按指标展示
         if ($datas['show_type'] == 2) {
@@ -154,10 +166,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [];
         }
 
-        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
-        if (empty($where_detail)) {
-            $where_detail = array();
-        }
+
         if (!empty($where_detail['tag_id'])) {
             if(is_array($where_detail['tag_id'])){
                 $tag_str = implode(',', $where_detail['tag_id']);
@@ -1735,9 +1744,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            }else{
 //                $total_views_session_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table);
 //            }
-//        }
+//        }$params['force_sort']
         $total_user_sessions_views = array();
-        if ((in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate') && $datas['count_periods'] == 0 && $datas['is_count'] == 0){//按无且有排序才使用
+        if (((in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate') && $datas['count_periods'] == 0 && $datas['is_count'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'])){//按无且有排序才使用
             $fields['goods_buyer_visit_rate'] = in_array('goods_buyer_visit_rate', $targets)?'1':'0';
             $fields['goods_views_rate'] = in_array('goods_views_rate', $targets) ?'1':'0';
             $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
@@ -10639,6 +10648,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if ((empty($fields['goods_views_rate']) && empty($fields['goods_buyer_visit_rate']))){
             return array();
         }
+        if ((isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'])){//包含新增筛选直接过滤
+            return array();
+        }
+        if (($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')){
+            return array();
+        }
         $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
         $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'].str_replace('create_time',"report.create_time",$datas['origin_time']);
@@ -10883,7 +10898,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         foreach ($lists as $key => $list){
-            if (  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate'){
+            if (  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort']){
+
                 if (!empty($fields['goods_buyer_visit_rate'])){
                     $lists[$key]['goods_buyer_visit_rate'] = 0;
                 }
