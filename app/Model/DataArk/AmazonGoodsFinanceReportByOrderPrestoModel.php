@@ -601,7 +601,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
                 $total_user_sessions_views = array();
-                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort']){
+                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
                     $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
 
                 }
@@ -665,7 +665,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $table_sessions_views = "{$this->table_dws_goods_day_report} AS report";
                 $parallel->add(function () use($datas,$fields,$isMysql,$table_sessions_views){
                     $total_user_sessions_views = array();
-                    if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort']){
+                    if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
                         $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql,$table_sessions_views);
 
                     }
@@ -1746,7 +1746,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            }
 //        }$params['force_sort']
         $total_user_sessions_views = array();
-        if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) ){//按无且有排序才使用
+        if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || $datas['is_median'] == 1){//按无且有排序才使用
             $fields['goods_buyer_visit_rate'] = in_array('goods_buyer_visit_rate', $targets)?'1':'0';
             $fields['goods_views_rate'] = in_array('goods_views_rate', $targets) ?'1':'0';
             $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
@@ -10894,7 +10894,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         foreach ($lists as $key => $list){
-            if (  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort']){
+            if (  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
 
                 if (!empty($fields['goods_buyer_visit_rate'])){
                     $lists[$key]['goods_buyer_visit_rate'] = 0;
