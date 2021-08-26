@@ -296,6 +296,7 @@ class DataArkController extends AbstractController
                 (int)$params['search_end_time']
             );
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
+            $params['user_sessions_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
             $params['origin_time']  = '  AND create_time >= ' .$params['search_start_time'] . ' AND create_time <= ' . $params['search_end_time'] ;
             $params['origin_create_start_time'] = $params['search_start_time'];
             $params['origin_create_end_time'] = $params['search_end_time'];
@@ -331,6 +332,7 @@ class DataArkController extends AbstractController
             $ors = join(' OR ', $ors);
             $where .= $where ? " AND ({$ors})" : "({$ors})";
             $params['origin_where'] .= " AND ({$ors}) ";
+            $params['user_sessions_where'] .= " AND ({$ors}) ";
             $origin_time = join(' OR ', $origin_time);
             $params['origin_time'] = " AND ({$origin_time})";
 
