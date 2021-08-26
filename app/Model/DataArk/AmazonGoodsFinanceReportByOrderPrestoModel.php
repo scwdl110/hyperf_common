@@ -4156,9 +4156,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function getIsMysql($params){
         $isMysql = false;
-        if ($params['user_id'] == 343459){
-            return true;
-        }
+//        if ($params['user_id'] == 343459){
+//            return true;
+//        }
 //        if ($params['origin_create_start_time'] >= '1619798400' && $params['origin_create_end_time'] < '1622476800' &&  !in_array($params['count_dimension'],array("site_group","admin_id","department","operators")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
 //            $isMysql = true;
 //        }
