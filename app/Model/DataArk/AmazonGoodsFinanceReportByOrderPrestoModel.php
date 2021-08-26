@@ -1770,15 +1770,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                         if (!empty($total_user_sessions_views)){
                             $case = " CASE ";
+                            $i = 0;
                             foreach ($total_user_sessions_views as $val){
                                 if ($val['total_views_number'] > 0){
+                                    $i++;
                                     $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_number_of_visits ) * 1.0000 / round({$val['total_views_number']},2 )";
                                 }
 
                             }
                             $case .= " ELSE 0 END";
+                            if ($i>0){
+                                $goods_views_rate = $case;
 
-                            $goods_views_rate = $case;
+                            }else{
+                                $goods_views_rate = 0;
+                            }
                         }
                     }else{
                         if (!empty($total_user_sessions_views)){
@@ -1820,15 +1826,23 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                         if (!empty($total_user_sessions_views)){
                             $case = " CASE ";
+                            $i = 0;
                             foreach ($total_user_sessions_views as $val){
                                 if ($val['total_user_sessions'] > 0){
+                                    $i++;
                                     $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
                                 }
 
                             }
                             $case .= " ELSE 0 END";
+                            if ($i>0){
+                                $goods_buyer_visit_rate = $case;
 
-                            $goods_buyer_visit_rate = $case;
+                            }else{
+                                $goods_buyer_visit_rate = 0;
+                            }
+
+
                         }
                     }else{
                         if (!empty($total_user_sessions_views)){
@@ -4128,7 +4142,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function getIsMysql($params){
         $isMysql = false;
-
+        if ($params['user_id'] == 343459){
+            return true;
+        }
 //        if ($params['origin_create_start_time'] >= '1619798400' && $params['origin_create_end_time'] < '1622476800' &&  !in_array($params['count_dimension'],array("site_group","admin_id","department","operators")) && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
 //            $isMysql = true;
 //        }
