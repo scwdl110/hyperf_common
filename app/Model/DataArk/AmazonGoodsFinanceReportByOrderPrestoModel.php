@@ -670,27 +670,38 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     Log::getClient('dataark', 'dataark')->info('协程异常：', [$e->getMessage()]);
                 }
 
-                if (!empty($lists) && !empty($total_user_sessions_views)){
+                if (!empty($lists)){
                     foreach ($lists as $key => $list){
-                        $lists[$key]['goods_buyer_visit_rate'] = 0;
-                        $lists[$key]['goods_views_rate'] = 0;
-                        if ($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
-                            if (!empty($fields['goods_buyer_visit_rate']) && isset($total_user_sessions_views[$list['channel_id']]) && $total_user_sessions_views[$list['channel_id']]['total_user_sessions'] > 0){
-                                $lists[$key]['goods_buyer_visit_rate'] = round($lists[$key]['goods_visitors']/$total_user_sessions_views[$list['channel_id']]['total_user_sessions'],2);
+                        if ($datas['count_periods'] == 0 &&  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate'){
+                            if (!empty($fields['goods_buyer_visit_rate'])){
+                                $lists[$key]['goods_buyer_visit_rate'] = 0;
                             }
-
-                            if (!empty($fields['goods_views_rate']) && isset($total_user_sessions_views[$list['channel_id']]) && $total_user_sessions_views[$list['channel_id']]['total_views_number'] > 0){
-                                $lists[$key]['goods_views_rate'] = round($lists[$key]['goods_views_number']/$total_user_sessions_views[$list['channel_id']]['total_views_number'],2);
-                            }
-                        }else{
-                            if (!empty($fields['goods_buyer_visit_rate']) && isset($total_user_sessions_views['total_user_sessions']) && $total_user_sessions_views['total_user_sessions'] > 0){
-                                $lists[$key]['goods_buyer_visit_rate'] = round($lists[$key]['goods_visitors']/$total_user_sessions_views['total_user_sessions'],2);
-                            }
-
-                            if (!empty($fields['goods_views_rate']) && isset($total_user_sessions_views['total_views_number']) && $total_user_sessions_views['total_views_number'] > 0){
-                                $lists[$key]['goods_views_rate'] = round($lists[$key]['goods_views_number']/$total_user_sessions_views['total_views_number'],2);
+                            if (!empty($fields['goods_views_rate'])){
+                                $lists[$key]['goods_views_rate'] = 0;
                             }
                         }
+
+                        if (!empty($total_user_sessions_views)){
+                            if ($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin')){
+                                if (!empty($fields['goods_buyer_visit_rate']) && isset($total_user_sessions_views[$list['channel_id']]) && $total_user_sessions_views[$list['channel_id']]['total_user_sessions'] > 0){
+                                    $lists[$key]['goods_buyer_visit_rate'] = round($lists[$key]['goods_visitors']/$total_user_sessions_views[$list['channel_id']]['total_user_sessions'],2);
+                                }
+
+                                if (!empty($fields['goods_views_rate']) && isset($total_user_sessions_views[$list['channel_id']]) && $total_user_sessions_views[$list['channel_id']]['total_views_number'] > 0){
+                                    $lists[$key]['goods_views_rate'] = round($lists[$key]['goods_views_number']/$total_user_sessions_views[$list['channel_id']]['total_views_number'],2);
+                                }
+                            }else{
+                                if (!empty($fields['goods_buyer_visit_rate']) && isset($total_user_sessions_views['total_user_sessions']) && $total_user_sessions_views['total_user_sessions'] > 0){
+                                    $lists[$key]['goods_buyer_visit_rate'] = round($lists[$key]['goods_visitors']/$total_user_sessions_views['total_user_sessions'],2);
+                                }
+
+                                if (!empty($fields['goods_views_rate']) && isset($total_user_sessions_views['total_views_number']) && $total_user_sessions_views['total_views_number'] > 0){
+                                    $lists[$key]['goods_views_rate'] = round($lists[$key]['goods_views_number']/$total_user_sessions_views['total_views_number'],2);
+                                }
+                            }
+                        }
+
+
 
                     }
                 }
