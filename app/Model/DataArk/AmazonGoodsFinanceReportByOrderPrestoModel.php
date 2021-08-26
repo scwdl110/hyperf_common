@@ -1762,6 +1762,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
                 if (intval($total_views_numbers['total_views_number']) > 0) {
                     $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
+                }else{
+                    $goods_views_rate = '0';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
@@ -1818,6 +1820,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
                 if (intval($total_user_sessions['total_user_sessions']) > 0) {
                     $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
+                }else{
+                    $goods_buyer_visit_rate = '0';
                 }
             }else{
                 if ($datas['count_periods'] == 0){
