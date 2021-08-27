@@ -153,20 +153,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        //没有按周期统计 ， 按指标展示
-        if ($datas['show_type'] == 2) {
-            $fields_arr = $this->getGoodsFields($datas,$isMysql);
-            $fields = $fields_arr['fields'];
-            $fba_target_key = $fields_arr['fba_target_key'];
-        } else {
-            $fields = $this->getGoodsTimeFields($datas, $timeLine,$isMysql);
-        }
-
-        if (empty($fields)) {
-            return [];
-        }
-
-
         if (!empty($where_detail['tag_id'])) {
             if(is_array($where_detail['tag_id'])){
                 $tag_str = implode(',', $where_detail['tag_id']);
@@ -182,6 +168,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $isMysql = false;
             }
         }
+
+        //没有按周期统计 ， 按指标展示
+        if ($datas['show_type'] == 2) {
+            $fields_arr = $this->getGoodsFields($datas,$isMysql);
+            $fields = $fields_arr['fields'];
+            $fba_target_key = $fields_arr['fba_target_key'];
+        } else {
+            $fields = $this->getGoodsTimeFields($datas, $timeLine,$isMysql);
+        }
+
+        if (empty($fields)) {
+            return [];
+        }
+
+
+
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
@@ -866,7 +868,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if($datas['is_distinct_channel'] == '1'){
                         $where .=  " AND report.amazon_goods_id IN (".implode(",",array_column($lists,'amazon_goods_id')).")";
                     }else{
-                        $where .=  " AND report.goods_sku IN ( '".implode("','",array_column($lists,'goods_sku'))."' ')";
+                        $where .=  " AND report.goods_sku IN ( '".implode("','",array_column($lists,'goods_sku'))."')";
                     }
                     break;
                 case "isku":
@@ -8947,7 +8949,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if(stripos($value,"min(") !== false){
                 $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-            }elseif (stripos($value,"max(") !== false){
+            }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
                 $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
             }elseif (stripos($value,"count(") !== false){
                 $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
