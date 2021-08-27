@@ -866,7 +866,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if($datas['is_distinct_channel'] == '1'){
                         $where .=  " AND report.amazon_goods_id IN (".implode(",",array_column($lists,'amazon_goods_id')).")";
                     }else{
-                        $where .=  " AND report.goods_sku IN ( '".implode("','",array_column($lists,'goods_sku'))."' ')";
+                        $where .=  " AND report.goods_sku IN ( '".implode("','",array_column($lists,'goods_sku'))."')";
                     }
                     break;
                 case "isku":
@@ -8947,7 +8947,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if(stripos($value,"min(") !== false){
                 $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-            }elseif (stripos($value,"max(") !== false){
+            }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
                 $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
             }elseif (stripos($value,"count(") !== false){
                 $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
