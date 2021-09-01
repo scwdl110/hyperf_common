@@ -401,6 +401,22 @@ class AccountingController extends BaseController
     }
 
     /**
+     * 回款单
+     * @RequestMapping(path="moneycallback", methods="post")
+     * @return mixed
+     *
+     */
+    public function getMoneyCallBackInfo()
+    {
+        $request_data = $this->request->all();
+        $data = $this->service->getMoneyCallBackInfo($request_data);
+        if ($data['code'] == 0) {
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'], $data['msg']);
+    }
+
+    /**
      * @OA\Get(
      *     path="/accounting/shop_list",
      *     summary="金蝶第三方店铺信息",
