@@ -163,6 +163,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             'formula' => '{goods_visitors}/{total_user_sessions}',
             'formula_json' => '["goods_visitors","/","total_user_sessions"]',
         ],//买家访问次数百分比
+        'cpc_cost_rate' => [
+            'formula' => '{cpc_cost}/{sale_sales_quota}',
+            'formula_json' => '["cpc_cost","/","sale_sales_quota"]',
+        ],//花费占比
     );
 
     protected  $total_views_numbers = [
@@ -668,7 +672,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
@@ -720,7 +724,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else{
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
@@ -4639,7 +4643,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
@@ -4672,7 +4676,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit, '', '', false, null, 300, $isMysql);
                 }
@@ -7077,7 +7081,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit);
                 }
@@ -7097,7 +7101,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit);
                 }
@@ -9051,7 +9055,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     }
 
-    private function queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false){
+    private function queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false){
         $fields_tmp = [];
         $rate_formula_key = array_keys($this->rate_formula);
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
@@ -9068,6 +9072,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 foreach ($formula_json_arr as $k => $f_key) {
                     if(!in_array($f_key,$operational_char_arr)) {
                         if (!is_numeric($f_key)) {
+                            if($datas['count_dimension'] == 'operators'){
+                                $str = str_replace('{cpc_cost}','SUM(report_tmp.cpc_ad_fee) ', $str);//分母为0的处理
+                            }
                             $str = str_replace('/{total_views_number}', ' * 1.0000 /NULLIF(' . $this->total_views_numbers['total_views_number'] . ',0)', $str);//分母为0的处理
                             $str = str_replace('/{total_user_sessions}', ' * 1.0000 /NULLIF(' . $this->total_user_sessions['total_user_sessions'] . ',0)', $str);//分母为0的处理
                             $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF(SUM(report_tmp.' . $f_key . '),0)', $str);//分母为0的处理
