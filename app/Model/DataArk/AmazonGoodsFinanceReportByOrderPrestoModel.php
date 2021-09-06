@@ -9037,6 +9037,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if(in_array($key,$rate_formula_key)){
                 $str = $this->rate_formula[$key]['formula'] ;
                 $formula_json_arr = json_decode($this->rate_formula[$key]['formula_json'],true) ;
+                $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
                 foreach ($formula_json_arr as $k => $f_key) {
                     if(!in_array($f_key,$operational_char_arr)) {
                         if (!is_numeric($f_key)) {
