@@ -4786,6 +4786,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $targets_temp = $targets;//基础指标缓存
 
         //自定义指标
+        $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
+        //自定义公式里包含新增指标
+        $this->customTargetsList = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$this->customTargetsList);
         $targets = $this->addCustomTargets($targets, $this->customTargetsList);
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
 
@@ -7171,6 +7174,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         $target_key_str = trim("'" . implode("','",explode(",",$datas['target'])) . "'");
         $custom_targets_list = $datas_ark_custom_target_md->getList("user_id = {$datas['user_id']} AND target_type IN(1, 2) AND target_key IN ({$target_key_str}) AND count_dimension = 1");
+        //自定义公式里包含新增指标
+        $custom_targets_list = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$custom_targets_list);
         $targets = $this->addCustomTargets($targets,$custom_targets_list);
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
