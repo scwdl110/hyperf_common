@@ -101,7 +101,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         ],//亚马逊费用占比=亚马逊费用/商品销售额
         'purchase_logistics_cost_rate' => [
             'formula' => '({purchase_logistics_purchase_cost}+{purchase_logistics_logistics_cost})/{sale_sales_quota}',
-            'formula_json' => '["amazon_fee","/","sale_sales_quota"]',
+            'formula_json' => '["(","purchase_logistics_purchase_cost","+","purchase_logistics_logistics_cost",")","/","sale_sales_quota"]',
         ],//成本/物流费用占比=（采购成本+物流/头程）/商品销售额
         'operate_fee_rate' => [
             'formula' => '{operate_fee}/{sale_sales_quota}',
