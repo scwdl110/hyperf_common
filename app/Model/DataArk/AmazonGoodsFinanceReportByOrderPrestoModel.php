@@ -147,10 +147,30 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             'formula' => '{buy_button_winning_num}/{goods_views_number}',
             'formula_json' => '["buy_button_winning_num","/","goods_views_number"]',
         ],//购买按钮赢得率
-//        'goods_views_rate' => '{cpc_order_number}/{sale_sales_volume}',//页面浏览次数百分比
-//        'goods_buyer_visit_rate' => '{cpc_order_number}/{sale_sales_volume}',//买家访问次数百分比
+        'cpc_click_conversion_rate' => [
+            'formula' => '{cpc_order_number}/{cpc_click_number}',
+            'formula_json' => '["cpc_order_number","/","cpc_click_number"]',
+        ],//cpc 点击转化率
+        'cpc_acos' => [
+            'formula' => '{cpc_cost}/{cpc_turnover}',
+            'formula_json' => '["cpc_cost","/","cpc_turnover"]',
+        ],//广告投入产出比（ACOS）
+        'goods_views_rate' => [
+            'formula' => '{goods_views_number}/{total_views_number}',
+            'formula_json' => '["goods_views_number","/","total_views_number"]',
+        ],//页面浏览次数百分比
+        'goods_buyer_visit_rate' => [
+            'formula' => '{goods_visitors}/{total_user_sessions}',
+            'formula_json' => '["goods_visitors","/","total_user_sessions"]',
+        ],//买家访问次数百分比
     );
 
+    protected  $total_views_numbers = [
+        'total_views_number' => 1
+    ];
+    protected  $total_user_sessions = [
+        'total_user_sessions' => 1
+    ];
 
     /**
      * 获取商品维度统计列表(新增统计维度完成)
@@ -1833,6 +1853,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['is_count'] == 1){
                 //总计
                 $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
+                $this->total_views_numbers = $total_views_numbers;
                 if (intval($total_views_numbers['total_views_number']) > 0) {
                     $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
                 }else{
@@ -1891,6 +1912,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if ($datas['is_count'] == 1){
                 $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
+                $this->total_user_sessions = $total_user_sessions;
                 if (intval($total_user_sessions['total_user_sessions']) > 0) {
                     $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                 }else{
@@ -9041,6 +9063,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 foreach ($formula_json_arr as $k => $f_key) {
                     if(!in_array($f_key,$operational_char_arr)) {
                         if (!is_numeric($f_key)) {
+                            $str = str_replace('/{total_views_number}', ' * 1.0000 /NULLIF(' . $this->total_views_numbers['total_views_number'] . ',0)', $str);//分母为0的处理
+                            $str = str_replace('/{total_user_sessions}', ' * 1.0000 /NULLIF(' . $this->total_user_sessions['total_user_sessions'] . ',0)', $str);//分母为0的处理
                             $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF(SUM(report_tmp.' . $f_key . '),0)', $str);//分母为0的处理
                             $str = str_replace('{' . $f_key . '}', 'SUM(report_tmp.' . $f_key . ') ', $str);//分母为0的处理
                         }
