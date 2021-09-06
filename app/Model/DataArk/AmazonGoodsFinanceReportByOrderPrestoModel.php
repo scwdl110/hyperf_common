@@ -94,6 +94,87 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         18 => array("currency_code" => "SGD", "currency_symbol" => "S$", "code" => "SG")
     );
 
+    protected  $rate_formula = array(
+        'amazon_fee_rate' => [
+            'formula' => '{amazon_fee}/{sale_sales_quota}',
+            'formula_json' => '["amazon_fee","/","sale_sales_quota"]',
+        ],//亚马逊费用占比=亚马逊费用/商品销售额
+        'purchase_logistics_cost_rate' => [
+            'formula' => '({purchase_logistics_purchase_cost}+{purchase_logistics_logistics_cost})/{sale_sales_quota}',
+            'formula_json' => '["(","purchase_logistics_purchase_cost","+","purchase_logistics_logistics_cost",")","/","sale_sales_quota"]',
+        ],//成本/物流费用占比=（采购成本+物流/头程）/商品销售额
+        'operate_fee_rate' => [
+            'formula' => '{operate_fee}/{sale_sales_quota}',
+            'formula_json' => '["operate_fee","/","sale_sales_quota"]',
+        ],//运营费用占比=运营费用/商品销售额
+        'evaluation_fee_rate' => [
+            'formula' => '{evaluation_fee}/{sale_sales_quota}',
+            'formula_json' => '["evaluation_fee","/","sale_sales_quota"]',
+        ],//测评费用占比=测评费用/商品销售额
+        'cpc_turnover_rate' => [
+            'formula' => '{cpc_turnover}/{sale_sales_quota}',
+            'formula_json' => '["cpc_turnover","/","sale_sales_quota"]',
+        ],//广告销售额占比=广告销售额/商品销售额
+        'cpc_direct_sales_volume_rate' => [
+            'formula' => '{cpc_direct_sales_volume}/{sale_sales_volume}',
+            'formula_json' => '["cpc_direct_sales_volume","/","sale_sales_volume"]',
+        ],//CPC直接订单量占比=直接订单量/销量
+        'cpc_indirect_sales_volume_rate' => [
+            'formula' => '{cpc_indirect_sales_volume}/{sale_sales_volume}',
+            'formula_json' => '["cpc_indirect_sales_volume","/","sale_sales_volume"]',
+        ],//CPC间接销量占比=间接订单量/销量
+        'cpc_order_rate' => [
+            'formula' => '{cpc_order_number}/{sale_sales_volume}',
+            'formula_json' => '["cpc_order_number","/","sale_sales_volume"]',
+        ],//广告订单占比=订单量/销售量
+        'sale_refund_rate' => [
+            'formula' => '{sale_return_goods_number}/{sale_sales_volume}',
+            'formula_json' => '["sale_return_goods_number","/","sale_sales_volume"]',
+        ],//退款率=退款量/销售量
+        'cpc_click_rate' => [
+            'formula' => '{cpc_click_number}/{cpc_exposure}',
+            'formula_json' => '["cpc_click_number","/","cpc_exposure"]',
+        ],//点击率（CTR）=点击次数/曝光量
+        'cost_profit_profit_rate' => [
+            'formula' => '{cost_profit_profit}/{sale_sales_quota}',
+            'formula_json' => '["cost_profit_profit","/","sale_sales_quota"]',
+        ],//毛利率=毛利润/商品销售额
+        'goods_conversion_rate' => [
+            'formula' => '{quantity_of_goods_ordered}/{goods_visitors}',
+            'formula_json' => '["quantity_of_goods_ordered","/","goods_visitors"]',
+        ],//订单商品数量转化率=已订购商品数量/买家访问次数
+        'goods_buybox_rate' => [
+            'formula' => '{buy_button_winning_num}/{goods_views_number}',
+            'formula_json' => '["buy_button_winning_num","/","goods_views_number"]',
+        ],//购买按钮赢得率
+        'cpc_click_conversion_rate' => [
+            'formula' => '{cpc_order_number}/{cpc_click_number}',
+            'formula_json' => '["cpc_order_number","/","cpc_click_number"]',
+        ],//cpc 点击转化率
+        'cpc_acos' => [
+            'formula' => '{cpc_cost}/{cpc_turnover}',
+            'formula_json' => '["cpc_cost","/","cpc_turnover"]',
+        ],//广告投入产出比（ACOS）
+        'goods_views_rate' => [
+            'formula' => '{goods_views_number}/{total_views_number}',
+            'formula_json' => '["goods_views_number","/","total_views_number"]',
+        ],//页面浏览次数百分比
+        'goods_buyer_visit_rate' => [
+            'formula' => '{goods_visitors}/{total_user_sessions}',
+            'formula_json' => '["goods_visitors","/","total_user_sessions"]',
+        ],//买家访问次数百分比
+        'cpc_cost_rate' => [
+            'formula' => '{cpc_cost}/{sale_sales_quota}',
+            'formula_json' => '["cpc_cost","/","sale_sales_quota"]',
+        ],//花费占比
+    );
+
+    protected  $total_views_numbers = [
+        'total_views_number' => 1
+    ];
+    protected  $total_user_sessions = [
+        'total_user_sessions' => 1
+    ];
 
     /**
      * 获取商品维度统计列表(新增统计维度完成)
@@ -591,7 +672,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
                 }
@@ -643,7 +724,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
                 }else{
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
                 }
@@ -1702,6 +1783,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //自定义公式里包含新增指标
         $custom_targets_list = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$custom_targets_list);
         $targets = $this->addCustomTargets($targets,$custom_targets_list);
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
 
         //是否计算总支出(查询总支出、毛利润、毛利率时需要计算总支出)--总支出=亚马逊费用 + 退款 + promote折扣 + cpc_sp_cost + cpc_sd_cost + 商品成本 + 物流 + 测评费用 + 运营费用 + VAT
         $isCalTotalPay=in_array('cost_profit_total_pay', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets);
@@ -1710,6 +1792,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
         if (in_array('goods_conversion_rate', $targets)) { //订单商品数量转化率
+            if(!empty($where_detail['target']) && $datas['is_count'] == 1) {
+                $fields['quantity_of_goods_ordered'] = 'sum( report.byorder_quantity_of_goods_ordered )';
+                $fields['goods_visitors'] = 'sum( report.byorder_user_sessions )';
+            }
             $fields['goods_conversion_rate'] = 'sum( report.byorder_quantity_of_goods_ordered ) * 1.0000 / nullif(sum( report.byorder_user_sessions ) ,0)';
         }
         if (in_array('goods_rank', $targets)) { //大类目rank
@@ -1771,6 +1857,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['is_count'] == 1){
                 //总计
                 $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number', $table,'','',false,null,300,$isMysql);
+                $this->total_views_numbers = $total_views_numbers;
                 if (intval($total_views_numbers['total_views_number']) > 0) {
                     $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_views_numbers['total_views_number']) .', 2)';
                 }else{
@@ -1829,6 +1916,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if ($datas['is_count'] == 1){
                 $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
+                $this->total_user_sessions = $total_user_sessions;
                 if (intval($total_user_sessions['total_user_sessions']) > 0) {
                     $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                 }else{
@@ -1874,6 +1962,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_buyer_visit_rate'] = $goods_buyer_visit_rate;
         }
         if (in_array('goods_buybox_rate', $targets)) { //购买按钮赢得率
+            if(!empty($where_detail['target']) && $datas['is_count'] == 1) {
+                $fields['buy_button_winning_num'] = 'sum( report.byorder_buy_button_winning_num )';
+                $fields['goods_views_number'] = 'sum( report.byorder_number_of_visits )';
+            }
             $fields['goods_buybox_rate'] = " (sum( byorder_buy_button_winning_num ) * 1.0000 / nullif(sum( report.byorder_number_of_visits ) ,0) ) ";
         }
         if (in_array('sale_sales_volume', $targets) || in_array('sale_refund_rate', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_direct_sales_volume_rate', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) { //销售量
@@ -4551,7 +4643,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
                 }
@@ -4584,7 +4676,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit, '', '', false, null, 300, $isMysql);
                 }
@@ -4698,12 +4790,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $targets_temp = $targets;//基础指标缓存
 
         //自定义指标
+        $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
+        //自定义公式里包含新增指标
+        $this->customTargetsList = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$this->customTargetsList);
         $targets = $this->addCustomTargets($targets, $this->customTargetsList);
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
 
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
         if (in_array('goods_conversion_rate', $targets)) { //订单商品数量转化率
+            if(!empty($where_detail['target']) && $datas['is_count'] == 1) {
+                $fields['quantity_of_goods_ordered'] = 'sum( report.byorder_quantity_of_goods_ordered )';
+                $fields['goods_visitors'] = 'sum( report.byorder_user_sessions )';
+            }
             $fields['goods_conversion_rate'] = 'sum( report.byorder_quantity_of_goods_ordered ) * 1.0000 / nullif(sum( report.byorder_user_sessions ) ,0)';
         }
         if (in_array('sale_sales_volume', $targets) || in_array('sale_refund_rate', $targets) || in_array('cpc_order_rate', $targets) || in_array('cpc_direct_sales_volume_rate', $targets) || in_array('cpc_indirect_sales_volume_rate', $targets)) { //销售量
@@ -6981,7 +7081,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit);
                 }
@@ -7001,7 +7101,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
                 }else {
                     $lists = $this->select($where, $field_data, $table, $limit);
                 }
@@ -7078,11 +7178,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         $target_key_str = trim("'" . implode("','",explode(",",$datas['target'])) . "'");
         $custom_targets_list = $datas_ark_custom_target_md->getList("user_id = {$datas['user_id']} AND target_type IN(1, 2) AND target_key IN ({$target_key_str}) AND count_dimension = 1");
+        //自定义公式里包含新增指标
+        $custom_targets_list = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$custom_targets_list);
         $targets = $this->addCustomTargets($targets,$custom_targets_list);
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
         if (in_array('goods_visitors', $targets)) {  // 买家访问次数
             $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
         }
         if (in_array('goods_conversion_rate', $targets)) { //订单商品数量转化率
+            if(!empty($where_detail['target']) && $datas['is_count'] == 1) {
+                $fields['quantity_of_goods_ordered'] = 'sum( report.byorder_quantity_of_goods_ordered )';
+                $fields['goods_visitors'] = 'sum( report.byorder_user_sessions )';
+            }
             $fields['goods_conversion_rate'] = 'sum( report.byorder_quantity_of_goods_ordered ) * 1.0000 / nullif(sum( report.byorder_user_sessions ) ,0)';
         }
 
@@ -8788,10 +8895,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $fba_field_exits = $fba_field_exits ? array_unique($fba_field_exits) : [];
         //unset没选的字段
-        if($targets){
-            foreach ($targets as $k => $v){
-                if(!in_array($v,$targets_temp) && !in_array($v,$fba_field_exits)){
-                    unset($fields[$v]);
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
+        if(!(!empty($where_detail['target']) && $datas['is_count'] == 1)){
+            if($targets){
+                foreach ($targets as $k => $v){
+                    if(!in_array($v,$targets_temp) && !in_array($v,$fba_field_exits)){
+                        unset($fields[$v]);
+                    }
                 }
             }
         }
@@ -8802,6 +8912,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $formula_fields = "";
         if($custom_targets_list){
             foreach ($custom_targets_list as $item){
+                if($item['format_type'] == 3){
+                    $this->rate_formula[$item['target_key']] = [
+                        'formula' => $item['formula'],
+                        'formula_json' => $item['formula_json'],
+                    ];
+                }
                 if($item['formula_fields']){
                     $formula_fields .= $item['formula_fields'] . ",";
                 }
@@ -8939,24 +9055,46 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     }
 
-    private function queryList($fields,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false){
+    private function queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false){
         $fields_tmp = [];
+        $rate_formula_key = array_keys($this->rate_formula);
+        $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
         foreach ($fields as $key => $value){
             $key_value = $key;
             if($key == "group"){
                 $key = $isMysql ? '`group`' : '"group"';
                 $key_value = $isMysql ? '`group`' : $key_value;
             }
-            if(stripos($value,"min(") !== false){
-                $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-            }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
-                $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-            }elseif (stripos($value,"count(") !== false){
-                $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-            }elseif($value == 'NULL'){
-                $fields_tmp[] = "NULL" . ' AS "' . $key_value . '"';
+            if(in_array($key,$rate_formula_key)){
+                $str = $this->rate_formula[$key]['formula'] ;
+                $formula_json_arr = json_decode($this->rate_formula[$key]['formula_json'],true) ;
+                $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
+                foreach ($formula_json_arr as $k => $f_key) {
+                    if(!in_array($f_key,$operational_char_arr)) {
+                        if (!is_numeric($f_key)) {
+                            if($datas['count_dimension'] == 'operators'){
+                                $str = str_replace('{cpc_cost}','SUM(report_tmp.cpc_ad_fee) ', $str);//分母为0的处理
+                            }
+                            $str = str_replace('/{total_views_number}', ' * 1.0000 /NULLIF(' . $this->total_views_numbers['total_views_number'] . ',0)', $str);//分母为0的处理
+                            $str = str_replace('/{total_user_sessions}', ' * 1.0000 /NULLIF(' . $this->total_user_sessions['total_user_sessions'] . ',0)', $str);//分母为0的处理
+                            $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF(SUM(report_tmp.' . $f_key . '),0)', $str);//分母为0的处理
+                            $str = str_replace('{' . $f_key . '}', 'SUM(report_tmp.' . $f_key . ') ', $str);//分母为0的处理
+                        }
+                    }
+                }
+                $fields_tmp[] = $isMysql ? $str . ' AS "' . $key_value . '"' : "try(" . $str . ")" . ' AS "' . $key_value . '"';
             }else{
-                $fields_tmp[] = "SUM(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                if(stripos($value,"min(") !== false){
+                    $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
+                    $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                }elseif (stripos($value,"count(") !== false){
+                    $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                }elseif($value == 'NULL'){
+                    $fields_tmp[] = "NULL" . ' AS "' . $key_value . '"';
+                }else{
+                    $fields_tmp[] = "SUM(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                }
             }
         }
         $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
