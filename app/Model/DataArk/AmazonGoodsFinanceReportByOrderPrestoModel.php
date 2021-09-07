@@ -2598,9 +2598,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $estimated_monthly_storage_fee_field = " - report.report_estimated_monthly_storage_fee + report.monthly_sku_estimated_monthly_storage_fee";
                 }
                 if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['cost_profit_profit'] = '(SUM(report.report_goods_profit'.$repair_data.$estimated_monthly_storage_fee_field.')+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = '(SUM((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$repair_data.$estimated_monthly_storage_fee_field.')+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
                 } else {
-                    $fields['cost_profit_profit'] = '(SUM((report.report_goods_profit'.$repair_data.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)))' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
+                    $fields['cost_profit_profit'] = '(SUM(((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$repair_data.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)))' . '+' . $fields['purchase_logistics_purchase_cost'] . '+' . $fields['purchase_logistics_logistics_cost'].')';
                 }
 
             }
@@ -3018,38 +3018,38 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if ($datas['currency_code'] == 'ORIGIN') {
                         if ($datas['cost_count_type'] == '1') {
                             if (empty($repair_data)) {
-                                $fields['count_total'] = 'SUM(report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course'.$estimated_monthly_storage_fee_field.')';
-                                $time_fields = $this->getTimeFields($time_line, ' report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course'.$estimated_monthly_storage_fee_field);
+                                $fields['count_total'] = 'SUM((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course'.$estimated_monthly_storage_fee_field.')';
+                                $time_fields = $this->getTimeFields($time_line, ' (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course'.$estimated_monthly_storage_fee_field);
                             } else {
-                                $fields['count_total'] = "SUM(report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course  {$repair_data} {$estimated_monthly_storage_fee_field})";
-                                $time_fields = $this->getTimeFields($time_line, " report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course  {$repair_data} {$estimated_monthly_storage_fee_field}");
+                                $fields['count_total'] = "SUM((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course  {$repair_data} {$estimated_monthly_storage_fee_field})";
+                                $time_fields = $this->getTimeFields($time_line, " (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course  {$repair_data} {$estimated_monthly_storage_fee_field}");
                             }
 
                         } else {
                             if (empty($repair_data)) {
-                                $fields['count_total'] = 'SUM( report.first_purchasing_cost + report.first_logistics_head_course +  report.report_goods_profit'.$estimated_monthly_storage_fee_field.')';
-                                $time_fields = $this->getTimeFields($time_line, '(report.first_purchasing_cost + report.first_logistics_head_course) +  report.report_goods_profit'.$estimated_monthly_storage_fee_field);
+                                $fields['count_total'] = 'SUM( report.first_purchasing_cost + report.first_logistics_head_course +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$estimated_monthly_storage_fee_field.')';
+                                $time_fields = $this->getTimeFields($time_line, '(report.first_purchasing_cost + report.first_logistics_head_course) +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$estimated_monthly_storage_fee_field);
                             } else {
-                                $fields['count_total'] = "SUM( report.first_purchasing_cost + report.first_logistics_head_course +  report.report_goods_profit  {$repair_data} {$estimated_monthly_storage_fee_field})";
-                                $time_fields = $this->getTimeFields($time_line, "(report.first_purchasing_cost + report.first_logistics_head_course) +  report.report_goods_profit {$repair_data} {$estimated_monthly_storage_fee_field}");
+                                $fields['count_total'] = "SUM( report.first_purchasing_cost + report.first_logistics_head_course +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)  {$repair_data} {$estimated_monthly_storage_fee_field})";
+                                $time_fields = $this->getTimeFields($time_line, "(report.first_purchasing_cost + report.first_logistics_head_course) +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) {$repair_data} {$estimated_monthly_storage_fee_field}");
                             }
                         }
                     } else {
                         if ($datas['cost_count_type'] == '1') {
                             if (empty($repair_data)) {
-                                $fields['count_total'] = 'SUM((report.report_goods_profit'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))';
-                                $time_fields = $this->getTimeFields($time_line, ' (report.report_goods_profit'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))');
+                                $fields['count_total'] = 'SUM(((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))';
+                                $time_fields = $this->getTimeFields($time_line, ' ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))');
                             } else {
-                                $fields['count_total'] = 'SUM((report.report_goods_profit  ' . $repair_data .$estimated_monthly_storage_fee_field. ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))';
-                                $time_fields = $this->getTimeFields($time_line, ' (report.report_goods_profit  ' . $repair_data.$estimated_monthly_storage_fee_field . ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))');
+                                $fields['count_total'] = 'SUM(((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)  ' . $repair_data .$estimated_monthly_storage_fee_field. ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))';
+                                $time_fields = $this->getTimeFields($time_line, ' ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)  ' . $repair_data.$estimated_monthly_storage_fee_field . ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))');
                             }
                         } else {
                             if (empty($repair_data)) {
-                                $fields['count_total'] = 'SUM(  ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + (report.report_goods_profit'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) )';
-                                $time_fields = $this->getTimeFields($time_line, ' ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + (report.report_goods_profit'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) ');
+                                $fields['count_total'] = 'SUM(  ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) )';
+                                $time_fields = $this->getTimeFields($time_line, ' ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$estimated_monthly_storage_fee_field.') * ({:RATE} / COALESCE(rates.rate ,1)) ');
                             } else {
-                                $fields['count_total'] = 'SUM(  ( (report.first_purchasing_cost  ' . $repair_data.$estimated_monthly_storage_fee_field . ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + report.report_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) )';
-                                $time_fields = $this->getTimeFields($time_line, ' ( (report.first_purchasing_cost ' . $repair_data.$estimated_monthly_storage_fee_field . ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + report.report_goods_profit * ({:RATE} / COALESCE(rates.rate ,1)) ');
+                                $fields['count_total'] = 'SUM(  ( (report.first_purchasing_cost  ' . $repair_data.$estimated_monthly_storage_fee_field . ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) * ({:RATE} / COALESCE(rates.rate ,1)) )';
+                                $time_fields = $this->getTimeFields($time_line, ' ( (report.first_purchasing_cost ' . $repair_data.$estimated_monthly_storage_fee_field . ') * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) + (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) * ({:RATE} / COALESCE(rates.rate ,1)) ');
                             }
 
                         }
@@ -3088,11 +3088,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $repair_data.= empty($repair_data) ? "  +report.report_refund - report.byorder_refund " : " + report.report_refund - report.byorder_refund" ;
                         }
                         if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = '(SUM((report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields}))  * 1.0000 / nullif(sum(report.byorder_sales_quota {$rate_fields}),0)";
-                            $time_fields = $this->getTimeFields($time_line, ' (report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data .$estimated_monthly_storage_fee_field. ") {$rate_fields}", 'report.byorder_sales_quota' . $rate_fields);
+                            $fields['count_total'] = '(SUM(((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields}))  * 1.0000 / nullif(sum(report.byorder_sales_quota {$rate_fields}),0)";
+                            $time_fields = $this->getTimeFields($time_line, ' ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data .$estimated_monthly_storage_fee_field. ") {$rate_fields}", 'report.byorder_sales_quota' . $rate_fields);
                         } else {
-                            $fields['count_total'] = '(SUM( (( report.first_purchasing_cost + report.first_logistics_head_course ) + report.report_goods_profit '.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields}))  * 1.0000 / nullif(sum(report.byorder_sales_quota {$rate_fields}),0)";
-                            $time_fields = $this->getTimeFields($time_line, ' (( report.first_purchasing_cost + report.first_logistics_head_course ) + report.report_goods_profit'.$repair_data . ") {$rate_fields}{$estimated_monthly_storage_fee_field}", 'report.byorder_sales_quota' . $rate_fields);
+                            $fields['count_total'] = '(SUM( (( report.first_purchasing_cost + report.first_logistics_head_course ) + (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) '.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields}))  * 1.0000 / nullif(sum(report.byorder_sales_quota {$rate_fields}),0)";
+                            $time_fields = $this->getTimeFields($time_line, ' (( report.first_purchasing_cost + report.first_logistics_head_course ) + (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$repair_data . ") {$rate_fields}{$estimated_monthly_storage_fee_field}", 'report.byorder_sales_quota' . $rate_fields);
                         }
                     }
                 } else {
@@ -3118,11 +3118,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $repair_data.= empty($repair_data) ? "  +report.report_refund - report.byorder_refund " : " + report.report_refund - report.byorder_refund" ;
                         }
                         if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = '(SUM((report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields}))  * 1.0000 / nullif(sum(report.report_sales_quota {$rate_fields}),0)";
-                            $time_fields = $this->getTimeFields($time_line, ' (report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data.$estimated_monthly_storage_fee_field . ") {$rate_fields}", 'report.report_sales_quota' . $rate_fields);
+                            $fields['count_total'] = '(SUM(((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields}))  * 1.0000 / nullif(sum(report.report_sales_quota {$rate_fields}),0)";
+                            $time_fields = $this->getTimeFields($time_line, ' ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course'.$repair_data.$estimated_monthly_storage_fee_field . ") {$rate_fields}", 'report.report_sales_quota' . $rate_fields);
                         } else {
-                            $fields['count_total'] = '(SUM( (( report.first_purchasing_cost + report.first_logistics_head_course) +  report.report_goods_profit '.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields})) * 1.0000 / nullif(sum(report.report_sales_quota {$rate_fields}),0)";
-                            $time_fields = $this->getTimeFields($time_line, ' (( report.first_purchasing_cost + report.first_logistics_head_course) +  report.report_goods_profit'.$repair_data.$estimated_monthly_storage_fee_field . ") {$rate_fields}", 'report.report_sales_quota' . $rate_fields);
+                            $fields['count_total'] = '(SUM( (( report.first_purchasing_cost + report.first_logistics_head_course) +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) '.$repair_data.$estimated_monthly_storage_fee_field.") {$rate_fields})) * 1.0000 / nullif(sum(report.report_sales_quota {$rate_fields}),0)";
+                            $time_fields = $this->getTimeFields($time_line, ' (( report.first_purchasing_cost + report.first_logistics_head_course) +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)'.$repair_data.$estimated_monthly_storage_fee_field . ") {$rate_fields}", 'report.report_sales_quota' . $rate_fields);
                         }
                     }
                 }
@@ -3734,19 +3734,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } elseif ($datas['finance_datas_origin'] == '2') {
                     if ($datas['currency_code'] == 'ORIGIN') {
                         if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = "SUM(report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course {$cost_profit_total_income_str})";
-                            $time_fields = $this->getTimeFields($time_line, " report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course {$cost_profit_total_income_str}");
+                            $fields['count_total'] = "SUM((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course {$cost_profit_total_income_str})";
+                            $time_fields = $this->getTimeFields($time_line, " (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course {$cost_profit_total_income_str}");
                         } else {
-                            $fields['count_total'] = "SUM( report.first_purchasing_cost + report.first_logistics_head_course +  report.report_goods_profit {$cost_profit_total_income_str} )";
-                            $time_fields = $this->getTimeFields($time_line, "report.first_purchasing_cost + report.first_logistics_head_course +  report.report_goods_profit {$cost_profit_total_income_str}");
+                            $fields['count_total'] = "SUM( report.first_purchasing_cost + report.first_logistics_head_course +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) {$cost_profit_total_income_str} )";
+                            $time_fields = $this->getTimeFields($time_line, "report.first_purchasing_cost + report.first_logistics_head_course +  (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) {$cost_profit_total_income_str}");
                         }
                     } else {
                         if ($datas['cost_count_type'] == '1') {
-                            $fields['count_total'] = "SUM( (report.report_goods_profit + report.report_purchasing_cost + report.report_logistics_head_course {$cost_profit_total_income_str} ) * ({:RATE} / COALESCE(rates.rate ,1)) )";
-                            $time_fields = $this->getTimeFields($time_line, " (report.report_goods_profit + report.report_purchasing_cost  + report.report_logistics_head_course {$cost_profit_total_income_str} ) * ({:RATE} / COALESCE(rates.rate ,1)) ");
+                            $fields['count_total'] = "SUM( ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost + report.report_logistics_head_course {$cost_profit_total_income_str} ) * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                            $time_fields = $this->getTimeFields($time_line, " ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + report.report_purchasing_cost  + report.report_logistics_head_course {$cost_profit_total_income_str} ) * ({:RATE} / COALESCE(rates.rate ,1)) ");
                         } else {
-                            $fields['count_total'] = "SUM(  ( report.first_purchasing_cost + report.first_logistics_head_course  + report.report_goods_profit {$cost_profit_total_income_str})  * ({:RATE} / COALESCE(rates.rate ,1)) )";
-                            $time_fields = $this->getTimeFields($time_line, " ( report.first_purchasing_cost  + report.first_logistics_head_course  + report.report_goods_profit {$cost_profit_total_income_str} ) * ({:RATE} / COALESCE(rates.rate ,1)) ");
+                            $fields['count_total'] = "SUM(  ( report.first_purchasing_cost + report.first_logistics_head_course  + (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) {$cost_profit_total_income_str})  * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                            $time_fields = $this->getTimeFields($time_line, " ( report.first_purchasing_cost  + report.first_logistics_head_course  + (report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) {$cost_profit_total_income_str} ) * ({:RATE} / COALESCE(rates.rate ,1)) ");
                         }
 
                     }
@@ -7835,9 +7835,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 } else {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "(SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.report_goods_profit {$estimated_monthly_storage_fee_field}) END  {$this->tax_field}) + $purchase_logistics)";
+                        $fields['cost_profit_profit'] = "(SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) {$estimated_monthly_storage_fee_field}) END  {$this->tax_field}) + $purchase_logistics)";
                     } else {
-                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.report_goods_profit {$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END {$this->tax_field})+$purchase_logistics) ";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE (((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) {$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END {$this->tax_field})+$purchase_logistics) ";
                     }
                 }
             }else{
@@ -7849,9 +7849,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 } else {
                     if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['cost_profit_profit'] = "(SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE (report.report_goods_profit{$estimated_monthly_storage_fee_field} ) END  {$this->tax_field}) + $purchase_logistics + SUM( (0 {$repair_data})))";
+                        $fields['cost_profit_profit'] = "(SUM(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) ) ELSE ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost){$estimated_monthly_storage_fee_field} ) END  {$this->tax_field}) + $purchase_logistics + SUM( (0 {$repair_data})))";
                     } else {
-                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.report_goods_profit{$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END {$this->tax_field})+$purchase_logistics  + SUM( (0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1))))";
+                        $fields['cost_profit_profit'] = "(SUM( CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) + COALESCE(report.bychannel_channel_profit,0) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE (((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost){$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) ) END {$this->tax_field})+$purchase_logistics  + SUM( (0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1))))";
                     }
                 }
             }
@@ -8723,7 +8723,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         } else {
                             $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course";
                         }
-                        $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit + report.bychannel_channel_profit + $purchasing_logistics) ELSE (report.report_goods_profit + $purchasing_logistics {$estimated_monthly_storage_fee_field} ) END {$repair_data}";
+                        $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit + report.bychannel_channel_profit + $purchasing_logistics) ELSE ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost) + $purchasing_logistics {$estimated_monthly_storage_fee_field} ) END {$repair_data}";
 
                     } else {
                         if ($datas['cost_count_type'] == '1') {
@@ -8732,7 +8732,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $purchasing_logistics = "report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) + report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1))";
 
                         }
-                        $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))  + $purchasing_logistics) ELSE ( (report.report_goods_profit{$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics) END + ( 0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1)) ";
+                        $fields_tmp = "CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_profit * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_profit * ({:RATE} / COALESCE(rates.rate ,1))  + $purchasing_logistics) ELSE ( ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost){$estimated_monthly_storage_fee_field}) * ({:RATE} / COALESCE(rates.rate ,1)) + $purchasing_logistics) END + ( 0 {$repair_data}) * ({:RATE} / COALESCE(rates.rate ,1)) ";
 
                     }
                     $fields['count_total'] = "SUM( $fields_tmp )";
@@ -8780,7 +8780,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     } else {
                         $purchasing_logistics = "report.first_purchasing_cost  + report.first_logistics_head_course ";
                     }
-                    $fields_tmp = "(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + {$purchasing_logistics}) ELSE (report.report_goods_profit+ {$purchasing_logistics} {$estimated_monthly_storage_fee_field})  END $repair_data) * ({:RATE} / COALESCE(rates.rate ,1)) ";
+                    $fields_tmp = "(CASE WHEN report.goods_operation_pattern = 2 THEN (COALESCE(report.report_channel_profit,0) + COALESCE(report.bychannel_channel_profit,0) + {$purchasing_logistics}) ELSE ((report.report_goods_profit-report.report_cpc_cost-report.report_cpc_sd_cost+report.byorder_cpc_cost+report.byorder_cpc_sd_cost)+ {$purchasing_logistics} {$estimated_monthly_storage_fee_field})  END $repair_data) * ({:RATE} / COALESCE(rates.rate ,1)) ";
                     $fields['count_total'] = "(SUM($fields_tmp) * 1.0000 / nullif(sum($fields_denominator),0))";
                     $time_fields = $this->getTimeFields($time_line, $fields_tmp, $fields_denominator);
                 }
