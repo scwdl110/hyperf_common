@@ -2682,6 +2682,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_product_category_name_2'] = 'max(report.goods_product_category_name_2)';
                 $fields['goods_product_category_name_3'] = 'max(report.goods_product_category_name_3)';
             }
+            if ($isMysql){
+                $fields['sku'] = "GROUP_CONCAT(DISTINCT report.goods_sku)";
+            }else{
+                $fields['sku'] = "array_join(array_agg(DISTINCT report.goods_sku), ',')";
+            }
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
