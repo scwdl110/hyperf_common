@@ -11,4 +11,10 @@ return [
             'registry' => $registry,
         ],
     ],
+    'rpc_service_provider' => [
+        'local' =>[
+            'host' => env('RPC_SERVICE_PROVIDER_HOST', null),
+            'port' => env('RPC_SERVICE_PROVIDER_PORT', null),
+        ],
+    ]
 ];
