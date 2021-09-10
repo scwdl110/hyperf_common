@@ -17,9 +17,9 @@ use Hyperf\Di\Aop\AbstractAspect;
 use Hyperf\Di\Aop\ProceedingJoinPoint;
 use Hyperf\ServiceGovernance\Listener\RegisterServiceListener as HyperfRegisterServiceListener;
 
-/**
- * @Aspect
- */
+///**
+// * @Aspect
+// */
 class RegisterServiceListener extends AbstractAspect
 {
     // 要切入的类，可以多个，亦可通过 :: 标识到具体的某个方法，通过 * 可以模糊匹配
