@@ -34,7 +34,7 @@ class RegisterServiceListener extends AbstractAspect
     public function process(ProceedingJoinPoint $proceedingJoinPoint)
     {
         //获取本服务的host
-        $host = config('servers.rpc_service_provider.local.host', null);
+        $host = config('services.rpc_service_provider.local.host', null);
 
         return $host !== null ? $host : $proceedingJoinPoint->process();//本服务的host没有配置，就使用Hyperf框架本身提供的方法(Hyperf\ServiceGovernance\Listener\RegisterServiceListener::getInternalIp)获取
     }
