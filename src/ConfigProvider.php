@@ -2,6 +2,8 @@
 
 namespace Captainbi\Hyperf;
 
+use Hyperf\Cache\Driver\RedisDriver;
+
 class ConfigProvider
 {
     public function __invoke(): array
