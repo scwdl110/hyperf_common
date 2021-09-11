@@ -9,7 +9,7 @@ use Hyperf\Di\Annotation\Inject;
 class Service
 {
     /**
-     * @Inject()
+     * @Inject(lazy=true)
      * @var ValidatorFactoryInterface
      */
     protected $validationFactory;
