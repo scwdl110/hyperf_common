@@ -17,6 +17,10 @@ class ConfigProvider
                     'paths' => [
                         __DIR__,
                     ],
+                    'class_map' => [
+                        // 需要映射的类名 => 类所在的文件地址
+                        RedisDriver::class => __DIR__ . '/../class_map/Hyperf/Cache/Driver/RedisDriver.php',
+                    ],
                 ],
             ],
             'publish' => [
