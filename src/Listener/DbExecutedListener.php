@@ -17,9 +17,9 @@ use Hyperf\Utils\Context;
 use Psr\Http\Message\ServerRequestInterface;
 use Captainbi\Hyperf\Util\Logger;
 
-/**
- * @Listener
- */
+///**
+// * @Listener
+// */
 class DbExecutedListener implements ListenerInterface
 {
 
