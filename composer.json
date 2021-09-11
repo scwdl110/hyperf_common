@@ -22,5 +22,26 @@
             "type": "composer",
             "url": "https://mirrors.aliyun.com/composer/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "HyperfTest\\": "tests"
+        }
+    },
+    "replace": {
+        "captainbi/hyperf": "*"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml --colors=always",
+        "analyse": "phpstan analyse --memory-limit 1024M -l 1 ./src",
+        "cs-fix": "php-cs-fixer fix $1"
+    },
+    "extra": {
+        "hyperf": {
+            "config": "Captainbi\\Hyperf\\ConfigProvider"
+        }
     }
 }
