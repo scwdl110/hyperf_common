@@ -17,7 +17,10 @@
             "name": "authorization",
             "in": "header",
             "description": "令牌",
-            "required": true
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -28,7 +31,7 @@
                   "country_id"
                 ],
                 "properties": {
-                  "date": {
+                  "date_time": {
                     "description": "日期",
                     "type": "string"
                   },
@@ -39,12 +42,28 @@
                   "limit": {
                     "description": "每页条数",
                     "type": "integer"
+                  },
+                  "shop_name": {
+                    "description": "店铺名称",
+                    "type": "string"
+                  },
+                  "shop_id": {
+                    "description": "店铺ID",
+                    "type": "integer"
+                  },
+                  "country_site": {
+                    "description": "地区id",
+                    "type": "integer"
+                  },
+                  "site_id": {
+                    "description": "国家id",
+                    "type": "integer"
                   }
-                },
-                "type": "object"
+                }
               }
             }
-          }
+          },
+          "$ref": ""
         },
         "responses": {
           "200": {
@@ -86,6 +105,14 @@
                                     "exchang_rate": {
                                       "description": "汇率",
                                       "type": "number"
+                                    },
+                                    "site_id": {
+                                      "description": "站点id",
+                                      "type": "number"
+                                    },
+                                    "currency_symbol": {
+                                      "description": "货币符号",
+                                      "type": "string"
                                     },
                                     "commodity_sales": {
                                       "type": "array",
@@ -355,6 +382,138 @@
         }
       }
     },
+    "/accounting/moneycallback": {
+      "post": {
+        "tags": [
+          "accounting"
+        ],
+        "summary": "回款单",
+        "operationId": "App\\Controller\\AccountingController::moneycallback",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "description": "令牌",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "country_id"
+                ],
+                "properties": {
+                  "date_time": {
+                    "description": "日期",
+                    "type": "string"
+                  },
+                  "offset": {
+                    "description": "偏移量",
+                    "type": "integer"
+                  },
+                  "limit": {
+                    "description": "每页条数",
+                    "type": "integer"
+                  },
+                  "shop_name": {
+                    "description": "店铺名称",
+                    "type": "string"
+                  },
+                  "shop_id": {
+                    "description": "店铺ID",
+                    "type": "integer"
+                  },
+                  "country_site": {
+                    "description": "地区id",
+                    "type": "integer"
+                  },
+                  "site_id": {
+                    "description": "国家id",
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "description": "200",
+                      "type": "integer",
+                      "example": "200"
+                    },
+                    "msg": {
+                      "description": "msg",
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "total": {
+                            "description": "总条数",
+                            "type": "number"
+                          },
+                          "list": {
+                            "type": "array",
+                            "items": {
+                              "properties": {
+                                "shop_id": {
+                                  "description": "店铺ID",
+                                  "type": "integer"
+                                },
+                                "shop_name": {
+                                  "description": "店铺名称",
+                                  "type": "string"
+                                },
+                                "currency_id": {
+                                  "description": "币种id",
+                                  "type": "integer"
+                                },
+                                "exchang_rate": {
+                                  "description": "汇率",
+                                  "type": "integer"
+                                },
+                                "money_back_amount": {
+                                  "description": "回款金额",
+                                  "type": "integer"
+                                },
+                                "site_id": {
+                                  "description": "站点id",
+                                  "type": "number"
+                                },
+                                "currency_symbol": {
+                                  "description": "货币符号",
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            }
+                          }
+                        },
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/accounting/shop_list": {
       "get": {
         "tags": [
@@ -383,7 +542,7 @@
                 "properties": {
                   "date_time": {
                     "description": "日期",
-                    "type": "date"
+                    "type": "string"
                   },
                   "offset": {
                     "description": "偏移量",
@@ -397,12 +556,19 @@
                     "description": "店铺名称",
                     "type": "string"
                   },
-                  "shop_id": {
+                  "shop_ids": {
                     "description": "店铺ID",
                     "type": "integer"
+                  },
+                  "country_site": {
+                    "description": "地区id",
+                    "type": "integer"
+                  },
+                  "site_id": {
+                    "description": "国家id",
+                    "type": "integer"
                   }
-                },
-                "type": "object"
+                }
               }
             }
           }
@@ -569,7 +735,6 @@
         }
       }
     },
-
     "/accounting/get_username": {
       "post": {
         "tags": [

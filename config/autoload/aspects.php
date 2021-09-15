@@ -10,4 +10,5 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 return [
+    Captainbi\Hyperf\Aspect\Hyperf\ServiceGovernance\Listener\RegisterServiceListener::class,
 ];
