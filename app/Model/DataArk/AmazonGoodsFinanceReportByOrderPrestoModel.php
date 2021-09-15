@@ -2682,6 +2682,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_product_category_name_2'] = 'max(report.goods_product_category_name_2)';
                 $fields['goods_product_category_name_3'] = 'max(report.goods_product_category_name_3)';
             }
+            if ($isMysql){
+                $fields['sku'] = "GROUP_CONCAT(DISTINCT report.goods_sku)";
+            }else{
+                $fields['sku'] = "array_join(array_agg(DISTINCT report.goods_sku), ',')";
+            }
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
@@ -4761,7 +4766,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($datas['count_dimension'] === 'channel_id') {
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
-            $fields['operators'] = 'max(report.operation_user_admin_name)';
+//            $fields['operators'] = 'max(report.operation_user_admin_name)';
             $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } elseif ($datas['count_dimension'] === 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
@@ -5566,7 +5571,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($datas['count_dimension'] == 'channel_id') {
             $fields['site_id'] = 'max(report.site_id)';
             $fields['channel_id'] = 'max(report.channel_id)';
-            $fields['operators'] = 'max(report.operation_user_admin_name)';
+//            $fields['operators'] = 'max(report.operation_user_admin_name)';
             $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         } else if ($datas['count_dimension'] == 'site_id') {
             $fields['site_id'] = 'max(report.site_id)';
