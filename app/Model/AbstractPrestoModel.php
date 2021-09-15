@@ -386,7 +386,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $dwd => 'ads'
         );
         foreach ($schema as $key => $v) {
-            $sql = str_replace($key . '.', '', $sql);
+            if ($key == 'ods'){
+                $sql = str_replace($key . '.ods', 'ods', $sql);
+            }else{
+                $sql = str_replace($key . '.', '', $sql);
+            }
         }
         $sql = str_replace( '"', '', $sql);
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
