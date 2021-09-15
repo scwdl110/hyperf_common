@@ -746,7 +746,7 @@ class AccountingService extends BaseService
                     'synchronously_time' => $request_data['synchronously_time']
                 ]);
 
-            if ($request_data['synchronously_status'] == 2) {
+            if ($request_data['synchronously_status'] == 3) {
                 $siteMessageData = array(
                     "user_id" => $synchronouslyManagementTask['user_id'],
                     "user_admin_id" => $synchronouslyManagementTask['admin_id'],
