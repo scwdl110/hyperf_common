@@ -238,14 +238,14 @@ class DataArkController extends AbstractController
                 if (!empty($params['where_parent']['class1'])){//数据对比 一级类目
                     $class1 = $params['where_parent']['class1'] ? json_decode(base64_decode($params['where_parent']['class1']),true) : "";
                     foreach ($class1 as $key => $class_value){
-                        $class1[$key] = htmlspecialchars(trim($class_value), ENT_NOQUOTES);;
+                        $class1[$key] = trim($class_value);
                     }
                     $params['where_parent']['class1'] = implode("','", $class1);
                     $where .= " AND report.goods_product_category_name_1 IN ('" . $params['where_parent']['class1'] . "')" ;
                 }
 
                 if (!empty($params['where_parent']['class1_name'])){//维度下钻 一级类目
-                    $class1_name = htmlspecialchars(trim($params['where_parent']['class1_name']), ENT_NOQUOTES);
+                    $class1_name = trim($params['where_parent']['class1_name']);
                     $where .= " AND report.goods_product_category_name_1 = '{$class1_name}' ";
                 }
 
