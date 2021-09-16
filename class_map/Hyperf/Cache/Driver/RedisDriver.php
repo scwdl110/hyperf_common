@@ -17,6 +17,7 @@ use Hyperf\Cache\Exception\InvalidArgumentException;
 use Hyperf\Redis\RedisFactory;
 use Hyperf\Utils\ApplicationContext;
 use Psr\Container\ContainerInterface;
+use Captainbi\Hyperf\Util\Redis\Lua\Contracts\LuaInterface;
 
 class RedisDriver extends Driver implements KeyCollectorInterface
 {
@@ -25,15 +26,17 @@ class RedisDriver extends Driver implements KeyCollectorInterface
      */
     protected $redis;
 
+    /**
+     * @var String
+     */
+    protected $poolName;
+
     public function __construct(ContainerInterface $container, array $config)
     {
         parent::__construct($container, $config);
 
-        $container = ApplicationContext::getContainer();
-        $redisFactory = $container->get(RedisFactory::class);
-
-        $poolName = data_get($config,'connection','default');
-        $this->redis = $redisFactory->get($poolName);
+        $this->poolName = data_get($config, 'connection', 'default');
+        $this->redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get($this->poolName);
     }
 
     public function __call($name, $arguments)
@@ -153,18 +156,21 @@ class RedisDriver extends Driver implements KeyCollectorInterface
 
     public function clearPrefix(string $prefix): bool
     {
-        $iterator = null;
-        $key = $prefix . '*';
-        while (true) {
-            $keys = $this->redis->scan($iterator, $this->getCacheKey($key), 10000);
-            if (! empty($keys)) {
-                $this->redis->del(...$keys);
-            }
+//        $iterator = null;
+//        $key = $prefix . '*';
+//        while (true) {
+//            $keys = $this->redis->scan($iterator, $this->getCacheKey($key), 10000);
+//            if (! empty($keys)) {
+//                $this->redis->del(...$keys);
+//            }
+//
+//            if (empty($iterator)) {
+//                break;
+//            }
+//        }
 
-            if (empty($iterator)) {
-                break;
-            }
-        }
+        $key = $prefix . '*';
+        ApplicationContext::getContainer()->get(LuaInterface::class)->batchFuzzyDelete($this->getCacheKey($key), $this->poolName);
 
         return true;
     }

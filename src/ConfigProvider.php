@@ -3,6 +3,10 @@
 namespace Captainbi\Hyperf;
 
 use Hyperf\Cache\Driver\RedisDriver;
+use Captainbi\Hyperf\Util\Encryption\Contracts\EncrypterInterface;
+use Captainbi\Hyperf\Util\Encryption\EncrypterFactory;
+use Captainbi\Hyperf\Util\Redis\Lua\Contracts\LuaInterface;
+use Captainbi\Hyperf\Util\Redis\Lua\LuaFactory;
 
 class ConfigProvider
 {
@@ -10,6 +14,8 @@ class ConfigProvider
     {
         return [
             'dependencies' => [
+                LuaInterface::class => LuaFactory::class,
+                //EncrypterInterface::class => EncrypterFactory::class,
                 //FactoryInterface::class  => DingNoticeFactory::class,
             ],
             'commands' => [
