@@ -7509,13 +7509,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['amazon_other_fee'] = "sum( CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee{$this->operate_channel_amazon_other_fee} ) ELSE report.byorder_goods_amazon_other_fee END {$this->tax_field}) ";
                 } else {
-                    $fields['amazon_other_fee'] = "sum(CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.byorder_goods_amazon_other_fee{$this->operate_channel_amazon_other_fee}) * ({:RATE} / COALESCE(rates.rate ,1))) END   {$this->tax_field}) ";
+                    $fields['amazon_other_fee'] = "sum(CASE WHEN report.goods_operation_pattern = 2 THEN (report.byorder_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + (report.bychannel_channel_amazon_other_fee{$this->operate_channel_amazon_other_fee}) * ({:RATE} / COALESCE(rates.rate ,1)) ) ELSE ((report.byorder_goods_amazon_other_fee) * ({:RATE} / COALESCE(rates.rate ,1))) END   {$this->tax_field}) ";
                 }
             } elseif ($datas['finance_datas_origin'] == '2') {
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['amazon_other_fee'] = "sum(CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_amazon_other_fee + report.bychannel_channel_amazon_other_fee{$this->operate_channel_amazon_other_fee}) ELSE report.report_goods_amazon_other_fee END   {$this->tax_field}) ";
                 } else {
-                    $fields['amazon_other_fee'] = "sum(CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + report.bychannel_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1))) ELSE ((report.report_goods_amazon_other_fee{$this->operate_channel_amazon_other_fee}) * ({:RATE} / COALESCE(rates.rate ,1))) END {$this->tax_field}) ";
+                    $fields['amazon_other_fee'] = "sum(CASE WHEN report.goods_operation_pattern = 2 THEN (report.report_channel_amazon_other_fee * ({:RATE} / COALESCE(rates.rate ,1)) + (report.bychannel_channel_amazon_other_fee{$this->operate_channel_amazon_other_fee}) * ({:RATE} / COALESCE(rates.rate ,1))) ELSE ((report.report_goods_amazon_other_fee) * ({:RATE} / COALESCE(rates.rate ,1))) END {$this->tax_field}) ";
                 }
             }
         }
