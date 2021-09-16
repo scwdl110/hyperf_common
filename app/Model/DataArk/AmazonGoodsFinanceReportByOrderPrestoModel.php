@@ -579,7 +579,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND report.goods_group_id = 0 ";
                 }
             }
-            if (!empty($where_detail['operators_id'])) {
+            if (!empty($where_detail['operators_id']) or (isset($where_detail['operators_id']) && ($where_detail['operators_id'] === '0' or $where_detail['operators_id'] === 0))) {
                 if(is_array($where_detail['operators_id'])){
                     $operators_str = implode(',', $where_detail['operators_id']);
                 }else{
