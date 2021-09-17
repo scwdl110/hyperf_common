@@ -10,7 +10,8 @@
         "ext-swoole_postgresql": "*",
         "hyperf/async-queue": "2.1",
         "hyperf/signal": "2.1",
-        "hyperf/snowflake": "2.1"
+        "hyperf/snowflake": "2.1",
+        "hyperf/constants": "2.1"
     },
     "autoload":{
         "psr-4":{
