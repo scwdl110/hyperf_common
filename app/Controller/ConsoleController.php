@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 namespace App\Controller;
 
-use App\Process\RestartServiceProcess;
+use Captainbi\Hyperf\Process\RestartServiceProcess;
 
 use Swoole\Coroutine\System;
 use Hyperf\Process\ProcessCollector;
