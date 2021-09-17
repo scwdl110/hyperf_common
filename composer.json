@@ -7,14 +7,18 @@
         "php": ">=7.2.0",
         "hyperf/config-apollo": "~v2.1.0",
         "ext-openssl": "*",
-        "ext-swoole_postgresql": "*"
+        "ext-swoole_postgresql": "*",
+        "hyperf/async-queue": "2.1",
+        "hyperf/signal": "2.1",
+        "hyperf/snowflake": "2.1"
     },
     "autoload":{
         "psr-4":{
             "Captainbi\\Hyperf\\":"src/"
         },
         "files": [
-            "src/functions_include.php"
+            "src/functions_include.php",
+            "src/CaptainFunctions.php"
         ]
     },
     "description": "",
