@@ -1,8 +1,27 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($autoload)) {
+    include $autoload;
 
-$logger = new \Symfony\Component\Console\Output\ConsoleOutput();
+    if (class_exists('\Symfony\Component\Console\Output\ConsoleOutput')) {
+        $logger = new \Symfony\Component\Console\Output\ConsoleOutput();
+    }
+}
+
+if (!isset($logger)) {
+    $logger = new class() {
+        public function write(string $msg)
+        {
+            file_put_contents('php://stderr', $msg);
+        }
+
+        public function writeln(string $msg)
+        {
+            $this->write($msg . PHP_EOL);
+        }
+    };
+}
 
 if (!extension_loaded('swoole') && !dl('swoole.so')) {
     $logger->writeln("swoole extension isn't loaded");
@@ -27,6 +46,24 @@ Usage: {$argv[0]} OPTIONS
 USAGE;
     $logger->writeln($msg);
     exit;
+};
+
+/**
+ * 根据 PID 检测是否僵尸进程
+ * 当前仅支持 Linux 系统
+ *
+ * @param int $pid
+ * @return bool
+ * @todo 支持 Unix 系统，Windows 等 swoole 支持了再说
+ */
+$isZombieProcess = function(int $pid):bool {
+    if (false !== ($stat = @file_get_contents("/proc/{$pid}/stat"))) {
+        list(,, $status) = explode(' ', $stat, 4);
+        // 进程状态为 Z，进程已成为僵尸进程
+        return 'Z' === $status;
+    }
+
+    return false;
 };
 
 $options = getopt('c:f:p:a:t:m:P:s:');
@@ -88,17 +125,32 @@ if (false !== ($b64msg = @base64_decode($message, true))) {
 
 $first = true;
 $startFail = false;
+$isZombie = false;
+$zombieMsg = '<fg=red>Master process zombied</>';
+
+// 开始之前检测是否已成为僵尸进程
+if ($isZombieProcess($pid)) {
+    $logger->writeln($zombieMsg);
+    \Swoole\Process::kill($pid, \SIGTERM);
+    $isZombie = true;
+}
 
 while ($timeout--) {
-    if (\Swoole\Process::kill($pid, 0)) {
+    if (!$isZombie && \Swoole\Process::kill($pid, 0)) {
         \Swoole\Process::kill($pid, \SIGTERM);
         $logger->write($first ? 'Stop service.' : '.');
         $first = false;
         sleep(1);
+        // 倒计时最后一秒时检查进程是否已成为僵尸进程，是的话认定为退出成功
+        if ($timeout === 1 && $isZombieProcess($pid)) {
+            $logger->writeln('');
+            $logger->writeln($zombieMsg);
+            $isZombie = true;
+        }
     } else {
         $logger->writeln('Start service...');
         (new \Swoole\Process(function(\Swoole\Process $proc) use ($command) {
-            $proc->exec(PHP_BINARY, [$command, 'start']);
+            $proc->exec('/bin/sh', ['-c', PHP_BINARY . " {$command} start > /dev/stdout &"]);
         }))->start();
 
         // 30 秒内未启动的话，认定为启动失败
