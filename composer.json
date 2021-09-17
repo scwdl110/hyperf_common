@@ -5,6 +5,7 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=7.2.0",
+        "hyperf/config-apollo": "~v2.1.0",
         "ext-openssl": "*",
         "ext-swoole_postgresql": "*"
     },
@@ -17,6 +18,11 @@
         ]
     },
     "description": "",
+    "extra": {
+        "hyperf": {
+            "config": "Captainbi\\Hyperf\\ConfigProvider"
+        }
+    },
     "repositories": {
         "packagist": {
             "type": "composer",

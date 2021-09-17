@@ -3,6 +3,7 @@
 declare(strict_types=1);
 namespace Captainbi\Hyperf\Base;
 
+use Hyperf\Di\Annotation\Inject;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 use Hyperf\Di\Annotation\Inject;
 

@@ -2,3 +2,4 @@
 vendor/
 .git/
 .*.sw[pon]
+composer.lock
