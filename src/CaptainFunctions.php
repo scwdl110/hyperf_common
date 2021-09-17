@@ -21,6 +21,8 @@ use Captainbi\Hyperf\Job\PublicJob;
 use Captainbi\Hyperf\Util\Queue;
 use Hyperf\Utils\Arr;
 
+use Hyperf\HttpServer\Contract\RequestInterface;
+
 if (!function_exists('getApplicationContainer')) {
     /**
      * Return a Application Container.
