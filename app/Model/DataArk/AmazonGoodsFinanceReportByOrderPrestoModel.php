@@ -4689,9 +4689,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     private function getIsMysql($params){
-        if ($params['is_new_index']){//新指标先不读取热数据
-            return false;
-        }
+//        if ($params['is_new_index']){//新指标先不读取热数据
+//            return false;
+//        }
         $isMysql = false;
 //        return $isMysql;
 //        if ($params['user_id'] == 343459){
