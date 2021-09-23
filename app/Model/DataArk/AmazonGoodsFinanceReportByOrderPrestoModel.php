@@ -12375,7 +12375,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $operation_table_field['goods_key'] = array_merge($operation_table_field['goods_key'],$field[$targets][$field_type_key]['goods_key']);
                 }
                 if (!empty($field[$targets][$field_type_key]['channel_key'])){
-                    $operation_table_field['channel_key'] = array_merge($operation_table_field['channel_key'],$field[$targets][$field_type_key]['goods_key']);
+                    $operation_table_field['channel_key'] = array_merge($operation_table_field['channel_key'],$field[$targets][$field_type_key]['channel_key']);
                 }
             }
 
