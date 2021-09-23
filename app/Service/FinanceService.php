@@ -1,28 +1,70 @@
 <?php
 
-namespace App\Controller;
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 
-use App\Service\FinanceService;
-use Hyperf\Logger\LoggerFactory;
-use Hyperf\Utils\ApplicationContext;
+namespace App\Service;
+
+use App\Lib\Common;
+
+use App\Model\DataArk\FinanceIndexAssociatedSqlKeyModel;
+use App\Model\DataArk\FinanceIndexModel;
 use Captainbi\Hyperf\Util\Result;
+use Hyperf\HttpServer\Contract\RequestInterface;
+use Hyperf\Logger\LoggerFactory;
 
-class DataArkController extends AbstractController
+use Hyperf\Di\Annotation\Inject;
+use Hyperf\Validation\Contract\ValidatorFactoryInterface;
+use Hyperf\Contract\ConfigInterface;
+
+use Hyperf\Utils\ApplicationContext;
+
+
+class FinanceService extends BaseService
 {
-    protected function init($type = 1)
-    {
 
-        $userInfo = $this->request->getAttribute('userInfo');
-        $req = $this->request->all();
-        if ($req['is_new_index']){//新版直接调用财务层
-            $financeService = new FinanceService();
-            return $financeService->handleRequest($type);
+    /**
+     * @Inject()
+     * @var ValidatorFactoryInterface
+     */
+    protected $validationFactory;
+
+    /**
+     * @Inject()
+     * @var ConfigInterface
+     */
+    protected $config;
+
+
+    private function getArray($items)
+    {
+        return empty($items) ? array() : $items->toArray();
+    }
+
+
+    public function handleRequest($type = 1,$req = array())
+    {
+        $userInfo = $this->getUserInfo();
+//        $req = $this->request->all();
+        $result = ['lists' => [], 'count' => 0];
+        if (empty($req)){
+            return $result;
         }
+
         if (config('misc.dataark_log_req', false)) {
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'dataark');
             $logger->info('request body', [$req, $userInfo]);
         }
-
+//        $req['is_new_index'] = 1;
+        $req['is_new_index'] = $req['is_new_index'] ?? 0;
+//        $is_new_index = $req['is_new_index'] == 1 ? true:false;
         $searchKey = trim(strval($req['searchKey'] ?? ''));
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
@@ -32,6 +74,7 @@ class DataArkController extends AbstractController
         }else{
             $page = intval($req['page'] ?? 1);
         }
+        $params['is_new_index'] = $req['is_new_index'];
         $params['is_median'] = $params['is_median'] ?? 0;
         $params['total_status'] = $params['total_status'] ?? 0;
         $limit = intval($req['rows'] ?? 100);
@@ -47,11 +90,11 @@ class DataArkController extends AbstractController
         $rateInfo= $req['rateInfo'] ?? [];
         $offset = ($page - 1) * $limit;
 
-        $result = ['lists' => [], 'count' => 0];
+
 
         $where = '';
         if (empty($channelIds)) {
-            return Result::success($result);
+            return $result;
         }
         //替换查询用户
 //        $userInfo['user_id'] = 21;
@@ -138,7 +181,7 @@ class DataArkController extends AbstractController
                 }
             }else if($searchKey == 'operators'){
                 if($matchType == 'eq'){
-                     $where .= " AND report.operation_user_admin_name = '" . $searchVal . "'" ;
+                    $where .= " AND report.operation_user_admin_name = '" . $searchVal . "'" ;
                 }else{
                     $where .= " AND report.operation_user_admin_name like '%" . $searchVal . "%'" ;
                 }
@@ -307,13 +350,15 @@ class DataArkController extends AbstractController
             $params['origin_create_start_time'] = $params['search_start_time'];
             $params['origin_create_end_time'] = $params['search_end_time'];
 
-            $min_ym = date('Ym',$params['search_start_time']) ;
-            $max_ym = date('Ym',$params['search_end_time']) ;
-            $day_param = ($params['search_end_time'] + 1 - $params['search_start_time']) / 86400;
+            $min_ym = date('Ym',(int)$params['search_start_time']) ;
+            $max_ym = date('Ym',(int)$params['search_end_time']) ;
+            $day_param_start_time = (int)$params['search_start_time'];
+            $day_param_end_time = (int)$params['search_end_time'] > time() ? (int)strtotime(date('Y-m-d 23:59:59')) : (int)$params['search_end_time'];
+            $day_param = ($day_param_end_time + 1 - $day_param_start_time) / 86400;
         } else {
             $ors = [];
             $origin_time = [];
-            $time_arr = $this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), $params['time_type'], $params['search_start_time'], $params['search_end_time']);
+            $time_arr = $this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), (int)$params['time_type'], $params['search_start_time'], $params['search_end_time']);
             foreach ($time_arr as $times) {
 
                 $min_ym = empty($min_ym) ? date('Ym',$times['start']) : ($min_ym > date('Ym',$times['start']) ? date('Ym',$times['start']) : $min_ym) ;
@@ -392,81 +437,42 @@ class DataArkController extends AbstractController
             $result = ['lists' => [], 'count' => 0];
         }
 
-        return Result::success($result);
+        return $result;
     }
 
-    public function getUnGoodsDatas()
+    protected function getSiteLocalTime(array $siteIds, int $timeType = 99, $startTime, $endTime): array
     {
+        $result = [[
+            'end' => (int)$endTime,
+            'start' => (int)$startTime,
+            'site_id' => '0',
+        ]];
 
-        return $this->getServiceData(0);
-    }
+        if (!empty($siteIds)) {
+            $siteIdsStr = implode(',', $siteIds);
+            if ($timeType === 99) {
+                $result[0]['site_id'] = $siteIdsStr;
+            } else {
+                $timeDatas = [];
+                $siteTimes = \App\getStartAndEndTimeAllSite($timeType);
+                foreach ($siteIds as $siteId) {
+                    $key = "{$siteTimes[$siteId]['start']}_{$siteTimes[$siteId]['end']}";
 
-    public function getGoodsDatas()
-    {
-        return $this->getServiceData(1);
-    }
+                    if (empty($timeDatas[$key])) {
+                        $timeDatas[$key] = [
+                            'site_id' => (string)$siteId,
+                            'end' => $siteTimes[$siteId]['end'],
+                            'start' => $siteTimes[$siteId]['start'],
+                        ];
+                    } else {
+                        $timeDatas[$key]['site_id'] = "{$timeDatas[$key]['site_id']},{$siteId}";
+                    }
+                }
 
-    public function getOperatorsDatas()
-    {
-        return $this->getServiceData(2);
-    }
-
-    public function getServiceData($search_type){
-        $financeService = new FinanceService();
-        $req            = $this->request->all();
-        $result         =  $financeService->handleRequest($search_type,$req);
-        return Result::success($result);
-    }
-
-    public function getIndustryKpi()
-    {
-        $userInfo = $this->request->getAttribute('userInfo');
-        $req = $this->request->all();
-        $page = intval($req['page'] ?? 1);
-        $limit = intval($req['rows'] ?? 100);
-        $currencyInfo = $req['currencyInfo'] ?? [];
-        $exchangeCode = $req['exchangeCode'] ?? '1';
-        $params = $req['params'] ?? [];
-        $target = trim($params['target'] ?? '');
-        $timeType = intval($params['time_type'] ?? 0);
-        $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
-        $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
-        $offset = ($page - 1) * $limit;
-        $result = ['lists' => [], 'count' => 0];
-        $where = '';
-
-        if(empty($target)){
-            return Result::success($result);
+                $result = array_values($timeDatas);
+            }
         }
 
-        if ($timeType === 99) {
-            $where .= sprintf(
-                "%s report.dt>='%s' and report.dt<='%s'",
-                $where ? ' AND' : '',
-                $searchStartTime,
-                $searchEndTime
-            );
-        }else{
-            return Result::success($result);
-        }
-
-        $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
-        $className = "\\App\\Model\\DataArk\\AmazonCategoryTopnKpiPrestoModel";
-        $amazonCategoryTopnKpiPrestoMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
-        $amazonCategoryTopnKpiPrestoMD->dryRun(env('APP_TEST_RUNNING', false));
-        $result = $amazonCategoryTopnKpiPrestoMD->getIndustryTopnKpi(
-            $where,
-            $params,
-            $limit,
-            $currencyInfo,
-            $exchangeCode,
-            $userInfo['user_id']
-        );
-
-        if (!isset($result['lists'])) {
-            $result = ['lists' => [], 'count' => 0];
-        }
-
-        return Result::success($result);
+        return $result;
     }
 }
