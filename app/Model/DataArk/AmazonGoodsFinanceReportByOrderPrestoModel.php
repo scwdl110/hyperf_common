@@ -11517,7 +11517,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if (in_array($key,$targets)){
                 $field_rate = $value['format_type'] == 4 ? $rate : "";
                 //店铺
-                if($value['return_field_key'] == 'sale_channel_month_goal'){
+                if($key == 'sale_channel_month_goal'){
                     $this->countDimensionChannel = true;
                 }
                 if($value['is_goods_key'] == 1 && $value['goods_key_from'] == 5){
@@ -11660,7 +11660,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $field_rate =  $field[$targets]['format_type'] == 4 ? $rate : "";
 
             //店铺
-            if($field[$targets]['return_field_key'] == 'sale_channel_month_goal'){
+            if($targets == 'sale_channel_month_goal'){
                 $this->countDimensionChannel = true;
             }
             if ($field[$targets]['format_type'] == 3){
@@ -11795,7 +11795,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $field[$return_field_key]['is_molecule_money']      = $finance_index[$sql_field_key]['is_molecule_money'];
                 $field[$return_field_key]['is_denominator_money']      = $finance_index[$sql_field_key]['is_denominator_money'];
                 $field[$return_field_key]['format_type']      = $finance_index[$sql_field_key]['format_type'];
-                $field[$return_field_key]['return_field_key']      = $finance_index[$sql_field_key]['return_field_key'];
+//                $field[$return_field_key]['return_field_key']      = $finance_index[$sql_field_key]['return_field_key'];
                 $field[$return_field_key]['is_goods_key'] = $value['is_goods_key'];
                 $field[$return_field_key]['goods_key_from'] = $value['goods_key_from'];
                 $field[$return_field_key]['search_quote_goods_id_arr'] = array();
