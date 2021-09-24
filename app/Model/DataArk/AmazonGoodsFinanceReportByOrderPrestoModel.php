@@ -260,7 +260,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields_arr = $this->getGoodsFields($datas,$isMysql);
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
-        } else {
+
+            if(!empty($datas['compare_data']) && $datas['count_periods'] == 0){
+                $newDatas = $datas ;
+                foreach($datas['compare_data'] as $ck => $compare_data)   {
+                    $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
+                    $compare_fields_arr = $this->getGoodsFields($newDatas,$isMysql) ;
+                    $datas['compare_data'][$ck]['fields'] = $compare_fields_arr['fields'] ;
+                }
+            }
+
+        } else {  //按时间维度统计，没有对比数据
             $fields = $this->getGoodsTimeFields($datas, $timeLine,$isMysql);
         }
 
@@ -301,6 +311,31 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
+        //处理对比数据 - 获取对比数据需要查询的字段
+        if(!empty($datas['compare_data']) ){
+            foreach($datas['compare_data'] as $ck2 => $compare_data)   {
+                if(!empty($compare_data['fields'])){
+                    $compare_fields_arr = array() ;
+                    $renames = empty($compare_data['rename']) ? [] : explode(',',$compare_data['rename']) ;
+                    $renameArr = [] ;
+                    if(!empty($renames)){
+                        $compare_target = explode(',' , $compare_data['target']) ;
+                        foreach($compare_target as $ctk =>$ct){
+                            $renameArr[$ct] = empty($renames[$ctk]) ? false : $renames[$ctk] ;
+                        }
+                    }
+                    $i = 1 ;
+                    foreach($compare_data['fields'] as $compare_field_name => $compare_field){
+                        $compare_field_name = empty($renameArr[$compare_field_name]) ? ('compare'.$i.'_'.$compare_field_name) : $renameArr[$compare_field_name] ;
+                        $compare_fields_arr[] = $compare_field . ' AS "' . $compare_field_name . '"';
+                        $i++ ;
+                    }
+                    $compare_field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $compare_fields_arr)));//去除
+                    $compare_field_data = str_replace("{:DAY}", $day_param, $compare_field_data);
+                    $datas['compare_data'][$ck2]['field_data'] =  $compare_field_data ;
+                }
+            }
+        }
 
 
 
@@ -314,6 +349,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $having = '';
+        //对比数据连表查询时的ON 条件
+        $compare_on = array() ;
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
             if($datas['is_distinct_channel'] == 1){ //有区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
@@ -331,6 +368,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
                     $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
+                    $compare_on = ['goods_' . $datas['count_dimension'] , 'channel_id'] ;
                 }
             }else{  //不区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
@@ -353,6 +391,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $group = 'report.goods_' . $datas['count_dimension'] . ' ';
                     $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension']) : ($orderby . ' , report.goods_'. $datas['count_dimension'] );
+                    $compare_on = ['goods_' . $datas['count_dimension']] ;
                 }
             }
 
@@ -373,6 +412,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $group = 'report.goods_isku_id ';
                 $orderby = empty($orderby) ? ('report.goods_isku_id ') : ($orderby . ' , report.goods_isku_id ');
+                $compare_on = ['goods_isku_id'] ;
             }
             $where .= " AND report.goods_isku_id > 0";
         } else if ($datas['count_dimension'] == 'group') {
@@ -391,6 +431,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $group = 'report.goods_group_id  ';
                 $orderby = empty($orderby) ? ('report.goods_group_id ') : ($orderby . ' , report.goods_group_id');
+                $compare_on = ['goods_group_id'] ;
             }
             $where .= " AND report.goods_group_id > 0";
         } else if ($datas['count_dimension'] == 'class1') {
@@ -416,6 +457,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $group = 'report.goods_product_category_name_1,report.site_id ';
                 $orderby = empty($orderby) ? ('max(report.goods_product_category_name_1) , max(report.site_id) ') : ($orderby . ' , max(report.goods_product_category_name_1), max(report.site_id) ');
+                $compare_on = ['goods_product_category_name_1' ,'site_id'] ;
             }
             $where .= " AND report.goods_product_category_name_1 != ''";
 
@@ -441,6 +483,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $group = 'tags_rel.tags_id  ' ;
                 $orderby = empty($orderby) ? ('tags_rel.tags_id ') : ($orderby . ' , tags_rel.tags_id');
+                $compare_on = ['tags_id'] ;
             }
             if ($isMysql){
                 $where.= " AND tags_rel.tags_id > 0";
@@ -462,6 +505,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $group = 'report.isku_head_id  ';
                 $orderby = empty($orderby) ? ('report.isku_head_id ') : ($orderby . ' , report.isku_head_id');
+                $compare_on = ['isku_head_id'] ;
             }
             $where.= " AND report.isku_head_id > 0";
         }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
@@ -479,6 +523,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $group = 'report.isku_developer_id  ';
                 $orderby = empty($orderby) ? ('report.isku_developer_id ') : ($orderby . ' , report.isku_developer_id');
+                $compare_on = ['isku_developer_id'] ;
             }
             $where.= " AND report.isku_developer_id > 0";
         } else if($datas['count_dimension'] == 'all_goods'){ //按全部商品维度统计
@@ -502,6 +547,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }else{
                     $group = 'report.user_id  ';
+                    $compare_on = ['user_id'] ;
                 }
             }else{
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
@@ -523,6 +569,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }else{
                     $group = 'report.user_id  ';
+                    $compare_on = ['user_id'] ;
                 }
             }
 
@@ -548,9 +595,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $group = 'report.channel_id ';
                 $orderby = empty($orderby) ? ('report.channel_id ') : ($orderby . ' ,report.channel_id ');
+                $compare_on = ['channel_id'] ;
             }
         }
-
+        $datas['compare_on'] = $compare_on ;
         if (!empty($where_detail)) {
             if (!empty($where_detail['transport_mode'])) {
                 if(!is_array($where_detail['transport_mode'])){
@@ -4693,6 +4741,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            return false;
 //        }
         $isMysql = false;
+        if(!empty($params['compare_data'])){  //当有对比数据时 ， 不从mysql查
+            return $isMysql ;
+        }
 //        return $isMysql;
 //        if ($params['user_id'] == 343459){
 //            return true;

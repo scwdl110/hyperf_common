@@ -9,7 +9,7 @@ use Captainbi\Hyperf\Util\Result;
 
 class DataArkController extends AbstractController
 {
-    protected function init($type = 1)
+    /*protected function init($type = 1)
     {
 
         $userInfo = $this->request->getAttribute('userInfo');
@@ -393,7 +393,7 @@ class DataArkController extends AbstractController
         }
 
         return Result::success($result);
-    }
+    }*/
 
     public function getUnGoodsDatas()
     {
