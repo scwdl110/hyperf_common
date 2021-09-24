@@ -8782,7 +8782,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $time_fields = array();
         $time_fields_arr = array();
-        $operation_table_field = array();
+        $operation_table_field = array(
+            "goods_key"     => array(),
+            "channel_key"   => array(),
+        );
         foreach ($time_targets as $time_target) {
             if ($datas['is_new_index'] == 1){
                 if ($custom_target && $custom_target['target_type'] == 1) {
@@ -8800,7 +8803,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields_arr[$time_target] = $time_fields ;
                 } elseif (in_array($time_target, $keys)) {
                     $tempField = "report.monthly_sku_" . $new_target_keys[$time_target]['month_goods_field'];
-                    $operation_table_field['goods_key'][] = "monthly_sku_" . $custom_target['month_goods_field'];
+                    $operation_table_field['goods_key'][] = "monthly_sku_" . $new_target_keys[$time_target]['month_goods_field'];
                     //新增指标
                     if ($datas['currency_code'] != 'ORIGIN' && $new_target_keys[$time_target]['format_type'] == 4) {
                         $fields['count_total'] = "sum({$tempField} / COALESCE(rates.rate, 1) * {:RATE})";
@@ -8814,7 +8817,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $return_field = $this->handleNewIndexTimeField($datas,$fields,$time_target,3);
                     $fields['count_total'] = $return_field['count_total'];
-                    $operation_table_field = $return_field['operation_table_field'];
+                    $operation_table_field['goods_key'] = array_merge($operation_table_field['goods_key'],$return_field['operation_table_field']['goods_key']);
+                    $operation_table_field['channel_key'] = array_merge($operation_table_field['channel_key'],$return_field['operation_table_field']['channel_key']);
 
                     if (!empty($return_field['denominator'])){
                         $time_fields = $this->getTimeFields($time_line, $return_field['molecule'], $return_field['denominator']);
