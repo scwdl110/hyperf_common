@@ -108,7 +108,9 @@ class FinanceService extends BaseService
         )*/
 
         $compare_data = $req['compare_data'] ?? [] ;
-
+        if($params['count_periods'] != '0' ){  //统计维度不为无周期 ， 无法使用对比数据
+            $compare_data = [] ;
+        }
         $where = '';
 
         //不含时间的条件 ， 因对比数据为原筛选条件，改掉筛选时间范围

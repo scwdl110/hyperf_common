@@ -479,6 +479,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
      * @param $group 		分组方式	[默认为空]
      * @param $is_cache     是否读取缓存数据
      * @param $cacheTTL     缓存保存时间（秒）
+     * @param $compare_data    对比数据信息
      * @return array		查询结果集数组
      */
     public function select(
@@ -491,7 +492,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         bool $isJoin = false ,
         ?bool $isCache = null,
         int $cacheTTL = 300,
-        bool $isMysql = false
+        bool $isMysql = false,
+        array $compare_data = []
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -537,9 +539,41 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 }
             }
         }
-
-        $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
-
+        if(!empty($compare_data)){
+            $newTables = array() ;
+            $newTables[] = "origin_table AS (  SELECT {$data} FROM {$table} {$where} {$group} {$order} ) " ;
+            $rt_field = 'origin_table.* ' ;
+            foreach($compare_data as $c1=>$cdata1){
+                $k1 = $c1+1 ;
+                $rt_field.= " , compare_table{$k1}.* " ;
+            }
+            $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
+            $rt_where = '' ;
+            $rt_order = '' ;
+            foreach($compare_data as $c=>$cdata){
+                $k = $c+1 ;
+                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
+                if(!empty($cdata['where'])){
+                    $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
+                }
+                if(!empty($cdata['order'])){
+                    $rt_order .= empty($rt_order) ? $cdata['order'] : " , " . $cdata['order'] ;
+                }
+            }
+            if(!empty($rt_where)){
+                $rt_sql .= " WHERE " . $rt_where ;
+            }
+            $sql = 'WITH 
+            ' . implode(',
+            ' , $newTables) . "
+            " .$rt_sql ;
+            if(!empty($rt_order)){
+                $sql.= " ORDER BY " .$rt_order ;
+            }
+        }else{
+            $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
+        }
         //商品级
         //print_r($this->goodsCols);
         if($isJoin){
@@ -618,8 +652,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $result = $this->presto->query($sql);
         }
-
-
 
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
@@ -815,46 +847,130 @@ abstract class AbstractPrestoModel implements BIModelInterface
         bool $isJoin = false ,
         ?bool $isCache = null,
         int $cacheTTL = 300,
-        bool $isMysql = false
+        bool $isMysql = false ,
+        array $compare_data = []
 
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
 
-        if ($group) {
-            $data = $data ?: '1';
-            if (stripos($group, 'having') === false && stripos($group, ',') === false && !$isMysql) {
-                $result = $this->getOne(
-                    $where,
-                    "count(distinct($group)) AS num",
-                    "$table",
-                    '',
-                    '',
-                    $isJoin ,
-                    $isCache,
-                    $cacheTTL,
-                    $isMysql
+        if(empty($compare_data)){
+            if ($group) {
+                $data = $data ?: '1';
+                if (stripos($group, 'having') === false && stripos($group, ',') === false && !$isMysql) {
+                    $result = $this->getOne(
+                        $where,
+                        "count(distinct($group)) AS num",
+                        "$table",
+                        '',
+                        '',
+                        $isJoin ,
+                        $isCache,
+                        $cacheTTL,
+                        $isMysql
 
-                );
+                    );
+                } else {
+                    $result = $this->getOne(
+                        '',
+                        "COUNT(*) AS num",
+                        "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
+                        '',
+                        '',
+                        $isJoin,
+                        $isCache,
+                        $cacheTTL,
+                        $isMysql
+                    );
+                }
+            } elseif (!empty($cols)) {
+                $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL,$isMysql);
             } else {
-                $result = $this->getOne(
-                    '',
-                    "COUNT(*) AS num",
-                    "(SELECT {$data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS tmp",
-                    '',
-                    '',
-                    $isJoin,
-                    $isCache,
-                    $cacheTTL,
-                    $isMysql
-                );
+                $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL,$isMysql);
             }
-        } elseif (!empty($cols)) {
-            $result = $this->getOne($where, "COUNT({$cols}) AS num", $table, '', '', $isJoin , $isCache, $cacheTTL,$isMysql);
-        } else {
-            $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL,$isMysql);
+        }else{  //有环比数据获取总条数时
+            $result = $this->getCompareDataCount($where, $data, $table,  $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data);
+        }
+        return intval($result['num'] ?? 0);
+    }
+
+    /**
+     * function getCompareDataCount
+     * desc: 获取有比较数据的总条数
+     * author: LWZ
+     * editTime: 2021-09-26 15:21
+     */
+    public function getCompareDataCount($where, $data, $table, $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data){
+        $where = is_array($where) ? $this->sqls($where) : $where;
+        $table = $table !== '' ? $table : $this->table;
+        $where = empty($where) ? '' : " WHERE {$where}";
+        $group = empty($group) ? '' : " GROUP BY {$group}";
+
+        $newTables = array() ;
+        $newTables[] = "origin_table AS (  SELECT {$data} FROM {$table} {$where} {$group} ) " ;
+        $rt_sql = 'SELECT count(*) as num FROM origin_table ' ;
+        $rt_where = '' ;;
+        foreach($compare_data as $c=>$cdata){
+            $k = $c+1 ;
+            $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+            $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
+            if(!empty($cdata['where'])){
+                $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
+            }
+        }
+        if(!empty($rt_where)){
+            $rt_sql .= " WHERE " . $rt_where ;
         }
 
-        return intval($result['num'] ?? 0);
+        $sql = 'WITH 
+        ' . implode(',
+        ' , $newTables) . "
+        " .$rt_sql ;
+
+        if($isJoin){
+            foreach ($this->goodsCols as $key => $value){
+                if (!is_array($value)) {
+                    $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
+                    $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
+
+                } else {
+                    if (strpos($table, '_day_report_') && !strpos($table,'week_report' ) ) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
+                    } elseif (strpos($table,'week_report' )) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
+                    } elseif (strpos($table,'_month_report_')) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['month'], $sql);
+                    }
+                }
+            }
+            if (strpos($table,'week_report' )){
+                $sql = str_replace('week_report' , 'report' , $sql);
+            }
+        }
+
+        $cacheKey = 'PRESTO_SQL_DATAS_' . md5($sql);
+        if ($this->isCache($isCache)) {
+            $cacheData = $this->getCache()->get($cacheKey);
+            if(!empty($cacheData)){
+                return $cacheData;
+            }
+        }
+
+        $this->lastSql = $sql;
+        $this->logSql();
+        if ($this->logDryRun()) {
+            return 0;
+        }
+        $result = $this->presto->query($sql);
+        if ($result === false) {
+            $this->logger->error("sql: {$sql} error:执行sql异常");
+            throw new RuntimeException('presto 查询失败');
+        }else{
+            $result = $result[0] ?? [];
+            if ($this->isCache($isCache)) {
+                $this->getCache()->set($cacheKey, $result, $cacheTTL);
+            }
+        }
+        return $result ;
     }
 
     /**
