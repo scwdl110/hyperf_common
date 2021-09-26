@@ -278,6 +278,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
             $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
         }
+        $orderbyTmp = $orderby;
+
 
         $rt = array();
         $fields_arr = array();
@@ -549,6 +551,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.channel_id ';
                 $orderby = empty($orderby) ? ('report.channel_id ') : ($orderby . ' ,report.channel_id ');
             }
+        }
+
+        if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
 
         if (!empty($where_detail)) {
@@ -4877,6 +4883,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
         }
 
+        $orderbyTmp = $orderby;
+
         $rt = $fields_arr = [];
         foreach ($fields as $field_name => $field) {
             if ($isMysql) {
@@ -5045,6 +5053,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.user_id  ';
             }
 
+        }
+
+        if (isset($params['is_time_sort']) && $params['is_time_sort'] == 1 && !empty($orderbyTmp) && $params['count_periods'] > 0 && $params['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
 
         if (!empty($where_detail)) {
@@ -7704,6 +7716,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
         }
 
+        $orderbyTmp = $orderby;
+
         $rt = array();
         $fields_arr = array();
         foreach ($fields as $field_name => $field) {
@@ -7759,6 +7773,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }else{
             $group = 'report.goods_operation_user_admin_id  ';
             $orderby = empty($orderby) ? ('report.goods_operation_user_admin_id ') : ($orderby . ' , report.goods_operation_user_admin_id');
+        }
+        if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
         $having = '';
         $where .= " AND report.goods_operation_user_admin_id > 0";
