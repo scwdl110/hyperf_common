@@ -229,6 +229,25 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $compare_on = ['user_id'] ;
         }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
             $compare_on = ['channel_id'] ;
+        }else if ($datas['count_dimension'] == 'channel_id') {
+            $compare_on = ['channel_id'] ;
+        } else if ($datas['count_dimension'] == 'site_id') {
+            $compare_on = ['site_id'] ;
+        } else if ($datas['count_dimension'] == 'site_group') {
+            $compare_on = ['site_group'] ;
+        } else if ($datas['count_dimension'] == 'department') {
+            $compare_on = ['user_department_id'] ;
+            $notime_where .= " AND dc.user_department_id > 0";
+        }else if($datas['count_dimension'] == 'admin_id'){
+            $compare_on = ['admin_id'] ;
+            $notime_where .= " AND uc.admin_id > 0";
+        }else if($datas['count_dimension'] == 'all_channels') { //按全部店铺维度统计
+            $compare_on = ['user_id'] ;
+        }
+
+        if($type == '2'){ //运营人员维度按运营人员ID连表查询
+            $compare_on = ['goods_operation_user_admin_id'] ;
+            $notime_where .= " AND report.goods_operation_user_admin_id > 0";
         }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
         if (!empty($where_detail)) {
@@ -298,6 +317,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $notime_where .= " AND report.goods_sku  IN ( " . $sku_str . ")";
                 }
             }
+            if (!empty($where_detail['user_department_id'])){
+                $notime_where .= " AND dc.user_department_id IN (" . $where_detail['user_department_id'] . ")" ;
+            }
+            if (!empty($where_detail['operators_id'])) {
+                if(is_array($where_detail['operators_id'])){
+                    $operators_str = implode(',', $where_detail['operators_id']);
+                }else{
+                    $operators_str = $where_detail['operators_id'] ;
+                }
+                $notime_where .= " AND report.goods_operation_user_admin_id  IN ( " . $operators_str . " ) ";
+            }
         }
 
         $notime_where = str_replace("{:RATE}", $exchangeCode, $notime_where ?? '');
@@ -308,11 +338,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         foreach($datas['compare_data'] as $ck => $compare_data)   {
             $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
             if($type == '0'){ // 获取店铺维度字段
-
+                $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
             }else if ($type == '1'){ // 获取商品维度字段
                 $compare_fields_arr = $this->getGoodsFields($newDatas) ;
             }else if($type == '2'){  //获取运营人员维度字段
-
+                $compare_fields_arr = $this->getOperatorsFields($newDatas);
             }
             $datas['compare_data'][$ck]['fields'] = $compare_fields_arr['fields'] ;
 
@@ -5279,21 +5309,34 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($params['show_type'] == 2 && $params['limit_num'] > 0 ){
             $limit_num = $params['limit_num'] ;
         }
+
+        if(!empty($params['compare_data'])){
+            $compareData = $this->getCompareDatas($params , 0 , $exchangeCode , $day_param ) ;
+        }else{
+            $compareData = array();
+        }
+
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+            $count = $this->getTotalNum($where, $table, $group, false, $isMysql ,$compareData,$field_data);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($params['is_count'] == 1){
                 if($params['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false,$isMysql,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table, "", "", "", false,null,300,$isMysql,$compareData);
                 }
             }elseif($params['is_median'] == 1){
                 $median_limit = !empty($params['limit_num']) ? $limit : '';
@@ -5301,7 +5344,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,false,$isMysql);
                 $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
@@ -5320,13 +5363,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else {  //统计列表和总条数
             if ($params['is_count'] == 1){
                 if($params['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit, '', '', false, null, 300, $isMysql);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
@@ -5338,13 +5387,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
 
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql) {
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql,$compareData) {
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData);
 
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group, $isMysql) {
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                $parallel->add(function () use($where, $table, $group, $isMysql,$compareData,$field_data) {
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
                     return $count;
                 });
 
@@ -7997,21 +8046,32 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($datas['show_type'] == 2 && $datas['limit_num'] > 0 ){
             $limit_num = $datas['limit_num'] ;
         }
+        if(!empty($datas['compare_data'])){
+            $compareData = $this->getCompareDatas($datas , 2 , $exchangeCode , $day_param ) ;
+        }else{
+            $compareData = array();
+        }
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
+            $count = $this->getTotalNum($where, $table, $group,false ,false,$compareData,$field_data);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
                 if($datas['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group);
+                    $count = $this->getTotalNum($where, $table, $group,false ,false,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,false,false ,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table, "", "", "", false,null,300,false,$compareData);
                 }
             }elseif($datas['is_median'] == 1){
                 $median_limit = !empty($datas['limit_num']) ? $limit : '';
@@ -8019,19 +8079,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group);
                 $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
                 if($datas['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group);
+                    $count = $this->getTotalNum($where, $table, $group,false,false,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,false,false,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table,"","","",false,null,300,false,$compareData);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Total Request', [$this->getLastSql()]);
@@ -8042,12 +8107,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$compareData){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group){
-                    $count = $this->getTotalNum($where, $table, $group);
+                $parallel->add(function () use($where, $table, $group,$compareData,$field_data){
+                    $count = $this->getTotalNum($where, $table, $group,false,false,$compareData,$field_data);
                     return $count;
                 });
 

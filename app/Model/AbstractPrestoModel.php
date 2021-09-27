@@ -546,6 +546,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
             foreach($compare_data as $c1=>$cdata1){
                 $k1 = $c1+1 ;
                 $rt_field.= " , compare_table{$k1}.* " ;
+                if(!empty($cdata1['custom_target']) && is_array($cdata1['custom_target'])){ //自定义指标
+                    foreach($cdata1['custom_target'] as $custom_target){
+                        $rt_field.= " , {$custom_target} " ;
+                    }
+                }
             }
             $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
             $rt_where = '' ;
