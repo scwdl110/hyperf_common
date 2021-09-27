@@ -3,12 +3,13 @@
 declare(strict_types=1);
 namespace Captainbi\Hyperf\Base;
 
+use Hyperf\Di\Annotation\Inject;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 
 class Service
 {
     /**
-     * @Inject()
+     * @Inject(lazy=true)
      * @var ValidatorFactoryInterface
      */
     protected $validationFactory;

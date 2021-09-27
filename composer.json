@@ -5,22 +5,54 @@
     "minimum-stability": "dev",
     "require": {
         "php": ">=7.2.0",
+        "hyperf/config-apollo": "~v2.1.0",
         "ext-openssl": "*",
-        "ext-swoole_postgresql": "*"
+        "ext-swoole_postgresql": "*",
+        "hyperf/async-queue": "2.1",
+        "hyperf/signal": "2.1",
+        "hyperf/snowflake": "2.1",
+        "hyperf/constants": "2.1"
     },
     "autoload":{
         "psr-4":{
             "Captainbi\\Hyperf\\":"src/"
         },
         "files": [
-            "src/functions_include.php"
+            "src/functions_include.php",
+            "src/CaptainFunctions.php"
         ]
     },
     "description": "",
+    "extra": {
+        "hyperf": {
+            "config": "Captainbi\\Hyperf\\ConfigProvider"
+        }
+    },
     "repositories": {
         "packagist": {
             "type": "composer",
             "url": "https://mirrors.aliyun.com/composer/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "HyperfTest\\": "tests"
+        }
+    },
+    "replace": {
+        "captainbi/hyperf": "*"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml --colors=always",
+        "analyse": "phpstan analyse --memory-limit 1024M -l 1 ./src",
+        "cs-fix": "php-cs-fixer fix $1"
+    },
+    "extra": {
+        "hyperf": {
+            "config": "Captainbi\\Hyperf\\ConfigProvider"
         }
     }
 }

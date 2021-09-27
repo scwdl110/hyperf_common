@@ -17,9 +17,9 @@ use Hyperf\Utils\Context;
 use Psr\Http\Message\ServerRequestInterface;
 use Captainbi\Hyperf\Util\Logger;
 
-/**
- * @Listener
- */
+///**
+// * @Listener
+// */
 class DbExecutedListener implements ListenerInterface
 {
 
@@ -49,8 +49,8 @@ class DbExecutedListener implements ListenerInterface
 
             $request = Context::get(ServerRequestInterface::class);
             $userInfo = $request->getAttribute('userInfo');
-            $admin_id = $userInfo['admin_id'];
-            $user_id = $userInfo['user_id'];
+            $admin_id = data_get($userInfo,'admin_id',0);
+            $user_id = data_get($userInfo,'user_id',0);
             foreach ($this->UnlistenTables as $UnlistenTable) {
                 if (strstr($sql, $UnlistenTable) != false) {
                     return;
