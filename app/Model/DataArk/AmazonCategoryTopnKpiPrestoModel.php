@@ -49,7 +49,16 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $where .= sprintf(
                 "%s report.product_category_name_1='%s' AND report.site_id=%d",
                 $where ? ' AND' : '',
-                htmlspecialchars(trim($product_category_name_1), ENT_NOQUOTES),
+                trim($product_category_name_1),
+                $site_id
+            );
+        }elseif($category_level == 2){
+            $table = "{$this->table_dws_idm_category02_topn_kpi} AS report" ;
+            $where .= sprintf(
+                "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.site_id=%d",
+                $where ? ' AND' : '',
+                trim($product_category_name_1),
+                trim($product_category_name_2),
                 $site_id
             );
         }else{
@@ -57,9 +66,9 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $where .= sprintf(
                 "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s' AND report.site_id=%d",
                 $where ? ' AND' : '',
-                htmlspecialchars(trim($product_category_name_1), ENT_NOQUOTES),
-                htmlspecialchars(trim($product_category_name_2), ENT_NOQUOTES),
-                htmlspecialchars(trim($product_category_name_3), ENT_NOQUOTES),
+                trim($product_category_name_1),
+                trim($product_category_name_2),
+                trim($product_category_name_3),
                 $site_id
             );
         }
@@ -94,29 +103,31 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
     {
         $fields = array();
         $targets = explode(',', $datas['target']);
-        $topN = intval($datas['topn'] ?? 30);
-        $topNUp = $topN + 5;
-        $topNDown = $topN - 5;
+        $topNs = $datas['topns'] ?? '25';
         $periodsDay = intval($datas['periods_day'] ?? 1);
         $periodsDay = $periodsDay < 10 ? str_pad($periodsDay,2,"0",STR_PAD_LEFT) : $periodsDay;
 
         $fields['time'] = "report.dt";
 
-        if (in_array('goods_visitors', $targets)) {  // 买家访问次数
-            $fields['goods_visitors_up'] = "report.user_sessions_{$periodsDay}day_top{$topNUp}_avg";
-            $fields['goods_visitors_down'] = "report.user_sessions_{$periodsDay}day_top{$topNDown}_avg";
-        }
-        if (in_array('sale_sales_volume', $targets)) {  // 销量
-            $fields['sale_sales_volume_up'] = "report.sales_volume_{$periodsDay}day_top{$topNUp}_avg";
-            $fields['sale_sales_volume_down'] = "report.sales_volume_{$periodsDay}day_top{$topNDown}_avg";
-        }
-        if (in_array('sale_sales_quota', $targets)) {  // 销售额
-            $fields['sale_sales_quota_up'] = "report.sales_quota_{$periodsDay}day_top{$topNUp}_avg * {:RATE}";
-            $fields['sale_sales_quota_down'] = "report.sales_quota_{$periodsDay}day_top{$topNDown}_avg * {:RATE}";
-        }
-        if (in_array('goods_conversion_rate', $targets)) { //转化率
-            $fields['goods_conversion_rate_up'] = "report.user_sessions_{$periodsDay}day_top{$topNUp}_cr";
-            $fields['goods_conversion_rate_down'] = "report.user_sessions_{$periodsDay}day_top{$topNDown}_cr";
+        foreach ($topNs as $top){
+            if (in_array('sale_sales_volume', $targets)) {  // 销量
+                $fields['sale_sales_volume'] = "report.sales_volume_{$periodsDay}day_top{$top}_avg";
+            }
+            if (in_array('sale_sales_quota', $targets)) {  // 销售额
+                $fields['sale_sales_quota'] = "report.sales_quota_{$periodsDay}day_top{$top}_avg * {:RATE}";
+            }
+            if (in_array('sale_sales_volume_index', $targets)) {  // 销量指数
+                $fields['sale_sales_volume'] = "report.sales_volume_{$periodsDay}day_top{$top}_avg";
+            }
+            if (in_array('sale_sales_quota_index', $targets)) {  // 销售额指数
+                $fields['sale_sales_quota'] = "report.sales_quota_{$periodsDay}day_top{$top}_avg * {:RATE}";
+            }
+            if (in_array('sale_sales_volume_avg', $targets)) {  // 平均销量
+                $fields['sale_sales_volume'] = "report.sales_volume_{$periodsDay}day_top{$top}_avg";
+            }
+            if (in_array('sale_sales_quota_avg', $targets)) {  // 平均销售额
+                $fields['sale_sales_quota'] = "report.sales_quota_{$periodsDay}day_top{$top}_avg * {:RATE}";
+            }
         }
         return $fields;
     }
