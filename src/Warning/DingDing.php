@@ -10,11 +10,11 @@ use Captainbi\Hyperf\Util\Log;
 class DingDing {
     /**
      * @param array $dingding
-     * @param string $params
+     * @param array $params
      * @return bool
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public static function send(array $dingding, string $params){
+    public static function send(array $dingding, array $params){
         if(!isset($dingding['token']) || !isset($dingding['secret']) || !isset($dingding['url'])){
             Log::getCrontabClient()->error('dingding:no params');
             return false;
@@ -28,12 +28,13 @@ class DingDing {
         $http = new Http();
         $httpClient = $http->getClient($dingding['url']);
 
-        $httpResponse = $httpClient->post($uri,['form_params' => $params])->getBody()->getContents();
+        $httpResponse = $httpClient->post($uri,['json' => $params])->getBody()->getContents();
         $httpResponse = json_decode($httpResponse, true);
         if(isset($httpResponse['errcode']) && $httpResponse['errcode']==0){
             //ok
             return true;
         }else{
+            Log::getCrontabClient()->error('dingding:'.json_encode($httpResponse));
             return false;
         }
     }
