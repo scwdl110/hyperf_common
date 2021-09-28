@@ -196,8 +196,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [] ;
         }
         $notime_where = empty($datas['notime_where']) ? '' :  $datas['notime_where'];
-        $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
-        $notime_where =  $mod_where . " AND report.available = 1 " .  (empty($notime_where) ? "" : " AND " . $notime_where) ;
+        if($type == '1'){
+            $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
+            $notime_where =  $mod_where . " AND report.available = 1 " .  (empty($notime_where) ? "" : " AND " . $notime_where) ;
+        }else if($type == '0'){
+            $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) ;
+            $notime_where =  $mod_where . " AND report.available = 1 " .  (empty($notime_where) ? "" : " AND " . $notime_where) ;
+        }
         //对比数据连表查询时的ON 条件
         $compare_on = array() ;
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
@@ -335,7 +340,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $newDatas = $datas ;
         $on_key = 1 ;
+
         foreach($datas['compare_data'] as $ck => $compare_data)   {
+            $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
+            $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
+            $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
+
             $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
             if($type == '0'){ // 获取店铺维度字段
                 $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
@@ -343,18 +353,30 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $compare_fields_arr = $this->getGoodsFields($newDatas) ;
             }else if($type == '2'){  //获取运营人员维度字段
                 $compare_fields_arr = $this->getOperatorsFields($newDatas);
+                //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
+               $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
+                if ($datas['currency_code'] != 'ORIGIN') {
+                    if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                        $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                    } else {
+                        $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+                    }
+                    $datas['compare_data'][$ck]['new_table'] = $new_table ;
+                }
             }
             $datas['compare_data'][$ck]['fields'] = $compare_fields_arr['fields'] ;
 
             //拼接对比表条件 及连表 ON 条件
-            $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
-            $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
-            $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
-            $compareWhere = $ym_where . ' AND ' . $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+            if($type == '2'){
+                $compareWhere = $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+            }else{
+                $compareWhere = $ym_where . ' AND ' . $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+            }
+
             $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
             $compare_on_arr = [] ;
             foreach($compare_on as $con){
-                $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.'.$con ;
+                $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.compare'.$on_key.'_'.$con ;
             }
             $on_key++ ;
             $datas['compare_data'][$ck]['on'] = implode(' AND ' , $compare_on_arr) ;
@@ -375,11 +397,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $i = 1 ;
                 foreach($compare_data['fields'] as $compare_field_name => $compare_field){
                     if(in_array($compare_field_name , $compare_target)){
-                        $compare_field_name2 = empty($renameArr[$compare_field_name]) ? ('compare'.$i.'_'.$compare_field_name) : $renameArr[$compare_field_name] ;
+                        $compare_field_name2 = empty($renameArr[$compare_field_name]) ? ('compare'.($ck2+1).'_'.$compare_field_name) : $renameArr[$compare_field_name] ;
                         $compare_fields_arr[] = $compare_field . ' AS "' . $compare_field_name2 . '"';
                         $i++ ;
                     }else{
-                        $compare_fields_arr[] = $compare_field . ' AS "' . $compare_field_name . '"';
+                        $compare_fields_arr[] = $compare_field . ' AS "compare'.($ck2+1).'_'.$compare_field_name . '"';
                     }
                 }
                 $compare_field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $compare_fields_arr)));//去除

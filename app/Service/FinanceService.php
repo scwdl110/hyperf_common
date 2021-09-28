@@ -98,11 +98,11 @@ class FinanceService extends BaseService
                 "rename" => "compare_sale_sales_volume,compare_sale_sales_quota" , //对比字段重命名 。 默认为 compare1_sale_sales_volume， compare1_sale_sales_quota
                 "compare_start_time" => 1630598400 , //对比开始时间
                 "compare_end_time" => 1631203199 , //对比结束时间
-                "where" => "origin_table.sale_sales_quota < (0.9*compare_table1.sale_sales_quota/7*1.0000)" , //对比数据条件
+                "where" => "origin_table.sale_sales_quota < (0.9*compare_table1.compare_sale_sales_quota/7*1.0000)" , //对比数据条件
                 "join_type" => "LEFT JOIN " , // origin_table表和 compare_table1 表的连接方式 ，默认使用 left join
-                "order" => "compare_table1.sale_sales_quota DESC" , //排序方式
+                "order" => "compare_table1.compare_sale_sales_quota DESC" , //排序方式
                 "custom_target"=> array(
-                    "origin_table.sale_sales_quota * 1.0000 / nullif(compare_table1.sale_sales_volume)  AS diy_rate"   //自定义公式
+                    "origin_table.sale_sales_quota * 1.0000 / nullif(compare_table1.compare_sale_sales_volume)  AS diy_rate"   //自定义公式
                 )
             ),
             array(
@@ -110,7 +110,7 @@ class FinanceService extends BaseService
             )
         )*/
 
-        $compare_data = $req['compare_data'] ?? [] ;
+        $compare_data = $params['compare_data'] ?? [] ;
         if($params['count_periods'] != '0' ){  //统计维度不为无周期 ， 无法使用对比数据
             $compare_data = [] ;
         }
@@ -370,6 +370,7 @@ class FinanceService extends BaseService
             $params['compare_data'] = $compare_data ;
         }
 
+
         if ((int)$params['time_type'] === 99) {
             $where .= sprintf(
                 '%s report.create_time>=%d and report.create_time<=%d',
@@ -469,11 +470,9 @@ class FinanceService extends BaseService
             $rateInfo,
             $day_param
         );
-
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
         }
-
         return $result;
     }
 

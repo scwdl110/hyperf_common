@@ -558,7 +558,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $rt_order = '' ;
             foreach($compare_data as $c=>$cdata){
                 $k = $c+1 ;
-                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                if(!empty($cdata['new_table'])){
+                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                }else{
+                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                }
+
                 $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
                 if(!empty($cdata['where'])){
                     $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
@@ -917,7 +922,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $rt_where = '' ;;
         foreach($compare_data as $c=>$cdata){
             $k = $c+1 ;
-            $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+            if(!empty($cdata['new_table'])){
+                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$group} ) "  ;
+            }else{
+                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+            }
             $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
             if(!empty($cdata['where'])){
                 $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
