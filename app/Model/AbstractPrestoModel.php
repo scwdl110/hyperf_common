@@ -556,12 +556,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
             $rt_where = '' ;
             $rt_order = '' ;
+            //不需要having 之后的SQL
+            $new_group =  preg_replace("/ having.*/i","",$group);
             foreach($compare_data as $c=>$cdata){
                 $k = $c+1 ;
                 if(!empty($cdata['new_table'])){
-                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
                 }else{
-                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
                 }
 
                 $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
@@ -919,13 +921,15 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $newTables = array() ;
         $newTables[] = "origin_table AS (  SELECT {$data} FROM {$table} {$where} {$group} ) " ;
         $rt_sql = 'SELECT count(*) as num FROM origin_table ' ;
-        $rt_where = '' ;;
+        $rt_where = '' ;
+        //不需要having 之后的SQL
+        $new_group =  preg_replace("/ having.*/i","",$group);
         foreach($compare_data as $c=>$cdata){
             $k = $c+1 ;
             if(!empty($cdata['new_table'])){
-                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
             }else{
-                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
             }
             $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
             if(!empty($cdata['where'])){
