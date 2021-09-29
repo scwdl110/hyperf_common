@@ -341,20 +341,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $newDatas = $datas ;
         $on_key = 1 ;
 
-        if($type == '0'){ // 获取店铺维度字段
-            $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
-        }else if ($type == '1'){ // 获取商品维度字段
-            $compare_fields_arr = $this->getGoodsFields($newDatas) ;
-        }else{  //获取运营人员维度字段
-            $compare_fields_arr = $this->getOperatorsFields($newDatas);
-        }
         foreach($datas['compare_data'] as $ck => $compare_data)   {
             $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
             $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
             $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
 
             $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
-            if ($type == '2'){
+            if($type == '0'){ // 获取店铺维度字段
+                $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
+            }else if ($type == '1'){ // 获取商品维度字段
+                $compare_fields_arr = $this->getGoodsFields($newDatas) ;
+            }else{  //获取运营人员维度字段
+                $compare_fields_arr = $this->getOperatorsFields($newDatas);
                 //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
                $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
                 if ($datas['currency_code'] != 'ORIGIN') {
