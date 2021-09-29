@@ -2921,12 +2921,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'sale_refund_rate') {  //退款率
-                if ($datas['refund_datas_origin'] == '1') {
-                    $fields['count_total'] = "sum(report.byorder_refund_num) * 1.0000 / nullif(SUM(report.byorder_sales_volume + report.byorder_group_id),0)";
-                    $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000 ", "report.byorder_sales_volume + report.byorder_group_id");
-                } elseif ($datas['refund_datas_origin'] == '2') {
-                    $fields['count_total'] = "sum(report.report_refund_num) * 1.0000 / nullif(SUM(report.report_sales_volume + report.report_group_id),0)";
-                    $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000", "report.report_sales_volume + report.report_group_id");
+                if ($datas['sale_datas_origin'] == '1') {
+                    if ($datas['refund_datas_origin'] == '1') {
+                        $fields['count_total'] = "sum(report.byorder_refund_num) * 1.0000 / nullif(SUM((report.byorder_sales_volume + report.byorder_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000", "(report.byorder_sales_volume+ report.byorder_group_id)");
+                    } elseif ($datas['refund_datas_origin'] == '2') {
+                        $fields['count_total'] = "sum(report.report_refund_num) * 1.0000 / nullif(SUM((report.byorder_sales_volume+ report.byorder_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000 ", "(report.byorder_sales_volume+ report.byorder_group_id)");
+                    }
+                } else {
+                    if ($datas['refund_datas_origin'] == '1') {
+                        $fields['count_total'] = "sum(report.byorder_refund_num) * 1.0000  / nullif(SUM((report.report_sales_volume+ report.report_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000 ", "(report.report_sales_volume+ report.report_group_id)");
+                    } elseif ($datas['refund_datas_origin'] == '2') {
+                        $fields['count_total'] = "sum(report.report_refund_num) * 1.0000 / nullif(SUM((report.report_sales_volume+ report.report_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000 ", "(report.report_sales_volume+ report.report_group_id)");
+                    }
                 }
             } else if ($time_target == 'promote_discount') {  //promote折扣
                 if ($datas['finance_datas_origin'] == '1') {
@@ -7031,6 +7041,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
             }
         }
+        $orderbyTmp = $orderby;
         if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
             if($datas['count_periods'] == '4'){ //按季度
                 $group = 'report.goods_operation_user_admin_id , report.myear , report.mquarter ';
@@ -7072,6 +7083,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (!empty($having)) {
             $group .= " having " . $having;
+        }
+        if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
