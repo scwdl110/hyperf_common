@@ -341,18 +341,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $newDatas = $datas ;
         $on_key = 1 ;
 
+        if($type == '0'){ // 获取店铺维度字段
+            $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
+        }else if ($type == '1'){ // 获取商品维度字段
+            $compare_fields_arr = $this->getGoodsFields($newDatas) ;
+        }else{  //获取运营人员维度字段
+            $compare_fields_arr = $this->getOperatorsFields($newDatas);
+        }
         foreach($datas['compare_data'] as $ck => $compare_data)   {
             $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
             $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
             $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
 
             $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
-            if($type == '0'){ // 获取店铺维度字段
-                $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
-            }else if ($type == '1'){ // 获取商品维度字段
-                $compare_fields_arr = $this->getGoodsFields($newDatas) ;
-            }else{  //获取运营人员维度字段
-                $compare_fields_arr = $this->getOperatorsFields($newDatas);
+            if ($type == '2'){
                 //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
                $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
                 if ($datas['currency_code'] != 'ORIGIN') {
@@ -409,6 +411,51 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $datas['compare_data'][$ck2]['field_data'] =  $compare_field_data ;
                 unset($datas['compare_data'][$ck2]['fields']) ;
             }
+        }
+
+        //最终获取自定义字段拼接
+        if(!empty($datas['compare_data'][0]['custom_target_set'])){
+            $datas['compare_data'][0]['custom_target'] = [];
+            $custom_set_order = $custom_set_where = [];
+            foreach($datas['compare_data'][0]['custom_target_set'] as $custom_target_item){
+                $compare_table = !empty($custom_target_item['compare_table']) ? explode(',',$custom_target_item['compare_table']) : [];
+                $field_arr = [];
+                if($compare_table){
+                    //fields
+                    $avg = (!empty($custom_target_item['avg']) && (int)$custom_target_item['avg'] > 1) ? " / {$custom_target_item['avg']}" : '';//取的字段表
+                    foreach($compare_table as $table_key => $table_item){
+                        $table_item = $table_item == '-1' ? $table_item : (int)$table_item + 1;
+                        $table_str = $table_item == '-1' ? 'origin_table.' : "compare_table{$table_item}.";//取的字段表
+                        $target_prefix = $table_item == '-1' ? '' : "compare{$table_item}_";//取的字段表
+                        $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . $avg . ')';
+                    }
+                    if($custom_target_item['type'] == 1){
+                        if(!empty($field_arr[1])){
+                            $field_str = "({$field_arr[0]} - {$field_arr[1]})";
+                        }else{
+                            $field_str = "{$field_arr[0]}";
+                        }
+                    }else{
+                        $field_str = "({$field_arr[0]} - {$field_arr[1]}) / nullif({$field_arr[1]},0)";
+                    }
+                    $datas['compare_data'][0]['custom_target'][] = $field_str . " as {$custom_target_item['rename']}";
+
+                    //where
+                    if(!empty($custom_target_item['formula']) && !empty($custom_target_item['value'])){
+                        if (strpos($custom_target_item['value'], '%') !== false) {
+                            $custom_target_item['value'] = round($custom_target_item['value'] / 100, 4);
+                        }
+                        $custom_set_where[] = '(' .  $field_str . $avg . ') ' . $custom_target_item['formula'] . $custom_target_item['value'];
+                    }
+
+                    //order by
+                    if(!empty($custom_target_item['sort'])){
+                        $custom_set_order[] = $field_str . $avg . " {$custom_target_item['sort']}";
+                    }
+                }
+            }
+            $datas['compare_data'][0]['where'] = !empty($custom_set_where) ? implode(' AND ',$custom_set_where) : [];
+            $datas['compare_data'][0]['order'] = !empty($custom_set_order) ? implode(',',$custom_set_order) : [];
         }
 
         return $datas['compare_data'] ;
@@ -863,10 +910,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         if (strpos($where_value, '%') !== false) {
                             $where_value = round($where_value / 100, 4);
                         }
+                        //日均
+                        $target_where['avg'] = !empty($target_where['avg']) && (int)$target_where['avg'] > 1 ? " / {$target_where['avg']}" : "";
                         if (empty($having)) {
-                            $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                            $having .= '(' . '(' .  $fields[$target_where['key']] . ') ' . $target_where['avg'] . ') ' . $target_where['formula'] . $where_value;
                         } else {
-                            $having .= ' ' .$condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                            $having .= ' ' .$condition_relation . '(' . '(' .  $fields[$target_where['key']] . ') ' . $target_where['avg'] . ') ' . $target_where['formula'] . $where_value;
                         }
                     }
 
