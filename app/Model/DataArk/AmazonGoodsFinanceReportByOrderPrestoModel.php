@@ -7041,6 +7041,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
             }
         }
+        $orderbyTmp = $orderby;
         if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
             if($datas['count_periods'] == '4'){ //按季度
                 $group = 'report.goods_operation_user_admin_id , report.myear , report.mquarter ';
@@ -7082,6 +7083,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (!empty($having)) {
             $group .= " having " . $having;
+        }
+        if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
