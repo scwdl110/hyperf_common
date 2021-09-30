@@ -320,8 +320,12 @@ class FinanceService extends BaseService
                 }
 
                 if (!empty($params['where_parent']['class1_name']) && !empty($params['where_parent']['site_id'])){//维度下钻 一级类目
-                    $class1_name = trim($params['where_parent']['class1_name']);
-                    $where .= " AND report.goods_product_category_name_1 = '{$class1_name}' AND report.site_id = {$params['where_parent']['site_id']}";
+                    if (is_array($params['where_parent']['class1_name'])){
+                        $class1_name = implode("','", $params['where_parent']['class1_name']);
+                    }else{
+                        $class1_name = trim($params['where_parent']['class1_name']);
+                    }
+                    $where .= " AND report.goods_product_category_name_1 IN('{$class1_name}') AND report.site_id = {$params['where_parent']['site_id']}";
                 }
 
                 if (!empty($params['where_parent']['head_id'])){
