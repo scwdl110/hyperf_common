@@ -56,17 +56,17 @@ if (!function_exists('getConfigInterface')) {
 if (!function_exists('getJobData')) {
     /**
      * 获取 job 执行配置数据
-     * @param string $service
+     * @param \Closure|object|string|func|mixed $callback
      * @param string $method
      * @param array $parameters
      * @param null|array $request
      * @param array $extData
      * @return array
      */
-    function getJobData($service, $method, $parameters, $request = null, $extData = []) {
+    function getJobData($callback, string $method='', array $parameters=[], $request = null, array $extData = []) {
         return Arr::collapse([
             [
-                Constant::SERVICE_KEY => $service,
+                Constant::SERVICE_KEY => $callback,
                 Constant::METHOD_KEY => $method,
                 Constant::PARAMETERS_KEY => $parameters,
                 Constant::REQUEST_DATA_KEY => $request ?? getApplicationContainer()->get(RequestInterface::class)->all(),
@@ -105,6 +105,32 @@ if (!function_exists('pushQueue')) {
         }
 
         return false;
+    }
+}
+
+if (!function_exists('getInternalIp')) {
+    /**
+     * 获取服务器ip.
+     * @return string|\RuntimeException
+     */
+    function getInternalIp(): string
+    {
+        //获取本服务的host
+        $host = config('services.rpc_service_provider.local.host', null);
+        if ($host !== null) {
+            return $host;
+        }
+
+        $ips = swoole_get_local_ip();
+        if (is_array($ips) && !empty($ips)) {
+            return current($ips);
+        }
+        /** @var mixed|string $ip */
+        $ip = gethostbyname(gethostname());
+        if (is_string($ip)) {
+            return $ip;
+        }
+        throw new \RuntimeException('Can not get the internal IP.');
     }
 }
 

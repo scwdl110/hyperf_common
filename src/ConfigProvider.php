@@ -11,6 +11,13 @@ use Captainbi\Hyperf\Process\RestartServiceProcess;
 use Captainbi\Hyperf\Util\Redis\Lua\LuaFactory;
 use Captainbi\Hyperf\Util\Redis\Lua\Contracts\LuaInterface;
 
+use Hyperf\Database\Schema\PostgresBuilder;
+use Hyperf\Database\Schema\Grammars\PostgresGrammar as SchemaGrammar;
+use Hyperf\Database\Query\Processors\PostgresProcessor;
+use Hyperf\Database\Query\Grammars\PostgresGrammar;
+use Hyperf\Database\PostgresConnection;
+use Hyperf\Database\Connectors\PostgresConnector;
+
 class ConfigProvider
 {
     public function __invoke(): array
@@ -19,10 +26,10 @@ class ConfigProvider
             'dependencies' => [
                 LuaInterface::class => LuaFactory::class,
                 //EncrypterInterface::class => EncrypterFactory::class,
-                //FactoryInterface::class  => DingNoticeFactory::class,
+                'db.connector.pgsql' => PostgresConnector::class,
             ],
             'processes' => [
-                RestartServiceProcess::class,
+                //RestartServiceProcess::class,
             ],
             'annotations' => [
                 'scan' => [
@@ -34,27 +41,58 @@ class ConfigProvider
                         RedisDriver::class => __DIR__ . '/../class_map/Hyperf/Cache/Driver/RedisDriver.php',
                         PipeMessage::class => __DIR__ . '/ConfigApollo/class_map/PipeMessage.php',
                         ConfigFetcherProcess::class => __DIR__ . '/ConfigApollo/class_map/Process/ConfigFetcherProcess.php',
+
+                        PostgresBuilder::class => __DIR__ . '/../class_map/Hyperf/Database/Schema/PostgresBuilder.php',
+                        SchemaGrammar::class => __DIR__ . '/../class_map/Hyperf/Database/Schema/PostgresGrammar.php',
+                        PostgresProcessor::class => __DIR__ . '/../class_map/Hyperf/Database/Query/Processors/PostgresProcessor.php',
+                        PostgresGrammar::class => __DIR__ . '/../class_map/Hyperf/Database/Query/Grammars/PostgresGrammar.php',
+                        PostgresConnection::class => __DIR__ . '/../class_map/Hyperf/Database/PostgresConnection.php',
+                        PostgresConnector::class => __DIR__ . '/../class_map/Hyperf/Database/Connectors/PostgresConnector.php',
                     ],
                 ],
             ],
             'publish' => [
                 [
-                    'id' => 'config',
+                    'id' => 'apollo-config',
                     'description' => 'The config for apollo',
                     'source' => __DIR__ . '/../publish/apollo.php',
                     'destination' => BASE_PATH . '/config/autoload/apollo.php',
                 ],
                 [
-                    'id' => 'config',
+                    'id' => 'restart-console-config',
                     'description' => 'The config for restart process',
                     'source' => __DIR__ . '/../publish/restart_console.php',
                     'destination' => BASE_PATH . '/config/autoload/restart_console.php',
                 ],
                 [
-                    'id' => 'config',
+                    'id' => 'restart-process-script',
                     'description' => 'The script for restart process',
                     'source' => __DIR__ . '/../publish/bin/restart.php',
                     'destination' => BASE_PATH . '/bin/restart.php',
+                ],
+                [
+                    'id' => 'async-queue-config',
+                    'description' => 'The config for async queue.',
+                    'source' => __DIR__ . '/../publish/async_queue.php',
+                    'destination' => BASE_PATH . '/config/autoload/async_queue.php',
+                ],
+                [
+                    'id' => 'signal-config',
+                    'description' => 'The config for signal.',
+                    'source' => __DIR__ . '/../publish/signal.php',
+                    'destination' => BASE_PATH . '/config/autoload/signal.php',
+                ],
+                [
+                    'id' => 'snowflake-config',
+                    'description' => 'The config of snowflake.',
+                    'source' => __DIR__ . '/../publish/snowflake.php',
+                    'destination' => BASE_PATH . '/config/autoload/snowflake.php',
+                ],
+                [
+                    'id' => 'ding-config',
+                    'description' => 'The config for ding.',
+                    'source' => __DIR__ . '/../publish/ding.php',
+                    'destination' => BASE_PATH . '/config/autoload/ding.php',
                 ],
             ],
         ];

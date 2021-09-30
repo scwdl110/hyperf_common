@@ -36,21 +36,22 @@ class PublicJob extends Job
 
     public function handle()
     {
-        $service = data_get($this->data, Constant::SERVICE_KEY, '');
+        $callback = data_get($this->data, Constant::SERVICE_KEY, '');
         $method = data_get($this->data, Constant::METHOD_KEY, '');
         $parameters = data_get($this->data, Constant::PARAMETERS_KEY, []);
 
-        if ($service && $method && method_exists($service, $method)) {
-
-            //设置 协程上下文请求数据
-            Context::set(Constant::CONTEXT_REQUEST_DATA, data_get($this->data, Constant::REQUEST_DATA_KEY, []));
-
-            call([$service, $method], $parameters);//兼容各种调用
-
-            // 根据参数处理具体逻辑
-            // 通过具体参数获取模型等
-            // 这里的逻辑会在 ConsumerProcess 进程中执行
-            //var_dump(Coroutine::parentId(), Coroutine::id(), Coroutine::inCoroutine(), $this->data);
+        if ($callback && $method && method_exists($callback, $method)) {//如果 $callback 是对象或者静态类，就组装 对象、静态类，调用成员函数的数据结构
+            $callback = [$callback, $method];
         }
+
+        //设置 协程上下文请求数据
+        Context::set(Constant::CONTEXT_REQUEST_DATA, data_get($this->data, Constant::REQUEST_DATA_KEY, []));
+        call($callback, $parameters);//兼容各种调用
+
+        // 根据参数处理具体逻辑
+        // 通过具体参数获取模型等
+        // 这里的逻辑会在 ConsumerProcess 进程中执行
+        //var_dump(Coroutine::parentId(), Coroutine::id(), Coroutine::inCoroutine(), $this->data);
+
     }
 }

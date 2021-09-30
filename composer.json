@@ -4,14 +4,15 @@
     "license": "MIT",
     "minimum-stability": "dev",
     "require": {
-        "php": ">=7.2.0",
+        "php": ">=7.3",
         "hyperf/config-apollo": "~v2.1.0",
         "ext-openssl": "*",
         "ext-swoole_postgresql": "*",
-        "hyperf/async-queue": "2.1",
-        "hyperf/signal": "2.1",
-        "hyperf/snowflake": "2.1",
-        "hyperf/constants": "2.1"
+        "hyperf/async-queue": "^2.1",
+        "hyperf/signal": "^2.1",
+        "hyperf/snowflake": "^2.1",
+        "hyperf/constants": "^2.1",
+        "jmiy/hyperf-ding-notice": "dev-master"
     },
     "autoload":{
         "psr-4":{
@@ -23,11 +24,6 @@
         ]
     },
     "description": "",
-    "extra": {
-        "hyperf": {
-            "config": "Captainbi\\Hyperf\\ConfigProvider"
-        }
-    },
     "repositories": {
         "packagist": {
             "type": "composer",

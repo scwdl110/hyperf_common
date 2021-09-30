@@ -16,9 +16,9 @@ return [
             'pool' => env('DEFAULT_QUEUE_DRIVER_REDIS_POOL', 'default'),//redis 连接池
         ],
         'channel' => env('DEFAULT_QUEUE_CHANNEL', '{queue}'),//队列前缀
-        'timeout' => 2,//pop 消息的超时时间
-        'retry_seconds' => [1, 5, 10, 20],//失败后重新尝试间隔
-        'handle_timeout' => 60,//消息处理超时时间
+        'timeout' => 2,//brPop 移出并获取列表的最后一个元素， 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止。   如果列表没有元素会阻塞列表直到等待超时：等待超时时间 5秒
+        'retry_seconds' => [5, 10, 20],//失败后重新尝试间隔
+        'handle_timeout' => 6000,//消息处理超时时间
         'processes' => 1,//消费进程数
         'concurrent' => [
             'limit' => 10,//同时处理消息数
