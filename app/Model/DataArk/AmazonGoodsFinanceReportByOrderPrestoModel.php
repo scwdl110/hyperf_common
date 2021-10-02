@@ -11777,8 +11777,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
 
         }
-        $this->time_periods_field['molecule']  = $molecule;
-        $this->time_periods_field['denominator']  = $denominator;
+        $this->time_periods_field['molecule']       = str_replace($rate,"",$molecule);
+        $this->time_periods_field['denominator']    = str_replace($rate,"",$denominator);;
         return ['count_total' => $count_total,'molecule' => $molecule,'denominator' => $denominator,'operation_table_field'=>$operation_table_field];
     }
 
