@@ -121,6 +121,7 @@ class FinanceService extends BaseService
             }
         }
         $params['origin_where'] = $where;
+        $params['origin_report_where'] = $params['user_sessions_where'];
 
         if (empty($searchKey) && !empty($searchVal)) {
             $likes = [
@@ -315,6 +316,7 @@ class FinanceService extends BaseService
             $params['origin_time'] = " AND ({$origin_time})";
 
         }
+        $params['origin_report_where'] .= str_replace("create_time","report.create_time",$params['origin_time']);
 
         $method = [
             'getListByUnGoods',

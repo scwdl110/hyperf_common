@@ -181,6 +181,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     protected $operate_channel_amazon_order_fee = " +report.bychannel_reserved_field44 ";
     protected $operate_profit = " +report.bychannel_reserved_field44 + report.bychannel_reserved_field43 ";
 
+    protected $time_periods_field = [
+        "key"           => '',
+        "molecule"      => '',
+        "denominator"   => '',
+    ];
+
     /**
      * 获取商品维度统计列表(新增统计维度完成)
      * @param string $where
@@ -215,13 +221,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $datas['is_month_table'] = 0;
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_goods_day_report}" ;
+            $dws_table = $this->table_dws_goods_day_report;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "{$this->table_goods_week_report}" ;
+            $dws_table = $this->table_dws_goods_day_report;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
             $table = "{$this->table_goods_month_report}" ;
+            $dws_table = $this->table_dws_goods_month_report;
             $datas['is_month_table'] = 1;
         }else if($datas['cost_count_type'] == 2 ){
             $table = "{$this->table_goods_month_report}" ;
+            $dws_table = $this->table_dws_goods_month_report;
             $datas['is_month_table'] = 1;
         }else{
             return [];
@@ -267,6 +277,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($fields)) {
             return [];
         }
+        $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
+
+        if ($datas['show_type'] != 2 && !$isMysql && $datas['show_type'] > 0 && $datas['is_new_index'] == 1 && in_array($this->time_periods_field['key'],array('fba_sales_refund','sales_refund'))){
+            $time_periods_other_field = '';
+            if (!empty($this->time_periods_field['molecule'])){
+                $time_periods_other_field .= ",({$this->time_periods_field['molecule']}) as {$this->time_periods_field['key']}_molecule";
+            }
+            if (!empty($this->time_periods_field['denominator'])){
+                $time_periods_other_field .= ",({$this->time_periods_field['denominator']}) as {$this->time_periods_field['key']}_denominator";
+            }
+            foreach ($fields as $field_name => $field) {
+
+                if (!empty($this->time_periods_field['denominator'])){
+                    $fields[$field_name] = str_replace($this->time_periods_field['denominator'],"{$this->time_periods_field['key']}_denominator", $field);
+                }
+                if (!empty($this->time_periods_field['molecule'])){
+                    $fields[$field_name] = str_replace($this->time_periods_field['molecule'],"{$this->time_periods_field['key']}_molecule", $field);
+                }
+
+            }
+            $table = str_replace($dws_table,'(SELECT  report.user_id  AS "user_id",report.amazon_goods_id AS "goods_id",report.site_id AS "site_country_id",report.channel_id  AS "channel_id",report.available  AS "available",report.site_id  AS "site_id",report.user_id_mod  AS "user_id_mod",report.amazon_goods_id  AS "amazon_goods_id",report.ym  AS "ym",report.create_time as "create_time" '.$time_periods_other_field.' FROM  '.$dws_table.' as report where '.($ym_where).' AND report.available = 1 AND report.user_id_mod = '.$this->getUserIdMod($datas['user_id']).' AND '.$datas['origin_report_where'].')  ' ,$table);
+
+        }
 
 
 
@@ -300,7 +333,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
 
-        $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
 
@@ -11691,7 +11723,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $field = $this->getFieldFromSql($params ,$isMysql);
         $count_total = $denominator = $molecule = '';
         if (isset($field[$targets])){
-
+            $this->time_periods_field['key'] = $targets;
             $field_rate =  $field[$targets]['format_type'] == 4 ? $rate : "";
 
             //店铺
@@ -11708,10 +11740,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $molecule    = $key_arr['molecule'];
                 }else{
                     $molecule = "(" . implode("", $field[$targets][$field_type_key]['molecule']) . "){$field_molecule_rate}";
+
                     $count_total = "SUM({$molecule})";
                     if (!empty($field[$targets][$field_type_key]['denominator'])){
                         $count_total .= "*1.0000/nullif(SUM((".implode("",$field[$targets][$field_type_key]['denominator'])."){$field_denominator_rate}),0)";
                         $denominator = "(".implode("",$field[$targets][$field_type_key]['denominator'])."){$field_denominator_rate}";
+
                     }
                 }
 
@@ -11743,7 +11777,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
 
         }
-
+        $this->time_periods_field['molecule']  = $molecule;
+        $this->time_periods_field['denominator']  = $denominator;
         return ['count_total' => $count_total,'molecule' => $molecule,'denominator' => $denominator,'operation_table_field'=>$operation_table_field];
     }
 
@@ -11952,5 +11987,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             return true;
         }
         return false;
+    }
+
+    private function getUserIdMod($user_id){
+        return ($user_id % 20);
     }
 }
