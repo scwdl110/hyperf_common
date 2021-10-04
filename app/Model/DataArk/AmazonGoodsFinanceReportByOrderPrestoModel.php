@@ -306,8 +306,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
-        }elseif ($params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
-            $orderby = " max(report.create_time) {$params['sort_order']}";
+        }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
+            $orderby = " max(report.create_time) {$datas['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
@@ -7756,8 +7756,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
-        }elseif ($params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
-            $orderby = " max(report.create_time) {$params['sort_order']}";
+        }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
+            $orderby = " max(report.create_time) {$datas['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
