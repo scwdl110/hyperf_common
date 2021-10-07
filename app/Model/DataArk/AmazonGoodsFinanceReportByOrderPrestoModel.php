@@ -11918,9 +11918,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return array
      */
     private function getFieldFromSql($params = array(),$isMysql = false){
-        $finance_index = FinanceIndexModel::get()->toArray();
-        $finance_index = array_column($finance_index,null,'id');
-        $sql_key_arr = FinanceIndexAssociatedSqlKeyModel::get()->toArray();
+        $mysql_fields   = $this->getFieldFromCache();
+        $finance_index  = $mysql_fields['finance_index'];
+        $sql_key_arr    = $mysql_fields['sql_key_arr'];
         $sql_key = array();
         $is_need_monthly_storage_fee = $this->getIsNeedMonthlyStorageFee($params);
         foreach ($sql_key_arr as $value){
@@ -12093,5 +12093,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     private function getUserIdMod($user_id){
         return ($user_id % 20);
+    }
+
+    public function getFieldFromCache(){
+        $redis = new Redis();
+        $mysql_fields = $redis->get("mysql_finance_fields");
+        if (!is_array($mysql_fields) or empty($mysql_fields)){
+            $finance_index = FinanceIndexModel::get()->toArray();
+            $finance_index = array_column($finance_index,null,'id');
+            $sql_key_arr = FinanceIndexAssociatedSqlKeyModel::get()->toArray();
+            $mysql_fields['finance_index'] = $finance_index;
+            $mysql_fields['sql_key_arr'] = $sql_key_arr;
+            $redis->set("mysql_finance_fields",$mysql_fields);
+        }
+        $finance_index = $mysql_fields['finance_index'];
+        $sql_key_arr = $mysql_fields['sql_key_arr'];
+
+        return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr];
     }
 }
