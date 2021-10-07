@@ -211,6 +211,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ) {
         $datas['method'] = "getListByGoods";
         $isMysql = $this->getIsMysql($datas);
+        $searchKey = $datas['searchKey'] ?? '';
+        $searchVal = $datas['searchVal'] ?? '';
+        $matchType = $datas['matchType'] ?? '';
+        $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
+        $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
+
         $this->tax_field = $this->getRemoveTaxField($datas);
         $datas['is_month_table'] = 0;
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
@@ -4352,6 +4358,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ) {
         $fields = [];
         $isMysql = $this->getIsMysql($params);
+        $searchKey = $datas['searchKey'] ?? '';
+        $searchVal = $datas['searchVal'] ?? '';
+        $matchType = $datas['matchType'] ?? '';
+        $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
+        $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
+
         $this->tax_field = $this->getRemoveTaxField($params);
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         //没有按周期统计 ， 按指标展示
@@ -6962,6 +6974,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
+        $searchKey = $datas['searchKey'] ?? '';
+        $searchVal = $datas['searchVal'] ?? '';
+        $matchType = $datas['matchType'] ?? '';
+        $searchVal = self::escape(stripslashes($searchVal));
+        $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
         $this->tax_field = $this->getRemoveTaxField($datas);
         $datas['is_month_table'] = 0;
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
@@ -10814,6 +10831,85 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         return false;
+    }
+
+    public function getSearchValWhere($where,$searchKey,$searchVal,$matchType){
+        if(!empty($searchKey) && !empty($searchVal)){
+            //匹配方式 ：eq -> 全匹配  like-模糊匹配
+            if($searchKey == 'parent_asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_parent_asin = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.goods_parent_asin like '%" . $searchVal . "%'" ;
+                }
+            }else if($searchKey == 'asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_asin = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_asin like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'sku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_sku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_sku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'isku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.isku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.isku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'site_group'){
+                $where .= " AND report.area_id = " . intval($searchVal);
+            }else if($searchKey == 'channel_id'){
+                $where .= " AND report.channel_id = " . intval($searchVal);
+            }else if($searchKey == 'site_id'){
+                $where .= " AND report.site_id = " . intval($searchVal) ;
+            }else if($searchKey == 'class1'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_product_category_name_1 = '" . $searchVal . "'" ;
+                }else{
+                    if (strpos($searchVal,'&') !== false){
+                        $str_arr = explode("&",$searchVal);
+                        foreach ($str_arr as $v){
+                            $where .= " AND report.goods_product_category_name_1 like '%" . $v . "%'" ;
+                        }
+                    }else{
+                        $where .= " AND report.goods_product_category_name_1 like '%" . $searchVal . "%'" ;
+
+                    }
+                }
+            }else if($searchKey == 'group'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_group_name = '".$searchVal."' " ;
+                }else{
+                    $where .= " AND report.goods_group_name like '%".$searchVal."%' " ;
+                }
+
+            }else if($searchKey == 'tags'){
+                if($matchType == 'eq'){
+                    $where .= " AND gtags.tag_name = '".$searchVal."' " ;
+                }else {
+                    $where .= " AND gtags.tag_name like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'operators'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.operation_user_admin_name = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.operation_user_admin_name like '%" . $searchVal . "%'" ;
+                }
+            }else if($searchKey == 'title')
+            {
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_title = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND LOWER(report.goods_title) like '%" . strtolower($searchVal) . "%'";
+                }
+            }
+
+        }
+        return $where;
     }
 
     public function getGoodsViewsVisitRate($lists, $fields, $datas,$isMysql = false,$table = ''){
