@@ -55,6 +55,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_dws_idm_category01_topn_kpi' => 'dws.dws_dataark_idm_category01_topn_kpi',
         'table_dws_idm_category02_topn_kpi' => 'dws.dws_dataark_idm_category02_topn_kpi',
         'table_dws_idm_category03_topn_kpi' => 'dws.dws_dataark_idm_category03_topn_kpi',
+
+        'table_dws_arkdata_category01_month' => 'dws.dws_arkdata_category01_month',
+        'table_dws_arkdata_category02_month' => 'dws.dws_arkdata_category02_month',
+        'table_dws_arkdata_category03_month' => 'dws.dws_arkdata_category03_month',
     ];
 
     protected $goodsCols = array(
@@ -558,13 +562,17 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $new_group = stristr($group," having ",true);
             foreach($compare_data as $c=>$cdata){
                 $k = $c+1 ;
-                if(!empty($cdata['new_table'])){
+                if(!empty($cdata['industry_table'])){
+                    $newTables[] = " industry_table AS ( {$cdata['industry_table']} ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table ON {$cdata['on']} " ;
+                }elseif(!empty($cdata['new_table'])){
                     $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
                 }else{
                     $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
                 }
 
-                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
                 if(!empty($cdata['where'])){
                     $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
                 }
@@ -924,12 +932,16 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $new_group =  preg_replace("/ having.*/i","",$group);
         foreach($compare_data as $c=>$cdata){
             $k = $c+1 ;
-            if(!empty($cdata['new_table'])){
+            if(!empty($cdata['industry_table'])){
+                $newTables[] = " industry_table AS ( {$cdata['industry_table']} ) "  ;
+                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table ON {$cdata['on']} " ;
+            }elseif(!empty($cdata['new_table'])){
                 $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
+                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
             }else{
                 $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
+                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
             }
-            $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
             if(!empty($cdata['where'])){
                 $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
             }

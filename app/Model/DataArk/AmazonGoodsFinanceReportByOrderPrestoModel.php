@@ -342,41 +342,57 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $on_key = 1 ;
 
         foreach($datas['compare_data'] as $ck => $compare_data)   {
-            $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
-            $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
-            $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
-
-            $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
-            if($type == '0'){ // 获取店铺维度字段
-                $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
-            }else if ($type == '1'){ // 获取商品维度字段
-                $compare_fields_arr = $this->getGoodsFields($newDatas) ;
-            }else{  //获取运营人员维度字段
-                $compare_fields_arr = $this->getOperatorsFields($newDatas);
-                //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
-               $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
-                if ($datas['currency_code'] != 'ORIGIN') {
-                    if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                        $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-                    } else {
-                        $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
-                    }
-                    $datas['compare_data'][$ck]['new_table'] = $new_table ;
+            if($compare_data['target'] == 'industry'){
+                if($compare_data['category_level'] == 1){
+                    $compare_on = ['site_id','goods_product_category_name_1'] ;
+                }elseif($compare_data['category_level'] == 2){
+                    $compare_on = ['site_id','goods_product_category_name_1','goods_product_category_name_2'] ;
+                }else{
+                    $compare_on = ['site_id','goods_product_category_name_1','goods_product_category_name_2','goods_product_category_name_3'] ;
                 }
-            }
-            $datas['compare_data'][$ck]['fields'] = $compare_fields_arr['fields'] ;
-
-            //拼接对比表条件 及连表 ON 条件
-            if($type == '2'){
-                $compareWhere = $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+                $day_type = $compare_data['time_type'] == 3 ? 1 : ($compare_data['time_type'] == 4 ? 2 : 3);
+                $datas['compare_data'][$ck]['industry_table'] = $this->compareDataSql($compare_data['category_level'] , $day_type ,1 ,$compare_data['topn'] ,3 ,$compare_data['type'] ,$exchangeCode);
+                $compare_on_arr = [] ;
+                foreach($compare_on as $con){
+                    $compare_on_arr[] = 'origin_table.'.$con . ' = industry_table.'.$con ;
+                }
             }else{
-                $compareWhere = $ym_where . ' AND ' . $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
-            }
+                $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
+                $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
+                $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
 
-            $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
-            $compare_on_arr = [] ;
-            foreach($compare_on as $con){
-                $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.compare'.$on_key.'_'.$con ;
+                $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
+                if($type == '0'){ // 获取店铺维度字段
+                    $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
+                }else if ($type == '1'){ // 获取商品维度字段
+                    $compare_fields_arr = $this->getGoodsFields($newDatas) ;
+                }else{  //获取运营人员维度字段
+                    $compare_fields_arr = $this->getOperatorsFields($newDatas);
+                    //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
+                    $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
+                    if ($datas['currency_code'] != 'ORIGIN') {
+                        if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                        } else {
+                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+                        }
+                        $datas['compare_data'][$ck]['new_table'] = $new_table ;
+                    }
+                }
+                $datas['compare_data'][$ck]['fields'] = $compare_fields_arr['fields'] ;
+
+                //拼接对比表条件 及连表 ON 条件
+                if($type == '2'){
+                    $compareWhere = $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+                }else{
+                    $compareWhere = $ym_where . ' AND ' . $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+                }
+
+                $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
+                $compare_on_arr = [] ;
+                foreach($compare_on as $con){
+                    $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.compare'.$on_key.'_'.$con ;
+                }
             }
             $on_key++ ;
             $datas['compare_data'][$ck]['on'] = implode(' AND ' , $compare_on_arr) ;
@@ -440,10 +456,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     //where
                     if(!empty($custom_target_item['formula']) && !empty($custom_target_item['value'])){
-                        if (strpos($custom_target_item['value'], '%') !== false) {
-                            $custom_target_item['value'] = round($custom_target_item['value'] / 100, 4);
+                        if($custom_target_item['value'] == 'category_result_data'){
+                            $custom_set_where[] = '(' .  $field_str . $avg . ') ' . $custom_target_item['formula'] . 'industry_table.' .$custom_target_item['value'];
+                        }else{
+                            if (strpos($custom_target_item['value'], '%') !== false) {
+                                $custom_target_item['value'] = round($custom_target_item['value'] / 100, 4);
+                            }
+                            $custom_set_where[] = '(' .  $field_str . $avg . ') ' . $custom_target_item['formula'] . $custom_target_item['value'];
                         }
-                        $custom_set_where[] = '(' .  $field_str . $avg . ') ' . $custom_target_item['formula'] . $custom_target_item['value'];
                     }
 
                     //order by
@@ -12281,5 +12301,86 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             return true;
         }
         return false;
+    }
+
+    /**
+     * function compareDataSql 获取行业增长值/率sql
+     * @param int $category_level 类目层级 1-一级类目 2-二级类目 3-三级类目
+     * @param int $day_type 时间类型 1-昨天 2-近7天 3-近30天
+     * @param int $top_num
+     * @param int $target_type 查询指标类型 1-销量 2-销售额
+     * @param int $data_type 取值类型 1-取平均值 2-取临界节点值 3-取总量
+     * @param int $result_type 获取数据类型 1-增量 2-增速
+     * @param float $exchangeCode 人民币转站点币汇率
+     * @author: LWZ
+     */
+
+    public function compareDataSql($category_level = 3 , $day_type = 1 ,  $target_type = 1 ,$top_num = 25  , $data_type = 1 ,$result_type = 1 ,$exchangeCode = 1.0){
+        if($category_level == '1'){
+            $table = $this->table_dws_idm_category01_topn_kpi ;
+            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1' ;
+            $result_field = 'category_table1.site_id, category_table1.product_category_name_1 as goods_product_category_name_1' ;
+        }else if($category_level == '2'){
+            $table = $this->table_dws_idm_category02_topn_kpi ;
+            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2' ;
+            $result_field = 'category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2' ;
+        }else if($category_level == '3'){
+            $table = $this->table_dws_idm_category03_topn_kpi ;
+            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2 AND category_table1.product_category_name_3 = category_table2.product_category_name_3' ;
+            $result_field = "category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2, category_table1.product_category_name_3 as goods_product_category_name_3" ;
+        }
+
+        $origin_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day")) ."'" ;
+        if($day_type == '1'){
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 1 * 24* 3600 ) ."'" ;
+            if($data_type == '1'){//取平均值
+                $target = '01day_top'.$top_num."_avg" ;
+            }elseif($data_type == '2'){  //取临界节点点值
+                $target = '01day_critical_top'.$top_num ;
+            }else{ //取总值
+                $target = '01day_top'.$top_num ;
+            }
+        }else if($data_type == '2' ){
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 7 * 24* 3600 ) ."'" ;
+            if($data_type == '1'){//取平均值
+                $target = '07day_top'.$top_num."_avg" ;
+            }elseif($data_type == '2'){  //取临界节点点值
+                $target = '07day_critical_top'.$top_num ;
+            }else{ //取总值
+                $target = '07day_top'.$top_num ;
+            }
+        }else if($data_type == '3'){
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 30 * 24* 3600 ) ."'" ;
+            if($data_type == '1'){//取平均值
+                $target = '30day_top'.$top_num."_avg" ;
+            }elseif($data_type == '2'){  //取临界节点点值
+                $target = '30day_critical_top'.$top_num ;
+            }else{  //取总值
+                $target = '30day_top'.$top_num ;
+            }
+        }
+
+        if($target_type == '1'){
+            $target = 'sales_volume_' . $target . ' AS sales_volume';
+            if($result_type == '1'){
+                $result_field.= " , (COALESCE(category_table1.sales_volume,0) - COALESCE(category_table2.sales_volume,0)) AS category_result_data " ;
+            }else{
+                $result_field.= " , ((category_table1.sales_volume - category_table2.sales_volume) / nullif(category_table2.sales_volume,0) *1.0000 ) AS category_result_data " ;
+            }
+        }else if($target_type == '2'){
+            $target = 'sales_quota_'.$target.' * {:RATE} * 1.0000 AS sales_quota' ;
+            if($result_type == '1'){
+                $result_field.= " , (category_table1.sales_quota - category_table2.sales_quota) AS category_result_data " ;
+            }else{
+                $result_field.= " , ((category_table1.sales_quota - category_table2.sales_quota) / nullif(category_table2.sales_quota,0) *1.0000 ) AS category_result_data " ;
+            }
+        }
+        $target = str_replace("{:RATE}", $exchangeCode, $target);
+        $sql = " WITH category_table1 AS (SELECT {$target} , site_id , product_category_name_1 , product_category_name_2 , product_category_name_3 FROM {$table} WHERE {$origin_where} ) ,
+        category_table2 AS (SELECT {$target} , site_id , product_category_name_1 , product_category_name_2 , product_category_name_3 FROM {$table} WHERE {$compare_where} ) 
+        SELECT {$result_field} FROM category_table1 LEFT JOIN category_table2 ON {$on} 
+        " ;
+        return $sql ;
+
     }
 }
