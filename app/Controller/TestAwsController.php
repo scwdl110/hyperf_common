@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Lib\Redis;
 use Aws\Athena\AthenaClient;
 use Aws\Credentials\Credentials;
 use Aws\S3\S3Client;
@@ -18,6 +19,16 @@ class TestAwsController extends AbstractController
 {
 
     public function testAws(){
+
+        $redis = new Redis();
+
+        $mysql_finance_fields1 = $redis->get("mysql_finance_fields");
+        if (!empty($mysql_finance_fields1)){
+            $redis->set("mysql_finance_fields",$mysql_finance_fields1,1);
+
+        }
+        $mysql_finance_fields = $redis->get("mysql_finance_fields");
+        return [$mysql_finance_fields1,$mysql_finance_fields];
         $credentials = new Credentials('', '');
 //        $credentials = array(
 //            "key" => "",
