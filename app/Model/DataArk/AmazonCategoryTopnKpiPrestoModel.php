@@ -49,6 +49,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
         $category_level = $tab_type == 2 ? $category_level + 1 : $category_level;
         $category_name_str = !empty($son) ? implode("','",array_values(array_column($son,'category_name'))) : [];
+        $fields = [];
         if($category_level == 1){
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category01_topn_kpi} AS report" ;
@@ -62,6 +63,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                 $site_id
             );
             $group = "report.product_category_name_1,report.site_id";
+            $fields['product_category_name'] = "report.product_category_name_1";
         }elseif($category_level == 2){
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category02_topn_kpi} AS report" ;
@@ -86,6 +88,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                 );
             }
             $group = "report.product_category_name_2,report.site_id";
+            $fields['product_category_name'] = "report.product_category_name_2";
         }else{
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category03_topn_kpi} AS report" ;
@@ -112,6 +115,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                 );
             }
             $group = "report.product_category_name_3,report.site_id";
+            $fields['product_category_name'] = "report.product_category_name_3";
         }
 
         $fields = $this->getIndustryFields($params);

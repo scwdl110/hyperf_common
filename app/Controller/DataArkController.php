@@ -430,8 +430,14 @@ class DataArkController extends AbstractController
         $params = $req['params'] ?? [];
         $target = trim($params['target'] ?? '');
         $timeType = intval($params['time_type'] ?? 0);
-        $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
-        $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
+        $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
+        if($count_periods == 2){
+            $searchStartTime = trim(date('Y-m',strtotime($params['search_start_time'] ?? '')));
+            $searchEndTime = trim(date('Y-m',strtotime($params['search_end_time'] ?? '')));
+        }else{
+            $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
+            $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
+        }
         $offset = ($page - 1) * $limit;
         $result = ['lists' => [], 'count' => 0];
         $where = '';
