@@ -424,6 +424,8 @@ class DataArkController extends AbstractController
         $req = $this->request->all();
         $page = intval($req['page'] ?? 1);
         $limit = intval($req['rows'] ?? 100);
+        $tab_type = intval($req['tab_type'] ?? 1); //1-行业趋势 2-行业构成
+        $son = $req['son'] ?? []; //子级类目
         $currencyInfo = $req['currencyInfo'] ?? [];
         $exchangeCode = $req['exchangeCode'] ?? '1';
         $params = $req['params'] ?? [];
@@ -436,6 +438,10 @@ class DataArkController extends AbstractController
         $where = '';
 
         if(empty($target)){
+            return Result::success($result);
+        }
+
+        if($tab_type == 2 && empty($son)){
             return Result::success($result);
         }
 
@@ -458,9 +464,7 @@ class DataArkController extends AbstractController
             $where,
             $params,
             $limit,
-            $currencyInfo,
-            $exchangeCode,
-            $userInfo['user_id']
+            $exchangeCode
         );
 
         if (!isset($result['lists'])) {

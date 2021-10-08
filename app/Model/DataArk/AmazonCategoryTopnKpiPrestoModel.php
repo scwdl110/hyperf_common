@@ -37,16 +37,18 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $where = '',
         $params = [],
         $limit = '',
-        array $currencyInfo = [],
-        $exchangeCode = '1',
-        int $userId = 0
+        $exchangeCode = '1'
     ) {
         $category_level = intval($params['category_level'] ?? 1);//1-一级类目 2-二级类目 3-三级类目
         $product_category_name_1 = trim($params['product_category_name_1'] ?? '');//一级类目名称
         $product_category_name_2 = trim($params['product_category_name_2'] ?? '');//二级类目名称
         $product_category_name_3 = trim($params['product_category_name_3'] ?? '');//三级类目名称
+        $son = $params['son'] ?? [];//子级类目
+        $tab_type = intval($params['tab_type'] ?? 1);//1-行业趋势 2-行业构成
         $site_id = intval($params['site_id'] ?? 0);//站点id
         $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
+        $category_level = $tab_type == 2 ? $category_level + 1 : $category_level;
+        $category_name_str = !empty($son) ? implode("','",array_values(array_column($son,'category_name'))) : [];
         if($category_level == 1){
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category01_topn_kpi} AS report" ;
@@ -59,33 +61,57 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                 trim($product_category_name_1),
                 $site_id
             );
+            $group = "report.product_category_name_1,report.site_id";
         }elseif($category_level == 2){
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category02_topn_kpi} AS report" ;
             }else{
                 $table = "{$this->table_dws_arkdata_category02_month} AS report" ;
             }
-            $where .= sprintf(
-                "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.site_id=%d",
-                $where ? ' AND' : '',
-                trim($product_category_name_1),
-                trim($product_category_name_2),
-                $site_id
-            );
+            if($tab_type == 2){
+                $where .= sprintf(
+                    "%s report.product_category_name_1='%s' AND %s report.product_category_name_2 IN ('%s') AND report.site_id=%d",
+                    $where ? ' AND' : '',
+                    trim($product_category_name_1),
+                    trim($category_name_str),
+                    $site_id
+                );
+            }else {
+                $where .= sprintf(
+                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.site_id=%d",
+                    $where ? ' AND' : '',
+                    trim($product_category_name_1),
+                    trim($product_category_name_2),
+                    $site_id
+                );
+            }
+            $group = "report.product_category_name_2,report.site_id";
         }else{
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category03_topn_kpi} AS report" ;
             }else{
                 $table = "{$this->table_dws_arkdata_category03_month} AS report" ;
             }
-            $where .= sprintf(
-                "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s' AND report.site_id=%d",
-                $where ? ' AND' : '',
-                trim($product_category_name_1),
-                trim($product_category_name_2),
-                trim($product_category_name_3),
-                $site_id
-            );
+            if($tab_type == 2){
+                $where .= sprintf(
+                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND %s report.product_category_name_3 IN ('%s') AND report.site_id=%d",
+                    $where ? ' AND' : '',
+                    trim($product_category_name_1),
+                    trim($product_category_name_2),
+                    trim($category_name_str),
+                    $site_id
+                );
+            }else {
+                $where .= sprintf(
+                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s' AND report.site_id=%d",
+                    $where ? ' AND' : '',
+                    trim($product_category_name_1),
+                    trim($product_category_name_2),
+                    trim($product_category_name_3),
+                    $site_id
+                );
+            }
+            $group = "report.product_category_name_3,report.site_id";
         }
 
         $fields = $this->getIndustryFields($params);
@@ -104,13 +130,20 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = "report.dt ASC";
-        $count = $this->count($where, $table);
-        $lists = $this->select($where, $field_data, $table, $limit,$orderby);
+
+        if(!empty($params['compare_data'])){
+            $compareData = $this->getCompareDatas($params , $exchangeCode ) ;
+        }else{
+            $compareData = array();
+        }
+
+//        $count = $this->count($where, $table);
+        $lists = $this->select($where, $field_data, $table, $limit,$orderby,$group, false , null, 300, false,$compareData);
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
         $logger->info('getListByGoods Request', [$this->getLastSql()]);
 
         $rt['lists'] = empty($lists) ? array() : $lists;
-        $rt['count'] = intval($count);
+//        $rt['count'] = intval($count);
         return $rt;
     }
 
@@ -122,26 +155,36 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $countPeriods = intval($datas['count_periods'] ?? 1);//1-按日 2-按月
         $periodsDay = intval($datas['periods_day'] ?? 1);//1-当天 7-过去7天 30-过去30天
         $data_type = intval($datas['data_type'] ?? 1);// 1-临界点 2-平均 3-指数
+        $is_count = intval($datas['is_count'] ?? 0);// 总计
+        if($countPeriods == 1){
+            $time_diff = strtotime($datas['search_start_time']) - strtotime($datas['search_end_time']);
+            $time_diff = $time_diff / 86400;
+        }else{
+            $time_diff = $this->getMonthNum($datas['search_start_time'],$datas['search_end_time']);
+        }
+        $time_diff = $time_diff == 0 ? 1 : $time_diff;
         $periodsDay = $periodsDay < 10 ? str_pad($periodsDay,2,"0",STR_PAD_LEFT) : $periodsDay;
 
         $fields['time'] = "report.dt";
 
         $topNs = explode(',',$topNs);
+        $filed_prefix = $is_count ? "SUM(" : "";
+        $filed_suffix = $is_count ? ($data_type == 2 ? ") / {$time_diff}" : ")") : "";
         foreach ($topNs as $top){
             if (in_array('sale_sales_volume', $targets)) {  // 销量
                 if($countPeriods == 1){
                     if($data_type == 1){
                         $fields['sale_sales_volume_'.$top] = "report.sales_volume_{$periodsDay}day_critical_top{$top}";
                     }elseif($data_type == 2){
-                        $fields['sale_sales_volume_'.$top] = "report.sales_volume_{$periodsDay}day_top{$top}_avg";
+                        $fields['sale_sales_volume_'.$top] = $filed_prefix . "report.sales_volume_{$periodsDay}day_top{$top}_avg" . $filed_suffix;
                     }else{
-                        $fields['sale_sales_volume_'.$top] = "report.sales_volume_{$periodsDay}day_top{$top} * {$this->coefficient}";
+                        $fields['sale_sales_volume_'.$top] = $filed_prefix . "report.sales_volume_{$periodsDay}day_top{$top} * {$this->coefficient}" . $filed_suffix;
                     }
                 }else{
                     if($data_type == 2){
-                        $fields['sale_sales_volume_'.$top] = "report.sales_volume_top{$top}_avg_months";
+                        $fields['sale_sales_volume_'.$top] = $filed_prefix . "report.sales_volume_top{$top}_avg_months" . $filed_suffix;
                     }else{
-                        $fields['sale_sales_volume_'.$top] = "report.sales_volume_top{$top}_months * {$this->coefficient}";
+                        $fields['sale_sales_volume_'.$top] = $filed_prefix . "report.sales_volume_top{$top}_months * {$this->coefficient}" . $filed_suffix;
                     }
                 }
             }
@@ -150,15 +193,15 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                     if ($data_type == 1) {
                         $fields['sale_sales_quota_'.$top] = "report.sales_quota_{$periodsDay}day_critical_top{$top} * {:RATE}";
                     } elseif ($data_type == 2) {
-                        $fields['sale_sales_quota_'.$top] = "report.sales_quota_{$periodsDay}day_top{$top}_avg * {:RATE}";
+                        $fields['sale_sales_quota_'.$top] = $filed_prefix . "report.sales_quota_{$periodsDay}day_top{$top}_avg" . $filed_suffix ." * {:RATE}";
                     } else {
-                        $fields['sale_sales_quota_'.$top] = "report.sales_quota_{$periodsDay}day_top{$top} * {$this->coefficient} * {:RATE}";
+                        $fields['sale_sales_quota_'.$top] = $filed_prefix . "report.sales_quota_{$periodsDay}day_top{$top} * {$this->coefficient}" . $filed_suffix ." * {:RATE}";
                     }
                 }else{
                     if($data_type == 2){
-                        $fields['sale_sales_volume_'.$top] = "report.sales_quota_top{$top}_avg_months";
+                        $fields['sale_sales_quota_'.$top] = $filed_prefix . "report.sales_quota_top{$top}_avg_months" . $filed_suffix ." * {:RATE}";
                     }else{
-                        $fields['sale_sales_volume_'.$top] = "report.sales_quota_top{$top}_months * {$this->coefficient}";
+                        $fields['sale_sales_quota_'.$top] = $filed_prefix . "report.sales_quota_top{$top}_months * {$this->coefficient}" . $filed_suffix ." * {:RATE}";
                     }
                 }
             }
@@ -166,7 +209,122 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         return $fields;
     }
 
+    /**
+     * Function getMonthNum
+     * @desc:计算两个日期相差几个月
+     * @author: 林志敏
+     * @editTime: 2021年10月8日 0008 上午 09:45:23
+     * @param $date1
+     * @param $date2
+     * @return float|int
+     */
+    public function getMonthNum($date1,$date2){
+        $date1_stamp=strtotime($date1);
+        $date2_stamp=strtotime($date2);
+        list($date_1['y'],$date_1['m'])=explode("-",date('Y-m',$date1_stamp));
+        list($date_2['y'],$date_2['m'])=explode("-",date('Y-m',$date2_stamp));
+        return abs(($date_2['y']-$date_1['y'])*12 +$date_2['m']-$date_1['m']);
+    }
 
+    public function getCompareDatas($datas ,$exchangeCode = 1){
+        if(empty($datas['compare_data'])){
+            return [] ;
+        }
+
+        $newDatas = $datas ;
+        $on_key = 1 ;
+
+        $compare_on = [];
+        foreach($datas['compare_data'] as $ck => $compare_data)   {
+            $datas['compare_data'][$ck]['fields'] = $this->getIndustryFields($newDatas) ;
+
+            //拼接对比表条件 及连表 ON 条件
+            $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}'";
+
+            $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
+            $compare_on_arr = [] ;
+            foreach($compare_on as $con){
+                $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.compare'.$on_key.'_'.$con ;
+            }
+            $on_key++ ;
+            $datas['compare_data'][$ck]['on'] = implode(' AND ' , $compare_on_arr) ;
+        }
+
+        //处理对比数据 - 获取对比数据需要查询的字段
+        foreach($datas['compare_data'] as $ck2 => $compare_data)   {
+            if(!empty($compare_data['fields'])){
+                $compare_fields_arr = array() ;
+                $renames = empty($compare_data['rename']) ? [] : explode(',',$compare_data['rename']) ;
+                $renameArr = [] ;
+                $compare_target = explode(',' , $compare_data['target']) ;
+                if(!empty($renames)){
+                    foreach($compare_target as $ctk =>$ct){
+                        $renameArr[$ct] = empty($renames[$ctk]) ? false : $renames[$ctk] ;
+                    }
+                }
+                $i = 1 ;
+                foreach($compare_data['fields'] as $compare_field_name => $compare_field){
+                    if(in_array($compare_field_name , $compare_target)){
+                        $compare_field_name2 = empty($renameArr[$compare_field_name]) ? ('compare'.($ck2+1).'_'.$compare_field_name) : $renameArr[$compare_field_name] ;
+                        $compare_fields_arr[] = $compare_field . ' AS "' . $compare_field_name2 . '"';
+                        $i++ ;
+                    }else{
+                        $compare_fields_arr[] = $compare_field . ' AS "compare'.($ck2+1).'_'.$compare_field_name . '"';
+                    }
+                }
+                $compare_field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $compare_fields_arr));//去除
+                $datas['compare_data'][$ck2]['field_data'] =  $compare_field_data ;
+                unset($datas['compare_data'][$ck2]['fields']) ;
+            }
+        }
+
+        //最终获取自定义字段拼接
+        if(!empty($datas['compare_data'][0]['custom_target_set'])){
+            $datas['compare_data'][0]['custom_target'] = [];
+            $custom_set_order = $custom_set_where = [];
+            foreach($datas['compare_data'][0]['custom_target_set'] as $custom_target_item){
+                $compare_table = !empty($custom_target_item['compare_table']) ? explode(',',$custom_target_item['compare_table']) : [];
+                $field_arr = [];
+                if($compare_table){
+                    //fields
+                    $avg = (!empty($custom_target_item['avg']) && (int)$custom_target_item['avg'] > 1) ? " / {$custom_target_item['avg']}" : '';//取的字段表
+                    foreach($compare_table as $table_key => $table_item){
+                        $table_item = $table_item == '-1' ? $table_item : (int)$table_item + 1;
+                        $table_str = $table_item == '-1' ? 'origin_table.' : "compare_table{$table_item}.";//取的字段表
+                        $target_prefix = $table_item == '-1' ? '' : "compare{$table_item}_";//取的字段表
+                        $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . '_' . $custom_target_item['topn'] . $avg . ')';
+                    }
+                    if($custom_target_item['type'] == 1){
+                        if(!empty($field_arr[1])){
+                            $field_str = "({$field_arr[0]} - {$field_arr[1]})";
+                        }else{
+                            $field_str = "{$field_arr[0]}";
+                        }
+                    }else{
+                        $field_str = "({$field_arr[0]} - {$field_arr[1]}) / nullif({$field_arr[1]},0)";
+                    }
+                    $datas['compare_data'][0]['custom_target'][] = $field_str . " as {$custom_target_item['rename']}";
+
+                    //where
+                    if(!empty($custom_target_item['formula']) && !empty($custom_target_item['value'])){
+                        if (strpos($custom_target_item['value'], '%') !== false) {
+                            $custom_target_item['value'] = round($custom_target_item['value'] / 100, 4);
+                        }
+                        $custom_set_where[] = '(' .  $field_str . $avg . ') ' . $custom_target_item['formula'] . $custom_target_item['value'];
+                    }
+
+                    //order by
+                    if(!empty($custom_target_item['sort'])){
+                        $custom_set_order[] = $field_str . $avg . " {$custom_target_item['sort']}";
+                    }
+                }
+            }
+            $datas['compare_data'][0]['where'] = !empty($custom_set_where) ? implode(' AND ',$custom_set_where) : [];
+            $datas['compare_data'][0]['order'] = !empty($custom_set_order) ? implode(',',$custom_set_order) : [];
+        }
+
+        return $datas['compare_data'] ;
+    }
 
 
 
