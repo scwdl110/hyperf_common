@@ -181,6 +181,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     protected $operate_channel_amazon_order_fee = " +report.bychannel_reserved_field44 ";
     protected $operate_profit = " +report.bychannel_reserved_field44 + report.bychannel_reserved_field43 ";
 
+    protected $time_periods_field = [
+        "key"           => '',
+        "molecule"      => '',
+        "denominator"   => '',
+    ];
+
     /**
      * function getCompareDatas
      * desc: 获取比较数据字段 的 字段名， 条件 ， 连表条件
@@ -508,17 +514,27 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ) {
         $datas['method'] = "getListByGoods";
         $isMysql = $this->getIsMysql($datas);
+        $searchKey = $datas['searchKey'] ?? '';
+        $searchVal = $datas['searchVal'] ?? '';
+        $matchType = $datas['matchType'] ?? '';
+        $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
+        $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
+
         $this->tax_field = $this->getRemoveTaxField($datas);
         $datas['is_month_table'] = 0;
         if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_goods_day_report}" ;
+            $dws_table = $this->table_dws_goods_day_report;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
             $table = "{$this->table_goods_week_report}" ;
+            $dws_table = $this->table_dws_goods_day_report;
         }else if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
             $table = "{$this->table_goods_month_report}" ;
+            $dws_table = $this->table_dws_goods_month_report;
             $datas['is_month_table'] = 1;
         }else if($datas['cost_count_type'] == 2 ){
             $table = "{$this->table_goods_month_report}" ;
+            $dws_table = $this->table_dws_goods_month_report;
             $datas['is_month_table'] = 1;
         }else{
             return [];
@@ -563,15 +579,42 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($fields)) {
             return [];
         }
+        $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
+
+        if ($datas['show_type'] != 2 && !$isMysql && $datas['show_type'] > 0 && $datas['is_new_index'] == 1 && in_array($this->time_periods_field['key'],array('fba_sales_refund','sales_refund'))){
+            $time_periods_other_field = '';
+            if (!empty($this->time_periods_field['molecule'])){
+                $time_periods_other_field .= ",({$this->time_periods_field['molecule']}) as {$this->time_periods_field['key']}_molecule";
+            }
+            if (!empty($this->time_periods_field['denominator'])){
+                $time_periods_other_field .= ",({$this->time_periods_field['denominator']}) as {$this->time_periods_field['key']}_denominator";
+            }
+            foreach ($fields as $field_name => $field) {
+
+                if (!empty($this->time_periods_field['denominator'])){
+                    $fields[$field_name] = str_replace($this->time_periods_field['denominator'],"{$this->time_periods_field['key']}_denominator", $field);
+                }
+                if (!empty($this->time_periods_field['molecule'])){
+                    $fields[$field_name] = str_replace($this->time_periods_field['molecule'],"{$this->time_periods_field['key']}_molecule", $field);
+                }
+
+            }
+            $table = str_replace($dws_table,'(SELECT  report.user_id  AS "user_id",report.amazon_goods_id AS "goods_id",report.site_id AS "site_country_id",report.channel_id  AS "channel_id",report.available  AS "available",report.site_id  AS "site_id",report.user_id_mod  AS "user_id_mod",report.amazon_goods_id  AS "amazon_goods_id",report.ym  AS "ym",report.create_time as "create_time" '.$time_periods_other_field.' FROM  '.$dws_table.' as report where '.($ym_where).' AND report.available = 1 AND report.user_id_mod = '.$this->getUserIdMod($datas['user_id']).' AND '.$datas['origin_report_where'].')  ' ,$table);
+
+        }
 
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+        }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
+            $orderby = " max(report.create_time) {$datas['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
             $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
         }
+        $orderbyTmp = $orderby;
+
 
         $rt = array();
         $fields_arr = array();
@@ -592,7 +635,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
 
-        $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
         if ($datas['currency_code'] != 'ORIGIN') {
@@ -841,6 +883,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
+        if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
+        }
+
         if (!empty($where_detail)) {
             if (!empty($where_detail['transport_mode'])) {
                 if(!is_array($where_detail['transport_mode'])){
@@ -874,7 +920,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND report.goods_group_id = 0 ";
                 }
             }
-            if (!empty($where_detail['operators_id'])) {
+            if (!empty($where_detail['operators_id'])  or (isset($where_detail['operators_id']) && ($where_detail['operators_id'] === '0' or $where_detail['operators_id'] === 0))) {
                 if(is_array($where_detail['operators_id'])){
                     $operators_str = implode(',', $where_detail['operators_id']);
                 }else{
@@ -3563,12 +3609,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             } else if ($time_target == 'sale_refund_rate') {  //退款率
-                if ($datas['refund_datas_origin'] == '1') {
-                    $fields['count_total'] = "sum(report.byorder_refund_num) * 1.0000 / nullif(SUM(report.byorder_sales_volume + report.byorder_group_id),0)";
-                    $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000 ", "report.byorder_sales_volume + report.byorder_group_id");
-                } elseif ($datas['refund_datas_origin'] == '2') {
-                    $fields['count_total'] = "sum(report.report_refund_num) * 1.0000 / nullif(SUM(report.report_sales_volume + report.report_group_id),0)";
-                    $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000", "report.report_sales_volume + report.report_group_id");
+                if ($datas['sale_datas_origin'] == '1') {
+                    if ($datas['refund_datas_origin'] == '1') {
+                        $fields['count_total'] = "sum(report.byorder_refund_num) * 1.0000 / nullif(SUM((report.byorder_sales_volume + report.byorder_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000", "(report.byorder_sales_volume+ report.byorder_group_id)");
+                    } elseif ($datas['refund_datas_origin'] == '2') {
+                        $fields['count_total'] = "sum(report.report_refund_num) * 1.0000 / nullif(SUM((report.byorder_sales_volume+ report.byorder_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000 ", "(report.byorder_sales_volume+ report.byorder_group_id)");
+                    }
+                } else {
+                    if ($datas['refund_datas_origin'] == '1') {
+                        $fields['count_total'] = "sum(report.byorder_refund_num) * 1.0000  / nullif(SUM((report.report_sales_volume+ report.report_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorder_refund_num * 1.0000 ", "(report.report_sales_volume+ report.report_group_id)");
+                    } elseif ($datas['refund_datas_origin'] == '2') {
+                        $fields['count_total'] = "sum(report.report_refund_num) * 1.0000 / nullif(SUM((report.report_sales_volume+ report.report_group_id)),0)";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_refund_num * 1.0000 ", "(report.report_sales_volume+ report.report_group_id)");
+                    }
                 }
             } else if ($time_target == 'promote_discount') {  //promote折扣
                 if ($datas['finance_datas_origin'] == '1') {
@@ -5023,7 +5079,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $today = strtotime(date("Y-m-d"));
         $start_time = $today - 15*86400;
         //店铺级
-        if ($params['origin_create_start_time'] >= $start_time && $params['origin_create_end_time'] < ($today+86400) &&  in_array($params['count_dimension'],array("channel_id","site_id"))  && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
+        if ($params['origin_create_start_time'] >= ($start_time - 168 * 86400)  && $params['origin_create_end_time'] < ($today+86400) &&  in_array($params['count_dimension'],array("channel_id","site_id","all_channels"))  && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2) {
             $isMysql = true;
         }
         //商品级
@@ -5095,6 +5151,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ) {
         $fields = [];
         $isMysql = $this->getIsMysql($params);
+        $searchKey = $datas['searchKey'] ?? '';
+        $searchVal = $datas['searchVal'] ?? '';
+        $matchType = $datas['matchType'] ?? '';
+        $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
+        $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
+
         $this->tax_field = $this->getRemoveTaxField($params);
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         $target_template = $params['is_new_index'] == 1 ? 1 : 0;
@@ -5191,11 +5253,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $orderby = '';
         if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
             $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
+        }elseif ($params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
+            $orderby = " max(report.create_time) {$params['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $params['limit_num'] == 0 ) {
             $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
         }
+
+        $orderbyTmp = $orderby;
 
         $rt = $fields_arr = [];
         foreach ($fields as $field_name => $field) {
@@ -5365,6 +5431,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.user_id  ';
             }
 
+        }
+
+        if (isset($params['is_time_sort']) && $params['is_time_sort'] == 1 && !empty($orderbyTmp) && $params['count_periods'] > 0 && $params['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
 
         if (!empty($where_detail)) {
@@ -8000,6 +8070,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
+        $searchKey = $datas['searchKey'] ?? '';
+        $searchVal = $datas['searchVal'] ?? '';
+        $matchType = $datas['matchType'] ?? '';
+        $searchVal = self::escape(stripslashes($searchVal));
+        $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
         $this->tax_field = $this->getRemoveTaxField($datas);
         $datas['is_month_table'] = $this->is_month_table($datas)?1:0;
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
@@ -8037,11 +8112,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+        }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
+            $orderby = " max(report.create_time) {$datas['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
             $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
         }
+
+        $orderbyTmp = $orderby;
 
         $rt = array();
         $fields_arr = array();
@@ -8083,6 +8162,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
             }
         }
+        $orderbyTmp = $orderby;
         if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
             if($datas['count_periods'] == '4'){ //按季度
                 $group = 'report.goods_operation_user_admin_id , report.myear , report.mquarter ';
@@ -8098,6 +8178,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }else{
             $group = 'report.goods_operation_user_admin_id  ';
             $orderby = empty($orderby) ? ('report.goods_operation_user_admin_id ') : ($orderby . ' , report.goods_operation_user_admin_id');
+        }
+        if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
         $having = '';
         $where .= " AND report.goods_operation_user_admin_id > 0";
@@ -8124,6 +8207,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (!empty($having)) {
             $group .= " having " . $having;
+        }
+        if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
+            $orderby = $orderbyTmp;
         }
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
@@ -9137,7 +9223,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $time_fields = array();
         $time_fields_arr = array();
-        $operation_table_field = array();
+        $operation_table_field = array(
+            "goods_key"     => array(),
+            "channel_key"   => array(),
+        );
         foreach ($time_targets as $time_target) {
             if ($datas['is_new_index'] == 1){
                 if ($custom_target && $custom_target['target_type'] == 1) {
@@ -9155,7 +9244,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields_arr[$time_target] = $time_fields ;
                 } elseif (in_array($time_target, $keys)) {
                     $tempField = "report.monthly_sku_" . $new_target_keys[$time_target]['month_goods_field'];
-                    $operation_table_field['goods_key'][] = "monthly_sku_" . $custom_target['month_goods_field'];
+                    $operation_table_field['goods_key'][] = "monthly_sku_" . $new_target_keys[$time_target]['month_goods_field'];
                     //新增指标
                     if ($datas['currency_code'] != 'ORIGIN' && $new_target_keys[$time_target]['format_type'] == 4) {
                         $fields['count_total'] = "sum({$tempField} / COALESCE(rates.rate, 1) * {:RATE})";
@@ -9169,7 +9258,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $return_field = $this->handleNewIndexTimeField($datas,$fields,$time_target,3);
                     $fields['count_total'] = $return_field['count_total'];
-                    $operation_table_field = $return_field['operation_table_field'];
+                    $operation_table_field['goods_key'] = array_merge($operation_table_field['goods_key'],$return_field['operation_table_field']['goods_key']);
+                    $operation_table_field['channel_key'] = array_merge($operation_table_field['channel_key'],$return_field['operation_table_field']['channel_key']);
 
                     if (!empty($return_field['denominator'])){
                         $time_fields = $this->getTimeFields($time_line, $return_field['molecule'], $return_field['denominator']);
@@ -11519,6 +11609,85 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return false;
     }
 
+    public function getSearchValWhere($where,$searchKey,$searchVal,$matchType){
+        if(!empty($searchKey) && !empty($searchVal)){
+            //匹配方式 ：eq -> 全匹配  like-模糊匹配
+            if($searchKey == 'parent_asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_parent_asin = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.goods_parent_asin like '%" . $searchVal . "%'" ;
+                }
+            }else if($searchKey == 'asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_asin = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_asin like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'sku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_sku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_sku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'isku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.isku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.isku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'site_group'){
+                $where .= " AND report.area_id = " . intval($searchVal);
+            }else if($searchKey == 'channel_id'){
+                $where .= " AND report.channel_id = " . intval($searchVal);
+            }else if($searchKey == 'site_id'){
+                $where .= " AND report.site_id = " . intval($searchVal) ;
+            }else if($searchKey == 'class1'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_product_category_name_1 = '" . $searchVal . "'" ;
+                }else{
+                    if (strpos($searchVal,'&') !== false){
+                        $str_arr = explode("&",$searchVal);
+                        foreach ($str_arr as $v){
+                            $where .= " AND report.goods_product_category_name_1 like '%" . $v . "%'" ;
+                        }
+                    }else{
+                        $where .= " AND report.goods_product_category_name_1 like '%" . $searchVal . "%'" ;
+
+                    }
+                }
+            }else if($searchKey == 'group'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_group_name = '".$searchVal."' " ;
+                }else{
+                    $where .= " AND report.goods_group_name like '%".$searchVal."%' " ;
+                }
+
+            }else if($searchKey == 'tags'){
+                if($matchType == 'eq'){
+                    $where .= " AND gtags.tag_name = '".$searchVal."' " ;
+                }else {
+                    $where .= " AND gtags.tag_name like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'operators'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.operation_user_admin_name = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.operation_user_admin_name like '%" . $searchVal . "%'" ;
+                }
+            }else if($searchKey == 'title')
+            {
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_title = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND LOWER(report.goods_title) like '%" . strtolower($searchVal) . "%'";
+                }
+            }
+
+        }
+        return $where;
+    }
+
     public function getGoodsViewsVisitRate($lists, $fields, $datas,$isMysql = false,$table = ''){
         if ((empty($fields['goods_views_rate']) && empty($fields['goods_buyer_visit_rate']))){
             return array();
@@ -12040,7 +12209,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $field = $this->getFieldFromSql($params ,$isMysql);
         $count_total = $denominator = $molecule = '';
         if (isset($field[$targets])){
-
+            $this->time_periods_field['key'] = $targets;
             $field_rate =  $field[$targets]['format_type'] == 4 ? $rate : "";
 
             //店铺
@@ -12057,10 +12226,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $molecule    = $key_arr['molecule'];
                 }else{
                     $molecule = "(" . implode("", $field[$targets][$field_type_key]['molecule']) . "){$field_molecule_rate}";
+
                     $count_total = "SUM({$molecule})";
                     if (!empty($field[$targets][$field_type_key]['denominator'])){
                         $count_total .= "*1.0000/nullif(SUM((".implode("",$field[$targets][$field_type_key]['denominator'])."){$field_denominator_rate}),0)";
                         $denominator = "(".implode("",$field[$targets][$field_type_key]['denominator'])."){$field_denominator_rate}";
+
                     }
                 }
 
@@ -12092,7 +12263,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
 
         }
-
+        $this->time_periods_field['molecule']       = str_replace($rate,"",$molecule);
+        $this->time_periods_field['denominator']    = str_replace($rate,"",$denominator);;
         return ['count_total' => $count_total,'molecule' => $molecule,'denominator' => $denominator,'operation_table_field'=>$operation_table_field];
     }
 
@@ -12130,9 +12302,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return array
      */
     private function getFieldFromSql($params = array(),$isMysql = false){
-        $finance_index = FinanceIndexModel::get()->toArray();
-        $finance_index = array_column($finance_index,null,'id');
-        $sql_key_arr = FinanceIndexAssociatedSqlKeyModel::get()->toArray();
+        $mysql_fields   = $this->getFieldFromCache();
+        $finance_index  = $mysql_fields['finance_index'];
+        $sql_key_arr    = $mysql_fields['sql_key_arr'];
         $sql_key = array();
         $is_need_monthly_storage_fee = $this->getIsNeedMonthlyStorageFee($params);
         foreach ($sql_key_arr as $value){
@@ -12382,5 +12554,26 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         " ;
         return $sql ;
 
+    }
+
+    private function getUserIdMod($user_id){
+        return ($user_id % 20);
+    }
+
+    public function getFieldFromCache(){
+        $redis = new Redis();
+        $mysql_fields = $redis->get("mysql_finance_fields");
+        if (!is_array($mysql_fields) or empty($mysql_fields)){
+            $finance_index = FinanceIndexModel::get()->toArray();
+            $finance_index = array_column($finance_index,null,'id');
+            $sql_key_arr = FinanceIndexAssociatedSqlKeyModel::get()->toArray();
+            $mysql_fields['finance_index'] = $finance_index;
+            $mysql_fields['sql_key_arr'] = $sql_key_arr;
+            $redis->set("mysql_finance_fields",$mysql_fields);
+        }
+        $finance_index = $mysql_fields['finance_index'];
+        $sql_key_arr = $mysql_fields['sql_key_arr'];
+
+        return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr];
     }
 }
