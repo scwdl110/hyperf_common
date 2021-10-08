@@ -424,9 +424,8 @@ class DataArkController extends AbstractController
         $req = $this->request->all();
         $page = intval($req['page'] ?? 1);
         $limit = intval($req['rows'] ?? 100);
-        $tab_type = intval($req['tab_type'] ?? 1); //1-行业趋势 2-行业构成
+        $tab_type = intval($req['tab_type'] ?? 1); //1-取本级 2-取子级
         $son = $req['son'] ?? []; //子级类目
-        $currencyInfo = $req['currencyInfo'] ?? [];
         $exchangeCode = $req['exchangeCode'] ?? '1';
         $params = $req['params'] ?? [];
         $target = trim($params['target'] ?? '');

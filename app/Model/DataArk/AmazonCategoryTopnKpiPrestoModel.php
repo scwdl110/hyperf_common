@@ -44,7 +44,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $product_category_name_2 = trim($params['product_category_name_2'] ?? '');//二级类目名称
         $product_category_name_3 = trim($params['product_category_name_3'] ?? '');//三级类目名称
         $son = $params['son'] ?? [];//子级类目
-        $tab_type = intval($params['tab_type'] ?? 1);//1-行业趋势 2-行业构成
+        $tab_type = intval($params['tab_type'] ?? 1);//1-取本级 2-取子级
         $site_id = intval($params['site_id'] ?? 0);//站点id
         $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
         $category_level = $tab_type == 2 ? $category_level + 1 : $category_level;
