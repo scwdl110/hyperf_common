@@ -24,14 +24,6 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
     /**
      * 获取行业数据对比数据
-     * @param string $where
-     * @param array $params
-     * @param string $limit
-     * @param array $currencyInfo
-     * @param string $exchangeCode
-     * @param int $userId
-     * @return array
-     * @author: 林志敏
      */
     public function getIndustryTopnKpi(
         $where = '',
@@ -214,13 +206,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
     }
 
     /**
-     * Function getMonthNum
-     * @desc:计算两个日期相差几个月
-     * @author: 林志敏
-     * @editTime: 2021年10月8日 0008 上午 09:45:23
-     * @param $date1
-     * @param $date2
-     * @return float|int
+     * 计算两个日期相差几个月
      */
     public function getMonthNum($date1,$date2){
         $date1_stamp=strtotime($date1);
