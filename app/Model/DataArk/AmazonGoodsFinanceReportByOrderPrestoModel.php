@@ -4933,7 +4933,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $orderby = '';
         if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
             $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
-        }elseif ($params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
+        }elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
             $orderby = " max(report.create_time) {$params['sort_order']}";
         }
 
