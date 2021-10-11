@@ -561,7 +561,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $rt_where = '' ;
             $rt_order = '' ;
             //不需要having 之后的SQL
-            $new_group = stristr($group," having ",true);
+            $new_group =  preg_replace("/ having.*/i","",$group);
             foreach($compare_data as $c=>$cdata){
                 $k = $c+1 ;
                 if(!empty($cdata['industry_table'])){

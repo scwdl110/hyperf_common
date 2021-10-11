@@ -438,11 +438,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $datas['compare_data'][0]['custom_target'] = [];
             $custom_set_order = $custom_set_where = [];
             foreach($datas['compare_data'][0]['custom_target_set'] as $custom_target_item){
-                $compare_table = !empty($custom_target_item['compare_table']) ? explode(',',$custom_target_item['compare_table']) : [];
+                $compare_table = isset($custom_target_item['compare_table']) ? explode(',',$custom_target_item['compare_table']) : [];
                 $field_arr = [];
                 if($compare_table){
                     //fields
-                    $avg = (!empty($custom_target_item['avg']) && (int)$custom_target_item['avg'] > 1) ? " / {$custom_target_item['avg']}" : '';//取的字段表
+                    $avg = (!empty($custom_target_item['avg']) && (int)$custom_target_item['avg'] > 1) ? " * 1.0000 / {$custom_target_item['avg']}" : '';//取的字段表
                     foreach($compare_table as $table_key => $table_item){
                         $table_item = $table_item == '-1' ? $table_item : (int)$table_item + 1;
                         $table_str = $table_item == '-1' ? 'origin_table.' : "compare_table{$table_item}.";//取的字段表
@@ -456,19 +456,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $field_str = "{$field_arr[0]}";
                         }
                     }else{
-                        $field_str = "({$field_arr[0]} - {$field_arr[1]}) / nullif({$field_arr[1]},0)";
+                        $field_str = "({$field_arr[0]} - {$field_arr[1]}) * 1.0000 / nullif({$field_arr[1]},0)";
                     }
                     $datas['compare_data'][0]['custom_target'][] = $field_str . " as {$custom_target_item['rename']}";
 
                     //where
                     if(!empty($custom_target_item['formula']) && !empty($custom_target_item['value'])){
                         if($custom_target_item['value'] == 'category_result_data'){
-                            $custom_set_where[] = '(' .  $field_str . $avg . ') ' . $custom_target_item['formula'] . 'industry_table.' .$custom_target_item['value'];
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . 'industry_table.' .$custom_target_item['value'];
                         }else{
                             if (strpos($custom_target_item['value'], '%') !== false) {
-                                $custom_target_item['value'] = round($custom_target_item['value'] / 100, 4);
+                                $custom_target_item['value'] = round((float)$custom_target_item['value'] / 100, 4);
                             }
-                            $custom_set_where[] = '(' .  $field_str . $avg . ') ' . $custom_target_item['formula'] . $custom_target_item['value'];
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . $custom_target_item['value'];
                         }
                     }
 
@@ -8193,7 +8193,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if(!empty($fields[$target_where['key']])){
                         $where_value = $target_where['value'];
                         if (strpos($where_value, '%') !== false) {
-                            $where_value = round($where_value / 100, 4);
+                            $where_value = round((float)$where_value / 100, 4);
                         }
                         if (empty($having)) {
                             $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
