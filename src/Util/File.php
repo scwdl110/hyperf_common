@@ -85,4 +85,43 @@ class File {
         return $finalFileName;
     }
 
+
+    public function rawUpload($fileConfig, $file, $fileAttach=''){
+        if(!$file || !$fileConfig || !isset($fileConfig['url']) || !isset($fileConfig['region']) || !isset($fileConfig['bucket']) || !isset($fileConfig['key']) || !isset($fileConfig['secret'])){
+            $this->logger->error('file无参数');
+            return false;
+        }
+        $s3Client = new S3Client([
+            'version' => 'latest',
+            'region'  => $fileConfig['region'],
+            'credentials' => [
+                'key'    => $fileConfig['key'],
+                'secret' => $fileConfig['secret'],
+            ]
+        ]);
+
+        $source = fopen($file, 'rb');
+        $finalFileName = File::getFinalFileName($file, $fileAttach);
+
+
+        $content = fread($source,filesize($file));
+        fclose($source);
+
+        $s3Client->registerStreamWrapper();
+        $stream = fopen("s3://center/{$finalFileName}", 'wb');
+        $result = fwrite($stream, $content);
+        fclose($stream);
+        if($result){
+            $url = $fileConfig['url']."/".$finalFileName;
+            return [
+                'file_id' => 1,
+                'url'     => $url
+            ];
+        }else{
+            $this->logger->error('s3上传失败');
+            return false;
+        }
+
+    }
+
 }
