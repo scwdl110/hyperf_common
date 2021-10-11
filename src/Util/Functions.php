@@ -203,21 +203,4 @@ class Functions {
         }
     }
 
-    /**
-     * 获取服务器ip
-     * @return string
-     */
-    public static function getInternalIp(): string
-    {
-        $ips = swoole_get_local_ip();
-        if (is_array($ips) && ! empty($ips)) {
-            return current($ips);
-        }
-        /** @var mixed|string $ip */
-        $ip = gethostbyname(gethostname());
-        if (is_string($ip)) {
-            return $ip;
-        }
-        throw new \RuntimeException('Can not get the internal IP.');
-    }
 }
