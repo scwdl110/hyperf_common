@@ -512,6 +512,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
+        return ['lists' => ["hahaha"], 'count' => 11122];
         $datas['method'] = "getListByGoods";
         $isMysql = $this->getIsMysql($datas);
         $searchKey = $datas['searchKey'] ?? '';
