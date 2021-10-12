@@ -284,12 +284,12 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                         $target_prefix = $table_item == '-1' ? '' : "compare{$table_item}_";//取的字段表
                         $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . '_' . $custom_target_item['topn'] . $avg . ')';
                     }
-                    if(!empty($custom_target_item['type']) && $custom_target_item['type'] == 2){
-                        $field_str = "({$field_arr[0]} - {$field_arr[1]}) * 1.0000 / nullif({$field_arr[1]},0)";
-                    }else{
-                        if(!empty($field_arr[1])){
-                            $field_str = "({$field_arr[0]} - {$field_arr[1]})";
-                        }else{
+                    if (!empty($custom_target_item['type']) && $custom_target_item['type'] == 2) {
+                        $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN 1 ELSE ( {$field_arr[0]} - {$field_arr[1]} ) * 1.0000 / nullif({$field_arr[1]},0) END ) END ) END )";
+                    } else {
+                        if (!empty($field_arr[1])) {
+                            $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -{$field_arr[1]} ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN {$field_arr[0]} ELSE ( {$field_arr[0]} - {$field_arr[1]} ) END ) END ) END )";
+                        } else {
                             $field_str = "{$field_arr[0]}";
                         }
                     }
