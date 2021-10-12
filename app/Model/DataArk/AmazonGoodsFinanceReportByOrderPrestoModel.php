@@ -458,7 +458,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $field_str = "{$field_arr[0]}";
                         }
                     }
-                    $datas['compare_data'][0]['custom_target'][] = $field_str . " as {$custom_target_item['rename']}";
+                    $datas['compare_data'][0]['custom_target'][] = !empty($custom_target_item['rename']) ? $field_str . " as {$custom_target_item['rename']}" : $field_str;
 
                     //where
                     if(!empty($custom_target_item['formula']) && !empty($custom_target_item['value'])){
