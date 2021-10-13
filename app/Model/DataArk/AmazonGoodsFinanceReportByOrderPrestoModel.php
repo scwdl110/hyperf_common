@@ -2977,6 +2977,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }
 
+        if (in_array($datas['count_dimension'],['parent_asin','asin','sku']) && isset($datas['is_goods_details']) && $datas['is_goods_details'] == 1){
+            if ($isMysql){
+                $fields['goods_g_amazon_goods_id'] = "GROUP_CONCAT(DISTINCT amazon_goods.goods_g_amazon_goods_id)";
+                $fields['group_id'] = "GROUP_CONCAT(DISTINCT amazon_goods.goods_group_id)";
+                $fields['goods_operation_user_admin_id'] = "GROUP_CONCAT(DISTINCT amazon_goods.goods_operation_user_admin_id)";
+
+            }else{
+                $fields['goods_g_amazon_goods_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_g_amazon_goods_id), ',')";
+                $fields['group_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_group_id), ',')";
+                $fields['goods_operation_user_admin_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_operation_user_admin_id), ',')";
+            }
+        }
+
         if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
             if ($datas['currency_code'] == 'ORIGIN') {
                 $fields['goods_price_min'] = 'min(report.goods_price)';
