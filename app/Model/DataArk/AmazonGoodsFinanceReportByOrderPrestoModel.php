@@ -474,7 +474,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     //order by
                     if(!empty($custom_target_item['sort'])){
-                        $custom_set_order[] = $field_str . $avg . " {$custom_target_item['sort']}";
+                        $custom_set_order[] = $field_str . " {$custom_target_item['sort']}";
                     }
                 }
             }
