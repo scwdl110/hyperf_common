@@ -37,5 +37,6 @@ return [
         array('id' => 17, "name" => '沙特阿拉伯', "country_key" => "g_arabia", "currency_code" => "SAR", "currency_symbol" => "SAR", "code" => "SA", "site_group_id" => 2),
         array('id' => 18, "name" => '沙特阿拉伯', "country_key" => "g_singapore", "currency_code" => "SGD", "currency_symbol" => "S$", "code" => "SG", "site_group_id" => 6)
     ),
+    "big_selling_users" => env("BIG_SELLING_USERS","20567,323435,21,221336,281463,342133,98271,210568,313691,94952")
 
 ];
