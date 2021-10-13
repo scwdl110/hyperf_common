@@ -112,7 +112,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         }
 
         if(!$is_count){
-            $group .= ",report.dt";
+            $group .= $count_periods == 2 ? ",report.year_to_date" : ",report.dt";
         }
         $fields = $this->getIndustryFields($params);
         if (empty($fields)) {
@@ -129,7 +129,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
 
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
-        $orderby = "report.dt ASC";
+        $orderby = $count_periods == 2 ? "report.year_to_date ASC" : "report.dt ASC";
 
         if(!empty($params['compare_data'])){
             $compareData = $this->getCompareDatas($params , $exchangeCode ) ;
@@ -165,7 +165,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $time_diff = $time_diff == 0 ? 1 : $time_diff;
         $periodsDay = $periodsDay < 10 ? str_pad($periodsDay,2,"0",STR_PAD_LEFT) : $periodsDay;
 
-        $fields['time'] = "MAX(report.dt)";
+        $fields['time'] = $countPeriods == 2 ? "MAX(report.year_to_date)" : "MAX(report.dt)";
 
         $topNs = explode(',',$topNs);
         $filed_prefix = $is_count ? "SUM(" : "MAX(";
@@ -225,6 +225,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             return [] ;
         }
 
+        $count_periods = intval($datas['count_periods'] ?? 1);//1-按日 2-按月
         $newDatas = $datas ;
         $on_key = 1 ;
 
@@ -233,7 +234,11 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $datas['compare_data'][$ck]['fields'] = $this->getIndustryFields($newDatas) ;
 
             //拼接对比表条件 及连表 ON 条件
-            $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}'";
+            if($count_periods == 2){
+                $compareWhere = " report.year_to_date>= '{$compare_data['compare_start_time']}' and report.year_to_date<= '{$compare_data['compare_end_time']}'";
+            }else{
+                $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}'";
+            }
 
             $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
             $compare_on_arr = [] ;

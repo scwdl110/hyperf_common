@@ -380,7 +380,7 @@ class DataArkController extends AbstractController
 
         if ($timeType === 99) {
             $where .= sprintf(
-                "%s report.dt>='%s' and report.dt<='%s'",
+                $count_periods == 2 ? "%s report.year_to_date>='%s' and report.year_to_date<='%s'" : "%s report.dt>='%s' and report.dt<='%s'",
                 $where ? ' AND' : '',
                 $searchStartTime,
                 $searchEndTime
