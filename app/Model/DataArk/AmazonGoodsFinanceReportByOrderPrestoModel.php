@@ -438,15 +438,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $datas['compare_data'][0]['custom_target'] = [];
             $custom_set_order = $custom_set_where = [];
             foreach($datas['compare_data'][0]['custom_target_set'] as $custom_target_item){
-                $compare_table = isset($custom_target_item['compare_table']) ? explode(',',$custom_target_item['compare_table']) : [];
+                $compare_table = !empty($custom_target_item['compare_table']) ? $custom_target_item['compare_table'] : [];
                 $field_arr = [];
                 if($compare_table){
                     //fields
-                    $avg = (!empty($custom_target_item['avg']) && (int)$custom_target_item['avg'] > 1) ? " * 1.0000 / {$custom_target_item['avg']}" : '';//取的字段表
                     foreach($compare_table as $table_key => $table_item){
-                        $table_item = $table_item == '-1' ? $table_item : (int)$table_item + 1;
-                        $table_str = $table_item == '-1' ? 'origin_table.' : "compare_table{$table_item}.";//取的字段表
-                        $target_prefix = $table_item == '-1' ? '' : "compare{$table_item}_";//取的字段表
+                        $avg = (!empty($table_item['avg']) && (int)$table_item['avg'] > 1) ? " * 1.0000 / {$table_item['avg']}" : '';//取的字段表
+                        $table_tmp = $table_item['table'] == '-1' ? $table_item['table'] : (int)$table_item['table'] + 1;
+                        $table_str = $table_tmp == '-1' ? 'origin_table.' : "compare_table{$table_tmp}.";//取的字段表
+                        $target_prefix = $table_tmp == '-1' ? '' : "compare{$table_tmp}_";//取的字段表
                         $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . $avg . ')';
                     }
                     if (!empty($custom_target_item['type']) && $custom_target_item['type'] == 2) {

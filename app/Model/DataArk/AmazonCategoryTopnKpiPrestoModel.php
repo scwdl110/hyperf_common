@@ -35,6 +35,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $product_category_name_1 = trim($params['product_category_name_1'] ?? '');//一级类目名称
         $product_category_name_2 = trim($params['product_category_name_2'] ?? '');//二级类目名称
         $product_category_name_3 = trim($params['product_category_name_3'] ?? '');//三级类目名称
+        $is_count = intval($datas['is_count'] ?? 0);// 总计
         $son = $params['son'] ?? [];//子级类目
         $tab_type = intval($params['tab_type'] ?? 1);//1-取本级 2-取子级
         $site_id = intval($params['site_id'] ?? 0);//站点id
@@ -110,6 +111,9 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $fields['product_category_name'] = "report.product_category_name_3";
         }
 
+        if(!$is_count){
+            $group .= ",report.dt";
+        }
         $fields = $this->getIndustryFields($params);
         if (empty($fields)) {
             return [];
@@ -161,11 +165,11 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $time_diff = $time_diff == 0 ? 1 : $time_diff;
         $periodsDay = $periodsDay < 10 ? str_pad($periodsDay,2,"0",STR_PAD_LEFT) : $periodsDay;
 
-        $fields['time'] = "report.dt";
+        $fields['time'] = "MAX(report.dt)";
 
         $topNs = explode(',',$topNs);
-        $filed_prefix = $is_count ? "SUM(" : "";
-        $filed_suffix = $is_count ? ($data_type == 2 ? ") / {$time_diff}" : ")") : "";
+        $filed_prefix = $is_count ? "SUM(" : "MAX(";
+        $filed_suffix = $is_count ? ($data_type == 2 ? ") / {$time_diff}" : ")") : ")";
         foreach ($topNs as $top){
             if (in_array('sale_sales_volume', $targets)) {  // 销量
                 if($countPeriods == 1){
