@@ -11134,7 +11134,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $channel_field.= ",mday,mweek, mweekyear";
             $goods_table = "{$this->table_dws_goods_day_report} AS dw_report
 			Right JOIN {$this->table_goods_dim_report} AS amazon_goods ON dw_report.amazon_goods_id = amazon_goods.es_id";
-            $goods_other_field = "max(dw_report.mweek) as mweek,max(dw_report.mweekyear) as mweekyear,";
+            $goods_other_field = "max(dw_report.mday) as mday,max(dw_report.mweek) as mweek,max(dw_report.mweekyear) as mweekyear,";
             $report_other_field = "COALESCE(goods.mweek ,bychannel.mweek) AS mweek,COALESCE(goods.mweekyear ,bychannel.mweekyear) AS mweekyear,concat(cast(COALESCE(goods.goods_operation_user_admin_id ,bychannel.operation_user_admin_id) as varchar),'_',cast(COALESCE(goods.mweekyear ,bychannel.mweekyear) as varchar),'_',lpad(cast(COALESCE(goods.mweek ,bychannel.mweek) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
 
         }
