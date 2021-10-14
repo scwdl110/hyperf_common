@@ -65,7 +65,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             }
             if($tab_type == 2){
                 $where .= sprintf(
-                    "%s report.product_category_name_1='%s' AND %s report.product_category_name_2 IN ('%s') AND report.site_id=%d",
+                    "%s report.product_category_name_1='%s' AND report.product_category_name_2 IN ('%s') AND report.site_id=%d",
                     $where ? ' AND' : '',
                     trim($product_category_name_1),
                     trim($category_name_str),
@@ -90,7 +90,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             }
             if($tab_type == 2){
                 $where .= sprintf(
-                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND %s report.product_category_name_3 IN ('%s') AND report.site_id=%d",
+                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3 IN ('%s') AND report.site_id=%d",
                     $where ? ' AND' : '',
                     trim($product_category_name_1),
                     trim($product_category_name_2),
@@ -132,6 +132,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
 
         if(!empty($params['compare_data'])){
+            $params['category_level'] = $category_level;
             $compareData = $this->getCompareDatas($params , $exchangeCode ) ;
         }else{
             $compareData = array();
@@ -152,6 +153,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $fields = array();
         $targets = explode(',', $datas['target']);
         $topNs = $datas['topns'] ?? '25';
+        $category_level = intval($datas['category_level'] ?? 1);
         $countPeriods = intval($datas['count_periods'] ?? 1);//1-按日 2-按月
         $periodsDay = intval($datas['periods_day'] ?? 1);//1-当天 7-过去7天 30-过去30天
         $data_type = intval($datas['data_type'] ?? 1);// 1-临界点 2-平均 3-指数
@@ -166,6 +168,17 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $periodsDay = $periodsDay < 10 ? str_pad($periodsDay,2,"0",STR_PAD_LEFT) : $periodsDay;
 
         $fields['time'] = $countPeriods == 2 ? "MAX(report.year_to_date)" : "MAX(report.dt)";
+        $fields['site_id'] = "MAX(report.site_id)";
+        if($category_level == 1){
+            $fields['goods_product_category_name_1'] = "MAX(report.product_category_name_1)";
+        }elseif($category_level == 2){
+            $fields['goods_product_category_name_1'] = "MAX(report.product_category_name_1)";
+            $fields['goods_product_category_name_2'] = "MAX(report.product_category_name_2)";
+        }else{
+            $fields['goods_product_category_name_1'] = "MAX(report.product_category_name_1)";
+            $fields['goods_product_category_name_2'] = "MAX(report.product_category_name_2)";
+            $fields['goods_product_category_name_3'] = "MAX(report.product_category_name_3)";
+        }
 
         $topNs = explode(',',$topNs);
         $filed_prefix = $is_count ? "SUM(" : "MAX(";
@@ -226,18 +239,26 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         }
 
         $count_periods = intval($datas['count_periods'] ?? 1);//1-按日 2-按月
+        $topNs = intval($datas['topns'] ?? 25);//top n%
+        $site_id = intval($datas['site_id'] ?? 0);//site_id
         $newDatas = $datas ;
         $on_key = 1 ;
 
-        $compare_on = [];
+        if($datas['category_level'] == 1){
+            $compare_on = ['site_id','goods_product_category_name_1'] ;
+        }elseif($datas['category_level'] == 2){
+            $compare_on = ['site_id','goods_product_category_name_1','goods_product_category_name_2'] ;
+        }else{
+            $compare_on = ['site_id','goods_product_category_name_1','goods_product_category_name_2','goods_product_category_name_3'] ;
+        }
         foreach($datas['compare_data'] as $ck => $compare_data)   {
             $datas['compare_data'][$ck]['fields'] = $this->getIndustryFields($newDatas) ;
 
             //拼接对比表条件 及连表 ON 条件
             if($count_periods == 2){
-                $compareWhere = " report.year_to_date>= '{$compare_data['compare_start_time']}' and report.year_to_date<= '{$compare_data['compare_end_time']}'";
+                $compareWhere = " report.year_to_date>= '{$compare_data['compare_start_time']}' and report.year_to_date<= '{$compare_data['compare_end_time']}' and report.site_id = {$site_id}";
             }else{
-                $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}'";
+                $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}' and report.site_id = {$site_id}";
             }
 
             $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
@@ -282,7 +303,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $datas['compare_data'][0]['custom_target'] = [];
             $custom_set_order = $custom_set_where = [];
             foreach($datas['compare_data'][0]['custom_target_set'] as $custom_target_item){
-                $compare_table = isset($custom_target_item['compare_table']) ? explode(',',$custom_target_item['compare_table']) : [];
+                $compare_table = !empty($custom_target_item['compare_table']) ? $custom_target_item['compare_table'] : [];
                 $field_arr = [];
                 if($compare_table){
                     //fields
@@ -291,7 +312,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                         $table_tmp = $table_item['table'] == '-1' ? $table_item['table'] : (int)$table_item['table'] + 1;
                         $table_str = $table_tmp == '-1' ? 'origin_table.' : "compare_table{$table_tmp}.";//取的字段表
                         $target_prefix = $table_tmp == '-1' ? '' : "compare{$table_tmp}_";//取的字段表
-                        $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . '_' . $custom_target_item['topn'] . $avg . ')';
+                        $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . '_' . $topNs . $avg . ')';
                     }
                     if (!empty($custom_target_item['type']) && $custom_target_item['type'] == 2) {
                         $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN 1 ELSE ( {$field_arr[0]} - {$field_arr[1]} ) * 1.0000 / nullif({$field_arr[1]},0) END ) END ) END )";
