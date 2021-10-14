@@ -35,14 +35,14 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $product_category_name_1 = trim($params['product_category_name_1'] ?? '');//一级类目名称
         $product_category_name_2 = trim($params['product_category_name_2'] ?? '');//二级类目名称
         $product_category_name_3 = trim($params['product_category_name_3'] ?? '');//三级类目名称
-        $is_count = intval($datas['is_count'] ?? 0);// 总计
+        $is_count = intval($params['is_count'] ?? 0);// 总计
         $son = $params['son'] ?? [];//子级类目
         $tab_type = intval($params['tab_type'] ?? 1);//1-取本级 2-取子级
         $site_id = intval($params['site_id'] ?? 0);//站点id
         $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
         $category_level = $tab_type == 2 ? $category_level + 1 : $category_level;
         $category_name_str = !empty($son) ? implode("','",array_values(array_column($son,'category_name'))) : [];
-        $fields = [];
+        $fields = $this->getIndustryFields($params);
         if($category_level == 1){
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category01_topn_kpi} AS report" ;
@@ -111,10 +111,11 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $fields['product_category_name'] = "report.product_category_name_3";
         }
 
-        if(!$is_count){
+        $orderby = "";
+        if(empty($is_count)){
             $group .= $count_periods == 2 ? ",report.year_to_date" : ",report.dt";
+            $orderby = $count_periods == 2 ? "report.year_to_date ASC" : "report.dt ASC";
         }
-        $fields = $this->getIndustryFields($params);
         if (empty($fields)) {
             return [];
         }
@@ -129,7 +130,6 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
 
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
-        $orderby = $count_periods == 2 ? "report.year_to_date ASC" : "report.dt ASC";
 
         if(!empty($params['compare_data'])){
             $compareData = $this->getCompareDatas($params , $exchangeCode ) ;
