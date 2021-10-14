@@ -20,7 +20,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
     protected $table = 'table_amazon_idm_category01_topn_kpi';
 
-    protected $coefficient = 50;//系数
+    protected $coefficient = 1;//系数
 
     /**
      * 获取行业数据对比数据
