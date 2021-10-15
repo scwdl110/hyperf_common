@@ -42,6 +42,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
         $category_level = $tab_type == 2 ? $category_level + 1 : $category_level;
         $category_name_str = !empty($son) ? implode("','",array_values(array_column($son,'category_name'))) : [];
+        $params['category_level'] = $category_level;
         $fields = $this->getIndustryFields($params);
         if($category_level == 1){
             if($count_periods == 1){
@@ -132,7 +133,6 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
 
         if(!empty($params['compare_data'])){
-            $params['category_level'] = $category_level;
             $compareData = $this->getCompareDatas($params , $exchangeCode ) ;
         }else{
             $compareData = array();
