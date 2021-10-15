@@ -30,7 +30,8 @@ class UserService extends BaseService {
 
 
 
-    public function getUserInfo($user_id = 0){
+    public function getUserInfo($admin_id = null,$user_id = null){
+        $user_id = intval($admin_id);
         $user_info = UserModel::query()->where(array('id'=>$user_id , 'status'=>1))->first();
         if(empty($user_info)){
             $user_info = array();
