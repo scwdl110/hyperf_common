@@ -12535,16 +12535,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if($target_type == '1'){
             $target = 'sales_volume_' . $target . ' AS sales_volume';
             if($result_type == '1'){
-                $result_field.= " , (COALESCE(category_table1.sales_volume,0) - COALESCE(category_table2.sales_volume,0)) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = COALESCE ( category_table2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = 0 THEN -category_table2.sales_volume ELSE ( CASE WHEN COALESCE ( category_table2.sales_volume, 0 ) = 0 THEN category_table1.sales_volume ELSE ( category_table1.sales_volume - category_table2.sales_volume ) END ) END ) END ) AS category_result_data " ;
             }else{
-                $result_field.= " , ((category_table1.sales_volume - category_table2.sales_volume) / nullif(category_table2.sales_volume,0) *1.0000 ) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = COALESCE ( category_table2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table2.sales_volume, 0 ) = 0 THEN 1 ELSE ( category_table1.sales_volume - category_table2.sales_volume ) * 1.0000 / nullif(category_table2.sales_volume,0) END ) END ) END ) AS category_result_data " ;
             }
         }else if($target_type == '2'){
             $target = 'sales_quota_'.$target.' * {:RATE} * 1.0000 AS sales_quota' ;
             if($result_type == '1'){
-                $result_field.= " , (category_table1.sales_quota - category_table2.sales_quota) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = COALESCE ( category_table2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = 0 THEN -category_table2.sales_quota ELSE ( CASE WHEN COALESCE ( category_table2.sales_quota, 0 ) = 0 THEN category_table1.sales_quota ELSE ( category_table1.sales_quota - category_table2.sales_quota ) END ) END ) END ) AS category_result_data " ;
             }else{
-                $result_field.= " , ((category_table1.sales_quota - category_table2.sales_quota) / nullif(category_table2.sales_quota,0) *1.0000 ) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = COALESCE ( category_table2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table2.sales_quota, 0 ) = 0 THEN 1 ELSE ( category_table1.sales_quota - category_table2.sales_quota ) * 1.0000 / nullif(category_table2.sales_quota,0) END ) END ) END ) AS category_result_data " ;
             }
         }
         $target = str_replace("{:RATE}", $exchangeCode, $target);
