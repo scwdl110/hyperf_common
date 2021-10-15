@@ -344,8 +344,8 @@ class AccountingService extends BaseService
             sum( currency_amount ) AS money_back_amount
             ")->where([
                 ['channel_id', '=', $list['id']],
-                ['financial_event_group_end_int', '>', $res['begin_time']],
-                ['financial_event_group_start_int', '<', $res['end_time']],
+                ['fundtransfer_date_int', '>=', $res['begin_time']],
+                ['fundtransfer_date_int', '<=', $res['end_time']],
                 ['user_id', '=', $res['user_info']['user_id']],
                 ['fundtransfer_status', '=', 0]
             ])->get());
