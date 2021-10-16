@@ -519,3 +519,17 @@ function getUserInfo(): array
 {
     return ApplicationContext::getContainer()->get(ServerRequestInterface::class)->getAttribute('userInfo', []);
 }
+
+function getUserIdMod($user_id){
+    $big_selling_users = config("common.big_selling_users");
+    $user_id_arr = array();
+    if (!empty($big_selling_users)){
+        $user_id_arr = explode(',',$big_selling_users);
+    }
+
+    if (in_array($user_id,$user_id_arr)){
+        return ($user_id+20);
+    }
+    return ($user_id % 20);
+}
+
