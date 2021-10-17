@@ -2,6 +2,7 @@
 
 namespace App\Model\DataArk;
 
+use function App\getUserIdMod;
 use App\Lib\Redis;
 use App\Model\Ads\VipUserBigData;
 use App\Model\ChannelTargetsMySQLModel;
@@ -176,6 +177,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         'total_user_sessions' => 1
     ];
 
+    private $dws_user_id_mod = 0;
+
     protected $operate_channel_amazon_goods_fee = " +report.bychannel_reserved_field44 + report.bychannel_reserved_field43 ";
     protected $operate_channel_amazon_other_fee = " +report.bychannel_reserved_field43 ";
     protected $operate_channel_amazon_order_fee = " +report.bychannel_reserved_field44 ";
@@ -216,6 +219,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         int $day_param = 1
     ) {
         $datas['method'] = "getListByGoods";
+        $this->dws_user_id_mod = getUserIdMod($datas['user_id']);
         $isMysql = $this->getIsMysql($datas);
         $searchKey = $datas['searchKey'] ?? '';
         $searchVal = $datas['searchVal'] ?? '';
@@ -303,7 +307,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
 
             }
-            $table = str_replace($dws_table,'(SELECT  report.user_id  AS "user_id",report.amazon_goods_id AS "goods_id",report.site_id AS "site_country_id",report.channel_id  AS "channel_id",report.available  AS "available",report.site_id  AS "site_id",report.user_id_mod  AS "user_id_mod",report.amazon_goods_id  AS "amazon_goods_id",report.ym  AS "ym",report.create_time as "create_time" '.$time_periods_other_field.' FROM  '.$dws_table.' as report where '.($ym_where).' AND report.available = 1 AND report.user_id_mod = '.$this->getUserIdMod($datas['user_id']).' AND '.$datas['origin_report_where'].')  ' ,$table);
+            $table = str_replace($dws_table,'(SELECT  report.user_id  AS "user_id",report.amazon_goods_id AS "goods_id",report.site_id AS "site_country_id",report.channel_id  AS "channel_id",report.available  AS "available",report.site_id  AS "site_id",report.user_id_mod  AS "user_id_mod",report.amazon_goods_id  AS "amazon_goods_id",report.ym  AS "ym",report.create_time as "create_time" '.$time_periods_other_field.' FROM  '.$dws_table.' as report where '.($ym_where).' AND report.available = 1 AND report.user_id_mod = '.$this->dws_user_id_mod.' AND '.$datas['origin_report_where'].')  ' ,$table);
 
         }
 
@@ -339,7 +343,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $field_data = str_replace("{:DAY}", $day_param, $field_data);
 
-        $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
+        $mod_where = "report.user_id_mod = " . $this->dws_user_id_mod . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
 
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
@@ -1902,7 +1906,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $goods_views_rate = '1';
                 $table = "{$this->table_goods_day_report}";
                 $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-                $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+                $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['origin_where'];
                 if ($datas['count_dimension'] == 'parent_asin'){
                     $where .= " AND amazon_goods.goods_parent_asin != ''";
                 }elseif ($datas['count_dimension'] == 'asin'){
@@ -1962,7 +1966,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $goods_buyer_visit_rate = '1';
                 $table = "{$this->table_goods_day_report}";
                 $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-                $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+                $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['origin_where'];
                 if ($datas['count_dimension'] == 'parent_asin'){
                     $where .= " AND amazon_goods.goods_parent_asin != ''";
                 }elseif ($datas['count_dimension'] == 'asin'){
@@ -2072,7 +2076,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $goods_views_rate = '1';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-            $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['origin_where'];
             if ($datas['count_dimension'] == 'parent_asin'){
                 $where .= " AND amazon_goods.goods_parent_asin != ''";
             }elseif ($datas['count_dimension'] == 'asin'){
@@ -2132,7 +2136,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $goods_buyer_visit_rate = '1';
             $table = "{$this->table_goods_day_report}";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-            $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['origin_where'];
             if ($datas['count_dimension'] == 'parent_asin'){
                 $where .= " AND amazon_goods.goods_parent_asin != ''";
             }elseif ($datas['count_dimension'] == 'asin'){
@@ -2972,6 +2976,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
 
         }
+        if (in_array($datas['count_dimension'],['parent_asin','asin','sku']) && isset($datas['is_goods_details']) && $datas['is_goods_details'] == 1){
+            if ($isMysql){
+                $fields['all_goods_g_amazon_goods_id'] = "GROUP_CONCAT(DISTINCT amazon_goods.goods_g_amazon_goods_id)";
+                $fields['group'] = "GROUP_CONCAT(DISTINCT report.goods_group_name)";
+                $fields['goods_operation_user_admin_id'] = "GROUP_CONCAT(DISTINCT amazon_goods.goods_operation_user_admin_id)";
+
+            }else{
+                $fields['all_goods_g_amazon_goods_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_g_amazon_goods_id), ',')";
+                $fields['group'] = "array_join(array_agg(DISTINCT report.goods_group_name), ',')";
+                $fields['goods_operation_user_admin_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_operation_user_admin_id), ',')";
+            }
+        }
 
         if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
             if ($datas['currency_code'] == 'ORIGIN') {
@@ -3095,7 +3111,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($datas['time_target'] == 'goods_views_rate' || $datas['time_target'] == 'goods_buyer_visit_rate'){
             $table = "{$this->table_goods_day_report} ";
             $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-            $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['origin_where'];
+            $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['origin_where'];
             if($datas['is_distinct_channel'] == 1 && ($datas['count_dimension'] == 'sku' or $datas['count_dimension'] == 'asin' or $datas['count_dimension'] == 'parent_asin') && $datas['is_count'] != 1){
                 $totals_view_session_lists = $this->select($where." AND byorder_number_of_visits>0", 'report.channel_id,SUM(report.byorder_number_of_visits) as total_views_number , SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',"report.channel_id");
             }else{
@@ -4831,6 +4847,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ) {
         $fields = [];
         $isMysql = $this->getIsMysql($params);
+        $this->dws_user_id_mod = getUserIdMod($params['user_id']);
         $searchKey = $datas['searchKey'] ?? '';
         $searchVal = $datas['searchVal'] ?? '';
         $matchType = $datas['matchType'] ?? '';
@@ -4865,7 +4882,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [];
         }
 
-        $mod_where = "report.user_id_mod = " . ($params['user_id'] % 20);
+        $mod_where = "report.user_id_mod = " . $this->dws_user_id_mod;
 
 
         $ym_where = $this->getYnWhere($params['max_ym'] , $params['min_ym'] ) ;
@@ -7734,6 +7751,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $searchKey = $datas['searchKey'] ?? '';
         $searchVal = $datas['searchVal'] ?? '';
         $matchType = $datas['matchType'] ?? '';
+        $this->dws_user_id_mod = getUserIdMod($datas['user_id']);
         $searchVal = self::escape(stripslashes($searchVal));
         $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
         $this->tax_field = $this->getRemoveTaxField($datas);
@@ -7790,7 +7808,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
 
-        $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20);
+        $mod_where = "report.user_id_mod = " . $this->dws_user_id_mod;
 
 
         //$where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
@@ -10449,7 +10467,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return $this->operationNewIndexTable($datas,$ym_where,$table_type,$operation_table_field);
         }
         $create_time_tmp = str_replace("site_id",'dw_report.byorder_site_id',$datas['origin_time']);
-        $where_dw_report_amazon_goods = "dw_report.user_id = {$datas['user_id']} AND dw_report.user_id_mod = ".($datas['user_id'] % 20)
+        $where_dw_report_amazon_goods = "dw_report.user_id = {$datas['user_id']} AND dw_report.user_id_mod = ".$this->dws_user_id_mod
             ." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") "
             ." AND amazon_goods.goods_user_id = {$datas['user_id']} AND amazon_goods.goods_user_id_mod = ".($datas['user_id'] % 20)." AND  amazon_goods.goods_operation_user_admin_id > 0  "." AND amazon_goods.goods_channel_id IN (".$datas['operation_channel_ids'].") ";
         $where_ym = " AND ".str_replace("report.",'dw_report.',$ym_where);
@@ -10457,7 +10475,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where_dw_report_amazon_goods .= " ".str_replace("create_time",'dw_report.create_time',$create_time_tmp);
 
 
-        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".($datas['user_id'] % 20)." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
+        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".$this->dws_user_id_mod." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
         $goods_month_table = '';
         if ($table_type == 'week'){
             $goods_table = "{$this->table_dws_goods_day_report} AS dw_report
@@ -11120,7 +11138,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     public function operationNewIndexTable($datas,$ym_where,$table_type = "day",$operation_table_field = array()){
 
         $create_time_tmp = str_replace("site_id",'dw_report.byorder_site_id',$datas['origin_time']);
-        $where_dw_report_amazon_goods = "dw_report.user_id = {$datas['user_id']} AND dw_report.user_id_mod = ".($datas['user_id'] % 20)
+        $where_dw_report_amazon_goods = "dw_report.user_id = {$datas['user_id']} AND dw_report.user_id_mod = ".$this->dws_user_id_mod
             ." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") "
             ." AND amazon_goods.goods_user_id = {$datas['user_id']} AND amazon_goods.goods_user_id_mod = ".($datas['user_id'] % 20)." AND  amazon_goods.goods_operation_user_admin_id > 0  "." AND amazon_goods.goods_channel_id IN (".$datas['operation_channel_ids'].") ";
         $where_ym = " AND ".str_replace("report.",'dw_report.',$ym_where);
@@ -11130,7 +11148,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $channel_field = "(channel.operation_user_admin_id) as operation_user_admin_id,channel_id,myear,mmonth,mquarter,(dw_report.site_id) as site_id,(dw_report.user_id) as user_id,bychannel_create_time";
 
 
-        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".($datas['user_id'] % 20)." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
+        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".$this->dws_user_id_mod." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
         $channel_table = "{$this->table_channel} as  channel  JOIN {$this->table_channel_day_report} as dw_report on channel.id  = dw_report.channel_id WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday AND goods.goods_operation_pattern != 1";
         $goods_group = "amazon_goods.goods_operation_user_admin_id,dw_report.channel_id,dw_report.myear,dw_report.mmonth,dw_report.mday";
         if ($table_type == 'week'){
@@ -11314,7 +11332,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
-        $where  = $ym_where . " AND  report.user_id_mod = " . ($datas['user_id'] % 20) ." AND " . $datas['user_sessions_where'].str_replace('create_time',"report.create_time",$datas['origin_time']);
+        $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['user_sessions_where'].str_replace('create_time',"report.create_time",$datas['origin_time']);
 
         $total_user_sessions_views = array();
 
