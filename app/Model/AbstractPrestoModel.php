@@ -557,6 +557,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
                         $rt_field.= " , {$custom_target} " ;
                     }
                 }
+                if($cdata1['target'] == 'industry'){
+                    $rt_field.=",industry_table.category_result_data";
+                }
             }
             $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
             $rt_where = '' ;
