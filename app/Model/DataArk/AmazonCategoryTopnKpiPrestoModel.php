@@ -187,7 +187,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             if (in_array('sale_sales_volume', $targets)) {  // 销量
                 if($countPeriods == 1){
                     if($data_type == 1){
-                        $fields['sale_sales_volume_'.$top] = "report.sales_volume_{$periodsDay}day_critical_top{$top}";
+                        $fields['sale_sales_volume_'.$top] = $filed_prefix . "report.sales_volume_{$periodsDay}day_critical_top{$top}" . $filed_suffix;;
                     }elseif($data_type == 2){
                         $fields['sale_sales_volume_'.$top] = $filed_prefix . "report.sales_volume_{$periodsDay}day_top{$top}_avg" . $filed_suffix;
                     }else{
@@ -204,7 +204,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             if (in_array('sale_sales_quota', $targets)) {  // 销售额
                 if($countPeriods == 1) {
                     if ($data_type == 1) {
-                        $fields['sale_sales_quota_'.$top] = "report.sales_quota_{$periodsDay}day_critical_top{$top} * {:RATE}";
+                        $fields['sale_sales_quota_'.$top] = $filed_prefix . "report.sales_quota_{$periodsDay}day_critical_top{$top}" . $filed_suffix ." * {:RATE}";
                     } elseif ($data_type == 2) {
                         $fields['sale_sales_quota_'.$top] = $filed_prefix . "report.sales_quota_{$periodsDay}day_top{$top}_avg" . $filed_suffix ." * {:RATE}";
                     } else {
