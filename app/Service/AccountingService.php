@@ -323,6 +323,8 @@ class AccountingService extends BaseService
 
         $rateList = $this->getExchangeRate($res['user_info']['user_id']);
 
+        $infoList = array('total' => $res['count'], 'list' => array());
+
         foreach ($res['shopListInfo'] as $key => $list) {
 
             $info = array();
