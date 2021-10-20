@@ -298,7 +298,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             }
         }
 
-        //最终获取自定义字段拼接
+        //最终获取自定义字段拼接--
         if(!empty($datas['compare_data'][0]['custom_target_set'])){
             $datas['compare_data'][0]['custom_target'] = [];
             $custom_set_order = $custom_set_where = [];
