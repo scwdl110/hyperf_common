@@ -52,10 +52,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_dws_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DBHOST}',
         'table_dws_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DBHOST}',
 
-        //TODO 上线dwsslave改为dws
-        'table_dws_idm_category01_topn_kpi' => 'dwsslave.dws_dataark_idm_category01_topn_kpi_tmp',
-        'table_dws_idm_category02_topn_kpi' => 'dwsslave.dws_dataark_idm_category02_topn_kpi_tmp',
-        'table_dws_idm_category03_topn_kpi' => 'dwsslave.dws_dataark_idm_category03_topn_kpi_tmp',
+        'table_dws_idm_category01_topn_kpi' => 'dwsslave.dws_dataark_idm_category01_topn_kpi',
+        'table_dws_idm_category02_topn_kpi' => 'dwsslave.dws_dataark_idm_category02_topn_kpi',
+        'table_dws_idm_category03_topn_kpi' => 'dwsslave.dws_dataark_idm_category03_topn_kpi',
 
         'table_dws_arkdata_category01_month' => 'dwsslave.dws_arkdata_category01_month',
         'table_dws_arkdata_category02_month' => 'dwsslave.dws_arkdata_category02_month',
