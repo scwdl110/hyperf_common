@@ -11945,6 +11945,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $sql_key_arr    = $mysql_fields['sql_key_arr'];
         $sql_key = array();
         $is_need_monthly_storage_fee = $this->getIsNeedMonthlyStorageFee($params);
+        $is_month_table = $this->is_month_table($params);
         foreach ($sql_key_arr as $value){
             if ($value['quote_finance_index_id']>0){
                 $sql_key[$value['finance_index_id']]['quote'][] = $value;
@@ -11982,6 +11983,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
                 $return_field_key = isset($finance_index[$sql_field_key])?$finance_index[$sql_field_key]['return_field_key']:'';
                 if (empty($return_field_key)){
+                    continue;
+                }
+                if (!$is_month_table && $value['is_month_field'] == 1){
                     continue;
                 }
                 $is_denominator = $value['is_denominator'] == 1?'denominator':'molecule';
