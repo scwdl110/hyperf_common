@@ -1609,7 +1609,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where_str = 'ext.group_id IN (' . implode(',' , $where_strs) . ' ) ';
             }else if($datas['count_dimension'] == 'tags'){ //标签
                 $where_strs = array_unique(array_column($where_arr , 'tags_id')) ;
-                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) ';
+                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) AND tags_rel.status = 1 ';
             }else if($datas['count_dimension'] == 'head_id'){
                 //负责人暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'developer_id'){
