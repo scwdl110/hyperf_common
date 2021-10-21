@@ -977,7 +977,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .=  " AND report.goods_group_id IN (".implode(",",array_column($lists,'goods_group_id')).")";
                     break;
                 case "tags":
-                    $where .=  " AND tags_rel.tags_id IN (".implode(",",array_column($lists,'tags_id')).")";
+                    $where .=  " AND tags_rel.tags_id IN (".implode(",",array_column($lists,'tags_id')).") AND tags_rel.status =1";
                     break;
                 case "head_id":
                     $where .=  " AND report.isku_head_id IN (".implode(",",array_column($lists,'isku_head_id')).")";
@@ -1173,7 +1173,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where_str = 'ext.group_id IN (' . implode(',' , $where_strs) . ' ) ';
             }else if($datas['count_dimension'] == 'tags'){ //标签
                 $where_strs = array_unique(array_column($where_arr , 'tags_id')) ;
-                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) ';
+                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) AND tags_rel.status = 1';
             }else if($datas['count_dimension'] == 'head_id'){
                 //负责人暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'developer_id'){
@@ -1237,7 +1237,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $table.= " LEFT JOIN g_amazon_goods_tags_rel_{$this->codeno} as tags_rel ON tags_rel.goods_id = ext.amazon_goods_id ";
                     }
                 }
-                $where .=' AND tags_rel.tags_id IN (' .  trim($tag_str) . ' ) ';
+                $where .=' AND tags_rel.tags_id IN (' .  trim($tag_str) . ' ) AND tags_rel.status =1 ';
             }
         }
         $table_fields = !empty($table_fields) ? $table_fields . " , " : "";
@@ -1609,7 +1609,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $where_str = 'ext.group_id IN (' . implode(',' , $where_strs) . ' ) ';
             }else if($datas['count_dimension'] == 'tags'){ //标签
                 $where_strs = array_unique(array_column($where_arr , 'tags_id')) ;
-                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) ';
+                $where_str = 'tags_rel.tags_id IN (' . implode(',' , $where_strs) . ' ) AND tags_rel.status = 1 ';
             }else if($datas['count_dimension'] == 'head_id'){
                 //负责人暂时没有 ，因为需要跨库查询
             }else if($datas['count_dimension'] == 'developer_id'){
