@@ -11962,6 +11962,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         foreach ($quote_common as  $key => $v){//重置是否相加和分母
                             $quote_common[$key]['is_add']            = $item['is_add'] == $v['is_add'] ? $v['is_add'] : 0;
                             $quote_common[$key]['is_denominator']    = $item['is_denominator'] == $v['is_denominator'] ? $v['is_denominator'] : 1;
+                            if ($item['fifo_sql_field_key'] == -1){//-1代表该字段无线使用先进先出
+                                $quote_common[$key]['fifo_sql_field_key'] = -1;
+                            }
                         }
                     }
                     if (!empty($value1['common'])){
@@ -12058,6 +12061,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
                 if ($params['cost_count_type'] == 2){
                     if (!empty($value['fifo_sql_field_key'])){
+                        if ($value['fifo_sql_field_key'] == -1){//-1表示不需要该字段的先进先出
+                            continue;
+                        }
                         $key = $value['fifo_sql_field_key'];
                     }
 
