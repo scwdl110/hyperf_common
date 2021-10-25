@@ -32,16 +32,24 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $exchangeCode = '1'
     ) {
         $category_level = intval($params['category_level'] ?? 1);//1-一级类目 2-二级类目 3-三级类目
-        $product_category_name_1 = trim($params['product_category_name_1'] ?? '');//一级类目名称
-        $product_category_name_2 = trim($params['product_category_name_2'] ?? '');//二级类目名称
-        $product_category_name_3 = trim($params['product_category_name_3'] ?? '');//三级类目名称
+        $product_category_name_1 = self::escape(trim($params['product_category_name_1'] ?? ''));//一级类目名称
+        $product_category_name_2 = self::escape(trim($params['product_category_name_2'] ?? ''));//二级类目名称
+        $product_category_name_3 = self::escape(trim($params['product_category_name_3'] ?? ''));//三级类目名称
         $is_count = intval($params['is_count'] ?? 0);// 总计
         $son = $params['son'] ?? [];//子级类目
         $tab_type = intval($params['tab_type'] ?? 1);//1-取本级 2-取子级
         $site_id = intval($params['site_id'] ?? 0);//站点id
         $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
         $category_level = $tab_type == 2 ? $category_level + 1 : $category_level;
-        $category_name_str = !empty($son) ? implode("','",array_values(array_column($son,'category_name'))) : [];
+        $category_name_str = '';
+        if (!empty($son)){
+            $category_name_arr = [];
+            foreach ($son as $val){
+                $category_name_arr[] = self::escape(trim($val['category_name']));
+            }
+
+            $category_name_str = implode("','", $category_name_arr);
+        }
         $params['category_level'] = $category_level;
         $fields = $this->getIndustryFields($params);
         if($category_level == 1){
@@ -141,7 +149,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $count = $this->count($where,$table,$group,'','',false ,null,300,false ,$compareData);
         $lists = $this->select($where, $field_data, $table, $limit,$orderby,$group, false , null, 300, false,$compareData);
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
-        $logger->info('getListByGoods Request', [$this->getLastSql()]);
+        $logger->info('getIndustryTopnKpi Request', [$this->getLastSql()]);
 
         $rt['lists'] = empty($lists) ? array() : $lists;
         $rt['count'] = intval($count);
@@ -256,7 +264,10 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
             //拼接对比表条件 及连表 ON 条件
             if($count_periods == 2){
-                $compareWhere = " report.year_to_date>= '{$compare_data['compare_start_time']}' and report.year_to_date<= '{$compare_data['compare_end_time']}' and report.site_id = {$site_id}";
+                $compare_start_time = trim(date('Y-m',strtotime($compare_data['compare_start_time'] ?? '')));
+                $compare_end_time = trim(date('Y-m',strtotime($compare_data['compare_end_time'] ?? '')));
+
+                $compareWhere = " report.year_to_date>= '{$compare_start_time}' and report.year_to_date<= '{$compare_end_time}' and report.site_id = {$site_id}";
             }else{
                 $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}' and report.site_id = {$site_id}";
             }
