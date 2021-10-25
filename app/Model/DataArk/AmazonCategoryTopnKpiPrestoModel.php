@@ -146,7 +146,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             $compareData = array();
         }
 
-        $count = $this->count($where,$table,$group,'','',false ,null,300,false ,$compareData);
+        $count = $this->count($where,$table,$group,$field_data,'',false ,null,300,false ,$compareData);
         $lists = $this->select($where, $field_data, $table, $limit,$orderby,$group, false , null, 300, false,$compareData);
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
         $logger->info('getIndustryTopnKpi Request', [$this->getLastSql()]);
