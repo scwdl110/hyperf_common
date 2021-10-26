@@ -12024,6 +12024,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
                 $key = $value['sql_field_key'];
+                $is_un_use = $key == -1 ? 1:0;
                 if ($value['is_goods_key'] == 1){//商品相关字段
                     $data_origin = "";
                     if ($value['data_origin'] == 1){
@@ -12073,7 +12074,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
 
                 }else{
-                    if ($key == -1){
+                    if ($is_un_use){
                         continue;
                     }
                 }
