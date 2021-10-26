@@ -32,9 +32,9 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $exchangeCode = '1'
     ) {
         $category_level = intval($params['category_level'] ?? 1);//1-一级类目 2-二级类目 3-三级类目
-        $product_category_name_1 = self::escape(trim($params['product_category_name_1'] ?? ''));//一级类目名称
-        $product_category_name_2 = self::escape(trim($params['product_category_name_2'] ?? ''));//二级类目名称
-        $product_category_name_3 = self::escape(trim($params['product_category_name_3'] ?? ''));//三级类目名称
+        $product_category_name_1 = self::escape(stripcslashes(trim($params['product_category_name_1'] ?? '')));//一级类目名称
+        $product_category_name_2 = self::escape(stripcslashes(trim($params['product_category_name_2'] ?? '')));//二级类目名称
+        $product_category_name_3 = self::escape(stripcslashes(trim($params['product_category_name_3'] ?? '')));//三级类目名称
         $is_count = intval($params['is_count'] ?? 0);// 总计
         $son = $params['son'] ?? [];//子级类目
         $tab_type = intval($params['tab_type'] ?? 1);//1-取本级 2-取子级
@@ -45,7 +45,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         if (!empty($son)){
             $category_name_arr = [];
             foreach ($son as $val){
-                $category_name_arr[] = self::escape(trim($val['category_name']));
+                $category_name_arr[] = self::escape(stripcslashes(trim($val['category_name'])));
             }
 
             $category_name_str = implode("','", $category_name_arr);
