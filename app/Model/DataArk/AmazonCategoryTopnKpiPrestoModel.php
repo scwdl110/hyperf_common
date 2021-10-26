@@ -92,7 +92,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                 $table = "{$this->table_dws_arkdata_category03_month} AS report" ;
             }
             if($tab_type == 2){
-                $extra_where = sprintf(" AND report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3 IN ('%s')'", trim($product_category_name_1), trim($product_category_name_2), trim($category_name_str));
+                $extra_where = sprintf(" AND report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3 IN ('%s')", trim($product_category_name_1), trim($product_category_name_2), trim($category_name_str));
             }else {
                 $extra_where = sprintf(" AND report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s'", trim($product_category_name_1), trim($product_category_name_2), trim($product_category_name_3));
             }
