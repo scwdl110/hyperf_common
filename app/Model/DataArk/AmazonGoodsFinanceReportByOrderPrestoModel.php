@@ -12024,6 +12024,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
                 $key = $value['sql_field_key'];
+                $is_un_use = $key == -1 ? 1:0;
                 if ($value['is_goods_key'] == 1){//商品相关字段
                     $data_origin = "";
                     if ($value['data_origin'] == 1){
@@ -12060,6 +12061,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $key = "monthly_profit.".$key;
                 }
                 if ($params['cost_count_type'] == 2){
+                    if ($value['fifo_is_add'] == 1){
+                        $is_add = '+';
+                    }else{
+                        $is_add = '-';
+                    }
                     if (!empty($value['fifo_sql_field_key'])){
                         if ($value['fifo_sql_field_key'] == -1){//-1表示不需要该字段的先进先出
                             continue;
@@ -12067,6 +12073,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $key = $value['fifo_sql_field_key'];
                     }
 
+                }else{
+                    if ($is_un_use){
+                        continue;
+                    }
                 }
                 if ($value["is_need_monthly_storage_fee"] == 1 && $is_need_monthly_storage_fee){
                     if ($key == "report_estimated_monthly_storage_fee"){
