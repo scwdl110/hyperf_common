@@ -52,18 +52,18 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         }
         $params['category_level'] = $category_level;
         $fields = $this->getIndustryFields($params);
+        $where .= sprintf(
+            "%s report.site_id=%d",
+            $where ? ' AND' : '',
+            $site_id
+        );
         if($category_level == 1){
             if($count_periods == 1){
                 $table = "{$this->table_dws_idm_category01_topn_kpi} AS report" ;
             }else{
                 $table = "{$this->table_dws_arkdata_category01_month} AS report" ;
             }
-            $where .= sprintf(
-                "%s report.product_category_name_1='%s' AND report.site_id=%d",
-                $where ? ' AND' : '',
-                trim($product_category_name_1),
-                $site_id
-            );
+            $extra_where = sprintf(" AND report.product_category_name_1='%s'", trim($product_category_name_1));
             $group = "report.product_category_name_1,report.site_id";
             $fields['product_category_name'] = "report.product_category_name_1";
         }elseif($category_level == 2){
@@ -72,22 +72,15 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
             }else{
                 $table = "{$this->table_dws_arkdata_category02_month} AS report" ;
             }
+            $where .= sprintf(
+                "%s report.site_id=%d",
+                $where ? ' AND' : '',
+                $site_id
+            );
             if($tab_type == 2){
-                $where .= sprintf(
-                    "%s report.product_category_name_1='%s' AND report.product_category_name_2 IN ('%s') AND report.site_id=%d",
-                    $where ? ' AND' : '',
-                    trim($product_category_name_1),
-                    trim($category_name_str),
-                    $site_id
-                );
+                $extra_where = sprintf(" AND report.product_category_name_1='%s' AND report.product_category_name_2 IN ('%s')", trim($product_category_name_1), trim($category_name_str));
             }else {
-                $where .= sprintf(
-                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.site_id=%d",
-                    $where ? ' AND' : '',
-                    trim($product_category_name_1),
-                    trim($product_category_name_2),
-                    $site_id
-                );
+                $extra_where = sprintf(" AND report.product_category_name_1='%s' AND report.product_category_name_2='%s'", trim($product_category_name_1), trim($product_category_name_2));
             }
             $group = "report.product_category_name_2,report.site_id";
             $fields['product_category_name'] = "report.product_category_name_2";
@@ -98,27 +91,14 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                 $table = "{$this->table_dws_arkdata_category03_month} AS report" ;
             }
             if($tab_type == 2){
-                $where .= sprintf(
-                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3 IN ('%s') AND report.site_id=%d",
-                    $where ? ' AND' : '',
-                    trim($product_category_name_1),
-                    trim($product_category_name_2),
-                    trim($category_name_str),
-                    $site_id
-                );
+                $extra_where = sprintf(" AND report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3 IN ('%s')'", trim($product_category_name_1), trim($product_category_name_2), trim($category_name_str));
             }else {
-                $where .= sprintf(
-                    "%s report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s' AND report.site_id=%d",
-                    $where ? ' AND' : '',
-                    trim($product_category_name_1),
-                    trim($product_category_name_2),
-                    trim($product_category_name_3),
-                    $site_id
-                );
+                $extra_where = sprintf(" AND report.product_category_name_1='%s' AND report.product_category_name_2='%s' AND report.product_category_name_3='%s'", trim($product_category_name_1), trim($product_category_name_2), trim($product_category_name_3));
             }
             $group = "report.product_category_name_3,report.site_id";
             $fields['product_category_name'] = "report.product_category_name_3";
         }
+        $where .= $extra_where;
 
         $orderby = "";
         if(empty($is_count)){
@@ -141,7 +121,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
 
         if(!empty($params['compare_data'])){
-            $compareData = $this->getCompareDatas($params , $exchangeCode ) ;
+            $compareData = $this->getCompareDatas($params , $exchangeCode ,$extra_where) ;
         }else{
             $compareData = array();
         }
@@ -241,7 +221,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         return abs(($date_2['y']-$date_1['y'])*12 +$date_2['m']-$date_1['m']);
     }
 
-    public function getCompareDatas($datas ,$exchangeCode = 1){
+    public function getCompareDatas($datas ,$exchangeCode = 1,$extra_where = ""){
         if(empty($datas['compare_data'])){
             return [] ;
         }
@@ -267,9 +247,9 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
                 $compare_start_time = trim(date('Y-m',strtotime($compare_data['compare_start_time'] ?? '')));
                 $compare_end_time = trim(date('Y-m',strtotime($compare_data['compare_end_time'] ?? '')));
 
-                $compareWhere = " report.year_to_date>= '{$compare_start_time}' and report.year_to_date<= '{$compare_end_time}' and report.site_id = {$site_id}";
+                $compareWhere = " report.year_to_date>= '{$compare_start_time}' and report.year_to_date<= '{$compare_end_time}' {$extra_where} and report.site_id = {$site_id}";
             }else{
-                $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}' and report.site_id = {$site_id}";
+                $compareWhere = " report.dt>= '{$compare_data['compare_start_time']}' and report.dt<= '{$compare_data['compare_end_time']}' {$extra_where} and report.site_id = {$site_id}";
             }
 
             $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
