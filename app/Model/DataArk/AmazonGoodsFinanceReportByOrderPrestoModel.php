@@ -12061,12 +12061,13 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $key = "monthly_profit.".$key;
                 }
                 if ($params['cost_count_type'] == 2){
-                    if ($value['fifo_is_add'] == 1){
-                        $is_add = '+';
-                    }else{
-                        $is_add = '-';
-                    }
+
                     if (!empty($value['fifo_sql_field_key'])){
+                        if ($value['fifo_is_add'] == 1){
+                            $is_add = '+';
+                        }else{
+                            $is_add = '-';
+                        }
                         if ($value['fifo_sql_field_key'] == -1){//-1表示不需要该字段的先进先出
                             continue;
                         }
