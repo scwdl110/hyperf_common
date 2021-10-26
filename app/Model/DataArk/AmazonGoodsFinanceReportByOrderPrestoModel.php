@@ -12512,7 +12512,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }else{ //取总值
                 $target = '01day_top'.$top_num ;
             }
-        }else if($data_type == '2' ){
+        }else if($day_type == '2' ){
             $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 7 * 24* 3600 ) ."'" ;
             if($data_type == '1'){//取平均值
                 $target = '07day_top'.$top_num."_avg" ;
@@ -12521,7 +12521,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }else{ //取总值
                 $target = '07day_top'.$top_num ;
             }
-        }else if($data_type == '3'){
+        }else if($day_type == '3'){
             $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 30 * 24* 3600 ) ."'" ;
             if($data_type == '1'){//取平均值
                 $target = '30day_top'.$top_num."_avg" ;
