@@ -20,6 +20,7 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
 
     protected $table = 'table_amazon_idm_category01_topn_kpi';
 
+    // TODO 上线改成20
     protected $coefficient = 1;//系数
 
     /**
