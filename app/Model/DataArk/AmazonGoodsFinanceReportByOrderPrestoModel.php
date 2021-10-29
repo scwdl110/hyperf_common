@@ -4781,13 +4781,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //店铺月报
         $is_month_table = $this->is_month_table($params);
-        if (in_array($params['count_dimension'],array("channel_id","site_id","all_channels"))  && $is_month_table) {
-            $isMysql = false;
-        }
+//        if (in_array($params['count_dimension'],array("channel_id","site_id","all_channels"))  && $is_month_table) {
+//            $isMysql = false;
+//        }
 
         //商品级
         $goods_day = $params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") && abs($params['origin_create_end_time'] - $params['origin_create_start_time']) <= 15*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2;
-        $goods_month = $is_month_table && $params['origin_create_start_time'] >= ($start_time - 168 * 86400);
+        $goods_month = $is_month_table && $params['origin_create_start_time'] >= ($start_time - 168 * 86400) && (isset($params['method']) && $params['method'] == "getListByGoods");
         if ($goods_day or $goods_month){
             $redis = new Redis();
             $goods_mysql_user = $redis->get("goods_mysql_user");
@@ -4886,6 +4886,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             $fields = $this->getUnGoodsTimeFields($params, $timeLine,$isMysql);
         }
+
 
         if (empty($fields)) {
             return [];
@@ -5342,7 +5343,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($datas['is_new_index'] == 1){
             $fields = $this->handleNewIndexField($datas,$fields,$targets,2,$isMysql);
             $fields = $fields['fields'];
-        }else{
+        }
+        else{
             if (in_array('goods_visitors', $targets)) {  // 买家访问次数
                 $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
             }
