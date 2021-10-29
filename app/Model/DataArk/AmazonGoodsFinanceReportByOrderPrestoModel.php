@@ -4782,7 +4782,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //店铺月报
         $is_month_table = $this->is_month_table($params);
         if (in_array($params['count_dimension'],array("channel_id","site_id","all_channels"))  && $is_month_table) {
-            $isMysql = true;
+            $isMysql = false;
         }
 
         //商品级
