@@ -74,15 +74,15 @@ class AccountingService extends BaseService
      * @return mixed
      */
 
-    public function getUserInfo()
-    {
-        $context = Context::get(ServerRequestInterface::class);
-        $userInfo = $context->getAttribute('userInfo');
-        if (empty($userInfo)) {
-            throw new BusinessException();
-        }
-        return $userInfo;
-    }
+//    public function getUserInfo()
+//    {
+//        $context = Context::get(ServerRequestInterface::class);
+//        $userInfo = $context->getAttribute('userInfo');
+//        if (empty($userInfo)) {
+//            throw new BusinessException();
+//        }
+//        return $userInfo;
+//    }
 
     private function getArray($items)
     {

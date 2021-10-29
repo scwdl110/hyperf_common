@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Service\FinanceService;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use Captainbi\Hyperf\Util\Result;
@@ -14,10 +13,6 @@ class DataArkController extends AbstractController
 
         $userInfo = $this->request->getAttribute('userInfo');
         $req = $this->request->all();
-        if ($req['is_new_index']){//新版直接调用财务层
-            $financeService = new FinanceService();
-            return $financeService->handleRequest($type);
-        }
         if (config('misc.dataark_log_req', false)) {
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'dataark');
             $logger->info('request body', [$req, $userInfo]);
@@ -27,9 +22,6 @@ class DataArkController extends AbstractController
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
         $params = $req['params'] ?? [];
-        $params['searchKey'] = $searchKey;
-        $params['searchVal'] = $searchVal;
-        $params['matchType'] = trim(strval($req['matchType'] ?? ''));
         if (isset($params['is_count']) && $params['is_count'] == 1){//总计的页数只能为1
             $page = 1;
         }else{
@@ -79,7 +71,82 @@ class DataArkController extends AbstractController
         }
         $params['origin_where'] = $where;
 
-        if (empty($searchKey) && !empty($searchVal)) {
+        if(!empty($searchKey) && !empty($searchVal)){
+            //匹配方式 ：eq -> 全匹配  like-模糊匹配
+            $matchType =  trim(strval($req['matchType'] ?? ''));
+            if($searchKey == 'parent_asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_parent_asin = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.goods_parent_asin like '%" . $searchVal . "%'" ;
+                }
+            }else if($searchKey == 'asin'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_asin = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_asin like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'sku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_sku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.goods_sku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'isku'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.isku = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND report.isku like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'site_group'){
+                $where .= " AND report.area_id = " . intval($searchVal);
+            }else if($searchKey == 'channel_id'){
+                $where .= " AND report.channel_id = " . intval($searchVal);
+            }else if($searchKey == 'site_id'){
+                $where .= " AND report.site_id = " . intval($searchVal) ;
+            }else if($searchKey == 'class1'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_product_category_name_1 = '" . $searchVal . "'" ;
+                }else{
+                    if (strpos($searchVal,'&') !== false){
+                        $str_arr = explode("&",$searchVal);
+                        foreach ($str_arr as $v){
+                            $where .= " AND report.goods_product_category_name_1 like '%" . $v . "%'" ;
+                        }
+                    }else{
+                        $where .= " AND report.goods_product_category_name_1 like '%" . $searchVal . "%'" ;
+
+                    }
+                }
+            }else if($searchKey == 'group'){
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_group_name = '".$searchVal."' " ;
+                }else{
+                    $where .= " AND report.goods_group_name like '%".$searchVal."%' " ;
+                }
+
+            }else if($searchKey == 'tags'){
+                if($matchType == 'eq'){
+                    $where .= " AND gtags.tag_name = '".$searchVal."' " ;
+                }else {
+                    $where .= " AND gtags.tag_name like '%" . $searchVal . "%'";
+                }
+            }else if($searchKey == 'operators'){
+                if($matchType == 'eq'){
+                     $where .= " AND report.operation_user_admin_name = '" . $searchVal . "'" ;
+                }else{
+                    $where .= " AND report.operation_user_admin_name like '%" . $searchVal . "%'" ;
+                }
+            }else if($searchKey == 'title')
+            {
+                if($matchType == 'eq'){
+                    $where .= " AND report.goods_title = '" . $searchVal . "'" ;
+                }else {
+                    $where .= " AND LOWER(report.goods_title) like '%" . strtolower($searchVal) . "%'";
+                }
+            }
+
+        } else if (!empty($searchVal)) {
             $likes = [
                 'isku' => 'report.isku',
                 'tags' => 'gtags.tag_name',
@@ -170,17 +237,16 @@ class DataArkController extends AbstractController
 
                 if (!empty($params['where_parent']['class1'])){//数据对比 一级类目
                     $class1 = $params['where_parent']['class1'] ? json_decode(base64_decode($params['where_parent']['class1']),true) : "";
-                    $where_strs = array();
-                    foreach ($class1 as $item){
-                        $where_strs[] = '( report.goods_product_category_name_1 = ' . trim($item['product_category_name_1']) . " AND report.site_id = '" . addslashes($item['site_id']) . "')";
+                    foreach ($class1 as $key => $class_value){
+                        $class1[$key] = trim($class_value);
                     }
-                    $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
-                    $where .= $where_str;
+                    $params['where_parent']['class1'] = implode("','", $class1);
+                    $where .= " AND report.goods_product_category_name_1 IN ('" . $params['where_parent']['class1'] . "')" ;
                 }
 
-                if (!empty($params['where_parent']['class1_name']) && !empty($params['where_parent']['site_id'])){//维度下钻 一级类目
+                if (!empty($params['where_parent']['class1_name'])){//维度下钻 一级类目
                     $class1_name = trim($params['where_parent']['class1_name']);
-                    $where .= " AND report.goods_product_category_name_1 = '{$class1_name}' AND report.site_id = {$params['where_parent']['site_id']}";
+                    $where .= " AND report.goods_product_category_name_1 = '{$class1_name}' ";
                 }
 
                 if (!empty($params['where_parent']['head_id'])){
@@ -325,25 +391,53 @@ class DataArkController extends AbstractController
 
     public function getUnGoodsDatas()
     {
-
-        return $this->getServiceData(0);
+        return $this->init(0);
     }
 
     public function getGoodsDatas()
     {
-        return $this->getServiceData(1);
+        return $this->init(1);
     }
 
     public function getOperatorsDatas()
     {
-        return $this->getServiceData(2);
+        return $this->init(2);
     }
 
-    public function getServiceData($search_type){
-        $financeService = new FinanceService();
-        $req            = $this->request->all();
-        $result         =  $financeService->handleRequest($search_type,$req);
-        return Result::success($result);
+    protected function getSiteLocalTime(array $siteIds, int $timeType = 99, $startTime, $endTime): array
+    {
+        $result = [[
+            'end' => (int)$endTime,
+            'start' => (int)$startTime,
+            'site_id' => '0',
+        ]];
+
+        if (!empty($siteIds)) {
+            $siteIdsStr = implode(',', $siteIds);
+            if ($timeType === 99) {
+                $result[0]['site_id'] = $siteIdsStr;
+            } else {
+                $timeDatas = [];
+                $siteTimes = \App\getStartAndEndTimeAllSite($timeType);
+                foreach ($siteIds as $siteId) {
+                    $key = "{$siteTimes[$siteId]['start']}_{$siteTimes[$siteId]['end']}";
+
+                    if (empty($timeDatas[$key])) {
+                        $timeDatas[$key] = [
+                            'site_id' => (string)$siteId,
+                            'end' => $siteTimes[$siteId]['end'],
+                            'start' => $siteTimes[$siteId]['start'],
+                        ];
+                    } else {
+                        $timeDatas[$key]['site_id'] = "{$timeDatas[$key]['site_id']},{$siteId}";
+                    }
+                }
+
+                $result = array_values($timeDatas);
+            }
+        }
+
+        return $result;
     }
 
     public function getIndustryKpi()
