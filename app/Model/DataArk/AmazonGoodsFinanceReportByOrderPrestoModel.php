@@ -4779,8 +4779,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $isMysql = true;
         }
 
+        //店铺月报
+        $is_month_table = $this->is_month_table($params);
+        if (in_array($params['count_dimension'],array("channel_id","site_id","all_channels"))  && $is_month_table) {
+            $isMysql = true;
+        }
+
         //商品级
-        if ($params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") && abs($params['origin_create_end_time'] - $params['origin_create_start_time']) <= 15*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2){
+        $goods_day = $params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") && abs($params['origin_create_end_time'] - $params['origin_create_start_time']) <= 15*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2;
+        $goods_month = $is_month_table && $params['origin_create_start_time'] >= ($start_time - 168 * 86400);
+        if ($goods_day or $goods_month){
             $redis = new Redis();
             $goods_mysql_user = $redis->get("goods_mysql_user");
 
