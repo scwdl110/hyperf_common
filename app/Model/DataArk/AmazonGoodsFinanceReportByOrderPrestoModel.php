@@ -7906,7 +7906,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND c.channel_id IN (".implode(",",$channel_arr).")";
                 }
             }
-            if ($is_count == 1 or $datas['count_dimension'] == 'all_channels'){
+            if ($is_count == 1){
                 $fba_fields = 'max(c.channel_id) as channel_id' ;
                 $group = '';
                 $where_str = '1=1' ;
@@ -7921,6 +7921,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($datas['count_dimension'] == 'admin_id'){ //子账号
                     $fba_fields = $group = 'uc.admin_id , c.area_id' ;
                     $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
+                }elseif($datas['count_dimension'] == 'all_channels'){
+                    $fba_fields = 'max(c.channel_id) as channel_id' ;
+                    $group = 'c.area_id';
                 }
                 $where_arr = array() ;
                 foreach($lists as $list1){
@@ -8008,6 +8011,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
                     }
 
+                }elseif($datas['count_dimension'] == 'all_channels'){
+                    $fbaDatas[0]['fba_goods_value'] += $fba['fba_goods_value'];
+                    $fbaDatas[0]['fba_stock'] += $fba['fba_stock'];
+                    $fbaDatas[0]['fba_need_replenish'] += $fba['fba_need_replenish'];
+                    $fbaDatas[0]['fba_predundancy_number'] += $fba['fba_predundancy_number'];
                 }else{
                     $fbaDatas[] = $fba ;
                 }
