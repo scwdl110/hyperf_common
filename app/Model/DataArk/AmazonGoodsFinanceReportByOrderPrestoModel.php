@@ -12535,6 +12535,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $target = '30day_top'.$top_num ;
             }
         }
+        //目前只提供美国站服装、3C、家居三大类目
+        $limit_category_where = " AND product_category_name_1 IN ('Clothing, Shoes & Jewelry','Electronics','Home & Kitchen')";
 
         if($target_type == '1'){
             $target = 'sales_volume_' . $target . ' AS sales_volume';
@@ -12552,8 +12554,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         $target = str_replace("{:RATE}", $exchangeCode, $target);
-        $sql = " WITH category_table1 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$origin_where} ) ,
-        category_table2 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$compare_where} ) 
+        $sql = " WITH category_table1 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$origin_where} {$limit_category_where} ) ,
+        category_table2 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$compare_where} {$limit_category_where} ) 
         SELECT {$result_field} FROM category_table1 LEFT JOIN category_table2 ON {$on} 
         " ;
         return $sql ;
