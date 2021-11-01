@@ -12488,18 +12488,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      */
 
     public function compareDataSql($category_level = 3 , $day_type = 1 ,  $target_type = 1 ,$top_num = 25  , $data_type = 1 ,$result_type = 1 ,$exchangeCode = 1.0){
+        $category_name_target = "";
         if($category_level == '1'){
             $table = $this->table_dws_idm_category01_topn_kpi ;
             $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1' ;
             $result_field = 'category_table1.site_id, category_table1.product_category_name_1 as goods_product_category_name_1' ;
+            $category_name_target = ",product_category_name_1";
         }else if($category_level == '2'){
             $table = $this->table_dws_idm_category02_topn_kpi ;
             $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2' ;
             $result_field = 'category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2' ;
+            $category_name_target = ",product_category_name_1,product_category_name_2";
         }else if($category_level == '3'){
             $table = $this->table_dws_idm_category03_topn_kpi ;
             $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2 AND category_table1.product_category_name_3 = category_table2.product_category_name_3' ;
             $result_field = "category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2, category_table1.product_category_name_3 as goods_product_category_name_3" ;
+            $category_name_target = ",product_category_name_1,product_category_name_2,product_category_name_3";
         }
 
         $origin_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day")) ."'" ;
@@ -12548,8 +12552,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         $target = str_replace("{:RATE}", $exchangeCode, $target);
-        $sql = " WITH category_table1 AS (SELECT {$target} , site_id , product_category_name_1 , product_category_name_2 , product_category_name_3 FROM {$table} WHERE {$origin_where} ) ,
-        category_table2 AS (SELECT {$target} , site_id , product_category_name_1 , product_category_name_2 , product_category_name_3 FROM {$table} WHERE {$compare_where} ) 
+        $sql = " WITH category_table1 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$origin_where} ) ,
+        category_table2 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$compare_where} ) 
         SELECT {$result_field} FROM category_table1 LEFT JOIN category_table2 ON {$on} 
         " ;
         return $sql ;
