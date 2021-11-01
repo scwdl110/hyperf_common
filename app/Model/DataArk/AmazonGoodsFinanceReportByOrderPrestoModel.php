@@ -8012,10 +8012,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
 
                 }elseif($datas['count_dimension'] == 'all_channels'){
-                    $fbaDatas[0]['fba_goods_value'] += $fba['fba_goods_value'];
-                    $fbaDatas[0]['fba_stock'] += $fba['fba_stock'];
-                    $fbaDatas[0]['fba_need_replenish'] += $fba['fba_need_replenish'];
-                    $fbaDatas[0]['fba_predundancy_number'] += $fba['fba_predundancy_number'];
+                    if (empty($fbaDatas)){
+                        $fbaDatas[0]['fba_goods_value'] = $fba['fba_goods_value'];
+                        $fbaDatas[0]['fba_stock'] = $fba['fba_stock'];
+                        $fbaDatas[0]['fba_need_replenish'] = $fba['fba_need_replenish'];
+                        $fbaDatas[0]['fba_predundancy_number'] = $fba['fba_predundancy_number'];
+                    }else{
+                        $fbaDatas[0]['fba_goods_value'] += $fba['fba_goods_value'];
+                        $fbaDatas[0]['fba_stock'] += $fba['fba_stock'];
+                        $fbaDatas[0]['fba_need_replenish'] += $fba['fba_need_replenish'];
+                        $fbaDatas[0]['fba_predundancy_number'] += $fba['fba_predundancy_number'];
+                    }
                 }else{
                     $fbaDatas[] = $fba ;
                 }
