@@ -149,11 +149,11 @@ class AmazonCategoryTopnKpiPrestoModel extends AbstractPrestoModel
         $is_count = intval($datas['is_count'] ?? 0);// 总计
         if($countPeriods == 1){
             $time_diff = strtotime($datas['search_end_time']) - strtotime($datas['search_start_time']);
-            $time_diff = $time_diff / 86400 + 1;
+            $time_diff = $time_diff / 86400;
         }else{
             $time_diff = $this->getMonthNum($datas['search_start_time'],$datas['search_end_time']);
         }
-        $time_diff = $time_diff == 0 ? 1 : $time_diff;
+        $time_diff = $time_diff + 1;
         $periodsDay = $periodsDay < 10 ? str_pad($periodsDay,2,"0",STR_PAD_LEFT) : $periodsDay;
 
         $fields['time'] = $countPeriods == 2 ? "MAX(report.year_to_date)" : "MAX(report.dt)";
