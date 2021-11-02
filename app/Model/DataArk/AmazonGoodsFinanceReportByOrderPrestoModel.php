@@ -39,6 +39,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     //自定义指标是否有店铺维度
     protected $countDimensionChannel = false;
 
+    protected $is_change_mysql = false;
+
     //商品维度 分摊 f_monthly_profit_report_by_sku_001字段
     protected $default_goods_split_fields = [
         'goods_promote_coupon' => 'reserved_field39', //coupon费用
@@ -4781,9 +4783,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //店铺月报
         $is_month_table = $this->is_month_table($params);
-//        if (in_array($params['count_dimension'],array("channel_id","site_id","all_channels"))  && $is_month_table) {
-//            $isMysql = false;
-//        }
+        if (in_array($params['count_dimension'],array("channel_id","site_id","all_channels"))  && $is_month_table && $params['show_type'] == 2) {
+            $isMysql = true;
+        }
 
         //商品级
         $goods_day = $params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") && abs($params['origin_create_end_time'] - $params['origin_create_start_time']) <= 15*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2;
@@ -4874,6 +4876,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $this->customTargetsList = $customTargetsList;
 
             $fields_arr = $this->getUnGoodsFields($params,$isMysql);
+            if ($this->is_channge_mysql){
+                $isMysql = false;
+            }
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
@@ -5333,11 +5338,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $targets = explode(',', $datas['target']);
         $targets_temp = $targets;//基础指标缓存
 
+        //店铺月销售额目标
+        if ($isMysql && in_array('sale_channel_month_goal', $targets)) {
+            $isMysql = false;
+            $this->is_channge_mysql = true;
+        }
+
         //自定义指标
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         //自定义公式里包含新增指标
         $this->customTargetsList = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$this->customTargetsList);
         $targets = $this->addCustomTargets($targets, $this->customTargetsList);
+        if ($isMysql && $this->is_channge_mysql) {
+            $isMysql = false;
+        }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
 
         if ($datas['is_new_index'] == 1){
@@ -10125,6 +10139,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }elseif ($item['target_type'] == 1){
                     if ($item['count_dimension'] == 3){
                         $this->countDimensionChannel = true;
+                        $this->is_channge_mysql = true;
                     }
                 }
             }
