@@ -12370,6 +12370,81 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $sql_key = array();
         $is_need_monthly_storage_fee = $this->getIsNeedMonthlyStorageFee($params);
         $is_month_table = $this->is_month_table($params);
+        $repair_data = array();
+        if ($params['finance_datas_origin'] == '1') {
+            if ($params['refund_datas_origin'] == '2') {
+//                $repair_data .= " + report.byorder_refund - report.report_refund ";reportitem_sales_refund
+                $repair_data[] = array(
+                    "sql_field_key"                 => "byorderitem_sales_refund",
+                    "goods_month_sql_field_key"     => "",
+                    "fifo_sql_field_key"            => "",
+                    "is_add"                        => 0,
+                    "fifo_is_add"                   => 1,
+                    "is_goods_key"                  => 1,
+                    "is_channel_key"                => 1,
+                    "is_operate_key"                => 1,
+                    "goods_key_from"                => 3,
+                    "data_origin"                   => 3,
+                    "is_denominator"                => 0,
+                    "is_need_monthly_storage_fee"   => 0,
+                    "is_remove_tax"                 => 0,
+                    "is_month_field"                => 0,
+                );
+                $repair_data[] = array(
+                    "sql_field_key"                 => "reportitem_sales_refund",
+                    "goods_month_sql_field_key"     => "",
+                    "fifo_sql_field_key"            => "",
+                    "is_add"                        => 1,
+                    "fifo_is_add"                   => 1,
+                    "is_goods_key"                  => 1,
+                    "is_channel_key"                => 1,
+                    "is_operate_key"                => 1,
+                    "goods_key_from"                => 3,
+                    "data_origin"                   => 3,
+                    "is_denominator"                => 0,
+                    "is_need_monthly_storage_fee"   => 0,
+                    "is_remove_tax"                 => 0,
+                    "is_month_field"                => 0,
+                );
+            }
+        }
+        else {
+            if ($params['refund_datas_origin'] == '1') {
+//                $repair_data .= " + report.report_refund - report.byorder_refund ";
+                $repair_data[] = array(
+                    "sql_field_key"                 => "reportitem_sales_refund",
+                    "goods_month_sql_field_key"     => "",
+                    "fifo_sql_field_key"            => "",
+                    "is_add"                        => 0,
+                    "fifo_is_add"                   => 1,
+                    "is_goods_key"                  => 1,
+                    "is_channel_key"                => 1,
+                    "is_operate_key"                => 1,
+                    "goods_key_from"                => 3,
+                    "data_origin"                   => 3,
+                    "is_denominator"                => 0,
+                    "is_need_monthly_storage_fee"   => 0,
+                    "is_remove_tax"                 => 0,
+                    "is_month_field"                => 0,
+                );
+                $repair_data[] = array(
+                    "sql_field_key"                 => "byorderitem_sales_refund",
+                    "goods_month_sql_field_key"     => "",
+                    "fifo_sql_field_key"            => "",
+                    "is_add"                        => 1,
+                    "fifo_is_add"                   => 1,
+                    "is_goods_key"                  => 1,
+                    "is_channel_key"                => 1,
+                    "is_operate_key"                => 1,
+                    "goods_key_from"                => 3,
+                    "data_origin"                   => 3,
+                    "is_denominator"                => 0,
+                    "is_need_monthly_storage_fee"   => 0,
+                    "is_remove_tax"                 => 0,
+                    "is_month_field"                => 0,
+                );
+            }
+        }
         foreach ($sql_key_arr as $value){
             if ($value['quote_finance_index_id']>0){
                 $sql_key[$value['finance_index_id']]['quote'][] = $value;
@@ -12377,6 +12452,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $sql_key[$value['finance_index_id']]['common'][] = $value;
             }
         }
+
         foreach ($sql_key as $k=> &$value1){
             if (isset($value1['quote']) && !empty($value1['quote'])){
                 foreach ($value1['quote'] as $item){
@@ -12397,7 +12473,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $value1['common'] = $quote_common;
                     }
                 }
+
                 unset($value1['quote']);
+            }
+
+        }
+        if (!empty($repair_data)){
+            foreach ($sql_key as $k=> $sql_key_value){
+                if (in_array($k,[1,198,86,87])){
+
+                    $sql_key[$k]['common'] = array_merge($sql_key_value['common'],$repair_data);
+
+                }
             }
         }
         $field = array();
