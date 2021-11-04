@@ -11974,9 +11974,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $repair_data = array();
         if ($params['finance_datas_origin'] == '1') {
             if ($params['refund_datas_origin'] == '2') {
-//                $repair_data .= " + report.byorder_refund - report.report_refund ";
+//                $repair_data .= " + report.byorder_refund - report.report_refund ";reportitem_sales_refund
                 $repair_data[] = array(
-                    "sql_field_key"                 => "byorder_refund",
+                    "sql_field_key"                 => "byorderitem_sales_refund",
                     "goods_month_sql_field_key"     => "",
                     "fifo_sql_field_key"            => "",
                     "is_add"                        => 0,
@@ -11992,7 +11992,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "is_month_field"                => 0,
                 );
                 $repair_data[] = array(
-                    "sql_field_key"                 => "report_refund",
+                    "sql_field_key"                 => "reportitem_sales_refund",
                     "goods_month_sql_field_key"     => "",
                     "fifo_sql_field_key"            => "",
                     "is_add"                        => 1,
@@ -12013,7 +12013,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if ($params['refund_datas_origin'] == '1') {
 //                $repair_data .= " + report.report_refund - report.byorder_refund ";
                 $repair_data[] = array(
-                    "sql_field_key"                 => "report_refund",
+                    "sql_field_key"                 => "reportitem_sales_refund",
                     "goods_month_sql_field_key"     => "",
                     "fifo_sql_field_key"            => "",
                     "is_add"                        => 0,
@@ -12029,7 +12029,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "is_month_field"                => 0,
                 );
                 $repair_data[] = array(
-                    "sql_field_key"                 => "byorder_refund",
+                    "sql_field_key"                 => "byorderitem_sales_refund",
                     "goods_month_sql_field_key"     => "",
                     "fifo_sql_field_key"            => "",
                     "is_add"                        => 1,
