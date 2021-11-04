@@ -1363,6 +1363,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
                 $lists[$k]['fba_sales_stock'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
             }
+            if (!empty($fields['fba_sales_stock'])) {  //不可售库存
+                $lists[$k]['fba_sales_not_stock'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
+            }
+            if (!empty($fields['fba_sales_stock'])) {  //fba待收货在途
+                $lists[$k]['fba_receiving_on_the_way'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
+            }if (!empty($fields['fba_sales_stock'])) {  //fba待收货接受中
+                $lists[$k]['fba_receiving'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
+            }
             if (!empty($fields['fba_sales_day'])) {  //可售天数
                 $lists[$k]['fba_sales_day'] = empty($fba_data) ? null : $fba_data['fba_sales_day'] ;
                 $lists[$k]['max_fba_sales_day'] = empty($fba_data) ? null : $fba_data['max_fba_sales_day'] ;
@@ -1372,6 +1380,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if (!empty($fields['fba_reserve_stock'])) {  //预留库存
                 $lists[$k]['fba_reserve_stock'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock'] ;
+            }
+            if (!empty($fields['fba_reserve_stock'])) {  //预留库存,正在处理
+                $lists[$k]['fba_reserve_stock_handle'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock'] ;
+            }
+            if (!empty($fields['fba_reserve_stock'])) {  //预留库存，正在调拨
+                $lists[$k]['fba_reserve_stock_allocation'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock'] ;
             }
             if (!empty($fields['fba_recommended_replenishment'])) {  //建议补货量
                 $lists[$k]['fba_recommended_replenishment'] = empty($fba_data) ? null : round($fba_data['fba_recommended_replenishment'],2) ;
