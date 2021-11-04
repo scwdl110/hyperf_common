@@ -12142,7 +12142,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $fields[$key] = "MAX((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
                     }
                 }else{
-                    if ($value['format_type'] == 3){//百分比判断是否需要转货币
+                    if ($value['format_type'] == 3 or $key == 'cpc_avg_click_cost'){//百分比判断是否需要转货币
                         $field_molecule_rate    = $value['is_molecule_money'] == 1 ? $rate : "";
                         $field_denominator_rate = $value['is_denominator_money'] == 1 ? $rate : "";
                         if ($field_type == 3){//运营人员需要兼容case when
@@ -12278,7 +12278,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if($targets == 'sale_channel_month_goal'){
                 $this->countDimensionChannel = true;
             }
-            if ($field[$targets]['format_type'] == 3){
+            if ($field[$targets]['format_type'] == 3 or $targets == 'cpc_avg_click_cost'){
                 $field_molecule_rate    = $field[$targets]['is_molecule_money'] == 1 ? $rate : "";
                 $field_denominator_rate = $field[$targets]['is_denominator_money'] == 1 ? $rate : "";
                 if ($field_type == 3){
