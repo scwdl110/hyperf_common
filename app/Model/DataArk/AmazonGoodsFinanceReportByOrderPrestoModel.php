@@ -224,6 +224,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $searchKey = $datas['searchKey'] ?? '';
         $searchVal = $datas['searchVal'] ?? '';
         $matchType = $datas['matchType'] ?? '';
+        $other_target_tmp = isset($datas['other_target']) && !empty($datas['other_target'])? explode(',',$datas['other_target']):[];
+        $other_target = array();
+        if (!empty($other_target_tmp)){
+            foreach ($other_target_tmp as $value){
+                $other_target[$value] = '1';
+            }
+        }
         $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
         $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
 
@@ -751,6 +758,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //                }
                 if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                }elseif (!empty($lists) && $datas['show_type'] == 1 && ( !empty($other_target['fba_sales_stock']) || !empty($other_target['fba_sales_day']) || !empty($other_target['fba_reserve_stock']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_special_purpose']) || !empty($other_target['fba_receiving_on_the_way']) || !empty($other_target['fba_receiving']) || !empty($other_target['fba_reserve_stock_handle']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_sales_not_stock']))){
+                    $lists = $this->getGoodsFbaDataTmp($lists , $other_target , $datas,$channel_arr) ;
                 }
                 if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
@@ -834,6 +843,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //                }
                 if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                }elseif (!empty($lists) && $datas['show_type'] == 1 && ( !empty($other_target['fba_sales_stock']) || !empty($other_target['fba_sales_day']) || !empty($other_target['fba_reserve_stock']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_special_purpose']) || !empty($other_target['fba_receiving_on_the_way']) || !empty($other_target['fba_receiving']) || !empty($other_target['fba_reserve_stock_handle']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_sales_not_stock']))){
+                    $lists = $this->getGoodsFbaDataTmp($lists , $other_target , $datas,$channel_arr) ;
                 }
                 if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
@@ -1363,12 +1374,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
                 $lists[$k]['fba_sales_stock'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
             }
-            if (!empty($fields['fba_sales_stock'])) {  //不可售库存
+            if (!empty($fields['fba_sales_not_stock'])) {  //不可售库存
                 $lists[$k]['fba_sales_not_stock'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
             }
-            if (!empty($fields['fba_sales_stock'])) {  //fba待收货在途
+            if (!empty($fields['fba_receiving_on_the_way'])) {  //fba待收货在途
                 $lists[$k]['fba_receiving_on_the_way'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
-            }if (!empty($fields['fba_sales_stock'])) {  //fba待收货接受中
+            }if (!empty($fields['fba_receiving'])) {  //fba待收货接受中
                 $lists[$k]['fba_receiving'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
             }
             if (!empty($fields['fba_sales_day'])) {  //可售天数
@@ -1381,11 +1392,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!empty($fields['fba_reserve_stock'])) {  //预留库存
                 $lists[$k]['fba_reserve_stock'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock'] ;
             }
-            if (!empty($fields['fba_reserve_stock'])) {  //预留库存,正在处理
-                $lists[$k]['fba_reserve_stock_handle'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock'] ;
+            if (!empty($fields['fba_reserve_stock_handle'])) {  //预留库存,正在处理
+                $lists[$k]['fba_reserve_stock_handle'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
             }
-            if (!empty($fields['fba_reserve_stock'])) {  //预留库存，正在调拨
-                $lists[$k]['fba_reserve_stock_allocation'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock'] ;
+            if (!empty($fields['fba_reserve_stock_allocation'])) {  //预留库存，正在调拨
+                $lists[$k]['fba_reserve_stock_allocation'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
             }
             if (!empty($fields['fba_recommended_replenishment'])) {  //建议补货量
                 $lists[$k]['fba_recommended_replenishment'] = empty($fba_data) ? null : round($fba_data['fba_recommended_replenishment'],2) ;
