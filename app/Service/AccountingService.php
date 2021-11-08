@@ -483,6 +483,7 @@ class AccountingService extends BaseService
                     "searchKey" => '',
                     "matchType" => '',
                     "searchType" => 0,
+                    "is_new_index" => 1,
                     "params" => array(
                         "user_id" => $userInfo['user_id'],
                         "admin_id" => $userInfo['admin_id'],
