@@ -438,7 +438,7 @@ class AccountingService extends BaseService
             $res = $this->getShopInfo($request_data, $userInfo);
 
             $rateList = $this->getExchangeRate($res['user_info']['user_id']);
-            if ($category_list['index_summary'] == "callback_money") {
+            if ($category_list['index_summary'] == "money_back_amount") {
                 foreach ($res['shopListInfo'] as $key => $list) {
                     $info = array();
                     //商品销售额
