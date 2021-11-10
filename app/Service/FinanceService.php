@@ -93,9 +93,35 @@ class FinanceService extends BaseService
         $params['searchVal'] = $searchVal;
         $params['matchType'] = trim(strval($req['matchType'] ?? ''));
 
+        //对比数据信息
+        /*说明：
+        $compare_data => array(
+            array(
+                "target" => "sale_sales_volume,sale_sales_quota" , //对比指标
+                "rename" => "compare_sale_sales_volume,compare_sale_sales_quota" , //对比字段重命名 。 默认为 compare1_sale_sales_volume， compare1_sale_sales_quota
+                "compare_start_time" => 1630598400 , //对比开始时间
+                "compare_end_time" => 1631203199 , //对比结束时间
+                "where" => "origin_table.sale_sales_quota < (0.9*compare_table1.compare_sale_sales_quota/7*1.0000)" , //对比数据条件
+                "join_type" => "LEFT JOIN " , // origin_table表和 compare_table1 表的连接方式 ，默认使用 left join
+                "order" => "compare_table1.compare_sale_sales_quota DESC" , //排序方式
+                "custom_target"=> array(
+                    "origin_table.sale_sales_quota * 1.0000 / nullif(compare_table1.compare_sale_sales_volume)  AS diy_rate"   //自定义公式
+                )
+            ),
+            array(
+                ...
+            )
+        )*/
 
-
+        $compare_data = $params['compare_data'] ?? [] ;
+        if($params['count_periods'] != '0' ){  //统计维度不为无周期 ， 无法使用对比数据
+            $compare_data = [] ;
+        }
         $where = '';
+
+        //不含时间的条件 ， 因对比数据为原筛选条件，改掉筛选时间范围
+        $notime_where = '' ;
+
         if (empty($channelIds)) {
             return $result;
         }
@@ -223,8 +249,12 @@ class FinanceService extends BaseService
                 }
 
                 if (!empty($params['where_parent']['class1_name']) && !empty($params['where_parent']['site_id'])){//维度下钻 一级类目
-                    $class1_name = trim($params['where_parent']['class1_name']);
-                    $where .= " AND report.goods_product_category_name_1 = '{$class1_name}' AND report.site_id = {$params['where_parent']['site_id']}";
+                    if (is_array($params['where_parent']['class1_name'])){
+                        $class1_name = implode("','", $params['where_parent']['class1_name']);
+                    }else{
+                        $class1_name = trim($params['where_parent']['class1_name']);
+                    }
+                    $where .= " AND report.goods_product_category_name_1 IN('{$class1_name}') AND report.site_id = {$params['where_parent']['site_id']}";
                 }
 
                 if (!empty($params['where_parent']['head_id'])){
@@ -266,6 +296,13 @@ class FinanceService extends BaseService
             $offset = 0;
             $limit = (int)$params['limit_num'] ;
         }
+
+        if(!empty($compare_data)){
+            $notime_where = $where ;
+            $params['notime_where'] = $notime_where ;
+            $params['compare_data'] = $compare_data ;
+        }
+
 
         if ((int)$params['time_type'] === 99) {
             $where .= sprintf(
@@ -332,14 +369,19 @@ class FinanceService extends BaseService
         if(($params['count_periods'] == 0 || $params['count_periods'] == 1 || $params['count_periods'] == 2 ) && $params['cost_count_type'] != 2){ //按天,按周或无统计周期
             $is_goods_day_report = true;
         }
-        if ($method == 'getListByGoods' and $day_param > 90 AND in_array($userInfo['user_id'],explode(",",$big_data_user)) and $is_goods_day_report){
-            $isReadAthena = true;
+        if(empty($compare_data)){  // 有对比数据需使用PRESTO
+            if ($method == 'getListByGoods' and $day_param > 90 AND in_array($userInfo['user_id'],explode(",",$big_data_user)) and $is_goods_day_report){
+                $isReadAthena = true;
+            }
         }
 
-
-
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
-        $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
+        if(!empty($compare_data)) {  // 有对比数据需使用PRESTO
+            $dataChannel = 'Presto' ;
+        }else{
+            $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
+        }
+
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
         $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno'],$isReadAthena);
         $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
@@ -362,11 +404,9 @@ class FinanceService extends BaseService
             $rateInfo,
             $day_param
         );
-
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
         }
-
         return $result;
     }
 

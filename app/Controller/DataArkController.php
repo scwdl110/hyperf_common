@@ -9,7 +9,7 @@ use Captainbi\Hyperf\Util\Result;
 
 class DataArkController extends AbstractController
 {
-    protected function init($type = 1)
+    /*protected function init($type = 1)
     {
 
         $userInfo = $this->request->getAttribute('userInfo');
@@ -321,7 +321,7 @@ class DataArkController extends AbstractController
         }
 
         return Result::success($result);
-    }
+    }*/
 
     public function getUnGoodsDatas()
     {
@@ -352,13 +352,20 @@ class DataArkController extends AbstractController
         $req = $this->request->all();
         $page = intval($req['page'] ?? 1);
         $limit = intval($req['rows'] ?? 100);
-        $currencyInfo = $req['currencyInfo'] ?? [];
+        $tab_type = intval($req['tab_type'] ?? 1); //1-取本级 2-取子级
+        $son = $req['son'] ?? []; //子级类目
         $exchangeCode = $req['exchangeCode'] ?? '1';
         $params = $req['params'] ?? [];
         $target = trim($params['target'] ?? '');
         $timeType = intval($params['time_type'] ?? 0);
-        $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
-        $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
+        $count_periods = intval($params['count_periods'] ?? 1);//1-按日 2-按月
+        if($count_periods == 2){
+            $searchStartTime = trim(date('Y-m',strtotime($params['search_start_time'] ?? '')));
+            $searchEndTime = trim(date('Y-m',strtotime($params['search_end_time'] ?? '')));
+        }else{
+            $searchStartTime = trim(date('Y-m-d',strtotime($params['search_start_time'] ?? '')));
+            $searchEndTime = trim(date('Y-m-d',strtotime($params['search_end_time'] ?? '')));
+        }
         $offset = ($page - 1) * $limit;
         $result = ['lists' => [], 'count' => 0];
         $where = '';
@@ -367,9 +374,13 @@ class DataArkController extends AbstractController
             return Result::success($result);
         }
 
+        if($tab_type == 2 && empty($son)){
+            return Result::success($result);
+        }
+
         if ($timeType === 99) {
             $where .= sprintf(
-                "%s report.dt>='%s' and report.dt<='%s'",
+                $count_periods == 2 ? "%s report.year_to_date>='%s' and report.year_to_date<='%s'" : "%s report.dt>='%s' and report.dt<='%s'",
                 $where ? ' AND' : '',
                 $searchStartTime,
                 $searchEndTime
@@ -386,9 +397,7 @@ class DataArkController extends AbstractController
             $where,
             $params,
             $limit,
-            $currencyInfo,
-            $exchangeCode,
-            $userInfo['user_id']
+            $exchangeCode
         );
 
         if (!isset($result['lists'])) {

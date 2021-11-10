@@ -193,6 +193,303 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ];
 
     /**
+     * function getCompareDatas
+     * desc: 获取比较数据字段 的 字段名， 条件 ， 连表条件
+     * param $datas
+     * param int $type 维度类型 0- 店铺维度 1-商品维度 2-运营人员维度
+     * param int $exchangeCode 汇率信息
+     * return array
+     * author: LWZ
+     * editTime: 2021-09-26 13:48
+     */
+    public function getCompareDatas($datas , $type = 0 ,$exchangeCode = 1 , $day_param = 1){
+        if(empty($datas['compare_data'])){
+            return [] ;
+        }
+        $notime_where = empty($datas['notime_where']) ? '' :  $datas['notime_where'];
+        if($type == '1'){
+            $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
+            $notime_where =  $mod_where . " AND report.available = 1 " .  (empty($notime_where) ? "" : " AND " . $notime_where) ;
+        }else if($type == '0'){
+            $mod_where = "report.user_id_mod = " . ($datas['user_id'] % 20) ;
+            $notime_where =  $mod_where . " AND report.available = 1 " .  (empty($notime_where) ? "" : " AND " . $notime_where) ;
+        }
+        //对比数据连表查询时的ON 条件
+        $compare_on = array() ;
+        if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
+            if($datas['is_distinct_channel'] == 1){ //有区分店铺
+                $compare_on = [ $datas['count_dimension'] , 'channel_id'] ;
+            }else{  //不区分店铺
+                $compare_on = [ $datas['count_dimension']] ;
+            }
+            $notime_where .= " AND report.goods_" . $datas['count_dimension'] . " != '' ";
+        } else if ($datas['count_dimension'] == 'isku') {
+            $compare_on = ['isku_id'] ;
+            $notime_where .= " AND report.goods_isku_id > 0";
+        } else if ($datas['count_dimension'] == 'group') {
+            $compare_on = ['group_id'] ;
+            $notime_where .= " AND report.goods_group_id > 0";
+        } else if ($datas['count_dimension'] == 'class1') {
+            $compare_on = ['class1' ,'site_id'] ;
+            $notime_where .= " AND report.goods_product_category_name_1 != ''";
+        } else if($datas['count_dimension'] == 'tags'){
+            $compare_on = ['tags_id'] ;
+            $notime_where.= " AND CAST(tags_rel.tags_id  as bigint) > 0";
+        } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
+            $compare_on = ['head_id'] ;
+            $notime_where.= " AND report.isku_head_id > 0";
+        }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
+            $compare_on = ['developer_id'] ;
+            $notime_where.= " AND report.isku_developer_id > 0";
+        } else if($datas['count_dimension'] == 'all_goods'){ //按全部商品维度统计
+            $compare_on = ['user_id'] ;
+        }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
+            $compare_on = ['channel_id'] ;
+        }else if ($datas['count_dimension'] == 'channel_id') {
+            $compare_on = ['channel_id'] ;
+        } else if ($datas['count_dimension'] == 'site_id') {
+            $compare_on = ['site_id'] ;
+        } else if ($datas['count_dimension'] == 'site_group') {
+            $compare_on = ['site_group'] ;
+        } else if ($datas['count_dimension'] == 'department') {
+            $compare_on = ['user_department_id'] ;
+            $notime_where .= " AND dc.user_department_id > 0";
+        }else if($datas['count_dimension'] == 'admin_id'){
+            $compare_on = ['admin_id'] ;
+            $notime_where .= " AND uc.admin_id > 0";
+        }else if($datas['count_dimension'] == 'all_channels') { //按全部店铺维度统计
+            $compare_on = ['user_id'] ;
+        }
+
+        if($type == '2'){ //运营人员维度按运营人员ID连表查询
+            $compare_on = ['goods_operation_user_admin_id'] ;
+            $notime_where .= " AND report.goods_operation_user_admin_id > 0";
+        }
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
+        if (!empty($where_detail)) {
+            //商品维度条件
+            if (!empty($where_detail['transport_mode'])) {
+                if(!is_array($where_detail['transport_mode'])){
+                    $transport_modes = explode(',' , $where_detail['transport_mode']) ;
+                }else{
+                    $transport_modes = $where_detail['transport_mode'] ;
+                }
+                if(count($transport_modes) == 1){
+                    $notime_where .= ' AND report.goods_Transport_mode = ' . ($transport_modes[0] == 'FBM' ? 1 : 2);
+                }
+            }
+            if(!empty($where_detail['up_status'])){
+                $notime_where.= " AND report.goods_up_status = " . (intval($where_detail['up_status']) == 1 ? 1 : 2 );
+            }
+            if(!empty($where_detail['is_care'])){
+                $notime_where.= " AND report.goods_is_care = " . (intval($where_detail['is_care']) == 1 ? 1 : 0 );
+            }
+            if(!empty($where_detail['is_new'])){
+                $notime_where.= " AND report.goods_is_new = " . (intval($where_detail['is_new']) == 1 ? 1 : 0 );
+            }
+            if (!empty($where_detail['group_id'])) {
+                if(is_array($where_detail['group_id'])){
+                    $group_str = implode(',', $where_detail['group_id']);
+                }else{
+                    $group_str = $where_detail['group_id'] ;
+                }
+                if (!empty($group_str)) {
+                    $notime_where .= " AND report.goods_group_id  IN ( " . $group_str . ")";
+                }elseif ($group_str == 0){
+                    $notime_where .= " AND report.goods_group_id = 0 ";
+                }
+            }
+            if (!empty($where_detail['operators_id'])) {
+                if(is_array($where_detail['operators_id'])){
+                    $operators_str = implode(',', $where_detail['operators_id']);
+                }else{
+                    $operators_str = $where_detail['operators_id'] ;
+                }
+                $notime_where .= " AND report.goods_operation_user_admin_id  IN ( " . $operators_str . " ) ";
+            }
+            if (!empty($where_detail['tag_id'])) {
+                if(is_array($where_detail['tag_id'])){
+                    $tag_str = implode(',', $where_detail['tag_id']);
+                }else{
+                    $tag_str = $where_detail['tag_id'] ;
+                }
+                if (!empty($tag_str)) {
+                    if (in_array(0,explode(",",$tag_str))){
+                        $notime_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+                    }else{
+                        $notime_where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+                    }
+                }elseif ($tag_str == 0){
+                    $notime_where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                }
+            }
+            if(!empty($where_detail['sku'])){
+                if(is_array($where_detail['sku'])){
+                    $sku_str="'".join("','",$where_detail['sku'])."'";
+                }else{
+                    $sku_str = "'".$where_detail['sku']."'" ;
+                }
+                if (!empty($sku_str)) {
+                    $notime_where .= " AND report.goods_sku  IN ( " . $sku_str . ")";
+                }
+            }
+            if (!empty($where_detail['user_department_id'])){
+                $notime_where .= " AND dc.user_department_id IN (" . $where_detail['user_department_id'] . ")" ;
+            }
+            if (!empty($where_detail['operators_id'])) {
+                if(is_array($where_detail['operators_id'])){
+                    $operators_str = implode(',', $where_detail['operators_id']);
+                }else{
+                    $operators_str = $where_detail['operators_id'] ;
+                }
+                $notime_where .= " AND report.goods_operation_user_admin_id  IN ( " . $operators_str . " ) ";
+            }
+        }
+
+        $notime_where = str_replace("{:RATE}", $exchangeCode, $notime_where ?? '');
+        $notime_where = str_replace("{:DAY}", $day_param, $notime_where);
+
+        $newDatas = $datas ;
+        $on_key = 1 ;
+
+        foreach($datas['compare_data'] as $ck => $compare_data)   {
+            if($compare_data['target'] == 'industry'){
+                if($compare_data['category_level'] == 1){
+                    $compare_on = ['site_id','goods_product_category_name_1'] ;
+                }elseif($compare_data['category_level'] == 2){
+                    $compare_on = ['site_id','goods_product_category_name_1','goods_product_category_name_2'] ;
+                }else{
+                    $compare_on = ['site_id','goods_product_category_name_1','goods_product_category_name_2','goods_product_category_name_3'] ;
+                }
+                $day_type = $compare_data['time_type'] == 3 ? 1 : ($compare_data['time_type'] == 4 ? 2 : 3);
+                $datas['compare_data'][$ck]['industry_table'] = $this->compareDataSql($compare_data['category_level'] , $day_type ,1 ,$compare_data['topn'] ,3 ,$compare_data['type'] ,$exchangeCode);
+                $compare_on_arr = [] ;
+                foreach($compare_on as $con){
+                    $compare_on_arr[] = 'origin_table.'.$con . ' = industry_table.'.$con ;
+                }
+            }else{
+                $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
+                $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
+                $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
+
+                $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
+                if($type == '0'){ // 获取店铺维度字段
+                    $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
+                }else if ($type == '1'){ // 获取商品维度字段
+                    $compare_fields_arr = $this->getGoodsFields($newDatas) ;
+                }else{  //获取运营人员维度字段
+                    $compare_fields_arr = $this->getOperatorsFields($newDatas);
+                    //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
+                    $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
+                    if ($datas['currency_code'] != 'ORIGIN') {
+                        if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                        } else {
+                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+                        }
+                        $datas['compare_data'][$ck]['new_table'] = $new_table ;
+                    }
+                }
+                $datas['compare_data'][$ck]['fields'] = $compare_fields_arr['fields'] ;
+
+                //拼接对比表条件 及连表 ON 条件
+                if($type == '2'){
+                    $compareWhere = $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+                }else{
+                    $compareWhere = $ym_where . ' AND ' . $notime_where . " AND (report.create_time>= {$compare_data['compare_start_time']} and report.create_time<= {$compare_data['compare_end_time']} ) ";
+                }
+
+                $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
+                $compare_on_arr = [] ;
+                foreach($compare_on as $con){
+                    $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.compare'.$on_key.'_'.$con ;
+                }
+            }
+            $on_key++ ;
+            $datas['compare_data'][$ck]['on'] = implode(' AND ' , $compare_on_arr) ;
+        }
+
+        //处理对比数据 - 获取对比数据需要查询的字段
+        foreach($datas['compare_data'] as $ck2 => $compare_data)   {
+            if(!empty($compare_data['fields'])){
+                $compare_fields_arr = array() ;
+                $renames = empty($compare_data['rename']) ? [] : explode(',',$compare_data['rename']) ;
+                $renameArr = [] ;
+                $compare_target = explode(',' , $compare_data['target']) ;
+                if(!empty($renames)){
+                    foreach($compare_target as $ctk =>$ct){
+                        $renameArr[$ct] = empty($renames[$ctk]) ? false : $renames[$ctk] ;
+                    }
+                }
+                $i = 1 ;
+                foreach($compare_data['fields'] as $compare_field_name => $compare_field){
+                    if(in_array($compare_field_name , $compare_target)){
+                        $compare_field_name2 = empty($renameArr[$compare_field_name]) ? ('compare'.($ck2+1).'_'.$compare_field_name) : $renameArr[$compare_field_name] ;
+                        $compare_fields_arr[] = $compare_field . ' AS "' . $compare_field_name2 . '"';
+                        $i++ ;
+                    }else{
+                        $compare_fields_arr[] = $compare_field . ' AS "compare'.($ck2+1).'_'.$compare_field_name . '"';
+                    }
+                }
+                $compare_field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $compare_fields_arr)));//去除
+                $compare_field_data = str_replace("{:DAY}", $day_param, $compare_field_data);
+                $datas['compare_data'][$ck2]['field_data'] =  $compare_field_data ;
+                unset($datas['compare_data'][$ck2]['fields']) ;
+            }
+        }
+
+        //最终获取自定义字段拼接
+        if(!empty($datas['compare_data'][0]['custom_target_set'])){
+            $datas['compare_data'][0]['custom_target'] = [];
+            $custom_set_order = $custom_set_where = [];
+            foreach($datas['compare_data'][0]['custom_target_set'] as $custom_target_item){
+                $compare_table = !empty($custom_target_item['compare_table']) ? $custom_target_item['compare_table'] : [];
+                $field_arr = [];
+                if($compare_table){
+                    //fields
+                    foreach($compare_table as $table_key => $table_item){
+                        $avg = (!empty($table_item['avg']) && (int)$table_item['avg'] > 1) ? " * 1.0000 / {$table_item['avg']}" : '';//取的字段表
+                        $table_tmp = $table_item['table'] == '-1' ? $table_item['table'] : (int)$table_item['table'] + 1;
+                        $table_str = $table_tmp == '-1' ? 'origin_table.' : "compare_table{$table_tmp}.";//取的字段表
+                        $target_prefix = $table_tmp == '-1' ? '' : "compare{$table_tmp}_";//取的字段表
+                        $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . $avg . ')';
+                    }
+                    if (!empty($custom_target_item['type']) && $custom_target_item['type'] == 2) {
+                        $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN 1 ELSE ( {$field_arr[0]} - {$field_arr[1]} ) * 1.0000 / nullif({$field_arr[1]},0) END ) END ) END )";
+                    } else {
+                        if (!empty($field_arr[1])) {
+                            $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -{$field_arr[1]} ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN {$field_arr[0]} ELSE ( {$field_arr[0]} - {$field_arr[1]} ) END ) END ) END )";
+                        } else {
+                            $field_str = "{$field_arr[0]}";
+                        }
+                    }
+                    $datas['compare_data'][0]['custom_target'][] = !empty($custom_target_item['rename']) ? $field_str . " as {$custom_target_item['rename']}" : $field_str;
+
+                    //where
+                    if(!empty($custom_target_item['formula']) && !empty($custom_target_item['value'])){
+                        if($custom_target_item['value'] == 'category_result_data'){
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . 'industry_table.' .$custom_target_item['value'];
+                        }else{
+                            if (strpos($custom_target_item['value'], '%') !== false) {
+                                $custom_target_item['value'] = round((float)$custom_target_item['value'] / 100, 4);
+                            }
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . $custom_target_item['value'];
+                        }
+                    }
+
+                    //order by
+                    if(!empty($custom_target_item['sort'])){
+                        $custom_set_order[] = $field_str . " {$custom_target_item['sort']}";
+                    }
+                }
+            }
+            $datas['compare_data'][0]['where'] = !empty($custom_set_where) ? implode(' AND ',$custom_set_where) : [];
+            $datas['compare_data'][0]['order'] = !empty($custom_set_order) ? implode(',',$custom_set_order) : [];
+        }
+
+        return $datas['compare_data'] ;
+    }
+    /**
      * 获取商品维度统计列表(新增统计维度完成)
      * @param string $where
      * @param array $datas
@@ -260,7 +557,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
         }
-
         if (!empty($where_detail['tag_id'])) {
             if(is_array($where_detail['tag_id'])){
                 $tag_str = implode(',', $where_detail['tag_id']);
@@ -282,7 +578,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields_arr = $this->getGoodsFields($datas,$isMysql);
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
-        } else {
+        } else {  //按时间维度统计，没有对比数据
             $fields = $this->getGoodsTimeFields($datas, $timeLine,$isMysql);
         }
 
@@ -312,8 +608,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = str_replace($dws_table,'(SELECT  report.user_id  AS "user_id",report.amazon_goods_id AS "goods_id",report.site_id AS "site_country_id",report.channel_id  AS "channel_id",report.available  AS "available",report.site_id  AS "site_id",report.user_id_mod  AS "user_id_mod",report.amazon_goods_id  AS "amazon_goods_id",report.ym  AS "ym",report.create_time as "create_time" '.$time_periods_other_field.' FROM  '.$dws_table.' as report where '.($ym_where).' AND report.available = 1 AND report.user_id_mod = '.$this->dws_user_id_mod.' AND '.$datas['origin_report_where'].')  ' ,$table);
 
         }
-
-
 
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
@@ -349,10 +643,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
-
-
-
-
         if ($datas['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
@@ -362,6 +652,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $having = '';
+
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
             if($datas['is_distinct_channel'] == 1){ //有区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
@@ -592,7 +883,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $group = 'report.channel_id ,report.myear';
                     $orderby = 'report.channel_id ,report.myear';
                 }
-
             }else{
                 $group = 'report.channel_id ';
                 $orderby = empty($orderby) ? ('report.channel_id ') : ($orderby . ' ,report.channel_id ');
@@ -690,10 +980,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         if (strpos($where_value, '%') !== false) {
                             $where_value = round($where_value / 100, 4);
                         }
+                        //日均
+                        $target_where['avg'] = !empty($target_where['avg']) && (int)$target_where['avg'] > 1 ? " / {$target_where['avg']}" : "";
                         if (empty($having)) {
-                            $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                            $having .= '(' . '(' .  $fields[$target_where['key']] . ') ' . $target_where['avg'] . ') ' . $target_where['formula'] . $where_value;
                         } else {
-                            $having .= ' ' .$condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                            $having .= ' ' .$condition_relation . '(' . '(' .  $fields[$target_where['key']] . ') ' . $target_where['avg'] . ') ' . $target_where['formula'] . $where_value;
                         }
                     }
 
@@ -708,7 +1000,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $group = str_replace("{:RATE}", $exchangeCode, $group ?? '');
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby ?? '');
-
         $group = str_replace("{:DAY}", $day_param, $group);
         $where = str_replace("{:DAY}", $day_param, $where);
         $orderby = str_replace("{:DAY}", $day_param, $orderby);
@@ -716,22 +1007,37 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($datas['show_type'] == 2 && $datas['limit_num'] > 0 ){
             $limit_num = $datas['limit_num'] ;
         }
+
+        if(!empty($datas['compare_data'])){
+            $compareData = $this->getCompareDatas($datas , 1 , $exchangeCode , $day_param ) ;
+        }else{
+            $compareData = array();
+        }
+
+
         $count = 0;
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group, true,$isMysql);
+
+            $count = $this->getTotalNum($where, $table, $group, true,$isMysql ,$compareData,$field_data);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
                 if($datas['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
+                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql,$compareData);
                 }
             }elseif($datas['is_median'] == 1){
                 $median_limit = !empty($datas['limit_num']) ? $limit : '';
@@ -739,7 +1045,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,true,$isMysql);
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData);
                 $total_user_sessions_views = array();
                 if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
                     $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
@@ -777,13 +1083,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
                 if($datas['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
+                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql,$compareData);
                 }else{
-                    $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql,$compareData);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
@@ -794,12 +1106,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql,$compareData){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData);
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group,$isMysql){
-                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql);
+                $parallel->add(function () use($where, $table, $group,$isMysql,$compareData,$field_data){
+                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data);
                     return $count;
                 });
                 $table_sessions_views = "{$this->table_dws_goods_day_report} AS report";
@@ -876,9 +1188,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $rt;
     }
 
-    protected function getTotalNum($where = '', $table = '', $group = '', $isJoin = false, $isMysql = false)
+    protected function getTotalNum($where = '', $table = '', $group = '', $isJoin = false, $isMysql = false , $compareData = array(),$field_data = '')
     {
-        return $this->count($where, $table, $group, '', '', $isJoin, null, 300, $isMysql);
+        if(empty($compareData)){
+            return $this->count($where, $table, $group, '', '', $isJoin, null, 300, $isMysql );
+        }else{   //查询有对比数据的汇总 ， 需查出原表字段
+            return $this->count($where, $table, $group, $field_data, $field_data, $isJoin, null, 300, $isMysql , $compareData);
+        }
+
     }
 
     /**
@@ -4767,6 +5084,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            return false;
 //        }
         $isMysql = false;
+        if(!empty($params['compare_data'])){  //当有对比数据时 ， 不从mysql查
+            return $isMysql ;
+        }
 //        return $isMysql;
 //        if ($params['user_id'] == 343459){
 //            return true;
@@ -5180,21 +5500,34 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($params['show_type'] == 2 && $params['limit_num'] > 0 ){
             $limit_num = $params['limit_num'] ;
         }
+
+        if(!empty($params['compare_data'])){
+            $compareData = $this->getCompareDatas($params , 0 , $exchangeCode , $day_param ) ;
+        }else{
+            $compareData = array();
+        }
+
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+            $count = $this->getTotalNum($where, $table, $group, false, $isMysql ,$compareData,$field_data);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($params['is_count'] == 1){
                 if($params['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false,$isMysql,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit,'','',false,null,300, $isMysql);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table, "", "", "", false,null,300,$isMysql,$compareData);
                 }
             }elseif($params['is_median'] == 1){
                 $median_limit = !empty($params['limit_num']) ? $limit : '';
@@ -5202,7 +5535,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,false,$isMysql);
                 $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData);
                 if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
@@ -5221,13 +5554,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else {  //统计列表和总条数
             if ($params['is_count'] == 1){
                 if($params['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit, '', '', false, null, 300, $isMysql);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
@@ -5239,13 +5578,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
 
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql) {
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql,$compareData) {
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData);
 
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group, $isMysql) {
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql);
+                $parallel->add(function () use($where, $table, $group, $isMysql,$compareData,$field_data) {
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
                     return $count;
                 });
 
@@ -7609,7 +7948,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND c.channel_id IN (".implode(",",$channel_arr).")";
                 }
             }
-            if ($is_count == 1 or $datas['count_dimension'] == 'all_channels'){
+            if ($is_count == 1){
                 $fba_fields = 'max(c.channel_id) as channel_id' ;
                 $group = '';
                 $where_str = '1=1' ;
@@ -7624,6 +7963,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($datas['count_dimension'] == 'admin_id'){ //子账号
                     $fba_fields = $group = 'uc.admin_id , c.area_id' ;
                     $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = c.user_id and uc.channel_id = c.channel_id " ;
+                }elseif($datas['count_dimension'] == 'all_channels'){
+                    $fba_fields = 'max(c.channel_id) as channel_id' ;
+                    $group = 'c.area_id';
                 }
                 $where_arr = array() ;
                 foreach($lists as $list1){
@@ -7711,6 +8053,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fbaDatas[$fba['admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
                     }
 
+                }elseif($datas['count_dimension'] == 'all_channels'){
+                    if (empty($fbaDatas)){
+                        $fbaDatas[0]['fba_goods_value'] = $fba['fba_goods_value'];
+                        $fbaDatas[0]['fba_stock'] = $fba['fba_stock'];
+                        $fbaDatas[0]['fba_need_replenish'] = $fba['fba_need_replenish'];
+                        $fbaDatas[0]['fba_predundancy_number'] = $fba['fba_predundancy_number'];
+                    }else{
+                        $fbaDatas[0]['fba_goods_value'] += $fba['fba_goods_value'];
+                        $fbaDatas[0]['fba_stock'] += $fba['fba_stock'];
+                        $fbaDatas[0]['fba_need_replenish'] += $fba['fba_need_replenish'];
+                        $fbaDatas[0]['fba_predundancy_number'] += $fba['fba_predundancy_number'];
+                    }
                 }else{
                     $fbaDatas[] = $fba ;
                 }
@@ -7897,7 +8251,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if(!empty($fields[$target_where['key']])){
                         $where_value = $target_where['value'];
                         if (strpos($where_value, '%') !== false) {
-                            $where_value = round($where_value / 100, 4);
+                            $where_value = round((float)$where_value / 100, 4);
                         }
                         if (empty($having)) {
                             $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
@@ -7925,21 +8279,32 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($datas['show_type'] == 2 && $datas['limit_num'] > 0 ){
             $limit_num = $datas['limit_num'] ;
         }
+        if(!empty($datas['compare_data'])){
+            $compareData = $this->getCompareDatas($datas , 2 , $exchangeCode , $day_param ) ;
+        }else{
+            $compareData = array();
+        }
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group);
+            $count = $this->getTotalNum($where, $table, $group,false ,false,$compareData,$field_data);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
                 if($datas['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group);
+                    $count = $this->getTotalNum($where, $table, $group,false ,false,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,false,false ,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table, "", "", "", false,null,300,false,$compareData);
                 }
             }elseif($datas['is_median'] == 1){
                 $median_limit = !empty($datas['limit_num']) ? $limit : '';
@@ -7947,19 +8312,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group);
                 $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
-
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
                 if($datas['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group);
+                    $count = $this->getTotalNum($where, $table, $group,false,false,$compareData,$field_data);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group);
+                    $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,false,false,$compareData);
                 }else {
-                    $lists = $this->select($where, $field_data, $table, $limit);
+                    //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
+                    if(!empty($compareData)){
+                        foreach($compareData as $k3=>$cdata3){
+                            $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
+                        }
+                    }
+                    $lists = $this->select($where, $field_data, $table,"","","",false,null,300,false,$compareData);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByOperators Total Request', [$this->getLastSql()]);
@@ -7970,12 +8340,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$compareData){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group){
-                    $count = $this->getTotalNum($where, $table, $group);
+                $parallel->add(function () use($where, $table, $group,$compareData,$field_data){
+                    $count = $this->getTotalNum($where, $table, $group,false,false,$compareData,$field_data);
                     return $count;
                 });
 
@@ -10255,7 +10625,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     }
 
-    private function queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false){
+    private function queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false,$compare_data = []){
         $fields_tmp = [];
         $rate_formula_key = array_keys($this->rate_formula);
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
@@ -10299,7 +10669,36 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
-        $sql = "SELECT {$field_data_tmp} FROM (SELECT {$field_data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS report_tmp";
+
+        if(!empty($compare_data)){
+            $newTables = array() ;
+            $newTables[] = "origin_table AS (  SELECT {$field_data_tmp} FROM (SELECT {$field_data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS report_tmp ) " ;
+            $rt_field = 'origin_table.* ' ;
+            foreach($compare_data as $c1=>$cdata1){
+                $k1 = $c1+1 ;
+                $rt_field.= " , compare_table{$k1}.* " ;
+            }
+            $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
+            $rt_where = '' ;
+            foreach($compare_data as $c=>$cdata){
+                $k = $c+1 ;
+                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
+                if(!empty($cdata['where'])){
+                    $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
+                }
+            }
+            if(!empty($rt_where)){
+                $rt_sql .= " WHERE " . $rt_where ;
+            }
+            $sql = 'WITH 
+            ' . implode(',
+            ' , $newTables) . "
+            " .$rt_sql ;
+        }else{
+            $sql = "SELECT {$field_data_tmp} FROM (SELECT {$field_data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS report_tmp";
+        }
+
         //商品维度
         if($isJoin){
             foreach ($this->goodsCols as $key => $value){
@@ -12244,6 +12643,93 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             return true;
         }
         return false;
+    }
+
+    /**
+     * function compareDataSql 获取行业增长值/率sql
+     * @param int $category_level 类目层级 1-一级类目 2-二级类目 3-三级类目
+     * @param int $day_type 时间类型 1-昨天 2-近7天 3-近30天
+     * @param int $top_num
+     * @param int $target_type 查询指标类型 1-销量 2-销售额
+     * @param int $data_type 取值类型 1-取平均值 2-取临界节点值 3-取总量
+     * @param int $result_type 获取数据类型 1-增量 2-增速
+     * @param float $exchangeCode 人民币转站点币汇率
+     * @author: LWZ
+     */
+
+    public function compareDataSql($category_level = 3 , $day_type = 1 ,  $target_type = 1 ,$top_num = 25  , $data_type = 1 ,$result_type = 1 ,$exchangeCode = 1.0){
+        $category_name_target = "";
+        if($category_level == '1'){
+            $table = $this->table_dws_idm_category01_topn_kpi ;
+            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1' ;
+            $result_field = 'category_table1.site_id, category_table1.product_category_name_1 as goods_product_category_name_1' ;
+            $category_name_target = ",product_category_name_1";
+        }else if($category_level == '2'){
+            $table = $this->table_dws_idm_category02_topn_kpi ;
+            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2' ;
+            $result_field = 'category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2' ;
+            $category_name_target = ",product_category_name_1,product_category_name_2";
+        }else if($category_level == '3'){
+            $table = $this->table_dws_idm_category03_topn_kpi ;
+            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2 AND category_table1.product_category_name_3 = category_table2.product_category_name_3' ;
+            $result_field = "category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2, category_table1.product_category_name_3 as goods_product_category_name_3" ;
+            $category_name_target = ",product_category_name_1,product_category_name_2,product_category_name_3";
+        }
+
+        $origin_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day")) ."'" ;
+        if($day_type == '1'){
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 1 * 24* 3600 ) ."'" ;
+            if($data_type == '1'){//取平均值
+                $target = '01day_top'.$top_num."_avg" ;
+            }elseif($data_type == '2'){  //取临界节点点值
+                $target = '01day_critical_top'.$top_num ;
+            }else{ //取总值
+                $target = '01day_top'.$top_num ;
+            }
+        }else if($day_type == '2' ){
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 7 * 24* 3600 ) ."'" ;
+            if($data_type == '1'){//取平均值
+                $target = '07day_top'.$top_num."_avg" ;
+            }elseif($data_type == '2'){  //取临界节点点值
+                $target = '07day_critical_top'.$top_num ;
+            }else{ //取总值
+                $target = '07day_top'.$top_num ;
+            }
+        }else if($day_type == '3'){
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 30 * 24* 3600 ) ."'" ;
+            if($data_type == '1'){//取平均值
+                $target = '30day_top'.$top_num."_avg" ;
+            }elseif($data_type == '2'){  //取临界节点点值
+                $target = '30day_critical_top'.$top_num ;
+            }else{  //取总值
+                $target = '30day_top'.$top_num ;
+            }
+        }
+        //目前只提供美国站服装、3C、家居三大类目
+        $limit_category_where = " AND product_category_name_1 IN ('Clothing, Shoes & Jewelry','Electronics','Home & Kitchen')";
+
+        if($target_type == '1'){
+            $target = 'sales_volume_' . $target . ' AS sales_volume';
+            if($result_type == '1'){
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = COALESCE ( category_table2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = 0 THEN -category_table2.sales_volume ELSE ( CASE WHEN COALESCE ( category_table2.sales_volume, 0 ) = 0 THEN category_table1.sales_volume ELSE ( category_table1.sales_volume - category_table2.sales_volume ) END ) END ) END ) AS category_result_data " ;
+            }else{
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = COALESCE ( category_table2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table2.sales_volume, 0 ) = 0 THEN 1 ELSE ( category_table1.sales_volume - category_table2.sales_volume ) * 1.0000 / nullif(category_table2.sales_volume,0) END ) END ) END ) AS category_result_data " ;
+            }
+        }else if($target_type == '2'){
+            $target = 'sales_quota_'.$target.' * {:RATE} * 1.0000 AS sales_quota' ;
+            if($result_type == '1'){
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = COALESCE ( category_table2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = 0 THEN -category_table2.sales_quota ELSE ( CASE WHEN COALESCE ( category_table2.sales_quota, 0 ) = 0 THEN category_table1.sales_quota ELSE ( category_table1.sales_quota - category_table2.sales_quota ) END ) END ) END ) AS category_result_data " ;
+            }else{
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = COALESCE ( category_table2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table2.sales_quota, 0 ) = 0 THEN 1 ELSE ( category_table1.sales_quota - category_table2.sales_quota ) * 1.0000 / nullif(category_table2.sales_quota,0) END ) END ) END ) AS category_result_data " ;
+            }
+        }
+        $target = str_replace("{:RATE}", $exchangeCode, $target);
+        $sql = " WITH category_table1 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$origin_where} {$limit_category_where} ) ,
+        category_table2 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$compare_where} {$limit_category_where} ) 
+        SELECT {$result_field} FROM category_table1 LEFT JOIN category_table2 ON {$on} 
+        " ;
+        return $sql ;
+
     }
 
     private function getUserIdMod($user_id){
