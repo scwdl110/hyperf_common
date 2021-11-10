@@ -416,6 +416,24 @@ class AccountingController extends BaseController
         return Result::success($data['data'], $data['msg']);
     }
 
+
+    /**
+     * 获取财务指标
+     * @RequestMapping(path="getfinanceindex", methods="post")
+     * @return mixed
+     *
+     */
+    public function getFinanceIndex()
+    {
+        $request_data = $this->request->all();
+        $data = $this->service->getFinanceIndex($request_data);
+        if ($data['code'] == 0) {
+            return Result::fail([], $data['msg']);
+        }
+        return Result::success($data['data'], $data['msg']);
+    }
+
+
     /**
      * @OA\Get(
      *     path="/accounting/shop_list",
