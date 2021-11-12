@@ -1785,6 +1785,38 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
             }
+//SUM((CASE WHEN unsellable_quantity < 0 THEN 0 ELSE unsellable_quantity END )) as fba_sales_not_stock,SUM((CASE WHEN reserved_fc_transfers < 0 THEN 0 ELSE reserved_fc_transfers END )) as fba_reserve_stock_allocation,SUM((CASE WHEN reserved_fc_processing < 0 THEN 0 ELSE reserved_fc_processing END )) as fba_reserve_stock_handle,SUM((CASE WHEN inbound_shipped_quantity < 0 THEN 0 ELSE inbound_shipped_quantity END )) as fba_receiving_on_the_way,SUM((CASE WHEN inbound_receiving_quantity < 0 THEN 0 ELSE inbound_receiving_quantity END )) as fba_receiving
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_not_stock'])){
+                $fbaDatas[$fba[$field]]['fba_sales_not_stock'] = $fba['fba_sales_not_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_not_stock']+= $fba['fba_sales_not_stock'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_reserve_stock_allocation'])){
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_allocation'] = $fba['fba_reserve_stock_allocation'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_allocation']+= $fba['fba_reserve_stock_allocation'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_reserve_stock_handle'])){
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_handle'] = $fba['fba_reserve_stock_handle'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_handle']+= $fba['fba_reserve_stock_handle'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_receiving_on_the_way'])){
+                $fbaDatas[$fba[$field]]['fba_receiving_on_the_way'] = $fba['fba_receiving_on_the_way'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_receiving_on_the_way']+= $fba['fba_receiving_on_the_way'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_receiving'])){
+                $fbaDatas[$fba[$field]]['fba_receiving'] = $fba['fba_receiving'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_receiving']+= $fba['fba_receiving'] ;
+            }
+
+
 
             if(empty($fbaDatas[$fba[$field]]['fba_sales_day'])){
                 $fbaDatas[$fba[$field]]['fba_sales_day'] = $fba['fba_sales_day'] ;
