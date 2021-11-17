@@ -523,6 +523,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $searchKey = $datas['searchKey'] ?? '';
         $searchVal = $datas['searchVal'] ?? '';
         $matchType = $datas['matchType'] ?? '';
+        $other_target_tmp = isset($datas['other_target']) && !empty($datas['other_target'])? explode(',',$datas['other_target']):[];
+        $other_target = array();
+        if (!empty($other_target_tmp)){
+            foreach ($other_target_tmp as $value){
+                $other_target[$value] = '1';
+            }
+        }
         $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
         $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
 
@@ -1059,6 +1066,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //                }
                 if($datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                }elseif (!empty($lists) && $datas['show_type'] == 1 && ( !empty($other_target['fba_sales_stock']) || !empty($other_target['fba_sales_day']) || !empty($other_target['fba_reserve_stock']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_special_purpose']) || !empty($other_target['fba_receiving_on_the_way']) || !empty($other_target['fba_receiving']) || !empty($other_target['fba_reserve_stock_handle']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_sales_not_stock']))){
+                    $lists = $this->getGoodsFbaDataTmp($lists , $other_target , $datas,$channel_arr) ;
                 }
                 if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
@@ -1148,6 +1157,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //                }
                 if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['fba_sales_stock']) || !empty($fields['fba_sales_day']) || !empty($fields['fba_reserve_stock']) || !empty($fields['fba_recommended_replenishment']) || !empty($fields['fba_special_purpose']) )){
                     $lists = $this->getGoodsFbaDataTmp($lists , $fields , $datas,$channel_arr) ;
+                }elseif (!empty($lists) && $datas['show_type'] == 1 && ( !empty($other_target['fba_sales_stock']) || !empty($other_target['fba_sales_day']) || !empty($other_target['fba_reserve_stock']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_special_purpose']) || !empty($other_target['fba_receiving_on_the_way']) || !empty($other_target['fba_receiving']) || !empty($other_target['fba_reserve_stock_handle']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_sales_not_stock']))){
+                    $lists = $this->getGoodsFbaDataTmp($lists , $other_target , $datas,$channel_arr) ;
                 }
                 if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
@@ -1600,11 +1611,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
         $table_fields = !empty($table_fields) ? $table_fields . " , " : "";
-        $table_fields.= ' g.fulfillable_quantity, g.available_days  ,g.reserved_quantity , g.replenishment_quantity , g.available_stock ' ;
+        $table_fields.= ' g.fulfillable_quantity, g.available_days  ,g.reserved_quantity , g.replenishment_quantity , g.available_stock ,g.reserved_fc_transfers,g.reserved_fc_processing,g.unsellable_quantity,g.inbound_shipped_quantity,g.inbound_receiving_quantity' ;
 
 
         $fba_fields = !empty($fba_fields) ? $fba_fields . " , " : "";
-        $fba_fields .= ' SUM((CASE WHEN fulfillable_quantity < 0 THEN 0 ELSE fulfillable_quantity END )) as fba_sales_stock ,MAX(( CASE WHEN available_days < 0 THEN 0 ELSE available_days END )) as  fba_sales_day , MAX(available_days) as max_fba_sales_day , MIN(available_days) as min_fba_sales_day , MIN((CASE WHEN available_days < 0 THEN 0 ELSE available_days END ))  as min_egt0_fba_sales_day , MAX(CASE WHEN available_days < 0 THEN 0 ELSE available_days END ) as max_egt0_fba_sales_day , SUM((CASE WHEN reserved_quantity < 0 THEN 0 ELSE reserved_quantity END )) as fba_reserve_stock  , SUM(( CASE WHEN replenishment_quantity < 0 THEN 0 ELSE replenishment_quantity END ))  as fba_recommended_replenishment , MAX(replenishment_quantity) as max_fba_recommended_replenishment ,MIN((replenishment_quantity)) as min_fba_recommended_replenishment , SUM(( CASE WHEN available_stock < 0 THEN 0 ELSE available_stock END )) as fba_special_purpose , MAX(available_stock) as  max_fba_special_purpose , MIN((available_stock) )  as min_fba_special_purpose ';
+        $fba_fields .= ' SUM((CASE WHEN fulfillable_quantity < 0 THEN 0 ELSE fulfillable_quantity END )) as fba_sales_stock ,MAX(( CASE WHEN available_days < 0 THEN 0 ELSE available_days END )) as  fba_sales_day , MAX(available_days) as max_fba_sales_day , MIN(available_days) as min_fba_sales_day , MIN((CASE WHEN available_days < 0 THEN 0 ELSE available_days END ))  as min_egt0_fba_sales_day , MAX(CASE WHEN available_days < 0 THEN 0 ELSE available_days END ) as max_egt0_fba_sales_day , SUM((CASE WHEN reserved_quantity < 0 THEN 0 ELSE reserved_quantity END )) as fba_reserve_stock  , SUM(( CASE WHEN replenishment_quantity < 0 THEN 0 ELSE replenishment_quantity END ))  as fba_recommended_replenishment , MAX(replenishment_quantity) as max_fba_recommended_replenishment ,MIN((replenishment_quantity)) as min_fba_recommended_replenishment , SUM(( CASE WHEN available_stock < 0 THEN 0 ELSE available_stock END )) as fba_special_purpose , MAX(available_stock) as  max_fba_special_purpose , MIN((available_stock) )  as min_fba_special_purpose ,SUM((CASE WHEN unsellable_quantity < 0 THEN 0 ELSE unsellable_quantity END )) as fba_sales_not_stock,SUM((CASE WHEN reserved_fc_transfers < 0 THEN 0 ELSE reserved_fc_transfers END )) as fba_reserve_stock_allocation,SUM((CASE WHEN reserved_fc_processing < 0 THEN 0 ELSE reserved_fc_processing END )) as fba_reserve_stock_handle,SUM((CASE WHEN inbound_shipped_quantity < 0 THEN 0 ELSE inbound_shipped_quantity END )) as fba_receiving_on_the_way,SUM((CASE WHEN inbound_receiving_quantity < 0 THEN 0 ELSE inbound_receiving_quantity END )) as fba_receiving';
 
         $table_group = !empty($table_group) ? " GROUP BY {$table_group}" : "";
         $table_tmp = " (SELECT {$table_fields} FROM {$table} WHERE {$where} {$table_group} ) as tmp  " ;
@@ -1682,6 +1693,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (!empty($fields['fba_sales_stock'])) {  //可售库存
                 $lists[$k]['fba_sales_stock'] = empty($fba_data) ? null : $fba_data['fba_sales_stock'] ;
             }
+            if (!empty($fields['fba_sales_not_stock'])) {  //不可售库存
+                $lists[$k]['fba_sales_not_stock'] = empty($fba_data) ? null : $fba_data['fba_sales_not_stock'] ;
+            }
+            if (!empty($fields['fba_receiving_on_the_way'])) {  //fba待收货在途
+                $lists[$k]['fba_receiving_on_the_way'] = empty($fba_data) ? null : $fba_data['fba_receiving_on_the_way'] ;
+            }if (!empty($fields['fba_receiving'])) {  //fba待收货接受中
+                $lists[$k]['fba_receiving'] = empty($fba_data) ? null : $fba_data['fba_receiving'] ;
+            }
             if (!empty($fields['fba_sales_day'])) {  //可售天数
                 $lists[$k]['fba_sales_day'] = empty($fba_data) ? null : $fba_data['fba_sales_day'] ;
                 $lists[$k]['max_fba_sales_day'] = empty($fba_data) ? null : $fba_data['max_fba_sales_day'] ;
@@ -1691,6 +1710,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             if (!empty($fields['fba_reserve_stock'])) {  //预留库存
                 $lists[$k]['fba_reserve_stock'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock'] ;
+            }
+            if (!empty($fields['fba_reserve_stock_handle'])) {  //预留库存,正在处理
+                $lists[$k]['fba_reserve_stock_handle'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock_handle'] ;
+            }
+            if (!empty($fields['fba_reserve_stock_allocation'])) {  //预留库存，正在调拨
+                $lists[$k]['fba_reserve_stock_allocation'] = empty($fba_data) ? null : $fba_data['fba_reserve_stock_allocation'] ;
             }
             if (!empty($fields['fba_recommended_replenishment'])) {  //建议补货量
                 $lists[$k]['fba_recommended_replenishment'] = empty($fba_data) ? null : round($fba_data['fba_recommended_replenishment'],2) ;
@@ -2079,6 +2104,38 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $fbaDatas[$fba[$field]]['fba_sales_stock']+= $fba['fba_sales_stock'] ;
             }
+//SUM((CASE WHEN unsellable_quantity < 0 THEN 0 ELSE unsellable_quantity END )) as fba_sales_not_stock,SUM((CASE WHEN reserved_fc_transfers < 0 THEN 0 ELSE reserved_fc_transfers END )) as fba_reserve_stock_allocation,SUM((CASE WHEN reserved_fc_processing < 0 THEN 0 ELSE reserved_fc_processing END )) as fba_reserve_stock_handle,SUM((CASE WHEN inbound_shipped_quantity < 0 THEN 0 ELSE inbound_shipped_quantity END )) as fba_receiving_on_the_way,SUM((CASE WHEN inbound_receiving_quantity < 0 THEN 0 ELSE inbound_receiving_quantity END )) as fba_receiving
+            if(empty($fbaDatas[$fba[$field]]['fba_sales_not_stock'])){
+                $fbaDatas[$fba[$field]]['fba_sales_not_stock'] = $fba['fba_sales_not_stock'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_sales_not_stock']+= $fba['fba_sales_not_stock'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_reserve_stock_allocation'])){
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_allocation'] = $fba['fba_reserve_stock_allocation'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_allocation']+= $fba['fba_reserve_stock_allocation'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_reserve_stock_handle'])){
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_handle'] = $fba['fba_reserve_stock_handle'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_reserve_stock_handle']+= $fba['fba_reserve_stock_handle'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_receiving_on_the_way'])){
+                $fbaDatas[$fba[$field]]['fba_receiving_on_the_way'] = $fba['fba_receiving_on_the_way'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_receiving_on_the_way']+= $fba['fba_receiving_on_the_way'] ;
+            }
+
+            if(empty($fbaDatas[$fba[$field]]['fba_receiving'])){
+                $fbaDatas[$fba[$field]]['fba_receiving'] = $fba['fba_receiving'] ;
+            }else{
+                $fbaDatas[$fba[$field]]['fba_receiving']+= $fba['fba_receiving'] ;
+            }
+
+
 
             if(empty($fbaDatas[$fba[$field]]['fba_sales_day'])){
                 $fbaDatas[$fba[$field]]['fba_sales_day'] = $fba['fba_sales_day'] ;
