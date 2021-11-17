@@ -292,6 +292,39 @@ class FinanceService extends BaseService
 
         }
 
+        if (isset($params['where_search']) && !empty($params['where_search'])){//额外的搜索筛选功能，且关系
+            if($type == 1){
+                //分组
+                if (!empty($params['where_search']['group_id'])){
+                    $where .= " AND report.goods_group_id  IN (" . $params['where_search']['group_id'] . ")" ;
+                }
+                //标签
+                if (!empty($params['where_search']['tags_id'])){
+                    $where .= " AND tags_rel.tags_id  IN (" . $params['where_search']['tags_id'] . ")" ;
+                }
+                //负责人
+                if (!empty($params['where_search']['head_id'])){
+                    $where .= " AND amazon_goods.isku_head_id  IN (" . $params['where_search']['head_id'] . ")" ;
+                }
+                //开发人员
+                if (!empty($params['where_search']['developer_id'])){
+                    $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_search']['developer_id'] . ")" ;
+                }
+            }
+            if($type == 0){
+                //子账号
+                if (!empty($params['where_search']['admin_id'])){
+                    $where .= " AND uc.admin_id IN (" . $params['where_search']['admin_id'] . ")" ;
+                }
+            }
+            if($type == 2){
+                //运营人员
+                if (!empty($params['where_search']['operators_id'])){
+                    $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_search']['operators_id'] . ")" ;
+                }
+            }
+        }
+
         if ($params['show_type'] == 2 && $params['limit_num'] > 0 && $params['count_periods'] == 0) {
             $offset = 0;
             $limit = (int)$params['limit_num'] ;
