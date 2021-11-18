@@ -72,6 +72,7 @@ class FinanceService extends BaseService
         if (isset($params['is_count']) && $params['is_count'] == 1){//总计的页数只能为1
             $page = 1;
         }else{
+            $params['is_count'] = 0;
             $page = intval($req['page'] ?? 1);
         }
         $params['is_new_index'] = $req['is_new_index'];
@@ -404,6 +405,9 @@ class FinanceService extends BaseService
         }
         if(empty($compare_data)){  // 有对比数据需使用PRESTO
             if ($method == 'getListByGoods' and $day_param > 90 AND in_array($userInfo['user_id'],explode(",",$big_data_user)) and $is_goods_day_report){
+                $isReadAthena = true;
+            }
+            if ($method == 'getListByGoods' and $day_param > 15 AND $userInfo['user_id'] == 20567){//20567单独读取
                 $isReadAthena = true;
             }
         }
