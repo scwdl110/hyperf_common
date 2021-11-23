@@ -339,7 +339,7 @@ class FinanceService extends BaseService
 
 
         if ((int)$params['time_type'] === 99) {
-            if (!empty($params['site_search_time'])){
+            if (isset($params['site_search_time']) && !empty($params['site_search_time'])){
                 $site_where = [];
                 foreach ($params['site_search_time'] as $val){
                     $site_where[] = "(report.site_id = {$val['site_id']} AND report.create_time >= {$val['start_time']} AND report.create_time <= {$val['end_time']})";
