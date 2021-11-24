@@ -339,12 +339,22 @@ class FinanceService extends BaseService
 
 
         if ((int)$params['time_type'] === 99) {
-            $where .= sprintf(
-                '%s report.create_time>=%d and report.create_time<=%d',
-                $where ? ' AND' : '',
-                (int)$params['search_start_time'],
-                (int)$params['search_end_time']
-            );
+            if (isset($params['site_search_time']) && !empty($params['site_search_time'])){
+                $site_where = [];
+                foreach ($params['site_search_time'] as $val){
+                    $site_where[] = "(report.site_id = {$val['site_id']} AND report.create_time >= {$val['start_time']} AND report.create_time <= {$val['end_time']})";
+                }
+                $site_where_str = "(". implode(' OR ', $site_where) .")";
+
+                $where .= $where ? " AND {$site_where_str} " : " {$site_where_str} ";
+            }else{
+                $where .= sprintf(
+                    '%s report.create_time>=%d and report.create_time<=%d',
+                    $where ? ' AND' : '',
+                    (int)$params['search_start_time'],
+                    (int)$params['search_end_time']
+                );
+            }
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
             $params['origin_time']  = '  AND create_time >= ' .$params['search_start_time'] . ' AND create_time <= ' . $params['search_end_time'] ;
             $params['origin_create_start_time'] = $params['search_start_time'];
