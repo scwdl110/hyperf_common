@@ -2267,6 +2267,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_min_rank_min'] = " min(nullif(report.goods_min_rank,0))";
             $fields['goods_min_rank_max'] = " max(nullif(report.goods_min_rank,0))";
 
+            if (in_array('avg_sales_quota', $targets)) { //平均单价
+
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $rate_tmp = "";
+                } else {
+                    $rate_tmp = " * ({:RATE} / COALESCE(rates.rate ,1))";
+                }
+                if ($datas['sale_datas_origin'] == '1') {
+                    $fields['avg_sales_quota'] = "sum( report.byorder_sales_quota {$rate_tmp})/ nullif(sum( report.byorder_sales_volume +  report.byorder_group_id ),0) ";
+                } elseif ($datas['sale_datas_origin'] == '2') {
+                    $fields['avg_sales_quota'] = "sum( report.report_sales_quota {$rate_tmp})/ nullif(sum( report.report_sales_volume +  report.report_group_id ),0) ";
+                }
+            }
+
             $total_user_sessions_views = array();
             if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || $datas['is_median'] == 1){//按无且有排序才使用
                 $fields['goods_buyer_visit_rate'] = in_array('goods_buyer_visit_rate', $targets)?'1':'0';
@@ -2579,6 +2593,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['sale_sales_volume'] = " sum( report.report_sales_volume +  report.report_group_id ) ";
             }
         }
+
+            if (in_array('avg_sales_quota', $targets)) { //平均单价
+
+                if ($datas['currency_code'] == 'ORIGIN') {
+                    $rate_tmp = "";
+                } else {
+                    $rate_tmp = " * ({:RATE} / COALESCE(rates.rate ,1))";
+                }
+                if ($datas['sale_datas_origin'] == '1') {
+                    $fields['avg_sales_quota'] = "sum( report.byorder_sales_quota {$rate_tmp})/ nullif(sum( report.byorder_sales_volume +  report.byorder_group_id ),0) ";
+                } elseif ($datas['sale_datas_origin'] == '2') {
+                    $fields['avg_sales_quota'] = "sum( report.report_sales_quota {$rate_tmp})/ nullif(sum( report.report_sales_volume +  report.report_group_id ),0) ";
+                }
+            }
         if (in_array('sale_many_channel_sales_volume', $targets)) { //多渠道数量
             if ($datas['sale_datas_origin'] == '1') {
                 $fields['sale_many_channel_sales_volume'] = "sum( report.byorder_group_id )";
@@ -2586,6 +2614,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['sale_many_channel_sales_volume'] = "sum( report.report_group_id )";
             }
         }
+
+
         if (in_array('sale_sales_quota', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('amazon_fee_rate', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('operate_fee_rate', $targets) || in_array('evaluation_fee_rate', $targets) || in_array('cpc_cost_rate', $targets) || in_array('cpc_turnover_rate', $targets)) {  //商品销售额
             if ($datas['sale_datas_origin'] == '1') {
                 if ($datas['currency_code'] == 'ORIGIN') {
