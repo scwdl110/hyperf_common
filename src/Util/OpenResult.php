@@ -24,7 +24,7 @@ class OpenResult
      * @param $maxResult
      * @return string
      */
-    private static function data($code, $msg, $data = [], $nextToken, $maxResult)
+    private static function data($code, $msg, $data = [], $nextToken = '', $maxResult = 0)
     {
         return json_encode(array(
             'code' => $code ?: 0,
