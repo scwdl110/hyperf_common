@@ -27,6 +27,9 @@ use Hyperf\Contract\ConfigInterface;
 use Hyperf\Utils\ApplicationContext;
 
 
+/**
+ * @RpcService(name="FinanceService", protocol="jsonrpc-http", server="jsonrpc-http", publishTo="consul")
+ */
 class FinanceService extends BaseService
 {
 
