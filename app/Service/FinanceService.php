@@ -23,7 +23,7 @@ use Hyperf\Logger\LoggerFactory;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 use Hyperf\Contract\ConfigInterface;
-
+use Hyperf\RpcServer\Annotation\RpcService;
 use Hyperf\Utils\ApplicationContext;
 
 
