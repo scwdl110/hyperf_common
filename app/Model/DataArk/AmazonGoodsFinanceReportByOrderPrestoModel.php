@@ -933,6 +933,39 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND report.goods_group_id = 0 ";
                 }
             }
+            if (!empty($where_detail['developer_id'])) {
+                if(is_array($where_detail['developer_id'])){
+                    $developer_str = implode(',', $where_detail['developer_id']);
+                }else{
+                    $developer_str = $where_detail['developer_id'] ;
+                }
+
+                if (!empty($developer_str)) {
+                    $where .= " AND report.isku_developer_id  IN ( " . $developer_str . ")";
+                }
+            }
+            if (!empty($where_detail['head_id'])) {
+                if(is_array($where_detail['head_id'])){
+                    $head_str = implode(',', $where_detail['head_id']);
+                }else{
+                    $head_str = $where_detail['head_id'] ;
+                }
+
+                if (!empty($head_str)) {
+                    $where .= " AND report.isku_head_id  IN ( " . $head_str . ")";
+                }
+            }
+            if(!empty($where_detail['product_category_name'])){
+                if(is_array($where_detail['product_category_name'])){
+                    $product_category_name_str="'".join("','",$where_detail['product_category_name'])."'";
+                }else{
+                    $product_category_name_str = "'".$where_detail['product_category_name']."'" ;
+                }
+
+                if (!empty($product_category_name_str)) {
+                    $where .= " AND report.goods_product_category_name_1  IN ( " . $product_category_name_str . ")";
+                }
+            }
             if (!empty($where_detail['operators_id'])  or (isset($where_detail['operators_id']) && ($where_detail['operators_id'] === '0' or $where_detail['operators_id'] === 0))) {
                 if(is_array($where_detail['operators_id'])){
                     $operators_str = implode(',', $where_detail['operators_id']);
