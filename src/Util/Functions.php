@@ -203,4 +203,26 @@ class Functions {
         }
     }
 
+    /**
+     * 开放平台aes加密
+     * @param string $token
+     * @param string $aesKey
+     * @return string
+     */
+    public static function encryOpen(string $token, string $aesKey): string
+    {
+        return base64_encode(openssl_encrypt($token, 'AES-128-ECB', $aesKey, OPENSSL_RAW_DATA));
+    }
+
+    /**
+     * 开放平台aes解密
+     * @param string $encryptionToken
+     * @param string $aesKey
+     * @return string
+     */
+    public static function decryOpen(string $encryptionToken, string $aesKey): string
+    {
+        return openssl_decrypt(base64_decode($encryptionToken, 'AES-128-ECB', $aesKey, OPENSSL_RAW_DATA));
+    }
+
 }
