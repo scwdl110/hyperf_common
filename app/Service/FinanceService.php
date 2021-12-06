@@ -62,6 +62,7 @@ class FinanceService extends BaseService
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'dataark');
             $logger->info('request body', [$req, $userInfo]);
         }
+
 //        $req['is_new_index'] = 1;
         $req['is_new_index'] = $req['is_new_index'] ?? 0;
 //        $is_new_index = $req['is_new_index'] == 1 ? true:false;
@@ -74,6 +75,10 @@ class FinanceService extends BaseService
         }else{
             $params['is_count'] = 0;
             $page = intval($req['page'] ?? 1);
+        }
+        if (isset($params['user_id']) && $params['user_id'] == 266){
+            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
+            $logger1->info('request body', [$req, $userInfo]);
         }
         $params['is_new_index'] = $req['is_new_index'];
         $params['is_median'] = $params['is_median'] ?? 0;
@@ -453,6 +458,10 @@ class FinanceService extends BaseService
         );
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
+        }
+        if (isset($params['user_id']) && $params['user_id'] == 266){
+            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
+            $logger1->info('result', [$result]);
         }
         return $result;
     }

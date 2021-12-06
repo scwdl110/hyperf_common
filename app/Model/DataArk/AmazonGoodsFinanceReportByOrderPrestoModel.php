@@ -3394,6 +3394,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_operation_user_admin_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_operation_user_admin_id), ',')";
             }
         }
+        if (in_array($datas['count_dimension'],['group']) && isset($datas['is_goods_details']) && $datas['is_goods_details'] == 1 && $datas['is_count'] == 0){
+            if ($isMysql){
+
+                $fields['goods_operation_user_admin_id'] = "GROUP_CONCAT(DISTINCT amazon_goods.goods_operation_user_admin_id)";
+
+            }else{
+                $fields['goods_operation_user_admin_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_operation_user_admin_id), ',')";
+            }
+        }
 
         if (in_array($datas['count_dimension'],['parent_asin','asin','sku','isku'])){
             if ($datas['currency_code'] == 'ORIGIN') {
@@ -3423,7 +3432,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-            $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['up_status']                  = 'min(report.goods_up_status)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
         }else if ($datas['count_dimension'] == 'asin') {
@@ -3449,14 +3458,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['goods_is_care']                 = 'max(report.goods_is_care)';
             $fields['is_keyword']                 = 'max(report.goods_is_keyword)';
             $fields['goods_is_new']                  = 'max(report.goods_is_new)';
-            $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['up_status']                  = 'min(report.goods_up_status)';
             $fields['goods_g_amazon_goods_id']       = 'max(report.goods_g_amazon_goods_id)';
             $fields['is_remarks']       = 'max(report.goods_is_remarks)';
         }else if ($datas['count_dimension'] == 'sku') {
             $fields['sku'] = "max(report.goods_sku)";
             $fields['image'] = 'max(report.goods_image)';
             $fields['title'] = 'max(report.goods_title)';
-            $fields['up_status']                  = 'max(report.goods_up_status)';
+            $fields['up_status']                  = 'min(report.goods_up_status)';
 
             if($datas['is_distinct_channel'] == '1'){
 
