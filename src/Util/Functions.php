@@ -222,7 +222,7 @@ class Functions {
      */
     public static function decryOpen(string $encryptionToken, string $aesKey): string
     {
-        return openssl_decrypt(base64_decode($encryptionToken, 'AES-128-ECB', $aesKey, OPENSSL_RAW_DATA));
+        return openssl_decrypt(base64_decode($encryptionToken), 'AES-128-ECB', $aesKey, OPENSSL_RAW_DATA);
     }
 
 }
