@@ -54,6 +54,9 @@ class FinanceService extends BaseService
 
     public function handleRequest($type = 1, $req = array(), $user_info = array())
     {
+        $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
+        $logger1->info('user_info', [$user_info]);
+
         if (empty($user_info)) {
             $userInfo = $this->getUserInfo();
         } else {
