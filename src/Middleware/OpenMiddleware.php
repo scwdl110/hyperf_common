@@ -20,7 +20,7 @@ class OpenMiddleware implements MiddlewareInterface
             return Context::get(ResponseInterface::class)->withStatus(401, 'authorization Unauthorized');
         }
 
-        $accessToken = trim(str_replace('bearer', '', $authorization[0]));
+        $accessToken = trim(str_ireplace('bearer', '', $authorization[0]));
         if(!$accessToken){
             return Context::get(ResponseInterface::class)->withStatus(401, 'Unauthorized');
         }
@@ -35,24 +35,28 @@ class OpenMiddleware implements MiddlewareInterface
             ->join('oauth2_credentials as b', 'a.credential_id', '=', 'b.id')
             ->where($where)
             ->select('b.client_id')->first();
-        if(!$tokenArr){
+
+        $clientId = data_get($tokenArr, 'client_id', '');
+
+        if(!$tokenArr || !$clientId){
             return Context::get(ResponseInterface::class)->withStatus(401, 'access_token Unauthorized');
         }
 
         $where = [
-            ['client_id', '=', $tokenArr['client_id']],
+            ['client_id', '=', $clientId],
         ];
         $client = Db::table('open_client')->where($where)->select('client_type')->first();
+
 
         if(!$client){
             return Context::get(ResponseInterface::class)->withStatus(401, 'client_id Unauthorized');
         }
 
         //获取user
-        switch ($client['client_type']){
+        switch (data_get($client, 'client_type', '')){
             case 0:
                 //自用
-                $userId = $this->self($tokenArr['client_id']);
+                $userId = $this->self($clientId);
                 if(!$userId){
                     return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
                 }
@@ -74,12 +78,14 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$user){
             return Context::get(ResponseInterface::class)->withStatus(401, 'user Unauthorized');
         }
+        $dbhost = data_get($user, 'dbhost', '');
+        $codeno = data_get($user, 'codeno', '');
 
         $request = $request->withAttribute('userInfo', [
             'user_id' => $userId,
-            'client_id' => $tokenArr['client_id'],
-            'dbhost' => $user['dbhost'],
-            'codeno' => $user['codeno'],
+            'client_id' => $clientId,
+            'dbhost' => $dbhost,
+            'codeno' => $codeno,
         ]);
         Context::set(ServerRequestInterface::class, $request);
 
@@ -95,6 +101,6 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$clientUser){
             return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
         }
-        return $clientUser['user_id'];
+        return data_get($clientUser, 'user_id', '');
     }
 }
