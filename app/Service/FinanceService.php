@@ -52,16 +52,9 @@ class FinanceService extends BaseService
     }
 
 
-    public function handleRequest($type = 1, $req = array(), $user_info = array())
+    public function handleRequest($type = 1, $req = array())
     {
-        $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
-        $logger1->info('user_info', [$user_info]);
-
-        if (empty($user_info)) {
-            $userInfo = $this->getUserInfo();
-        } else {
-            $userInfo = $user_info;
-        }
+        $userInfo = $this->getUserInfo();
 
 //        $req = $this->request->all();
         $result = ['lists' => [], 'count' => 0];
