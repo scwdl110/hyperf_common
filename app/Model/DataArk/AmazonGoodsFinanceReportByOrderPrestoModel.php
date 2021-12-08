@@ -933,6 +933,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND report.goods_group_id = 0 ";
                 }
             }
+            if (!empty($where_detail['isku_id'])) {
+                if(is_array($where_detail['isku_id'])){
+                    $isku_id_str = implode(',', $where_detail['isku_id']);
+                }else{
+                    $isku_id_str = $where_detail['isku_id'] ;
+                }
+
+                if (!empty($isku_id_str)) {
+                    $where .= " AND report.goods_isku_id  IN ( " . $isku_id_str . ")";
+                }elseif ($isku_id_str == 0){
+                    $where .= " AND report.goods_isku_id = 0 ";
+                }
+            }
             if (!empty($where_detail['operators_id'])  or (isset($where_detail['operators_id']) && ($where_detail['operators_id'] === '0' or $where_detail['operators_id'] === 0))) {
                 if(is_array($where_detail['operators_id'])){
                     $operators_str = implode(',', $where_detail['operators_id']);
