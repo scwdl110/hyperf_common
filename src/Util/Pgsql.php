@@ -149,7 +149,7 @@ class Pgsql
             return $client;
         }
 
-        if (null === $this->client || 'ontimeout' === $this->client->error) {
+        if ($this->needReconnect()) {
             $config = $this->config ?: $this->getDefaultConfig();
             $dsn = $this->getDSN($config);
             if ($dsn) {
@@ -306,5 +306,45 @@ class Pgsql
     public function lastPrepare(): array
     {
         return $this->lastPrepare;
+    }
+
+    /**
+     * 是否需要重新连接 pgsql
+     * 网络异常导致的连接异常或连接丢失才需要重新连接
+     *
+     * @return bool
+     */
+    protected function needReconnect(): bool
+    {
+        if (null === $this->client) {
+            return true;
+        }
+
+        if (null === $this->client->error) {
+            return false;
+        }
+
+        $error = trim($this->client->error);
+        // ontimeout 是 swoole-ext-postgresql 自定义的错误
+        // 其余的错误均来至 postgresql 10.16
+        // postgresql 还包含其他网络相关的错误，但 swoole-ext-postgresql 涉及到的网络错误应该就这些了
+        // 整理于 2021-12-08
+        if ('ontimeout' === $error
+            || 'connection not open' === $error
+            || 'connection in wrong state' === $error
+            || 'connection pointer is NULL' === $error
+            || 'no connection to the server' === $error
+            || 'server closed the connection unexpectedly' === $error
+            || 0 === strpos($error, 'SSL SYSCALL error: ')
+            || 0 === strpos($error, 'unexpected asyncStatus: ')
+            || 0 === strpos($error, 'invalid connection state,')
+            || 0 === strpos($error, 'could not send data to server: ')
+            || 0 === strpos($error, 'could not get socket error status: ')
+            || 0 === strpos($error, 'could not receive data from server: ')
+        ) {
+            return true;
+        }
+
+        return false;
     }
 }
