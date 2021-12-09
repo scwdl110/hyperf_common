@@ -3,7 +3,11 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\Middleware;
 
+use Hyperf\Contract\ConfigInterface;
 use Hyperf\DbConnection\Db;
+use Hyperf\HttpServer\Router\Dispatched;
+use Hyperf\HttpServer\Router\DispatcherFactory;
+use Hyperf\Utils\ApplicationContext;
 use Hyperf\Utils\Context;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -47,7 +51,6 @@ class OpenMiddleware implements MiddlewareInterface
         ];
         $client = Db::table('open_client')->where($where)->select('client_type')->first();
 
-
         if(!$client){
             return Context::get(ResponseInterface::class)->withStatus(401, 'client_id Unauthorized');
         }
@@ -80,6 +83,47 @@ class OpenMiddleware implements MiddlewareInterface
         }
         $dbhost = data_get($user, 'dbhost', '');
         $codeno = data_get($user, 'codeno', '');
+
+        $dispatched = $request->getAttribute(Dispatched::class);
+
+        $configInterface = ApplicationContext::getContainer()->get(ConfigInterface::class);
+        $serverName = $configInterface->get("server.servers.0.name");
+
+        //是否要最大版本号和版本号redis
+        if($dispatched->status==0){
+            $path = $request->getUri()->getPath();
+            //版本往前
+            preg_match_all ("/v(\d+)\/(\w+)\/(.*)/", $path, $pat_array);
+            if(!isset($pat_array[1][0]) || !$pat_array[1][0]){
+                return Context::get(ResponseInterface::class)->withStatus(404, 'route not found');
+            }
+            $version = intval($pat_array[1][0]);
+            //版本号
+            if($version<=1){
+                return Context::get(ResponseInterface::class)->withStatus(404, 'version not found');
+            }
+
+            $flag = 0;
+            if(!isset(ApplicationContext::getContainer()->get(DispatcherFactory::class)->getRouter($serverName)->getData()[0][$request->getMethod()])){
+                return Context::get(ResponseInterface::class)->withStatus(404, 'route and method not found');
+            }
+            $allHandler = ApplicationContext::getContainer()->get(DispatcherFactory::class)->getRouter($serverName)->getData()[0][$request->getMethod()];
+            for ($i=$version-1;$i>0;$i--){
+                $newPath = str_replace('v'.$version.'/', 'v'.$i.'/', $path);
+                if(!isset($allHandler[$newPath])){
+                    continue;
+                }
+                //修改标志
+                $flag = 1;
+            }
+
+            if($flag==0){
+                return Context::get(ResponseInterface::class)->withStatus(404, 'all version not found');
+            }
+
+            $dispatched->status=1;
+            $dispatched->handler = $allHandler[$newPath];
+        }
 
         $request = $request->withAttribute('userInfo', [
             'user_id' => $userId,
