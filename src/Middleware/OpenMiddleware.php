@@ -45,7 +45,7 @@ class OpenMiddleware implements MiddlewareInterface
         if(in_array('/'.$pat_array[2][0], $noMerchantUrlPath)){
             $channelId = 0;
         }else{
-            $openChannelId = $request->getHeader('open_channel_id');
+            $openChannelId = $request->getHeader('OpenChannelId');
             if(!$aesKey || !isset($openChannelId[0])){
                 return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found');
             }
