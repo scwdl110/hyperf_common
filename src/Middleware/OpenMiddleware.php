@@ -59,8 +59,8 @@ class OpenMiddleware implements MiddlewareInterface
         switch (data_get($client, 'client_type', '')){
             case 0:
                 //自用
-                $userId = $this->self($clientId);
-                if(!$userId){
+                $user = $this->self($clientId);
+                if(!$user){
                     return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
                 }
                 break;
@@ -73,6 +73,8 @@ class OpenMiddleware implements MiddlewareInterface
                 break;
         }
 
+        $userId = $user['user_id'];
+        $adminId = $user['admin_id'];
 
         $where = [
             ['id', '=', $userId],
@@ -127,6 +129,7 @@ class OpenMiddleware implements MiddlewareInterface
 
         $request = $request->withAttribute('userInfo', [
             'user_id' => $userId,
+            'admin_id' => $adminId,
             'client_id' => $clientId,
             'dbhost' => $dbhost,
             'codeno' => $codeno,
@@ -145,6 +148,25 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$clientUser){
             return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
         }
-        return data_get($clientUser, 'user_id', '');
+        $where = [
+            ['client_id', '=', $client_id],
+        ];
+        $userId = data_get($clientUser, 'user_id', '');
+        if(!$userId){
+            return false;
+        }
+
+        $where = [
+            ['is_master', '=', 1],
+            ['user_id', '=', $userId],
+        ];
+        $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select('id')->first();
+        if(!$admin){
+            return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
+        }
+        return [
+            'user_id' => $userId,
+            'admin_id' => data_get($admin, 'id', ''),
+        ];
     }
 }
