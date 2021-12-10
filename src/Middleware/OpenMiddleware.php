@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\Middleware;
 
+use Captainbi\Hyperf\Util\Functions;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\DbConnection\Db;
 use Hyperf\HttpServer\Router\Dispatched;
@@ -28,6 +29,32 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$accessToken){
             return Context::get(ResponseInterface::class)->withStatus(401, 'Unauthorized');
         }
+
+        $configInterface = ApplicationContext::getContainer()->get(ConfigInterface::class);
+        $serverName = $configInterface->get("server.servers.0.name");
+        $maxVersion = $configInterface->get("open.version", 1);
+        $aesKey = $configInterface->get("open.channel_id_aes_key", '');
+        $noMerchantUrlPath = $configInterface->get("open.no_merchant_url_path", []);
+
+        $path = $request->getUri()->getPath();
+        preg_match_all ("/\/v(\d+)\/(.*)/", $path, $pat_array);
+        if(!isset($pat_array[1][0]) || !$pat_array[1][0] || !isset($pat_array[2][0]) || !$pat_array[2][0]){
+            //没版本直接进入
+            return $handler->handle($request);
+        }
+        if(in_array('/'.$pat_array[2][0], $noMerchantUrlPath)){
+            $channelId = 0;
+        }else{
+            $openChannelId = $request->getHeader('open_channel_id');
+            if(!$aesKey || !isset($openChannelId[0])){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found');
+            }
+            $channelId = Functions::decryOpen($openChannelId[0], $aesKey);
+            if(!$channelId){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found');
+            }
+        }
+
 
 //        缺get_ws_id redis
 
@@ -59,8 +86,8 @@ class OpenMiddleware implements MiddlewareInterface
         switch (data_get($client, 'client_type', '')){
             case 0:
                 //自用
-                $user = $this->self($clientId);
-                if(!$user){
+                $userId = $this->self($clientId);
+                if(!$userId){
                     return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
                 }
                 break;
@@ -73,8 +100,15 @@ class OpenMiddleware implements MiddlewareInterface
                 break;
         }
 
-        $userId = $user['user_id'];
-        $adminId = $user['admin_id'];
+        $where = [
+            ['is_master', '=', 1],
+            ['user_id', '=', $userId],
+        ];
+        $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select('id')->first();
+        if(!$admin){
+            return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
+        }
+        $adminId = data_get($admin, 'id', '');
 
         $where = [
             ['id', '=', $userId],
@@ -88,18 +122,12 @@ class OpenMiddleware implements MiddlewareInterface
 
         $dispatched = $request->getAttribute(Dispatched::class);
 
-        $configInterface = ApplicationContext::getContainer()->get(ConfigInterface::class);
-        $serverName = $configInterface->get("server.servers.0.name");
-
         //是否要最大版本号和版本号redis
         if($dispatched->status==0){
-            $path = $request->getUri()->getPath();
             //版本往前
-            preg_match_all ("/v(\d+)\/(\w+)\/(.*)/", $path, $pat_array);
-            if(!isset($pat_array[1][0]) || !$pat_array[1][0]){
-                return Context::get(ResponseInterface::class)->withStatus(404, 'route not found');
-            }
-            $version = intval($pat_array[1][0]);
+            //maxVersion兼容减一
+            $pathVersion = intval($pat_array[1][0]);
+            $version = min($pathVersion, $maxVersion+1);
             //版本号
             if($version<=1){
                 return Context::get(ResponseInterface::class)->withStatus(404, 'version not found');
@@ -111,7 +139,7 @@ class OpenMiddleware implements MiddlewareInterface
             }
             $allHandler = ApplicationContext::getContainer()->get(DispatcherFactory::class)->getRouter($serverName)->getData()[0][$request->getMethod()];
             for ($i=$version-1;$i>0;$i--){
-                $newPath = str_replace('v'.$version.'/', 'v'.$i.'/', $path);
+                $newPath = str_replace('v'.$pathVersion.'/', 'v'.$i.'/', $path);
                 if(!isset($allHandler[$newPath])){
                     continue;
                 }
@@ -131,6 +159,7 @@ class OpenMiddleware implements MiddlewareInterface
             'user_id' => $userId,
             'admin_id' => $adminId,
             'client_id' => $clientId,
+            'channel_id' => $channelId,
             'dbhost' => $dbhost,
             'codeno' => $codeno,
         ]);
@@ -139,7 +168,10 @@ class OpenMiddleware implements MiddlewareInterface
         return $handler->handle($request);
     }
 
-
+    /**
+     * @param $client_id
+     * @return array|mixed|ResponseInterface
+     */
     private function self($client_id){
         $where = [
             ['client_id', '=', $client_id],
@@ -148,25 +180,6 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$clientUser){
             return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
         }
-        $where = [
-            ['client_id', '=', $client_id],
-        ];
-        $userId = data_get($clientUser, 'user_id', '');
-        if(!$userId){
-            return false;
-        }
-
-        $where = [
-            ['is_master', '=', 1],
-            ['user_id', '=', $userId],
-        ];
-        $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select('id')->first();
-        if(!$admin){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
-        }
-        return [
-            'user_id' => $userId,
-            'admin_id' => data_get($admin, 'id', ''),
-        ];
+        return data_get($clientUser, 'user_id', '');
     }
 }

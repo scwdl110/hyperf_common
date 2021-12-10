@@ -209,7 +209,7 @@ class Functions {
      * @param string $aesKey
      * @return string
      */
-    public static function encryOpen(string $token, string $aesKey): string
+    public static function encryOpen(string $token, string $aesKey)
     {
         return base64_encode(openssl_encrypt($token, 'AES-128-ECB', $aesKey, OPENSSL_RAW_DATA));
     }
@@ -218,9 +218,9 @@ class Functions {
      * 开放平台aes解密
      * @param string $encryptionToken
      * @param string $aesKey
-     * @return string
+     * @return false|string
      */
-    public static function decryOpen(string $encryptionToken, string $aesKey): string
+    public static function decryOpen(string $encryptionToken, string $aesKey)
     {
         return openssl_decrypt(base64_decode($encryptionToken), 'AES-128-ECB', $aesKey, OPENSSL_RAW_DATA);
     }
