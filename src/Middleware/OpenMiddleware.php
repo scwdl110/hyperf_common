@@ -118,8 +118,8 @@ class OpenMiddleware implements MiddlewareInterface
                 ['channel_id', '=', $channelId],
                 ['client_id', '=', $clientId],
             ];
-            $openClientUserChannel = Db::table('open_client_user_channel')->where($where)->count();
-            if($openClientUserChannel<=0){
+            $openClientUserChannel = Db::table('open_client_user_channel')->where($where)->select('site_id')->first();
+            if(!$openClientUserChannel){
                 return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
             }
         }
@@ -178,6 +178,7 @@ class OpenMiddleware implements MiddlewareInterface
             'channel_id' => $channelId,
             'dbhost' => $dbhost,
             'codeno' => $codeno,
+            'site_id' => $openClientUserChannel['site_id'],
         ]);
         Context::set(ServerRequestInterface::class, $request);
 
