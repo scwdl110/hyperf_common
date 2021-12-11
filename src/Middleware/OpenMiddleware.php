@@ -100,6 +100,7 @@ class OpenMiddleware implements MiddlewareInterface
                 break;
         }
 
+        //admin
         $where = [
             ['is_master', '=', 1],
             ['user_id', '=', $userId],
@@ -110,6 +111,21 @@ class OpenMiddleware implements MiddlewareInterface
         }
         $adminId = data_get($admin, 'id', '');
 
+        //channel需授权
+        if($channelId){
+            $where = [
+                ['user_id', '=', $userId],
+                ['channel_id', '=', $channelId],
+                ['client_id', '=', $clientId],
+            ];
+            $openClientUserChannel = Db::table('open_client_user_channel')->where($where)->count();
+            if($openClientUserChannel<=0){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
+            }
+        }
+
+
+        //分库分表
         $where = [
             ['id', '=', $userId],
         ];
