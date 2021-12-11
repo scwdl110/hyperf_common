@@ -122,7 +122,7 @@ class OpenMiddleware implements MiddlewareInterface
             if(!$openClientUserChannel){
                 return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
             }
-            $siteId = $openClientUserChannel['site_id'];
+            $siteId = data_get($openClientUserChannel, 'site_id', '');
         }else{
             $siteId = 0;
         }
