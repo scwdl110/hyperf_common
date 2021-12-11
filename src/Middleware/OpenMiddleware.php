@@ -109,7 +109,7 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$admin){
             return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
         }
-        $adminId = data_get($admin, 'id', '');
+        $adminId = data_get($admin, 'id', 0);
 
         //channel需授权
         if($channelId){
@@ -122,7 +122,7 @@ class OpenMiddleware implements MiddlewareInterface
             if(!$openClientUserChannel){
                 return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
             }
-            $siteId = data_get($openClientUserChannel, 'site_id', '');
+            $siteId = data_get($openClientUserChannel, 'site_id', 0);
         }else{
             $siteId = 0;
         }
@@ -200,6 +200,6 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$clientUser){
             return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
         }
-        return data_get($clientUser, 'user_id', '');
+        return data_get($clientUser, 'user_id', 0);
     }
 }
