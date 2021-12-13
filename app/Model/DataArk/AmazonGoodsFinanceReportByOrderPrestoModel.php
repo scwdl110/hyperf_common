@@ -3258,7 +3258,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             if (in_array('sales_order_quantity', $targets)) {  //订单明细数
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorder_order_quantity' : 'report_order_quantity';
+                $tmp_field = $datas['sale_datas_origin'] == '1' ? 'byorder_order_quantity' : 'report_order_quantity';
                 $fields['sales_order_quantity'] = "sum( report.{$tmp_field} )";
             }
 
@@ -4627,7 +4627,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($time_line, "report.monthly_sku_{$tempField} * ({:RATE} / COALESCE(rates.rate ,1))");
                 }
             }else if ($time_target == 'sales_order_quantity') {  //订单明细数
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorder_order_quantity' : 'report_order_quantity';
+                $tmp_field = $datas['sale_datas_origin'] == '1' ? 'byorder_order_quantity' : 'report_order_quantity';
                 $fields['count_total'] = "SUM( report.{$tmp_field} )";
                 $time_fields = $this->getTimeFields($time_line, $tmp_field);
             }else if ($time_target == 'sales_evaluation_nums') {  //测评销量
