@@ -6403,7 +6403,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['fba_stock'] = '1';
             }
             if (in_array('fba_sales_volume', $targets)) {  //FBA销量
-                $fields['fba_sales_volume'] = 'sum( report.bychannel_fba_sales_volume )';
+                if ($datas['sale_datas_origin'] == '1'){
+                    $fields['fba_sales_volume'] = 'sum( report.byorder_fba_sales_volume )';
+                }else{
+                    $fields['fba_sales_volume'] = 'sum( report.report_fba_sales_volume )';
+                }
+
             }
             if (in_array('fba_need_replenish', $targets)) {  //需补货sku
                 $fields['fba_need_replenish'] = '1';
@@ -7619,8 +7624,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields = $this->getTimeFields($timeLine, 'report."byorder_sp_attributedConversions7d" + report."byorder_sd_attributedConversions7d" - report."byorder_sd_attributedConversions7dSameSKU" + report."bychannel_reserved_field7" - report."byorder_sp_attributedConversions7dSameSKU" - report."bychannel_reserved_field8"', 'report.report_sales_volume+ report.report_group_id');
                 }
             } else if ($time_target == 'fba_sales_volume') {  //FBA销量
-                $fields['count_total'] = 'sum( report.bychannel_fba_sales_volume )';
-                $time_fields = $this->getTimeFields($timeLine, 'report.bychannel_fba_sales_volume');
+                if ($datas['sale_datas_origin'] == '1'){
+                    $fields['count_total'] = 'sum( report.byorder_fba_sales_volume )';
+                    $time_fields = $this->getTimeFields($timeLine, 'report.byorder_fba_sales_volume');
+                }else{
+                    $fields['count_total'] = 'sum( report.report_fba_sales_volume )';
+                    $time_fields = $this->getTimeFields($timeLine, 'report.report_fba_sales_volume');
+                }
+
             } else if ($time_target == 'promote_coupon') { //coupon优惠券
                 if ($datas['currency_code'] == 'ORIGIN') {
                     $fields['count_total'] = 'SUM(report.bychannel_coupon_redemption_fee + report."bychannel_coupon_payment_eventList_tax")';
@@ -12595,7 +12606,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         if (!empty($repair_data)){
             foreach ($sql_key as $k=> $sql_key_value){
-                if (in_array($k,[1,198,86,87])){
+                if (in_array($k,[1,198,86,87,106])){
 
                     $sql_key[$k]['common'] = array_merge($sql_key_value['common'],$repair_data);
 
