@@ -12606,7 +12606,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         if (!empty($repair_data)){
             foreach ($sql_key as $k=> $sql_key_value){
-                if (in_array($k,[1,198,86,87])){
+                if (in_array($k,[1,198,86,87,106])){
 
                     $sql_key[$k]['common'] = array_merge($sql_key_value['common'],$repair_data);
 
