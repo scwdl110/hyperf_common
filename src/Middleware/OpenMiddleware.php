@@ -19,6 +19,13 @@ class OpenMiddleware implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        $path = $request->getUri()->getPath();
+        preg_match_all ("/\/v(\d+)\/(.*)/", $path, $pat_array);
+        if(!isset($pat_array[1][0]) || !$pat_array[1][0] || !isset($pat_array[2][0]) || !$pat_array[2][0]){
+            //没版本直接进入
+            return $handler->handle($request);
+        }
+
         //获取token
         $authorization = $request->getHeader('authorization');
         if(!isset($authorization[0])){
@@ -36,12 +43,7 @@ class OpenMiddleware implements MiddlewareInterface
         $aesKey = $configInterface->get("open.channel_id_aes_key", '');
         $noMerchantUrlPath = $configInterface->get("open.no_merchant_url_path", []);
 
-        $path = $request->getUri()->getPath();
-        preg_match_all ("/\/v(\d+)\/(.*)/", $path, $pat_array);
-        if(!isset($pat_array[1][0]) || !$pat_array[1][0] || !isset($pat_array[2][0]) || !$pat_array[2][0]){
-            //没版本直接进入
-            return $handler->handle($request);
-        }
+
         if(in_array('/'.$pat_array[2][0], $noMerchantUrlPath)){
             $channelId = 0;
         }else{
