@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Captainbi\Hyperf\Middleware;
 
 use Captainbi\Hyperf\Util\Functions;
+use Captainbi\Hyperf\Util\Redis;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\DbConnection\Db;
 use Hyperf\HttpServer\Router\Dispatched;
@@ -58,37 +59,53 @@ class OpenMiddleware implements MiddlewareInterface
         }
 
 
-//        缺get_ws_id redis
+        //center_open_client_id
+        $redis = new Redis();
+        $key = 'center_open_client_id_'.$accessToken;
+        $redis = $redis->getClient();
+        $clientId = $redis->get($key);
+        if(!$clientId===false){
+            //获取client
+            $where = [
+                ['a.access_token', '=', $accessToken],
+            ];
+            $tokenArr = Db::connection('pg_kong')->table('oauth2_tokens as a')
+                ->join('oauth2_credentials as b', 'a.credential_id', '=', 'b.id')
+                ->where($where)
+                ->select('b.client_id')->first();
 
-        //获取client
-        $where = [
-            ['a.access_token', '=', $accessToken],
-        ];
-        $tokenArr = Db::connection('pg_kong')->table('oauth2_tokens as a')
-            ->join('oauth2_credentials as b', 'a.credential_id', '=', 'b.id')
-            ->where($where)
-            ->select('b.client_id')->first();
+            $clientId = data_get($tokenArr, 'client_id', '');
+            if(!$tokenArr || !$clientId){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'access_token Unauthorized');
+            }
 
-        $clientId = data_get($tokenArr, 'client_id', '');
-
-        if(!$tokenArr || !$clientId){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'access_token Unauthorized');
+            $redis->set($key, $clientId, 86400);
         }
 
-        $where = [
-            ['client_id', '=', $clientId],
-        ];
-        $client = Db::table('open_client')->where($where)->select('client_type')->first();
+        //授权和取消授权需更新同个redis_key
+        //center_open_client_type
+        $key = 'center_open_client_type_'.$clientId;
+        $clientType = $redis->get($key);
+        if($clientType===false){
+            $where = [
+                ['client_id', '=', $clientId],
+            ];
+            $client = Db::table('open_client')->where($where)->select('client_type')->first();
 
-        if(!$client){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'client_id Unauthorized');
+            if(!$client){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'client_id Unauthorized');
+            }
+            $clientType = data_get($client, 'client_type', '');
+
+            $redis->set($key, $clientType, 86400);
         }
+
 
         //获取user
-        switch (data_get($client, 'client_type', '')){
+        switch ($clientType){
             case 0:
                 //自用
-                $userId = $this->self($clientId);
+                $userId = $this->self($redis, $clientId);
                 if(!$userId){
                     return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
                 }
@@ -103,43 +120,77 @@ class OpenMiddleware implements MiddlewareInterface
         }
 
         //admin
-        $where = [
-            ['is_master', '=', 1],
-            ['user_id', '=', $userId],
-        ];
-        $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select('id')->first();
-        if(!$admin){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
+        //center_open_admin_id
+        $key = 'center_open_admin_id_'.$userId;
+        $adminId = $redis->get($key);
+        if($adminId===false){
+            $where = [
+                ['is_master', '=', 1],
+                ['user_id', '=', $userId],
+            ];
+            $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select('id')->first();
+            if(!$admin){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
+            }
+            $adminId = data_get($admin, 'id', 0);
+
+            $redis->set($key, $adminId, 86400);
         }
-        $adminId = data_get($admin, 'id', 0);
+
 
         //channel需授权
         if($channelId){
-            $where = [
-                ['user_id', '=', $userId],
-                ['channel_id', '=', $channelId],
-                ['client_id', '=', $clientId],
-            ];
-            $openClientUserChannel = Db::table('open_client_user_channel')->where($where)->select('site_id')->first();
-            if(!$openClientUserChannel){
-                return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
+            //授权和取消授权需更新同个redis_key
+            //center_open_client_user_channel
+            $key = 'center_open_client_user_channel_site_id_'.$clientId."_".$userId."_".$channelId;
+            $siteId = $redis->get($key);
+            if($siteId===false){
+                $where = [
+                    ['user_id', '=', $userId],
+                    ['channel_id', '=', $channelId],
+                    ['client_id', '=', $clientId],
+                ];
+                $openClientUserChannel = Db::table('open_client_user_channel')->where($where)->select('site_id')->first();
+                if(!$openClientUserChannel){
+                    return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
+                }
+                $siteId = data_get($openClientUserChannel, 'site_id', 0);
+
+                $redis->set($key, $siteId, 86400);
             }
-            $siteId = data_get($openClientUserChannel, 'site_id', 0);
+
         }else{
             $siteId = 0;
         }
 
 
         //分库分表
-        $where = [
-            ['id', '=', $userId],
-        ];
-        $user = Db::connection('erp_base')->table('user')->where($where)->select('dbhost', 'codeno')->first();
-        if(!$user){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'user Unauthorized');
+        //center_open_user
+        $key = 'center_open_user_'.$userId;
+        $user = $redis->get($key);
+        if($user===false){
+            $where = [
+                ['id', '=', $userId],
+            ];
+            $user = Db::connection('erp_base')->table('user')->where($where)->select('dbhost', 'codeno')->first();
+            if(!$user){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'user Unauthorized');
+            }
+
+            $dbhost = data_get($user, 'dbhost', '');
+            $codeno = data_get($user, 'codeno', '');
+
+            $user = [
+                'dbhost' => $dbhost,
+                'codeno' => $codeno,
+            ];
+
+            $redis->set($key, json_encode($user), 86400);
+        }else{
+            $user = json_decode($user,true);
+            $dbhost = $user['dbhost'];
+            $codeno = $user['codeno'];
         }
-        $dbhost = data_get($user, 'dbhost', '');
-        $codeno = data_get($user, 'codeno', '');
 
         $dispatched = $request->getAttribute(Dispatched::class);
 
@@ -191,17 +242,26 @@ class OpenMiddleware implements MiddlewareInterface
     }
 
     /**
+     * @param $redis
      * @param $client_id
      * @return array|mixed|ResponseInterface
      */
-    private function self($client_id){
-        $where = [
-            ['client_id', '=', $client_id],
-        ];
-        $clientUser = Db::table('open_client_user')->where($where)->select('user_id')->first();
-        if(!$clientUser){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
+    private function self($redis, $client_id){
+        //授权和取消授权需更新同个redis_key
+        $key = 'center_open_self_user_id_'.$client_id;
+        $userId = $redis->get($key);
+        if($userId===false){
+            $where = [
+                ['client_id', '=', $client_id],
+            ];
+            $clientUser = Db::table('open_client_user')->where($where)->select('user_id')->first();
+            if(!$clientUser){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
+            }
+            $userId = data_get($clientUser, 'user_id', 0);
+            $redis->set($key, $userId, 86400);
         }
-        return data_get($clientUser, 'user_id', 0);
+
+        return $userId;
     }
 }
