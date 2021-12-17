@@ -64,7 +64,7 @@ class OpenMiddleware implements MiddlewareInterface
         $key = 'center_open_client_id_'.$accessToken;
         $redis = $redis->getClient();
         $clientId = $redis->get($key);
-        if(!$clientId===false){
+        if($clientId===false){
             //获取client
             $where = [
                 ['a.access_token', '=', $accessToken],
