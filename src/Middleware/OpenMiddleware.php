@@ -89,6 +89,8 @@ class OpenMiddleware implements MiddlewareInterface
         if($clientType===false){
             $where = [
                 ['client_id', '=', $clientId],
+                ['is_delete', '=', 0],
+                ['is_disable', '=', 0],
             ];
             $client = Db::table('open_client')->where($where)->select('client_type')->first();
 
