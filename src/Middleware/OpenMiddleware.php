@@ -148,7 +148,7 @@ class OpenMiddleware implements MiddlewareInterface
                 ['client_id', '=', $clientId],
             ];
             $openClientUserChannelCount = Db::table('open_client_user_channel')->where($where)->count();
-            if(!$openClientUserChannelCount<=0){
+            if($openClientUserChannelCount<=0){
                 return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
             }
 
@@ -156,7 +156,7 @@ class OpenMiddleware implements MiddlewareInterface
                 ['a.id', '=', $channelId],
                 ['a.status', '=', 1]
             ];
-            $channel = Db::connection("erp_base")->table('channel a')->join('site_area b', 'a.site_id', '=', 'b.site_id')
+            $channel = Db::connection("erp_base")->table('channel as a')->join('site_area as b', 'a.site_id', '=', 'b.site_id')
                 ->where($where)->select("a.site_id", "a.Merchant_ID", "b.area_id")->first();
 
             $siteId = data_get($channel, 'site_id', 0);
