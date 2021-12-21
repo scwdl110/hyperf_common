@@ -296,8 +296,9 @@ class Functions {
             $channel['area_id'] = $areaId;
 
             $redis->set($key, json_encode($channel), 3600);
-            return true;
         }
+
+        return true;
     }
 
 }
