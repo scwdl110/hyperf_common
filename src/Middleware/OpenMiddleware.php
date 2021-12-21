@@ -89,8 +89,6 @@ class OpenMiddleware implements MiddlewareInterface
         if($clientType===false){
             $where = [
                 ['client_id', '=', $clientId],
-                ['is_delete', '=', 0],
-                ['is_disable', '=', 0],
             ];
             $client = Db::table('open_client')->where($where)->select('client_type')->first();
 
@@ -268,6 +266,8 @@ class OpenMiddleware implements MiddlewareInterface
         if($userId===false){
             $where = [
                 ['client_id', '=', $client_id],
+                ['is_delete', '=', 0],
+                ['is_disable', '=', 0],
             ];
             $clientUser = Db::table('open_client_user')->where($where)->select('user_id')->first();
             if(!$clientUser){
