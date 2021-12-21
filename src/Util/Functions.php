@@ -252,18 +252,18 @@ class Functions {
         $key = 'center_open_channel_'.$channelId;
         $poolName = 'default';
         $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get($poolName);
-        $value = $redis->get($key);
+        $channel = $redis->get($key);
         $flag = 1;
         //无缓存或者键值不在缓存里面
-        if($value===false || $force){
+        if($channel===false || $force){
             $flag = 0;
         }else{
-            $value = json_decode($value, true);
-            if(!is_array($value)){
+            $channel = json_decode($channel, true);
+            if(!is_array($channel)){
                 $flag = 0;
             }else{
                 foreach ($field as $v){
-                    if(!array_key_exists($v, $value)){
+                    if(!array_key_exists($v, $channel)){
                         $flag = 0;
                         break;
                     }
