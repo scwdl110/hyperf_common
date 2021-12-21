@@ -3585,7 +3585,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
         //自定义算法
         $target_template = $datas['is_new_index'] == 1 ? 1 : 0;
-        $custom_target = $datas_ark_custom_target_md->get_one("user_id = {$datas['user_id']} AND target_type IN(1,2) AND target_key = '{$target_key}' AND status = 1 AND count_dimension IN (1,2) AND target_template = {$target_template}");
+        $custom_target = $this->timeCustomTarget;
         $keys = [];
         $new_target_keys = [];
         if($custom_target && $custom_target['target_type'] == 2){
@@ -5334,8 +5334,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
 
         $this->tax_field = $this->getRemoveTaxField($params);
-        $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
-        $target_template = $params['is_new_index'] == 1 ? 1 : 0;
         //没有按周期统计 ， 按指标展示
         if ($params['show_type'] == 2) {
 
@@ -5346,12 +5344,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
-
-            $customTarget = $datas_ark_custom_target_md->get_one("user_id = {$userId} AND target_type IN(1, 2) AND target_key = '{$params['time_target']}' AND count_dimension IN (1,3) AND target_template = {$target_template}");
-            $this->timeCustomTarget = $customTarget;
-            if ($customTarget && $customTarget['target_type'] == 1 && $customTarget['count_dimension'] == 3){
-                $this->countDimensionChannel = true;
-            }
 
             $fields = $this->getUnGoodsTimeFields($params, $timeLine,$isMysql);
         }
@@ -10676,9 +10668,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      */
     protected function getCustomTargetList($datas, $list_type = 1){
         $customTargetModel = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
-
-        $targetKeys = "'" . implode("','", explode(",", trim($datas['target']))) . "'";
         $targetTemplate = $datas['is_new_index'] == 1 ? 1 : 0;
+
         if ($list_type == 1){
             $countDimension = "count_dimension IN (1,2)";
         }elseif ($list_type == 2){
@@ -10687,9 +10678,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $countDimension = "count_dimension = 1";
         }
 
-        $originTargetsList = $customTargetModel->getList("user_id = {$datas['user_id']} AND target_type in(1, 2) AND {$countDimension} AND target_key IN ({$targetKeys}) AND target_template = {$targetTemplate}");
-        //自定义公式里包含新增指标
-        $this->customTargetsList = $this->addNewTargets($customTargetModel, $datas['user_id'], $originTargetsList);
+        if ($datas['show_type'] == 2){
+            $targetKeys = "'" . implode("','", explode(",", trim($datas['target']))) . "'";
+
+            $originTargetsList = $customTargetModel->getList("user_id = {$datas['user_id']} AND target_type in(1, 2) AND {$countDimension} AND target_key IN ({$targetKeys}) AND target_template = {$targetTemplate}");
+            //自定义公式里包含新增指标
+            $this->customTargetsList = $this->addNewTargets($customTargetModel, $datas['user_id'], $originTargetsList);
+        }else{
+            $customTarget = $customTargetModel->get_one("user_id = {$datas['user_id']} AND target_type IN(1, 2) AND {$countDimension} AND target_key = '{$datas['time_target']}' AND target_template = {$targetTemplate}");
+            $this->timeCustomTarget = $customTarget;
+            if ($customTarget && $customTarget['target_type'] == 1 && $customTarget['count_dimension'] == 3){
+                $this->countDimensionChannel = true;
+            }
+        }
     }
 
     /**
@@ -10698,15 +10699,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param int $list_type 1商品维度 2店铺维度 3运营人员维度
      */
     protected function handleTargets($datas, $list_type = 1){
+        $this->getCustomTargetList($datas, $list_type);
+
         if ($datas['show_type'] == 2){
-            $this->getCustomTargetList($datas, $list_type);
 
             $targets = explode(',', $datas['target']);
             $targetsLast = $this->addCustomTargets($targets, $this->customTargetsList);
 
             $this->lastTargets = $targetsLast;
         }else{
-
+            $targetsLast = explode(",", $this->timeCustomTarget['formula_fields']);
         }
 
         if ($targetsLast && $datas['stock_datas_origin'] == 1){
