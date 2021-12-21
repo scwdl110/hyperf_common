@@ -78,37 +78,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     protected $lastTargets = [];
 
+    /**
+     * 是否有e_erp_storage_warehouse_isku 指标
+     * @var bool
+     */
     protected $haveErpIskuFields = false;
 
+    /**
+     * 是否有e_erp_storage_inventory_warehouse_report 指标
+     * @var bool
+     */
     protected $haveErpReportFields = false;
-
-    protected $erp_isku_fields_arr = [
-        'ark_erp_purchasing_num',
-        'ark_erp_send_num',
-        'ark_erp_good_num',
-        'ark_erp_bad_num',
-        'ark_erp_lock_num',
-        'ark_erp_goods_cost_total',
-        'ark_erp_total_num',
-    ];
-
-    protected $erp_report_fields_arr = [
-        'erp_period_end_purchasing_send_num',
-        'erp_period_end_purchasing_num',
-        'erp_period_end_send_num',
-        'erp_period_start_num_begin',
-        'erp_period_start_goods_cost_begin',
-        'erp_period_start_goods_cost_total_begin',
-        'erp_period_current_in_num',
-        'erp_period_current_in_cost',
-        'erp_period_current_out_num',
-        'erp_period_current_out_cost',
-        'erp_period_current_supplement_cost',
-        'erp_period_end_num_end',
-        'erp_period_end_goods_cost_end',
-        'erp_period_end_goods_cost_total_end',
-        'erp_period_current_stock_rate',
-    ];
 
     protected  $amzon_site = array(
         1 => array("currency_code" => "USD", "currency_symbol" => "$", "code" => "US"),
@@ -1117,7 +1097,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }elseif (!empty($lists) && $datas['show_type'] == 1 && ( !empty($other_target['fba_sales_stock']) || !empty($other_target['fba_sales_day']) || !empty($other_target['fba_reserve_stock']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_special_purpose']) || !empty($other_target['fba_receiving_on_the_way']) || !empty($other_target['fba_receiving']) || !empty($other_target['fba_reserve_stock_handle']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_sales_not_stock']))){
                     $lists = $this->getGoodsFbaDataTmp($lists , $other_target , $datas,$channel_arr) ;
                 }
-                if($datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                if($datas['show_type'] == 2 && !$this->haveErpIskuFields && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
 
@@ -1208,7 +1188,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }elseif (!empty($lists) && $datas['show_type'] == 1 && ( !empty($other_target['fba_sales_stock']) || !empty($other_target['fba_sales_day']) || !empty($other_target['fba_reserve_stock']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_special_purpose']) || !empty($other_target['fba_receiving_on_the_way']) || !empty($other_target['fba_receiving']) || !empty($other_target['fba_reserve_stock_handle']) || !empty($other_target['fba_recommended_replenishment']) || !empty($other_target['fba_sales_not_stock']))){
                     $lists = $this->getGoodsFbaDataTmp($lists , $other_target , $datas,$channel_arr) ;
                 }
-                if(!empty($lists) && $datas['show_type'] == 2 && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
+                if(!empty($lists) && $datas['show_type'] == 2 && !$this->haveErpIskuFields && ( !empty($fields['ark_erp_purchasing_num']) || !empty($fields['ark_erp_send_num']) || !empty($fields['ark_erp_good_num']) || !empty($fields['ark_erp_bad_num']) || !empty($fields['ark_erp_lock_num']) || !empty($fields['ark_erp_goods_cost_total']) )){
                     $lists = $this->getGoodsErpData($lists , $fields , $datas , $rateInfo) ;
                 }
 
@@ -10712,11 +10692,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if ($targetsLast && $datas['stock_datas_origin'] == 1){
+            $iskuFieldsArr = array_keys(config('common.erp_isku_fields_arr'));
+            $reportFieldsArr = array_keys(config('common.erp_report_fields_arr'));
+
             foreach ($targetsLast as $target){
-                if (in_array($target, $this->erp_isku_fields_arr)){
+                if (in_array($target, $iskuFieldsArr)){
                     $this->haveErpIskuFields = true;
                 }
-                if (in_array($target, $this->erp_report_fields_arr)){
+                if (in_array($target, $reportFieldsArr)){
                     $this->haveErpReportFields = true;
                 }
             }
@@ -12329,6 +12312,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
 
+        //erp库存指标
+        $erp_rate = "{:RATE}";
+        $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
+        $erp_report_fields_arr = config('common.erp_report_fields_arr');
+
         $targets = array_unique($targets);
         foreach ($field as $key => $value){
             if (!isset($value[$field_type_key])){
@@ -12379,6 +12367,30 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                     if (!empty($value[$field_type_key]['channel_key'])){
                         $operation_table_field['channel_key'] = array_merge($operation_table_field['channel_key'],$value[$field_type_key]['channel_key']);
+                    }
+                }
+            }
+            if ($this->haveErpIskuFields){
+                if (isset($erp_isku_fields_arr[$key])){
+                    $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
+                    $temp_erp_field = $erp_isku_fields_arr[$key]['mysql_field'];
+
+                    if ($temp_erp_format_type == 4){
+                        $fields[$key] = "SUM(($temp_erp_field) * {$erp_rate})";
+                    }else{
+                        $fields[$key] = "SUM($temp_erp_field)";
+                    }
+                }
+            }
+            if ($this->haveErpReportFields){
+                if (isset($erp_report_fields_arr[$key])){
+                    $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
+                    $temp_erp_field = $erp_report_fields_arr[$key]['mysql_field'];
+
+                    if ($temp_erp_format_type == 4){
+                        $fields[$key] = "SUM(($temp_erp_field) * {$erp_rate})";
+                    }else{
+                        $fields[$key] = "SUM($temp_erp_field)";
                     }
                 }
             }
