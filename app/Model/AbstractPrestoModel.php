@@ -34,6 +34,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_channel_monthly_profit_report' => 'ods.ods_dataark_f_monthly_profit_report_001',
         'table_monthly_profit_report_by_sku' => 'ods.ods_dataark_f_monthly_profit_report_by_sku_001',
 
+        'table_amazon_fba_inventory_v3' => 'ods.ods_dataark_g_amazon_fba_inventory_v3_001',
+
         'table_user_channel' => 'dim.dim_dataark_b_user_channel',
         'table_department_channel' => 'dim.dim_dataark_b_department_channel',
         'table_goods_dim_report' => 'dim.dim_dataark_f_dw_goods_dim_report_{DBHOST}',
@@ -500,7 +502,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ?bool $isCache = null,
         int $cacheTTL = 300,
         bool $isMysql = false,
-        array $compare_data = []
+        array $compare_data = [],
+        array $fba_data = []
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -597,6 +600,35 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }else{
             $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
+        }
+
+        //有查询FBA指标
+        if(!empty($fba_data)){
+            $newTables = array() ;
+            $newTables[] = "new_origin_table AS ( {$sql} ) " ;
+            $rt_field = 'new_origin_table.*,fba_table.*' ;
+            $rt_sql = "SELECT {$rt_field} FROM new_origin_table" ;
+            $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
+            $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
+            $rt_order = !empty($fba_data['order']) ? $fba_data['order'] : "" ;
+            if(!empty($fba_data['child_table'])){
+                foreach($fba_data['child_table'] as $c=>$cdata){
+                    $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                }
+            }
+            if(!empty($rt_join)){
+                $rt_sql .= " LEFT JOIN fba_table ON " . $rt_join ;
+            }
+            if(!empty($rt_where)){
+                $rt_sql .= " WHERE " . $rt_where ;
+            }
+            $sql = 'WITH 
+            ' . implode(',
+            ' , $newTables) . "
+            " .$rt_sql ;
+            if(!empty($rt_order)){
+                $sql.= " ORDER BY " .$rt_order ;
+            }
         }
         //商品级
         //print_r($this->goodsCols);
@@ -872,12 +904,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ?bool $isCache = null,
         int $cacheTTL = 300,
         bool $isMysql = false ,
-        array $compare_data = []
+        array $compare_data = [],
+        array $fba_data = []
 
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
 
-        if(empty($compare_data)){
+        if(empty($compare_data) && empty($fba_data)){
             if ($group) {
                 $data = $data ?: '1';
                 if (stripos($group, 'having') === false && stripos($group, ',') === false && !$isMysql) {
@@ -912,7 +945,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL,$isMysql);
             }
         }else{  //有环比数据获取总条数时
-            $result = $this->getCompareDataCount($where, $data, $table,  $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data);
+            $result = $this->getCompareDataCount($where, $data, $table,  $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data,$fba_data);
         }
         return intval($result['num'] ?? 0);
     }
@@ -923,7 +956,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
      * author: LWZ
      * editTime: 2021-09-26 15:21
      */
-    public function getCompareDataCount($where, $data, $table, $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data){
+    public function getCompareDataCount($where, $data, $table, $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data,$fba_data){
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
         $where = empty($where) ? '' : " WHERE {$where}";
@@ -931,7 +964,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         $newTables = array() ;
         $newTables[] = "origin_table AS (  SELECT {$data} FROM {$table} {$where} {$group} ) " ;
-        $rt_sql = 'SELECT count(*) as num FROM origin_table ' ;
+        if(empty($fba_data)){
+            $rt_sql = 'SELECT count(*) as num FROM origin_table ' ;
+        }else{
+            $rt_sql = 'SELECT origin_table.* FROM origin_table ' ;
+        }
         $rt_where = '' ;
         //不需要having 之后的SQL
         $new_group =  preg_replace("/ having.*/i","",$group);
@@ -960,6 +997,33 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ' , $newTables) . "
         " .$rt_sql ;
 
+        //有查询FBA指标
+        if(!empty($fba_data)){
+            $newTables = array() ;
+            $newTables[] = "new_origin_table AS ( {$sql} ) " ;
+            $rt_sql = "SELECT count(*) as num FROM new_origin_table" ;
+            $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
+            $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
+            $rt_order = !empty($fba_data['order']) ? $fba_data['order'] : "" ;
+            if(!empty($fba_data['child_table'])){
+                foreach($fba_data['child_table'] as $c=>$cdata){
+                    $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                }
+            }
+            if(!empty($rt_join)){
+                $rt_sql .= " LEFT JOIN fba_table ON " . $rt_join ;
+            }
+            if(!empty($rt_where)){
+                $rt_sql .= " WHERE " . $rt_where ;
+            }
+            $sql = 'WITH 
+            ' . implode(',
+            ' , $newTables) . "
+            " .$rt_sql ;
+            if(!empty($rt_order)){
+                $sql.= " ORDER BY " .$rt_order ;
+            }
+        }
         if($isJoin){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
