@@ -61,6 +61,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_dws_arkdata_category01_month' => 'dwsslave.dws_arkdata_category01_month',
         'table_dws_arkdata_category02_month' => 'dwsslave.dws_arkdata_category02_month',
         'table_dws_arkdata_category03_month' => 'dwsslave.dws_arkdata_category03_month',
+
+        'table_erp_storage_warehouse_isku' => 'ods.ods_e_erp_storage_warehouse_isku_001',
+        'table_erp_storage_inventory_warehouse_report' => 'ods.ods_e_erp_storage_inventory_warehouse_report_001',
     ];
 
     protected $goodsCols = array(

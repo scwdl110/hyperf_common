@@ -1049,6 +1049,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $compareData = array();
         }
 
+        if ($this->haveErpIskuFields){
+            $table .= " LEFT JOIN {$this->table_erp_storage_warehouse_isku} AS warehouse_isku ON warehouse_isku.isku_id = amazon_goods.goods_isku_id AND warehouse_isku.db_num = '{$this->dbhost}' AND warehouse_isku.user_id = report.user_id AND warehouse_isku.is_delete = 0";
+        }
+        if ($this->haveErpReportFields){
+            $table .= " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_report ON warehouse_report.isku_id = amazon_goods.goods_isku_id AND warehouse_report.db_num = '{$this->dbhost}' AND warehouse_report.user_id = report.user_id";
+
+            $max_min_ym = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
+            if(!empty($max_min_ym)){
+                $where .= " AND warehouse_report.time_str IN(" .implode(',', $max_min_ym). ")";
+            }
+        }
+
 
         $count = 0;
         if ($count_tip == 2) { //仅统计总条数
@@ -10757,6 +10769,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     }
 
     public function getYnWhere($max_ym = '' , $min_ym = ''){
+        $ym_array = $this->calculateYn($max_ym, $min_ym);
+        if(empty($ym_array)){
+            return ' 1=1 ' ;
+        }else{
+            $ym_str = "'".implode("','" , $ym_array)."'" ;
+            if(count($ym_array) == 1){
+                $ym_where = "report.ym = " . $ym_str ;
+            }else{
+                $ym_where =  "report.ym IN (" . $ym_str . " )" ;
+            }
+            return $ym_where ;
+        }
+
+    }
+
+    public function calculateYn($max_ym, $min_ym){
         $ym_array = array() ;
         if(!empty($max_ym) && !empty($min_ym)){
             while($max_ym != $min_ym){
@@ -10779,20 +10807,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $year = intval(substr($max_ym ,0 ,4)) ;
             $month = intval(substr($max_ym ,4 ,2));
             $ym_array[] = $year.$month ;
-
         }
-        if(empty($ym_array)){
-            return ' 1=1 ' ;
-        }else{
-            $ym_str = "'".implode("','" , $ym_array)."'" ;
-            if(count($ym_array) == 1){
-                $ym_where = "report.ym = " . $ym_str ;
-            }else{
-                $ym_where =  "report.ym IN (" . $ym_str . " )" ;
-            }
-            return $ym_where ;
-        }
-
+        return $ym_array;
     }
 
     public function count_custom_formula($formula = '' , $data = array()){
