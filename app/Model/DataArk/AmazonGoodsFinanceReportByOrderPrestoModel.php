@@ -76,6 +76,40 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         'ark_erp_goods_cost_total'
     ];
 
+    protected $lastTargets = [];
+
+    protected $haveErpIskuFields = false;
+
+    protected $haveErpReportFields = false;
+
+    protected $erp_isku_fields_arr = [
+        'ark_erp_purchasing_num',
+        'ark_erp_send_num',
+        'ark_erp_good_num',
+        'ark_erp_bad_num',
+        'ark_erp_lock_num',
+        'ark_erp_goods_cost_total',
+        'ark_erp_total_num',
+    ];
+
+    protected $erp_report_fields_arr = [
+        'erp_period_end_purchasing_send_num',
+        'erp_period_end_purchasing_num',
+        'erp_period_end_send_num',
+        'erp_period_start_num_begin',
+        'erp_period_start_goods_cost_begin',
+        'erp_period_start_goods_cost_total_begin',
+        'erp_period_current_in_num',
+        'erp_period_current_in_cost',
+        'erp_period_current_out_num',
+        'erp_period_current_out_cost',
+        'erp_period_current_supplement_cost',
+        'erp_period_end_num_end',
+        'erp_period_end_goods_cost_end',
+        'erp_period_end_goods_cost_total_end',
+        'erp_period_current_stock_rate',
+    ];
+
     protected  $amzon_site = array(
         1 => array("currency_code" => "USD", "currency_symbol" => "$", "code" => "US"),
         2 => array("currency_code" => "CAD", "currency_symbol" => "C$", "code" => "CA"),
@@ -519,6 +553,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ) {
         $datas['method'] = "getListByGoods";
         $this->dws_user_id_mod = getUserIdMod($datas['user_id']);
+        $this->handleTargets($datas, 1);
         $isMysql = $this->getIsMysql($datas);
         $searchKey = $datas['searchKey'] ?? '';
         $searchVal = $datas['searchVal'] ?? '';
@@ -2250,14 +2285,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $targets = explode(',', $datas['target']);
         $targets_temp = $targets;//基础指标缓存
 
-        //自定义指标
-        $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
-        $target_key_str = trim("'" . implode("','",explode(",",$datas['target'])) . "'");
-        $target_template = $datas['is_new_index'] == 1 ? 1 : 0;
-        $custom_targets_list = $datas_ark_custom_target_md->getList("user_id = {$datas['user_id']} AND target_type in(1, 2) AND count_dimension IN (1,2) AND target_key IN ({$target_key_str}) AND target_template = {$target_template}");
-        //自定义公式里包含新增指标
-        $custom_targets_list = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$custom_targets_list);
-        $targets = $this->addCustomTargets($targets,$custom_targets_list);
+        $targets = $this->lastTargets;
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2' && (in_array('goods_rank', $targets) || in_array('goods_min_rank', $targets)) && in_array($datas['count_dimension'],['asin'])){
@@ -3372,7 +3400,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //加入自定义指标
         $fba_target_key = $operation_table_field = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
-        $this->getCustomTargetFields($fields,$custom_targets_list,$targets,$targets_temp, $datas,$fba_target_key,$operation_table_field,$is_count,$isMysql);
+        $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$operation_table_field,$is_count,$isMysql);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
 
@@ -5202,6 +5230,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if(!empty($params['compare_data'])){  //当有对比数据时 ， 不从mysql查
             return $isMysql ;
         }
+        if ($this->haveErpIskuFields || $this->haveErpReportFields){
+            //有erp库存指标
+            return $isMysql;
+        }
 //        return $isMysql;
 //        if ($params['user_id'] == 343459){
 //            return true;
@@ -5292,6 +5324,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         int $day_param = 1
     ) {
         $fields = [];
+        $this->handleTargets($params, 2);
         $isMysql = $this->getIsMysql($params);
         $this->dws_user_id_mod = getUserIdMod($params['user_id']);
         $searchKey = $datas['searchKey'] ?? '';
@@ -5305,10 +5338,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $target_template = $params['is_new_index'] == 1 ? 1 : 0;
         //没有按周期统计 ， 按指标展示
         if ($params['show_type'] == 2) {
-
-            $target_key_str = trim("'" . implode("','",explode(",",$params['target'])) . "'");
-            $customTargetsList = $datas_ark_custom_target_md->getList("user_id = {$userId} AND target_type IN(1, 2) AND target_key IN ({$target_key_str}) AND count_dimension IN (1,3) AND target_template = {$target_template}");
-            $this->customTargetsList = $customTargetsList;
 
             $fields_arr = $this->getUnGoodsFields($params,$isMysql);
             if ($this->is_channge_mysql){
@@ -5798,11 +5827,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $this->is_channge_mysql = true;
         }
 
-        //自定义指标
-        $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
-        //自定义公式里包含新增指标
-        $this->customTargetsList = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$this->customTargetsList);
-        $targets = $this->addCustomTargets($targets, $this->customTargetsList);
+        $targets = $this->lastTargets;
         if ($isMysql && $this->is_channge_mysql) {
             $isMysql = false;
         }
@@ -10620,7 +10645,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             $formula_fields = trim($formula_fields,",");
             $formula_target = "'" . implode("','",array_values(array_unique(explode(",",$formula_fields)))) . "'";
-            $formula_targets_list = $datas_ark_custom_target_md->getList("user_id = {$user_id} AND target_type = 1 AND count_dimension IN (1,2) AND target_key IN ({$formula_target}) AND target_template = {$target_template}");
+            $formula_targets_list = $datas_ark_custom_target_md->getList("user_id = {$user_id} AND target_type = 1 AND count_dimension IN (1,2,3) AND target_key IN ({$formula_target}) AND target_template = {$target_template}");
             $custom_targets_list = array_merge($custom_targets_list,$formula_targets_list);
         }
         return $custom_targets_list;
@@ -10642,6 +10667,58 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $targets = array_values(array_unique($targets));
         return $targets;
+    }
+
+    /**
+     * 获取自定义公式和新增指标列表
+     * @param $datas
+     * @param $list_type 1商品维度 2店铺维度 3运营人员维度
+     */
+    protected function getCustomTargetList($datas, $list_type = 1){
+        $customTargetModel = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
+
+        $targetKeys = "'" . implode("','", explode(",", trim($datas['target']))) . "'";
+        $targetTemplate = $datas['is_new_index'] == 1 ? 1 : 0;
+        if ($list_type == 1){
+            $countDimension = "count_dimension IN (1,2)";
+        }elseif ($list_type == 2){
+            $countDimension = "count_dimension IN (1,3)";
+        }else{
+            $countDimension = "count_dimension = 1";
+        }
+
+        $originTargetsList = $customTargetModel->getList("user_id = {$datas['user_id']} AND target_type in(1, 2) AND {$countDimension} AND target_key IN ({$targetKeys}) AND target_template = {$targetTemplate}");
+        //自定义公式里包含新增指标
+        $this->customTargetsList = $this->addNewTargets($customTargetModel, $datas['user_id'], $originTargetsList);
+    }
+
+    /**
+     * 获取最终的指标 targets
+     * @param $datas
+     * @param int $list_type 1商品维度 2店铺维度 3运营人员维度
+     */
+    protected function handleTargets($datas, $list_type = 1){
+        if ($datas['show_type'] == 2){
+            $this->getCustomTargetList($datas, $list_type);
+
+            $targets = explode(',', $datas['target']);
+            $targetsLast = $this->addCustomTargets($targets, $this->customTargetsList);
+
+            $this->lastTargets = $targetsLast;
+        }else{
+
+        }
+
+        if ($targetsLast && $datas['stock_datas_origin'] == 1){
+            foreach ($targetsLast as $target){
+                if (in_array($target, $this->erp_isku_fields_arr)){
+                    $this->haveErpIskuFields = true;
+                }
+                if (in_array($target, $this->erp_report_fields_arr)){
+                    $this->haveErpReportFields = true;
+                }
+            }
+        }
     }
 
     private function dealTimeTargets(&$fields,$custom_target,$time_line = array(),$time_fields_arr = array(),$target_key = "",$isMysql = false){
