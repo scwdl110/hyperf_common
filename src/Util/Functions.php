@@ -234,7 +234,7 @@ class Functions {
      * @param int $channelId
      * @param int $force
      * @param array $field
-     * @return bool
+     * @return array|bool|\Hyperf\Database\Model\Model|\Hyperf\Database\Query\Builder|object|null
      */
     public static function getChannel(int $channelId, int $force = 0, array $field = []){
         if(!$channelId){
@@ -298,7 +298,7 @@ class Functions {
             $redis->set($key, json_encode($channel), 3600);
         }
 
-        return true;
+        return $channel;
     }
 
 }
