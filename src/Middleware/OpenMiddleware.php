@@ -142,32 +142,37 @@ class OpenMiddleware implements MiddlewareInterface
 
         //channel需授权
         if($channelId){
-            $where = [
-                ['user_id', '=', $userId],
-                ['channel_id', '=', $channelId],
-                ['client_id', '=', $clientId],
-            ];
-            $openClientUserChannelCount = Db::table('open_client_user_channel')->where($where)->count();
-            if($openClientUserChannelCount<=0){
-                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
+            $key = 'center_open_client_user_channel'.$clientId."_".$userId."_".$channelId;
+            $openClientUserChannelCount = $redis->get($key);
+            if($openClientUserChannelCount===false){
+                $where = [
+                    ['user_id', '=', $userId],
+                    ['channel_id', '=', $channelId],
+                    ['client_id', '=', $clientId],
+                ];
+                $openClientUserChannelCount = Db::table('open_client_user_channel')->where($where)->count();
+                if($openClientUserChannelCount<=0){
+                    return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
+                }
+
+                $redis->set($key, 1, 86400);
             }
 
-            $where = [
-                ['a.id', '=', $channelId],
-                ['a.status', '=', 1]
-            ];
-            $channel = Db::connection("erp_base")->table('channel as a')->join('site_area as b', 'a.site_id', '=', 'b.site_id')
-                ->where($where)->select("a.site_id", "a.Merchant_ID", "b.area_id")->first();
+            $channel = Functions::getChannel(intval($channelId));
+            if(!$channel){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
+            }
 
             $siteId = data_get($channel, 'site_id', 0);
             $MerchantID = data_get($channel, 'Merchant_ID', '');
             $areaId = data_get($channel, 'area_id', 0);
-
+            $title = data_get($channel, 'title', 0);
 
         }else{
             $siteId = 0;
             $MerchantID = '';
             $areaId = 0;
+            $title = '';
         }
 
 
@@ -244,6 +249,7 @@ class OpenMiddleware implements MiddlewareInterface
             'site_id' => $siteId,
             'Merchant_ID' => $MerchantID,
             'area_id' => $areaId,
+            'title' => $title
         ]);
         Context::set(ServerRequestInterface::class, $request);
 

@@ -4,6 +4,10 @@ declare(strict_types=1);
 namespace Captainbi\Hyperf\Util;
 
 
+use Hyperf\DbConnection\Db;
+use Hyperf\Redis\RedisFactory;
+use Hyperf\Utils\ApplicationContext;
+
 class Functions {
 
     /**
@@ -223,6 +227,77 @@ class Functions {
     public static function decryOpen(string $encryptionToken, string $aesKey)
     {
         return openssl_decrypt(base64_decode($encryptionToken), 'AES-128-ECB', $aesKey, OPENSSL_RAW_DATA);
+    }
+
+
+    /**
+     * @param int $channelId
+     * @param int $force
+     * @param array $field
+     * @return bool
+     */
+    public static function getChannel(int $channelId, int $force = 0, array $field = []){
+        if(!$channelId){
+            return false;
+        }
+
+        if(!$field){
+            $field = [
+                "site_id",
+                "Merchant_ID",
+                "title",
+            ];
+        }
+
+        $key = 'center_open_channel_'.$channelId;
+        $poolName = 'default';
+        $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get($poolName);
+        $value = $redis->get($key);
+        $flag = 1;
+        //无缓存或者键值不在缓存里面
+        if($value===false || $force){
+            $flag = 0;
+        }else{
+            $value = json_decode($value, true);
+            if(!is_array($value)){
+                $flag = 0;
+            }else{
+                foreach ($field as $v){
+                    if(!array_key_exists($v, $value)){
+                        $flag = 0;
+                        break;
+                    }
+                }
+            }
+        }
+
+
+        if(!$flag){
+            $where = [
+                ['id', '=', $channelId],
+                ['status', '=', 1]
+            ];
+            $channel = Db::connection("erp_base")->table('channel')->where($where)->select($field)->first();
+            if(!$channel){
+                return false;
+            }
+            $siteId = data_get($channel, 'site_id', 0);
+            if($siteId){
+                $where = [
+                    'site_id' => $siteId
+                ];
+                $area = Db::connection("erp_base")->table("site_area")->where($where)->select("area_id")->first();
+                $areaId = data_get($area, 'area_id', 0);
+            }else{
+                $areaId = 0;
+            }
+
+            $channel = get_object_vars($channel);
+            $channel['area_id'] = $areaId;
+
+            $redis->set($key, json_encode($channel), 3600);
+            return true;
+        }
     }
 
 }
