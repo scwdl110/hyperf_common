@@ -13035,6 +13035,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
+        $fba_table_field = $fba_table_field1 = $fba_table_group1 = $fba_table_group = "";
         if($datas['count_dimension'] == 'sku'){
             if($datas['is_distinct_channel'] == 1){
                 $join_field = ["user_id","channel_id","sku"];
@@ -13117,7 +13118,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table1 = "fba_table1";
         }
 
-        $field = $this->getFbaField(1,1,$fba_table_field);
+        $field = $this->getFbaField(2,1,$fba_table_field);
         $child_table[] = [
             'table_name' => 'fba_table',
             'table_sql' => "SELECT {$field} FROM {$fba_table1} {$fba_table_group}",
@@ -13130,6 +13131,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $fba_data;
     }
 
+    /**
+     * Function getFbaField
+     * @desc:
+     * @author: 林志敏
+     * @editTime: 2021年12月22日 0022 下午 07:05:56
+     * @param int $type 1-需要去重 2-不需要去重
+     * @param int $list_type 1-商品 2-店铺
+     * @param string $other_field 其他字段
+     * @return string
+     */
     public function getFbaField($type = 1,$list_type = 1,$other_field = ""){
         $fields = [];
         if($list_type == 1){
