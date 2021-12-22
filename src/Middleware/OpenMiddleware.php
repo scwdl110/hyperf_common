@@ -153,7 +153,7 @@ class OpenMiddleware implements MiddlewareInterface
                     return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
                 }
 
-                $redis->set($key, 1, 86400);
+                $redis->set($key, 1, 3600);
             }
 
             $channel = Functions::getChannel(intval($channelId));
@@ -274,7 +274,7 @@ class OpenMiddleware implements MiddlewareInterface
                 return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
             }
             $userId = data_get($clientUser, 'user_id', 0);
-            $redis->set($key, $userId, 86400);
+            $redis->set($key, $userId, 3600);
         }
 
         return $userId;

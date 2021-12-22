@@ -301,4 +301,29 @@ class Functions {
         return $channel;
     }
 
+    /**
+     * @param $clientId
+     * @param int $force
+     * @return bool
+     */
+    public static function getOpenClient($clientId, int $force = 0){
+        $key = 'center_open_client_type_'.$clientId;
+        $poolName = 'default';
+        $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get($poolName);
+        $clientType = $redis->get($key);
+        if($clientType===false || $force){
+            $where = [
+                ['client_id', '=', $clientId],
+            ];
+            $client = Db::table('open_client')->where($where)->select('client_type')->first();
+
+            if(!$client){
+                return false;
+            }
+            $clientType = data_get($client, 'client_type', '');
+
+            $redis->set($key, $clientType, 86400);
+        }
+    }
+
 }
