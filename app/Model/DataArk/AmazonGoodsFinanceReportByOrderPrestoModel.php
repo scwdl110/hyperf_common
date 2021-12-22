@@ -5373,7 +5373,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if(count($level_where) < 3){
                 $where .= " AND dc.level IN (".implode(',' ,$level_where ).")" ;
             }
-        }else if($params['count_dimension'] == 'admin_id' || !empty($params['where_parent']['admin_id'])){
+        }else if($params['count_dimension'] == 'admin_id'){
             $table .= " LEFT JOIN {$this->table_user_channel} as uc ON uc.user_id = report.user_id AND uc.channel_id = report.channel_id ";
             $where .= " AND uc.status = 1 AND uc.is_master = 0 ";
         }
