@@ -665,7 +665,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
-        if ($datas['currency_code'] != 'ORIGIN') {
+        if ($datas['currency_code'] != 'ORIGIN' || (($this->haveErpReportFields || $this->haveErpIskuFields) && $datas['currency_code'] != 'CNY')) {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
             } else {
@@ -1053,14 +1053,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table .= " LEFT JOIN {$this->table_erp_storage_warehouse_isku} AS warehouse_isku ON warehouse_isku.isku_id = amazon_goods.goods_isku_id AND warehouse_isku.db_num = '{$this->dbhost}' AND warehouse_isku.user_id = report.user_id AND warehouse_isku.is_delete = 0";
         }
         if ($this->haveErpReportFields){
-            $table .= " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_report ON warehouse_report.isku_id = amazon_goods.goods_isku_id AND warehouse_report.db_num = '{$this->dbhost}' AND warehouse_report.user_id = report.user_id";
-
             $max_min_ym = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
-            if(!empty($max_min_ym)){
-                $where .= " AND warehouse_report.time_str IN(" .implode(',', $max_min_ym). ")";
-            }
+            $table .= " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_report ON warehouse_report.isku_id = amazon_goods.goods_isku_id AND warehouse_report.db_num = '{$this->dbhost}' AND warehouse_report.user_id = report.user_id AND warehouse_report.time_str IN(" .implode(',', $max_min_ym). ")";
         }
-
 
         $count = 0;
         if ($count_tip == 2) { //仅统计总条数
@@ -3592,6 +3587,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $time_fields = array();
         $time_fields_arr = array();
+        //erp库存指标 进销存明细
+        $erpReportTargets = config('common.erp_report_fields_arr');
         foreach ($time_targets as $time_target) {
             if ($datas['is_new_index'] == 1){
                 if ($custom_target && $custom_target['target_type'] == 1) {
@@ -3618,7 +3615,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                     $fields[$time_target] = $fields['count_total'] ;
                     $time_fields_arr[$time_target] = $time_fields ;
-                }else{
+                } elseif (isset($erpReportTargets[$time_target])){
+                    //erp库存指标
+                    $tempField = $erpReportTargets[$time_target]['mysql_field'];
+                    $tempFormatType = $erpReportTargets[$time_target]['format_type'] ?? 0;
+
+                    if ($datas['currency_code'] != 'CNY' && $tempFormatType == 4){
+                        $fields['count_total'] = "SUM({$tempField} * COALESCE(rates.rate, 1))";
+                        $time_fields = $this->getTimeFields($time_line, "{$tempField} * COALESCE(rates.rate ,1)");
+                    }else{
+                        $fields['count_total'] = "SUM({$tempField})";
+                        $time_fields = $this->getTimeFields($time_line, $tempField);
+                    }
+                    $fields[$time_target] = $fields['count_total'];
+                    $time_fields_arr[$time_target] = $time_fields;
+                } else{
                     $return_field = $this->handleNewIndexTimeField($datas,$fields,$time_target,1,$isMysql);
                     if(!empty($return_field['count_total']) && !empty($return_field['molecule'])){
                         $fields['count_total'] = $return_field['count_total'];
@@ -12329,7 +12340,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         //erp库存指标
-        $erp_rate = "{:RATE}";
         $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
         $erp_report_fields_arr = config('common.erp_report_fields_arr');
 
@@ -12385,28 +12395,29 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $operation_table_field['channel_key'] = array_merge($operation_table_field['channel_key'],$value[$field_type_key]['channel_key']);
                     }
                 }
-            }
-            if ($this->haveErpIskuFields){
-                if (isset($erp_isku_fields_arr[$key])){
-                    $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
-                    $temp_erp_field = $erp_isku_fields_arr[$key]['mysql_field'];
 
-                    if ($temp_erp_format_type == 4){
-                        $fields[$key] = "SUM(($temp_erp_field) * {$erp_rate})";
-                    }else{
-                        $fields[$key] = "SUM($temp_erp_field)";
+                if ($this->haveErpIskuFields){
+                    if (isset($erp_isku_fields_arr[$key])){
+                        $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
+                        $temp_erp_field = $erp_isku_fields_arr[$key]['mysql_field'];
+
+                        if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
+                            $fields[$key] = "SUM(($temp_erp_field) * COALESCE(rates.rate ,1))";
+                        }else{
+                            $fields[$key] = "SUM($temp_erp_field)";
+                        }
                     }
                 }
-            }
-            if ($this->haveErpReportFields){
-                if (isset($erp_report_fields_arr[$key])){
-                    $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
-                    $temp_erp_field = $erp_report_fields_arr[$key]['mysql_field'];
+                if ($this->haveErpReportFields){
+                    if (isset($erp_report_fields_arr[$key])){
+                        $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
+                        $temp_erp_field = $erp_report_fields_arr[$key]['mysql_field'];
 
-                    if ($temp_erp_format_type == 4){
-                        $fields[$key] = "SUM(($temp_erp_field) * {$erp_rate})";
-                    }else{
-                        $fields[$key] = "SUM($temp_erp_field)";
+                        if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
+                            $fields[$key] = "SUM(($temp_erp_field) * COALESCE(rates.rate ,1))";
+                        }else{
+                            $fields[$key] = "SUM($temp_erp_field)";
+                        }
                     }
                 }
             }
