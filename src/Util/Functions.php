@@ -246,6 +246,7 @@ class Functions {
                 "site_id",
                 "Merchant_ID",
                 "title",
+                "user_id"
             ];
         }
 
