@@ -97,7 +97,7 @@ return [
         //已收到
         "fba_received_num"=>array("count_type"=>1, "mysql_field"=>"received_num")
     ) ,
-    //商品维度 FBA 指标 count_type 1- SUM 聚合 2-取最大最小值范围 3-取max 4-公式计算
+    //商品维度 FBA 指标 count_type 1- SUM 聚合 2-取最大最小值范围 3-取max 4-公式计算 5-取AVG
     "goods_fba_fields_arr" => array(
         //可售
         "fba_sales_stock"=>array("count_type"=>1, "mysql_field"=>"total_fulfillable_quantity"),
@@ -130,19 +130,19 @@ return [
         //90日销量
         "fba_90_day_sale"=>array("count_type"=>1, "mysql_field"=>"_90_day_sale"),
         //日均销售
-        "fba_day_sale"=>array("count_type"=>1, "mysql_field"=>"day_sale"),
+        "fba_day_sale"=>array("count_type"=>5, "mysql_field"=>"day_sale"),
         //3日均销售
-        "fba_3_avg_sale"=>array("count_type"=>1, "mysql_field"=>"3_avg_sale"),
+        "fba_3_avg_sale"=>array("count_type"=>5, "mysql_field"=>"3_avg_sale"),
         //7日均销售
-        "fba_7_avg_sale"=>array("count_type"=>1, "mysql_field"=>"7_avg_sale"),
+        "fba_7_avg_sale"=>array("count_type"=>5, "mysql_field"=>"7_avg_sale"),
         //14日均销售
-        "fba_14_avg_sale"=>array("count_type"=>1, "mysql_field"=>"14_avg_sale"),
+        "fba_14_avg_sale"=>array("count_type"=>5, "mysql_field"=>"14_avg_sale"),
         //30日均销售
-        "fba_30_avg_sale"=>array("count_type"=>1, "mysql_field"=>"30_avg_sale"),
+        "fba_30_avg_sale"=>array("count_type"=>5, "mysql_field"=>"30_avg_sale"),
         //60日均销售
-        "fba_60_avg_sale"=>array("count_type"=>1, "mysql_field"=>"60_avg_sale"),
+        "fba_60_avg_sale"=>array("count_type"=>5, "mysql_field"=>"60_avg_sale"),
         //90日均销售
-        "fba_90_avg_sale"=>array("count_type"=>1, "mysql_field"=>"90_avg_sale"),
+        "fba_90_avg_sale"=>array("count_type"=>5, "mysql_field"=>"90_avg_sale"),
         //昨日退货量
         "fba_1_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_1_day_sale_return"),
         //3日退货量
@@ -158,31 +158,31 @@ return [
         //90日退货量
         "fba_90_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_90_day_sale_return"),
         //日均退货量
-        "fba_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"day_sale_return"),
+        "fba_day_sale_return"=>array("count_type"=>5, "mysql_field"=>"day_sale_return"),
         //3日均退货量
-        "fba_3_avg_sale_return"=>array("count_type"=>1, "mysql_field"=>"3_avg_sale_return"),
+        "fba_3_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"3_avg_sale_return"),
         //7日均退货量
-        "fba_7_avg_sale_return"=>array("count_type"=>1, "mysql_field"=>"7_avg_sale_return"),
+        "fba_7_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"7_avg_sale_return"),
         //14日均退货量
-        "fba_14_avg_sale_return"=>array("count_type"=>1, "mysql_field"=>"14_avg_sale_return"),
+        "fba_14_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"14_avg_sale_return"),
         //30日均退货量
-        "fba_30_avg_sale_return"=>array("count_type"=>1, "mysql_field"=>"30_avg_sale_return"),
+        "fba_30_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"30_avg_sale_return"),
         //60日均退货量
-        "fba_60_avg_sale_return"=>array("count_type"=>1, "mysql_field"=>"60_avg_sale_return"),
+        "fba_60_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"60_avg_sale_return"),
         //90日均退货量
-        "fba_90_avg_sale_return"=>array("count_type"=>1, "mysql_field"=>"90_avg_sale_return"),
+        "fba_90_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"90_avg_sale_return"),
         //3日退货率
-        "fba_ravg3"=>array("count_type"=>1, "mysql_field"=>"ravg3"),
+        "fba_ravg3"=>array("count_type"=>5, "mysql_field"=>"ravg3"),
         //7日退货率
-        "fba_ravg7"=>array("count_type"=>1, "mysql_field"=>"ravg7"),
+        "fba_ravg7"=>array("count_type"=>5, "mysql_field"=>"ravg7"),
         //14日退货率
-        "fba_ravg14"=>array("count_type"=>1, "mysql_field"=>"ravg14"),
+        "fba_ravg14"=>array("count_type"=>5, "mysql_field"=>"ravg14"),
         //30日退货率
-        "fba_ravg30"=>array("count_type"=>1, "mysql_field"=>"ravg30"),
+        "fba_ravg30"=>array("count_type"=>5, "mysql_field"=>"ravg30"),
         //60日退货率
-        "fba_ravg60"=>array("count_type"=>1, "mysql_field"=>"ravg60"),
+        "fba_ravg60"=>array("count_type"=>5, "mysql_field"=>"ravg60"),
         //90日退货率
-        "fba_ravg90"=>array("count_type"=>1, "mysql_field"=>"ravg90"),
+        "fba_ravg90"=>array("count_type"=>5, "mysql_field"=>"ravg90"),
         //是否当前补货
         "fba_is_buhuo"=>array("count_type"=>3, "mysql_field"=>"is_buhuo"),
         //可售天数
