@@ -43,7 +43,7 @@ return [
         //总库存量
         "fba_total_stock"=>array("count_type"=>1 , "mysql_field"=>"available_stock"),
         //可售
-        "fba_stock"=>array("count_type"=>1, "mysql_field"=>"total_fulfillable_quantity"),
+        "fba_sales_stock"=>array("count_type"=>1, "mysql_field"=>"total_fulfillable_quantity"),
         //在途
         "fba_receiving_on_the_way"=>array("count_type"=>1, "mysql_field"=>"inbound_shipped_quantity"),
         //接收中
@@ -63,7 +63,7 @@ return [
         //可售天数 单独处理
         "fba_sales_day"=>array("count_type"=>2, "mysql_field"=>"available_days_start,available_days_end"),
         //建议补货数量
-        "fba_recommended_replenishment"=>array("count_type"=>2, "mysql_field"=>"replenishment_quantity"),
+        "fba_recommended_replenishment"=>array("count_type"=>1, "mysql_field"=>"replenishment_quantity"),
         //建议补货时间 单独处理
         "fba_suggested_replenishment_time"=>array("count_type"=>2, "mysql_field"=>"suggested_replenishment_time_start,suggested_replenishment_time_end"),
         //冗余sku 数
@@ -89,7 +89,7 @@ return [
         //在库总成本
         "fba_goods_value"=>array("count_type"=>1, "mysql_field"=>"yjzhz"),
         //周转次数单独处理
-        "fba_turnover_times"=>array("count_type"=>4, "mysql_field"=>"(CASE WHEN _30_day_sale > 0 THEN available_stock/_30_day_sale ELSE 0 END )"),
+        "fba_turnover_times"=>array("count_type"=>4, "mysql_field"=>"(CASE WHEN SUM(_30_day_sale) > 0 THEN SUM(available_stock)/SUM(_30_day_sale) ELSE 0 END )"),
         //上个月商品动销率
         "fba_marketing_rate"=>array("count_type"=>3, "mysql_field"=>"marketing_rate"),
         //已发货
