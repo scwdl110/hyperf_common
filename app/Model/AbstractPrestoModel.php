@@ -35,6 +35,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_monthly_profit_report_by_sku' => 'ods.ods_dataark_f_monthly_profit_report_by_sku_001',
 
         'table_amazon_fba_inventory_v3' => 'ods.ods_g_amazon_fba_inventory_v3_001',
+        'table_amazon_fba_inventory_tend_v3' => 'ods.ods_g_amazon_fba_inventory_v3_tend_001',
 
         'table_user_channel' => 'dim.dim_dataark_b_user_channel',
         'table_department_channel' => 'dim.dim_dataark_b_department_channel',
