@@ -100,7 +100,7 @@ return [
     //商品维度 FBA 指标 count_type 1- SUM 聚合 2-取最大最小值范围 3-取max 4-公式计算 5-取AVG
     "goods_fba_fields_arr" => array(
         //可售
-        "fba_sales_stock"=>array("count_type"=>1, "mysql_field"=>"total_fulfillable_quantity"),
+        "fba_sales_stock"=>array("count_type"=>1, "mysql_field"=>"fulfillable_quantity"),
         //在途
         "fba_receiving_on_the_way"=>array("count_type"=>1, "mysql_field"=>"inbound_shipped_quantity"),
         //接收中
