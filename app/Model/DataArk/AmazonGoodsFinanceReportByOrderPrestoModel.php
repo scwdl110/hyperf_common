@@ -12356,6 +12356,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //erp库存指标
         $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
         $erp_report_fields_arr = config('common.erp_report_fields_arr');
+        //FBA库存指标
+        $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
 
         $targets = array_unique($targets);
         foreach ($field as $key => $value){
@@ -12363,6 +12365,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 continue;
             }
             if (in_array($key,$targets)){
+                //fba指标的跳出去，单独处理
+                if($params['is_new_index'] == 1 && $params['stock_datas_origin'] == 1 && in_array($key,$fba_fields_common_arr)){
+                    continue;
+                }
                 $field_rate = $value['format_type'] == 4 ? $rate : "";
                 //店铺
                 if($key == 'sale_channel_month_goal'){
