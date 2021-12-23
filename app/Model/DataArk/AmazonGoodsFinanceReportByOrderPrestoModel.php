@@ -13208,7 +13208,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_name' => 'fba_table1',
                 'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id ".$where." group by dc.user_department_id , c.id",
             ] ;
-            $fba_field2 = $this->getFbaField(1,2 ,"user_department_id") ;
+            $fba_field2 = $this->getFbaField(1,2 ,"user_department_id,merchant_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
                 'table_sql' => "select {$fba_field2} from fba_table1 group by user_department_id ,merchant_id",
@@ -13227,7 +13227,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_name' => 'fba_table1',
                 'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ".$where." group by uc.admin_id , c.id",
             ] ;
-            $fba_field2 = $this->getFbaField(1,2 ,"admin_id") ;
+            $fba_field2 = $this->getFbaField(1,2 ,"admin_id,merchant_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
                 'table_sql' => "select {$fba_field2} from fba_table1 group by admin_id ,merchant_id",
@@ -13279,7 +13279,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         if($type == 1){ //需要去重
             if($list_type == 2){
-                $other_field.= sprintf('%s  max(user_id) as user_id,max(g.area_id) as area_id,max(g.channel_id) as channel_id',$other_field ? ',' : '');
+                $other_field.= sprintf('%s  max(user_id) as user_id,max(area_id) as area_id,max(channel_id) as channel_id',$other_field ? ',' : '');
             }else{
                 $other_field.= sprintf('%s max(g.user_id) as user_id,max(g.area_id) as area_id,max(g.channel_id) as channel_id',$other_field ? ',' : '');
             }
@@ -13291,11 +13291,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if($is_count == '0') { //非汇总字段
                             if ($fbaArr[$target]['count_type'] == '1') {
                                 $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX({$target}) ELSE SUM({$target}) END ) AS {$target}";
-                            } else if ($target == 'fba_turnover_times') { //周转次数单独处理
+                            } else if($target == 'fba_sales_day'){
+                                $fields[] = "min(min_available_days_start) as min_available_days_start";
+                                $fields[] = "max(max_available_days_end) as max_available_days_end";
+                            }else if($target == 'fba_suggested_replenishment_time'){
+                                $fields[] = "min(min_suggested_replenishment_time_start) as min_suggested_replenishment_time_start";
+                                $fields[] = "max(max_suggested_replenishment_time_end) as max_suggested_replenishment_time_end";
+                            }else if ($target == 'fba_turnover_times') { //周转次数单独处理
                                 $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_30_day_sale) ELSE SUM(fba_30_day_sale) END ) AS fba_30_day_sale";
-                                $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_total_stock) ELSE SUM(fba_total_stock) END) AS fba_total_stock";
+                                if(!in_array('fba_total_stock',$this->lastTargets)){
+                                    $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_total_stock) ELSE SUM(fba_total_stock) END) AS fba_total_stock";
+                                }
                             } else if ($target == 'fba_marketing_rate') {
                                 $fields[] = "max(fba_marketing_rate) as fba_marketing_rate";
+                            } else if($fbaArr[$target]['count_type'] == '3'){
+                                $fields[] = "max({$target}) as {$target}";
                             }
                         }else {  //汇总字段
                             if($fbaArr[$target]['count_type'] == '1'){
@@ -13315,7 +13325,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }else{  //不需要去重
             if($list_type == 2){
-                $other_field.= sprintf('%s  max(tend.user_id) as user_id ,  max( tend.merchant_id ) as merchant_id , max(tend.area_id) as area_id ',$other_field ? ',' : '');
+                if($fba_field_type == 'target_key') {
+                    $other_field .= sprintf('%s  max(user_id) as user_id ,  max(merchant_id ) as merchant_id , max(area_id) as area_id ', $other_field ? ',' : '');
+                }else{
+                    $other_field .= sprintf('%s  max(tend.user_id) as user_id ,  max(tend.merchant_id ) as merchant_id , max(tend.area_id) as area_id ', $other_field ? ',' : '');
+                }
             }else{
                 $other_field.= sprintf('%s  max(user_id) as user_id, max(area_id) as area_id , max(channel_id) as channel_id',$other_field ? ',' : '');
             }
