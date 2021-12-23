@@ -5239,7 +5239,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if(!empty($params['compare_data'])){  //当有对比数据时 ， 不从mysql查
             return $isMysql ;
         }
-        if ($this->haveErpIskuFields || $this->haveErpReportFields){
+        if($this->haveFbaFields && $params['stock_datas_origin'] == 1){ //有FBA库存指标且数据源为大数据不从mysql查看
+            return $isMysql;
+        }
+        if (($this->haveErpIskuFields || $this->haveErpReportFields) && $params['stock_datas_origin'] == 1 ){
             //有erp库存指标
             return $isMysql;
         }
@@ -5652,6 +5655,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $compareData = array();
         }
 
+        if($this->haveFbaFields && $params['stock_datas_origin'] == 1){
+            $fbaData = $this->joinUnGoodsFbaTable($params) ;
+        }else{
+            $fbaData = array() ;
+        }
+
         if ($count_tip == 2) { //仅统计总条数
             $count = $this->getTotalNum($where, $table, $group, false, $isMysql ,$compareData,$field_data);
             if($limit_num > 0 && $count > $limit_num){
@@ -5680,12 +5689,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,false,$isMysql);
                 $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData);
-                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData,$fbaData);
+                if($params['show_type'] == 2 && $params['stock_datas_origin'] != 1 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
                 //自定义公式涉及到fba
-                if ($params['show_type'] == 2 && !empty($lists)) {
+                if ($params['show_type'] == 2 && $params['stock_datas_origin'] != 1 && !empty($lists)) {
                     foreach ($lists as $k => $item) {
                         foreach ($item as $key => $value) {
                             if (in_array($key, $fba_target_key)) {
@@ -5711,7 +5720,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
                         }
                     }
-                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData);
+                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData,$fbaData);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
@@ -5723,8 +5732,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
 
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql,$compareData) {
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql,$compareData,$fbaData) {
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData,$fbaData);
 
                     return $lists;
                 });
@@ -5748,11 +5757,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Request', [$this->getLastSql()]);
-                if($params['show_type'] == 2 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
+                if($params['show_type'] == 2 && $params['stock_datas_origin'] != 1  &&  ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
                 //自定义公式涉及到fba
-                if ($params['show_type'] == 2 && !empty($lists)) {
+                if ($params['show_type'] == 2 && $params['stock_datas_origin'] != 1  && !empty($lists)) {
                     foreach ($lists as $k => $item) {
                         foreach ($item as $key => $value) {
                             if (in_array($key, $fba_target_key)) {
@@ -13141,7 +13150,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $fba_data;
     }
 
-    protected function joinUnGoodsFbaTable($datas , $channel_arr )
+    protected function joinUnGoodsFbaTable($datas = array())
     {
         if($this->haveFbaFields == false){
             //没有选择fba指标
@@ -13155,8 +13164,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'order' => "",
         ];
         $today = strtotime(date("Y-m-d", time()));
+        $today = 1639843200;  //todo 测试环境没数据，先写死过去时间
         $now_time = time();
-        $where = " WHERE tend.user_id = ".intval($datas['user_id'])." AND tend.db_num = '".$this->dbhost."' AND create_time >= {$today} AND create_time <= {$now_time}";
+        $where = " WHERE tend.user_id = ".intval($datas['user_id'])." AND tend.db_num = '".$this->dbhost."' AND tend.create_time >= {$today} AND tend.create_time <= {$now_time}";
         if($datas['count_dimension'] == 'channel_id'){ //按店铺维度
             if($datas['is_count'] == 1){
 
@@ -13187,7 +13197,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field2 = $this->getFbaField(1,2 ,"user_department_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
-                'table_sql' => "select {$fba_field2} from fba_table1 group by user_department_id ,merchat_id",
+                'table_sql' => "select {$fba_field2} from fba_table1 group by user_department_id ,merchant_id",
             ] ;
             $fba_field = $this->getFbaField(2,2 ," user_department_id ",0 ,'target_key') ;
             $child_table[] = [
@@ -13201,12 +13211,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field1 = $this->getFbaField(2,2 ,"c.id as channel_id ,max(c.site_id) as site_id ,uc.admin_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table1',
-                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchat_id  = c.merchant_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ".$where." group by uc.admin_id , c.id",
+                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ".$where." group by uc.admin_id , c.id",
             ] ;
             $fba_field2 = $this->getFbaField(1,2 ,"admin_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
-                'table_sql' => "select {$fba_field2} from fba_table1 group by admin_id ,merchat_id",
+                'table_sql' => "select {$fba_field2} from fba_table1 group by admin_id ,merchant_id",
             ] ;
             $fba_field = $this->getFbaField(2,2 ," admin_id ",0 ,'target_key') ;
             $child_table[] = [
@@ -13218,12 +13228,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field1 = $this->getFbaField(2,2 ,"c.id as channel_id ,max(c.site_id) as site_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table1',
-                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channeltable_channel} as c ON tend.user_id = c.user_id AND tend.merchat_id  = c.merchant_id ".$where." group by c.id",
+                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channeltable_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id ".$where." group by c.id",
             ] ;
             $fba_field2 = $this->getFbaField(1,2 ) ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
-                'table_sql' => "select {$fba_field2} from fba_table1 group by merchat_id",
+                'table_sql' => "select {$fba_field2} from fba_table1 group by merchant_id",
             ] ;
             $fba_field = $this->getFbaField(2,2 ,"",0 ,'target_key') ;
             $child_table[] = [
@@ -13239,9 +13249,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     /**
      * Function getFbaField
-     * @desc:
-     * @author: 林志敏
-     * @editTime: 2021年12月22日 0022 下午 07:05:56
+     * author: 林志敏
+     * editTime: 2021年12月22日 0022 下午 07:05:56
      * @param int $type 1-需要去重 2-不需要去重
      * @param int $list_type 1-商品 2-店铺
      * @param string $other_field 其他字段
@@ -13264,7 +13273,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
 
             foreach ($this->lastTargets as $target){
-                if(is_array($fbaArr[$target])){
+                if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
                     if($list_type == 1) { //商品维度
                         $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$target]['mysql_field']}) ELSE SUM(g.{$fbaArr[$target]['mysql_field']}) END ) as {$target}";
                     }else if($list_type == 2){ //店铺维度
@@ -13295,12 +13304,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }else{  //不需要去重
             if($list_type == 2){
-                $other_field.= sprintf('%s  max(tend.user_id) as user_id ,  max( tend.merchat_id ) as merchat_id , max(tend.area_id) as area_id ',$other_field ? ',' : '');
+                $other_field.= sprintf('%s  max(tend.user_id) as user_id ,  max( tend.merchant_id ) as merchant_id , max(tend.area_id) as area_id ',$other_field ? ',' : '');
             }else{
                 $other_field.= sprintf('%s  max(user_id) as user_id, max(area_id) as area_id , max(channel_id) as channel_id',$other_field ? ',' : '');
             }
             foreach ($this->lastTargets as $target){
-                if(is_array($fbaArr[$target])){
+                if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
                     if($list_type == 2){ //店铺维度
                         if($fba_field_type == 'target_key'){
                             if($fbaArr[$target]['count_type'] == '1'){
