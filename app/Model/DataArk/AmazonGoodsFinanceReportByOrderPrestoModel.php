@@ -10717,7 +10717,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             $this->lastTargets = $targetsLast;
         }else{
-            $targetsLast = explode(",", $this->timeCustomTarget['formula_fields']);
+            if($this->timeCustomTarget && $this->timeCustomTarget['target_type'] == 2){
+                $targetsLast = explode(",", $this->timeCustomTarget['formula_fields']);
+            }else{
+                $targetsLast = [$datas['time_target']];
+            }
         }
 
         if ($targetsLast && $datas['stock_datas_origin'] == 1){
