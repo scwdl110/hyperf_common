@@ -13191,7 +13191,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field1 = $this->getFbaField(2,2 ,"c.id as channel_id ,max(c.site_id) as site_id ,uc.admin_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table1',
-                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN ods.ods_dataark_b_channel as c ON tend.user_id = c.user_id AND tend.merchat_id  = c.merchant_id LEFT JOIN dim.dim_dataark_b_user_channel as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ".$where." group by uc.admin_id , c.id",
+                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchat_id  = c.merchant_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ".$where." group by uc.admin_id , c.id",
             ] ;
             $fba_field2 = $this->getFbaField(1,2 ,"admin_id") ;
             $child_table[] = [
@@ -13208,7 +13208,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field1 = $this->getFbaField(2,2 ,"c.id as channel_id ,max(c.site_id) as site_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table1',
-                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN ods.ods_dataark_b_channel as c ON tend.user_id = c.user_id AND tend.merchat_id  = c.merchant_id ".$where." group by c.id",
+                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channeltable_channel} as c ON tend.user_id = c.user_id AND tend.merchat_id  = c.merchant_id ".$where." group by c.id",
             ] ;
             $fba_field2 = $this->getFbaField(1,2 ) ;
             $child_table[] = [
