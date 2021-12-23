@@ -1060,7 +1060,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         if ($this->haveErpReportFields){
             $max_min_ym = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
-            $table .= " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_report ON warehouse_report.isku_id = amazon_goods.goods_isku_id AND warehouse_report.db_num = '{$this->dbhost}' AND warehouse_report.user_id = report.user_id AND warehouse_report.time_str IN(" .implode(',', $max_min_ym). ")";
+            $table .= " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.user_id = report.user_id AND warehouse_storage.time_str IN(" .implode(',', $max_min_ym). ")";
         }
 
         $count = 0;

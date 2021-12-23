@@ -242,35 +242,35 @@ return [
     ],
     'erp_report_fields_arr' => [
         //期末在途总数
-        'erp_period_end_purchasing_send_num' => ['mysql_field' => 'warehouse_report.purchasing_send_num'],
+        'erp_period_end_purchasing_send_num' => ['mysql_field' => 'warehouse_storage.purchasing_send_num'],
         //期末采购在途
-        'erp_period_end_purchasing_num' => ['mysql_field' => 'warehouse_report.purchasing_num'],
+        'erp_period_end_purchasing_num' => ['mysql_field' => 'warehouse_storage.purchasing_num'],
         //期末调拨在途
-        'erp_period_end_send_num' => ['mysql_field' => 'warehouse_report.send_num'],
+        'erp_period_end_send_num' => ['mysql_field' => 'warehouse_storage.send_num'],
         //期初数量
-        'erp_period_start_num_begin' => ['mysql_field' => 'warehouse_report.num_begin'],
+        'erp_period_start_num_begin' => ['mysql_field' => 'warehouse_storage.num_begin'],
         //期初单位成本
-        'erp_period_start_goods_cost_begin' => ['mysql_field' => 'warehouse_report.goods_cost_begin', 'format_type' => 4],
+        'erp_period_start_goods_cost_begin' => ['mysql_field' => 'warehouse_storage.goods_cost_begin', 'format_type' => 4],
         //期初总成本
-        'erp_period_start_goods_cost_total_begin' => ['mysql_field' => 'warehouse_report.goods_cost_total_begin', 'format_type' => 4],
+        'erp_period_start_goods_cost_total_begin' => ['mysql_field' => 'warehouse_storage.goods_cost_total_begin', 'format_type' => 4],
         //本期入库数量
-        'erp_period_current_in_num' => ['mysql_field' => 'warehouse_report.in_num'],
+        'erp_period_current_in_num' => ['mysql_field' => 'warehouse_storage.in_num'],
         //本期入库总成本
-        'erp_period_current_in_cost' => ['mysql_field' => 'warehouse_report.in_cost', 'format_type' => 4],
+        'erp_period_current_in_cost' => ['mysql_field' => 'warehouse_storage.in_cost', 'format_type' => 4],
         //本期出库数量
-        'erp_period_current_out_num' => ['mysql_field' => 'warehouse_report.out_num'],
+        'erp_period_current_out_num' => ['mysql_field' => 'warehouse_storage.out_num'],
         //本期出库总成本
-        'erp_period_current_out_cost' => ['mysql_field' => 'warehouse_report.out_cost', 'format_type' => 4],
+        'erp_period_current_out_cost' => ['mysql_field' => 'warehouse_storage.out_cost', 'format_type' => 4],
         //本期成本调整
-        'erp_period_current_supplement_cost' => ['mysql_field' => 'warehouse_report.supplement_cost', 'format_type' => 4],
+        'erp_period_current_supplement_cost' => ['mysql_field' => 'warehouse_storage.supplement_cost', 'format_type' => 4],
         //期末结存库存
-        'erp_period_end_num_end' => ['mysql_field' => 'warehouse_report.num_end'],
+        'erp_period_end_num_end' => ['mysql_field' => 'warehouse_storage.num_end'],
         //期末结存单位成本
-        'erp_period_end_goods_cost_end' => ['mysql_field' => 'warehouse_report.goods_cost_end', 'format_type' => 4],
+        'erp_period_end_goods_cost_end' => ['mysql_field' => 'warehouse_storage.goods_cost_end', 'format_type' => 4],
         //期末结存在库总成本
-        'erp_period_end_goods_cost_total_end' => ['mysql_field' => 'warehouse_report.goods_cost_total_end', 'format_type' => 4],
+        'erp_period_end_goods_cost_total_end' => ['mysql_field' => 'warehouse_storage.goods_cost_total_end', 'format_type' => 4],
         //本期库存周转率
-        'erp_period_current_stock_rate' => ['mysql_field' => 'warehouse_report.stock_rate'],
+        'erp_period_current_stock_rate' => ['mysql_field' => 'warehouse_storage.stock_rate'],
     ],
 
 ];
