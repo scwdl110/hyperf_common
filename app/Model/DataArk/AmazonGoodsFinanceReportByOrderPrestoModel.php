@@ -13290,10 +13290,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }else if($list_type == 2){ //店铺维度
                         if($is_count == '0') { //非汇总字段
                             if ($fbaArr[$target]['count_type'] == '1') {
-                                $fields[] = "CASE WHEN MAX(area_id) = 4 THEN MAX({$target}) ELSE SUM({$target}) AS {$target}";
+                                $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX({$target}) ELSE SUM({$target}) END ) AS {$target}";
                             } else if ($target == 'fba_turnover_times') { //周转次数单独处理
-                                $fields[] = "CASE WHEN MAX(area_id) = 4 THEN MAX(fba_30_day_sale) ELSE SUM(fba_30_day_sale) AS fba_30_day_sale";
-                                $fields[] = "CASE WHEN MAX(area_id) = 4 THEN MAX(fba_total_stock) ELSE SUM(fba_total_stock) AS fba_total_stock";
+                                $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_30_day_sale) ELSE SUM(fba_30_day_sale) END ) AS fba_30_day_sale";
+                                $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_total_stock) ELSE SUM(fba_total_stock) END) AS fba_total_stock";
                             } else if ($target == 'fba_marketing_rate') {
                                 $fields[] = "max(fba_marketing_rate) as fba_marketing_rate";
                             }
@@ -13301,9 +13301,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             if($fbaArr[$target]['count_type'] == '1'){
                                 $fields[] = "(CASE WHEN max(fba_table.area_id) = 4 THEN max(fba_table.{$target}) ELSE SUM(fba_table.{$target}) END) as {$target}" ;
                             }else if($fbaArr[$target]['count_type'] == '2' && $target == 'fba_sales_day'){   //可售天数 单独处理
-                                $fields[] = "(CASE WHEN fba_table.min_available_days_start = fba_table.max_available_days_end THEN max_available_days_end ELSE concat(fba_table.min_available_days_start,'~',fba_table.max_available_days_end) AS fba_sales_day)"  ;
+                                $fields[] = "(CASE WHEN fba_table.min_available_days_start = fba_table.max_available_days_end THEN max_available_days_end ELSE concat(fba_table.min_available_days_start,'~',fba_table.max_available_days_end) END )AS fba_sales_day"  ;
                             }else if($fbaArr[$target]['count_type'] == '2' && $target == 'fba_suggested_replenishment_time'){  //建议补货时间 单独处理
-                                $fields[] = "(CASE WHEN fba_table.min_suggested_replenishment_time_start = fba_table.max_suggested_replenishment_time_end THEN max_suggested_replenishment_time_end ELSE concat(fba_table.min_suggested_replenishment_time_start,'~',fba_table.max_suggested_replenishment_time_end) AS fba_suggested_replenishment_time)"  ;
+                                $fields[] = "(CASE WHEN fba_table.min_suggested_replenishment_time_start = fba_table.max_suggested_replenishment_time_end THEN max_suggested_replenishment_time_end ELSE concat(fba_table.min_suggested_replenishment_time_start,'~',fba_table.max_suggested_replenishment_time_end) END ) AS fba_suggested_replenishment_time"  ;
                             }else if($fbaArr[$target]['count_type'] == '3'){
                                 $fields[] = "MAX(fba_table.{$target}) as {$target}";
                             }else if($fbaArr[$target]['count_type'] == '4' && $target == 'fba_turnover_times'){ //周转次数单独处理
