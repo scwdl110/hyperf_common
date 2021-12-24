@@ -127,6 +127,8 @@ return [
         "fba_14_day_sale"=>array("count_type"=>1, "mysql_field"=>"_14_day_sale"),
         //30日销量
         "fba_30_day_sale"=>array("count_type"=>1, "mysql_field"=>"_30_day_sale"),
+        //60日销量
+        "fba_60_day_sale"=>array("count_type"=>1, "mysql_field"=>"_60_day_sale"),
         //90日销量
         "fba_90_day_sale"=>array("count_type"=>1, "mysql_field"=>"_90_day_sale"),
         //日均销售
