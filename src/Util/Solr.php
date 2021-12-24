@@ -10,7 +10,6 @@ use UnexpectedValueException;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use Hyperf\Pool\SimplePool\PoolFactory;
-use Hyperf\Contract\ConnectionInterface;
 
 use Psr\Log\LoggerInterface;
 use Swoole\Coroutine\Http\Client;
@@ -136,11 +135,11 @@ class Solr
     /**
      * 从连接池中获取 http 请求连接
      *
-     * @return \Hyperf\Contract\ConnectionInterface
+     * @return \Swoole\Coroutine\Http\Client
      */
-    protected function getClient(): ConnectionInterface
+    protected function getClient(): Client
     {
-        if (!($this->httpClient instanceof ConnectionInterface)) {
+        if (!($this->httpClient instanceof Client)) {
             $this->httpClient = $this->pool->getConnection();
         }
 
@@ -154,8 +153,8 @@ class Solr
      */
     protected function releaseClient()
     {
-        if ($this->httpClient instanceof ConnectionInterface) {
-            $this->pool->release($this->httpClient);
+        if ($this->httpClient instanceof Client) {
+            $this->pool->release();
         }
 
         $this->httpClient = null;
@@ -200,7 +199,7 @@ class Solr
                     return false;
                 }
             } else {
-                if (empty($param) || !is_string($param) || !is_array($param)) {
+                if (empty($param) || !(is_string($param) || is_array($param))) {
                     return false;
                 }
 
@@ -209,33 +208,29 @@ class Solr
                 $client->setData($param);
             }
 
-            $client->setDefer(true);
             $client->set(['timeout' => $timeout ?: $this->timeout]);
-            $statusCode = $client->execute($path);
-            if (200 === $statusCode) {
+            $result = $client->execute($path);
+            if ($result && $client->statusCode === 200) {
                 return $this->parseResponse($client->body);
             } else {
                 $msg = "[{$client->errCode}]{$client->errMsg}";
-                $logExt = [
-                    $client->requestHeaders,
-                    $client->requestMethod,
-                    $client->requestBody,
-                    $client->setting,
-                ];
+                $logExt = [$path, $client];
 
-                if (-1 === $statusCode || -2 === $statusCode || $statusCode >= 500) {
-                    $msg = $statusCode > 0 ? "solr 服务器异常: {$msg}" : "solr 请求超时：{$msg}";
+                if (-1 === $result || -2 === $result || $client->statusCode >= 500) {
+                    $msg = $client->statusCode > 500
+                        ? "solr 服务器异常: [{$client->statusCode}]{$msg}"
+                        : "solr 请求超时：{$msg}";
 
                     if ($retry) {
                         $this->logger->info("{$msg} : 等待重试(最多重试 {$retry} 次)");
                         // 随机等待 0.3 到 1 秒
                         \Swoole\Coroutine\System::sleep(mt_rand(300, 1000) / 1000);
-                        return $this->request($param, $endpoint, $timeout, $contentType, $method, $retry--);
+                        return $this->request($param, $endpoint, $timeout, $contentType, $method, --$retry);
                     } else {
                         $this->logger->error("{$msg} : 停止重试", $logExt);
                     }
                 } else {
-                    $this->logger->error("solr 请求失败: {$msg} : [{$statusCode}]{$client->body}", $logExt);
+                    $this->logger->error("solr 请求失败: {$msg} : [{$client->statusCode}]{$client->body}", $logExt);
                 }
             }
         } catch (Throwable $t) {
@@ -255,10 +250,10 @@ class Solr
      */
     protected function generateQueryString(array $param): string
     {
-		// because http_build_query treats arrays differently than we want to, correct the query
-		// string by changing foo[#]=bar (# being an actual number) parameter strings to just
-		// multiple foo=bar strings. This regex should always work since '=' will be urlencoded
-		// anywhere else the regex isn't expecting it
+        // because http_build_query treats arrays differently than we want to, correct the query
+        // string by changing foo[#]=bar (# being an actual number) parameter strings to just
+        // multiple foo=bar strings. This regex should always work since '=' will be urlencoded
+        // anywhere else the regex isn't expecting it
         return preg_replace('/%5B(?:[0-9]|[1-9][0-9]+)%5D=/', '=', http_build_query($param, '', '&'));
     }
 
@@ -302,9 +297,9 @@ class Solr
      */
     public function deleteByQuery(string $query)
     {
-		// escape special xml characters
-		$query = htmlspecialchars($query, ENT_NOQUOTES, 'UTF-8');
-		$xml = "<delete fromPending='true' fromCommitted='true'><query>{$query}</query></delete>";
+        // escape special xml characters
+        $query = htmlspecialchars($query, ENT_NOQUOTES, 'UTF-8');
+        $xml = "<delete fromPending='true' fromCommitted='true'><query>{$query}</query></delete>";
 
         return $this->request($xml, $this->endpoint, 3600, 'text/xml; charset=UTF-8');
     }
@@ -322,12 +317,12 @@ class Solr
     {
         // 避免 '+' 被转义为 空格
         $param['q'] = urldecode(str_replace('+', '%2B', $query));
-		$param['wt'] = 'json';
-		$param['json.nl'] = 'map';
-		$param['start'] = ($page - 1) * $size;
-		$param['rows'] = $size;
+        $param['wt'] = 'json';
+        $param['json.nl'] = 'map';
+        $param['start'] = ($page - 1) * $size;
+        $param['rows'] = $size;
 
-        if (false === ($resp = $this->request($this->generateQueryString($param)))) {
+        if (false === ($resp = $this->request($this->generateQueryString($param), "{$this->endpoint}/select"))) {
             return false;
         }
 
