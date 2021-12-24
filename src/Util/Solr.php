@@ -105,7 +105,7 @@ class Solr
 
         $timeout = (int)ini_get('default_socket_timeout');
         if (isset($config['timeout']) && is_numeric($config['timeout']) && $config['timeout'] > 0) {
-            $timeout = (int)$timeout;
+            $timeout = (int)$config['timeout'];
         }
 
         if ($timeout <= 0) {
@@ -165,21 +165,22 @@ class Solr
      *
      * @param string|array $param 具体参数见 solr 官方文档
      * @param ?string $endpoint 请求路径
-     * @param int $timeout 连接超时时间
+     * @param ?int $timeout 连接超时时间
      * @param string $contentType http header content-type
      * @param string $method 仅支持 GET 或 POST
-     * @param int $retry 连接超时 或 solr 服务器错误 时的重试次数
+     * @param ?int $retry 连接超时 或 solr 服务器错误 时的重试次数
      * @return false|array 失败返回 false，成功返回 json_decode($response, true) 后的数组
      */
     protected function request(
         $param,
         ?string $endpoint = null,
-        int $timeout = self::DEFAULT_TIMEOUT,
+        ?int $timeout = null,
         string $contentType = 'application/x-www-form-urlencoded; charset=UTF-8',
         string $method = self::HTTP_METHOD_POST,
-        int $retry = self::DEFAULT_RETRY
+        ?int $retry = null
     ) {
-        $endpoint = $endpoint ?: $this->endpoint;
+        $retry = $retry ?? $this->retry;
+        $endpoint = $endpoint ?? $this->endpoint;
 
         try {
             $path = $endpoint;
@@ -208,7 +209,7 @@ class Solr
                 $client->setData($param);
             }
 
-            $client->set(['timeout' => $timeout ?: $this->timeout]);
+            $client->set(['timeout' => $timeout ?? $this->timeout]);
             $result = $client->execute($path);
             if ($result && $client->statusCode === 200) {
                 return $this->parseResponse($client->body);
