@@ -9,7 +9,9 @@
         "ext-openssl": "*",
         "ext-swoole_postgresql": "*",
         "hyperf/async-queue": "^2.1",
+        "hyperf/pool": "^2.1",
         "hyperf/signal": "^2.1",
+        "hyperf/logger": "^2.1",
         "hyperf/snowflake": "^2.1",
         "hyperf/constants": "^2.1",
         "jmiy/hyperf-ding-notice": "dev-master"
