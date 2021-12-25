@@ -7,6 +7,8 @@ namespace Captainbi\Hyperf\Util;
 use Hyperf\DbConnection\Db;
 use Hyperf\Redis\RedisFactory;
 use Hyperf\Utils\ApplicationContext;
+use Hyperf\Utils\Context;
+use Psr\Http\Message\ServerRequestInterface;
 
 class Functions {
 
@@ -305,7 +307,7 @@ class Functions {
     /**
      * @param $clientId
      * @param int $force
-     * @return bool
+     * @return array|bool|mixed|string
      */
     public static function getOpenClient($clientId, int $force = 0){
         $key = 'center_open_client_type_'.$clientId;
@@ -325,6 +327,29 @@ class Functions {
 
             $redis->set($key, $clientType, 86400);
         }
+        return $clientType;
+    }
+
+
+    /**
+     * @param $userId
+     * @param int $force
+     * @return bool|mixed|string
+     */
+    public static function getOpenPhone($userId, int $force = 0){
+        $key = 'center_open_phone_'.$userId;
+        $redis = new Redis();
+        $redis = $redis->getClient();
+        $phone = $redis->get($key);
+        if($phone===false || $force){
+            $where = [
+                ['id', '=', $userId],
+            ];
+            $mobile = Db::connection("erp_base")->where($where)->select('mobile')->first();
+            $mobile = data_get($mobile, 'mobile', '');
+            $redis->set($key, $mobile, 3600);
+        }
+        return $phone;
     }
 
 }
