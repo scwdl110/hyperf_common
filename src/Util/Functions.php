@@ -345,9 +345,9 @@ class Functions {
             $where = [
                 ['id', '=', $userId],
             ];
-            $mobile = Db::connection("erp_base")->table("user")->where($where)->select('mobile')->first();
-            $mobile = data_get($mobile, 'mobile', '');
-            $redis->set($key, $mobile, 3600);
+            $phone = Db::connection("erp_base")->table("user")->where($where)->select('mobile')->first();
+            $phone = data_get($phone, 'mobile', '');
+            $redis->set($key, $phone, 3600);
         }
         return $phone;
     }
