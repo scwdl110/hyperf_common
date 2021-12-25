@@ -14,6 +14,9 @@
 
 namespace Captainbi\Hyperf\Util;
 
+use Hyperf\Contract\ConfigInterface;
+use Hyperf\Utils\ApplicationContext;
+
 class OpenResult
 {
     /**
@@ -26,13 +29,23 @@ class OpenResult
      */
     private static function data($code, $msg, $data = [], $next_token = '', $max_result = 0)
     {
-        return json_encode(array(
-            'code' => $code ?: 0,
-            'msg' => $msg ?: 'success',
-            'next_token' => $next_token ?: '',
-            'max_result' => $max_result ?: 0,
-            'data' => (object)$data,
-        ), JSON_UNESCAPED_UNICODE);
+        $is_open_next_token = ApplicationContext::getContainer()->get(ConfigInterface::class)->get('common.is_open_next_token');
+        if ($is_open_next_token) {
+            return json_encode(array(
+                'code' => $code ?: 0,
+                'msg' => $msg ?: 'success',
+                'next_token' => $next_token ?: '',
+                'max_result' => $max_result ?: 0,
+                'data' => (object)$data,
+            ), JSON_UNESCAPED_UNICODE);
+        } else {
+            return json_encode(array(
+                'code' => $code ?: 0,
+                'msg' => $msg ?: 'success',
+                'max_result' => $max_result ?: 0,
+                'data' => (object)$data,
+            ), JSON_UNESCAPED_UNICODE);
+        }
     }
 
     /**
