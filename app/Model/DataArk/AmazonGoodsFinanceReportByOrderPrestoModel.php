@@ -5372,7 +5372,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
-
+            $fba_target_key = [] ;
             $fields = $this->getUnGoodsTimeFields($params, $timeLine,$isMysql);
         }
 
@@ -5446,15 +5446,19 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where .= " AND uc.status = 1 AND uc.is_master = 0 ";
         }
 
+        $channel_fba_fields_arr = array_keys(config('common.channel_fba_fields_arr')) ;
         $orderby = '';
-        if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
-            $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
-        }elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
-            $orderby = " max(report.create_time) {$params['sort_order']}";
+        if( !empty($params['sort_target']) && in_array($params['sort_target'] , $channel_fba_fields_arr) && $params['stock_datas_origin'] == 1 ){  //FBA 库存排序不在此处理
+            if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
+                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
+            }elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
+                $orderby = " max(report.create_time) {$params['sort_order']}";
+            }
         }
-
-        if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $params['limit_num'] == 0 ) {
-            $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
+        if( !empty($order) && in_array($order , $channel_fba_fields_arr) && $params['stock_datas_origin'] == 1 ) {  //FBA 库存排序不在此处理
+            if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $params['limit_num'] == 0) {
+                $orderby = "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
+            }
         }
 
         $orderbyTmp = $orderby;
@@ -5672,7 +5676,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if($this->haveFbaFields && $params['stock_datas_origin'] == 1){
-            $fbaData = $this->joinUnGoodsFbaTable($params , $exchangeCode , $currencyInfo) ;
+            $fbaData = $this->joinUnGoodsFbaTable($params , $exchangeCode , $currencyInfo ,$fields , $fba_target_key) ;
         }else{
             $fbaData = array() ;
         }
@@ -10584,6 +10588,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fba_field_exits = [];
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
         if($custom_targets_list){
+            if($datas['stock_datas_origin'] == 1){
+                $fbaFieldsArr = $datas['list_type'] == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
+            }
             foreach ($custom_targets_list as $item){
                 if ($item['target_type'] == 1)
                 {
@@ -10625,8 +10632,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             }
                         }
                         foreach ($formula_fields_arr as $field) {
-                            if(in_array($field,$this->fba_fields_arr)){
-                                $count++;
+                            if($datas['stock_datas_origin'] == 1){ //新FBA 数据源-presto
+                                if(!empty($fbaFieldsArr[$field])){
+                                    $count++;
+                                }
+                            }else{
+                                if(in_array($field,$this->fba_fields_arr)){ //FBA数据源是Mysql
+                                    $count++;
+                                }
                             }
                             if(!empty($fields[$field])){
                                 $str = str_replace('{'.$field.'}' , $fields[$field] , $str);
@@ -13078,7 +13091,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = channel.user_id  ";
             }
         }
-        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.seller_sku as sku,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
+        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
             'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN {$this->table_channel} as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id {$rate_table} {$where}",
@@ -13097,7 +13110,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_group = " GROUP BY sku";
                 $fba_table_field = "max(sku) as sku";
                 $fba_table_field1 = "max(g.seller_sku) as sku";
-                $fba_table_group1 = " GROUP BY g.seller_sku,g.merchant_id";
+                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id";
                 $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id";
             }
         }else if($datas['count_dimension'] == 'asin'){
@@ -13112,7 +13125,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(asin) as asin";
                 $fba_table_field1 = "max(amazon_goods.goods_asin) as asin";
                 $fba_table_group1 = " GROUP BY amazon_goods.goods_asin,g.merchant_id";
-                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             }
         }else if($datas['count_dimension'] == 'parent_asin'){
             if($datas['is_distinct_channel'] == 1){
@@ -13126,13 +13139,13 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(parent_asin) as parent_asin";
                 $fba_table_field1 = "max(amazon_goods.goods_parent_asin) as parent_asin";
                 $fba_table_group1 = " GROUP BY amazon_goods.goods_parent_asin,g.merchant_id";
-                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             }
         }else if($datas['count_dimension'] == 'isku'){
             $join_field = ["user_id","isku_id"];
             $fba_table_field = "max(isku_id) as isku_id";
             $fba_table_field1 = "max(amazon_goods.goods_isku_id) as isku_id";
-            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY amazon_goods.goods_isku_id ,g.merchant_id";
             $fba_table_group = " GROUP BY isku_id";
         }else if($datas['count_dimension'] == 'class1'){
@@ -13141,14 +13154,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $join_field = ["user_id","group_id"];
             $fba_table_field = "max(group_id) as group_id";
             $fba_table_field1 = "max(amazon_goods.goods_group) as group_id";
-            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY amazon_goods.goods_group,g.merchant_id";
             $fba_table_group = " GROUP BY group_id";
         }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
             $join_field = ["user_id","tags_id"];
             $fba_table_field = "max(tags_id) as tags_id";
             $fba_table_field1 = "max(amazon_goods.goods_tag_id) as tags_id";
-            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY amazon_goods.goods_tag_id,g.merchant_id";
             $fba_table_group = " GROUP BY tags_id";
         }else if($datas['count_dimension'] == 'head_id') { //负责人
@@ -13189,13 +13202,24 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $fba_data;
     }
 
-    protected function joinUnGoodsFbaTable($datas = array() , $exchangeCode = 1.0000 , $currencyInfo = array())
+    /**
+     * @param array $datas
+     * @param float $exchangeCode
+     * @param array $currencyInfo
+     * @param array $fields 非FBA的指标信息
+     * @param array $custom_fba_target_key 有包含FBA 字段的自定义指标key，
+     * @return array
+     */
+    protected function joinUnGoodsFbaTable($datas = array() , $exchangeCode = 1.0000 , $currencyInfo = array(),$fields = array() , $custom_fba_target_key = array())
     {
         if($this->haveFbaFields == false){
             //没有选择fba指标
             return [];
         }
         $child_table = $fba_data_join = $other_fields = array();
+        $orderby = $other_field_str = $other_where = '' ;
+        //判断是否需要汇率换算
+        $is_currency_exchange = 0 ;
         $fba_data = [
             'child_table' => [],
             'other_field'=>"" ,
@@ -13207,10 +13231,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $today = 1639843200;  //todo 测试环境没数据，先写死过去时间
         $now_time = time();
         $where = " WHERE tend.user_id = ".intval($datas['user_id'])." AND tend.db_num = '".$this->dbhost."' AND tend.create_time >= {$today} AND tend.create_time <= {$now_time}";
-        //判断是否需要汇率换算
-        $is_currency_exchange = 0 ;
+        $fbaArr = config('common.channel_fba_fields_arr');
         if($datas['currency_code'] != 'ORIGIN'){
-            $fbaArr = config('common.channel_fba_fields_arr');
             foreach($fbaArr as $fbaFieldKey=>$val){
                 if(in_array($fbaFieldKey , $this->lastTargets) && $val['data_type'] == 2){
                     $is_currency_exchange = 1 ;
@@ -13220,8 +13242,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         if($datas['count_dimension'] == 'channel_id' && $datas['is_count'] != 1){ //按店铺维度
-            $fba_field = $this->getUnGoodsFbaField(2," c.id as channel_id , max(c.site_id) as site_id " ,'mysql_key', $is_currency_exchange) ;
-            $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_field);
+            $fba_rt = $this->getUnGoodsFbaField(2," c.id as channel_id , max(c.site_id) as site_id " ,'mysql_key', $is_currency_exchange) ;
+            $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
+            if(!empty($fba_rt['field_arr'])){
+                $fields = array_merge($fields , $fba_rt['field_arr']) ;
+            }
             if($is_currency_exchange == 1){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 " . $where . " group by c.id" ;
@@ -13237,8 +13262,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ] ;
             $json_on = "new_origin_table.channel_id = fba_table.channel_id AND new_origin_table.user_id = fba_table.user_id " ;
         }else if($datas['count_dimension'] == 'site_id' && $datas['is_count'] != 1 ){ //按站点维度
-            $fba_field = $this->getUnGoodsFbaField(2," c.site_id as site_id " , 'mysql_key' , $is_currency_exchange) ;
-            $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_field);
+            $fba_rt = $this->getUnGoodsFbaField(2," c.site_id as site_id " , 'mysql_key' , $is_currency_exchange) ;
+            $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
+            if(!empty($fba_rt['field_arr'])){
+                $fields = array_merge($fields , $fba_rt['field_arr']) ;
+            }
             if($is_currency_exchange == 1){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
@@ -13255,8 +13283,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $json_on = "new_origin_table.site_id = fba_table.site_id AND new_origin_table.user_id = fba_table.user_id " ;
         }else if($datas['count_dimension'] == 'department') { //按部门
             $where.=" AND dc.user_department_id > 0 " ;
-            $fba_field1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id ,dc.user_department_id" , 'mysql_key' , $is_currency_exchange) ;
-            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_field1);
+            $fba_rt1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id ,dc.user_department_id" , 'mysql_key' , $is_currency_exchange) ;
+            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
             if($is_currency_exchange == 1){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
@@ -13270,22 +13298,25 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_name' => 'fba_table1',
                 'table_sql' => $table_sql
             ] ;
-            $fba_field2 = $this->getUnGoodsFbaField(1,"user_department_id,merchant_id",'') ;
+            $fba_rt2 = $this->getUnGoodsFbaField(1,"user_department_id,merchant_id",'') ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
-                'table_sql' => "select {$fba_field2} from fba_table1 group by user_department_id ,merchant_id",
+                'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by user_department_id ,merchant_id",
             ] ;
-            $fba_field = $this->getUnGoodsFbaField(2," user_department_id ",'target_key') ;
+            $fba_rt = $this->getUnGoodsFbaField(2," user_department_id ",'target_key') ;
+            if(!empty($fba_rt['field_arr'])){
+                $fields = array_merge($fields , $fba_rt['field_arr']) ;
+            }
             $child_table[] = [
                 'table_name' => 'fba_table',
-                'table_sql' => "select {$fba_field} from fba_table2 group by user_department_id",
+                'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by user_department_id",
             ] ;
             $json_on = "new_origin_table.user_department_id = fba_table.user_department_id AND new_origin_table.user_id = fba_table.user_id " ;
 
         }else if($datas['count_dimension'] == 'admin_id'){ //按子账号
             $where.=" AND  uc.admin_id > 0  " ;
-            $fba_field1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id ,uc.admin_id",'mysql_key' ,$is_currency_exchange) ;
-            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_field1);
+            $fba_rt1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id ,uc.admin_id",'mysql_key' ,$is_currency_exchange) ;
+            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
             if($is_currency_exchange == 1){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
@@ -13299,53 +13330,143 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_name' => 'fba_table1',
                 'table_sql' => $table_sql
             ] ;
-            $fba_field2 = $this->getUnGoodsFbaField(1,"admin_id,merchant_id") ;
+            $fba_rt2 = $this->getUnGoodsFbaField(1,"admin_id,merchant_id") ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
-                'table_sql' => "select {$fba_field2} from fba_table1 group by admin_id ,merchant_id",
+                'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by admin_id ,merchant_id",
             ] ;
-            $fba_field = $this->getUnGoodsFbaField(2," admin_id ",'target_key') ;
+            $fba_rt = $this->getUnGoodsFbaField(2," admin_id ",'target_key') ;
+            if(!empty($fba_rt['field_arr'])){
+                $fields = array_merge($fields , $fba_rt['field_arr']) ;
+            }
             $child_table[] = [
                 'table_name' => 'fba_table',
-                'table_sql' => "select {$fba_field} from fba_table2 group by admin_id",
+                'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by admin_id",
             ] ;
             $json_on = "new_origin_table.admin_id = fba_table.admin_id AND new_origin_table.user_id = fba_table.user_id " ;
         }else if($datas['count_dimension'] == 'all_channels' || $datas['is_count'] == 1){  //按所有店铺 或汇总
-            $fba_field1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id", 'mysql_key' , $is_currency_exchange) ;
-            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_field1);
+            $fba_rt1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id", 'mysql_key' , $is_currency_exchange) ;
+            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
             $child_table[] = [
                 'table_name' => 'fba_table1',
                 'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id ".$where." group by c.id",
             ] ;
-            $fba_field2 = $this->getUnGoodsFbaField(1,'merchant_id') ;
+            $fba_rt2 = $this->getUnGoodsFbaField(1,'merchant_id') ;
             $child_table[] = [
                 'table_name' => 'fba_table2',
-                'table_sql' => "select {$fba_field2} from fba_table1 group by merchant_id",
+                'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by merchant_id",
             ] ;
-            $fba_field = $this->getUnGoodsFbaField(2,"",'target_key') ;
+            $fba_rt = $this->getUnGoodsFbaField(2,"",'target_key') ;
+            if(!empty($fba_rt['field_arr'])){
+                $fields = array_merge($fields , $fba_rt['field_arr']) ;
+            }
             $child_table[] = [
                 'table_name' => 'fba_table',
-                'table_sql' => "select {$fba_field} from fba_table2 group by user_id",
+                'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by user_id",
             ] ;
             $json_on = "new_origin_table.user_id = fba_table.user_id " ;
         }
 
-        if(in_array('fba_sales_day' , $this->lastTargets)){
-            $other_fields[] = "(CASE WHEN fba_table.min_available_days_start = fba_table.max_available_days_end THEN cast(CASE WHEN fba_table.max_available_days_end <0 THEN 0 ELSE fba_table.max_available_days_end END as varchar) ELSE concat( cast((CASE WHEN fba_table.min_available_days_start < 0 THEN 0 ELSE fba_table.min_available_days_start END) AS varchar ) ,'~',cast(fba_table.max_available_days_end AS varchar ) ) END ) AS fba_sales_day" ;
+
+        $other_fields = $this->getUnGoodsFbaOtherField($fields , $custom_fba_target_key) ;
+        if(!empty($other_fields)){
+            foreach($other_fields as $other_key=>$otherField){
+                $other_field_str.= empty($other_field_str) ? ($otherField. ' AS ' . $other_key ) : (' , ' . $otherField. ' AS ' . $other_key) ;
+            }
+            $fields = array_merge($fields , $other_fields) ;
         }
-        if(in_array('fba_suggested_replenishment_time' , $this->lastTargets)){
-            $other_fields[] = "(CASE WHEN fba_table.min_suggested_replenishment_time_start = fba_table.max_suggested_replenishment_time_end THEN (CASE WHEN fba_table.max_suggested_replenishment_time_end <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd' ) END ) ELSE concat( (CASE WHEN fba_table.min_suggested_replenishment_time_start <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.min_suggested_replenishment_time_start),'yyyy-MM-dd') END )  ,'~',format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd')) END ) AS fba_suggested_replenishment_time"  ;
+
+        if( !empty($datas['sort_target']) && !empty($fbaArr[$datas['sort_target']])  && !empty($datas['sort_order']) ){
+            $orderby = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
         }
-        if(in_array('fba_turnover_times' , $this->lastTargets)){
-            $other_fields[] = "(CASE WHEN fba_table.fba_30_day_sale > 0 THEN 1.0000*fba_table.fba_total_stock/fba_table.fba_30_day_sale ELSE 0 END ) AS fba_suggested_replenishment_time"  ;
+
+        if (!empty($datas['order']) && !empty($fbaArr[$datas['sort']]) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
+            $orderby = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+        }
+        $target_wheres = $datas['where_detail']['target'] ?? array();
+        $condition_relation = $datas['where_detail']['condition_relation'] ?? 'AND';
+        if (!empty($target_wheres)) {
+            foreach ($target_wheres as $target_where) {
+                if(!empty($fields[$target_where['key']]) && (!empty($fbaArr[$target_where['key']]) || (!empty($custom_fba_target_key) && in_array($target_where['key'],$custom_fba_target_key))) ){
+                    $where_value = $target_where['value'];
+                    if (strpos($where_value, '%') !== false) {
+                        $where_value = round($where_value / 100, 4);
+                    }
+                    //日均
+                    $target_where['avg'] = !empty($target_where['avg']) && (int)$target_where['avg'] > 1 ? " / {$target_where['avg']}" : "";
+                    if (empty($other_where)) {
+                        $other_where .= '(' . '(' .  $fields[$target_where['key']] . ') ' . $target_where['avg'] . ') ' . $target_where['formula'] . $where_value;
+                    } else {
+                        $other_where .= ' ' .$condition_relation . '(' . '(' .  $fields[$target_where['key']] . ') ' . $target_where['avg'] . ') ' . $target_where['formula'] . $where_value;
+                    }
+                }
+
+            }
         }
 
         $fba_data['child_table'] = $child_table;
         $fba_data['join'] = $json_on;
-        if(!empty($other_fields)){
-            $fba_data['other_field'] = implode(',' , $other_fields);
+        $fba_data['order'] = $orderby ;
+        if(!empty($other_field_str)){
+            $other_field_str = str_replace("{:RATE}", $exchangeCode,$other_field_str);
+            $fba_data['other_field'] = $other_field_str ;
+        }
+        if(!empty($other_where)){
+            $other_where = str_replace("{:RATE}", $exchangeCode,$other_where);
+            $fba_data['where'] = $other_where ;
         }
         return $fba_data;
+    }
+
+    /**
+     *  获取店铺维度FBA的自定义指标和一些特殊的指标
+     * @param array $datas
+     * @param array $fields 非FBA的指标信息
+     * @param array $custom_fba_target_key 包含FBA字段的自定义指标kry
+     */
+    public function getUnGoodsFbaOtherField($fields = array() , $custom_fba_target_key = array()){
+        $other_fields = array() ;
+        if(in_array('fba_sales_day' , $this->lastTargets)){
+            $other_fields['fba_sales_day'] = "(CASE WHEN fba_table.min_available_days_start = fba_table.max_available_days_end THEN cast(CASE WHEN fba_table.max_available_days_end <0 THEN 0 ELSE fba_table.max_available_days_end END as varchar) ELSE concat( cast((CASE WHEN fba_table.min_available_days_start < 0 THEN 0 ELSE fba_table.min_available_days_start END) AS varchar ) ,'~',cast(fba_table.max_available_days_end AS varchar ) ) END )" ;
+        }
+        if(in_array('fba_suggested_replenishment_time' , $this->lastTargets)){
+            $other_fields['fba_suggested_replenishment_time'] = "(CASE WHEN fba_table.min_suggested_replenishment_time_start = fba_table.max_suggested_replenishment_time_end THEN (CASE WHEN fba_table.max_suggested_replenishment_time_end <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd' ) END ) ELSE concat( (CASE WHEN fba_table.min_suggested_replenishment_time_start <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.min_suggested_replenishment_time_start),'yyyy-MM-dd') END )  ,'~',format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd')) END )" ;
+        }
+        if(in_array('fba_turnover_times' , $this->lastTargets)){
+            $other_fields['fba_turnover_times'] = "(CASE WHEN fba_table.fba_30_day_sale > 0 THEN 1.0000*fba_table.fba_total_stock/fba_table.fba_30_day_sale ELSE 0 END )"  ;
+        }
+        if(empty($custom_fba_target_key)){
+            return $other_fields ;
+        }
+        if(!empty($other_fields)){
+            $fields = array_merge($fields , $other_fields) ;
+        }
+
+        $custom_targets_list = empty($this->customTargetsList) ? array() : $this->customTargetsList ;
+        if(empty($custom_targets_list)){
+            foreach ($custom_targets_list as $item) {
+                if(in_array($item['target_key'] , $custom_fba_target_key)){
+                    $formula_json_arr = $item['formula_json'] ? json_decode($item['formula_json'], true) : [];
+                    $formula_fields_arr = $item['formula_fields'] ? explode(",", $item['formula_fields']) : [];
+                    $str = $item['formula'];
+                    $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
+                    foreach ($formula_json_arr as $k => $f_key) {
+                        if (!is_numeric($f_key)) {
+                            $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF({' . $f_key . '},0)', $str);//分母为0的处理
+                        }
+                    }
+                    foreach ($formula_fields_arr as $field) {
+                        if(!empty($fields[$field])){
+                            $str = str_replace('{' . $field . '}', $fields[$field], $str);
+                        }else {
+                            $str = 'NULL';
+                        }
+                    }
+                    $other_fields[$item['target_key']] =  "try(" . $str . ")";
+                }
+            }
+        }
+        return $other_fields ;
     }
 
     /**
@@ -13366,22 +13487,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             foreach ($this->lastTargets as $target){
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
                     if ($fbaArr[$target]['count_type'] == '1') {
-                        $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX({$target}) ELSE SUM({$target}) END ) AS {$target}";
+                        $fields[$target] = "(CASE WHEN MAX(area_id) = 4 THEN MAX({$target}) ELSE SUM({$target}) END ) ";
                     } else if($target == 'fba_sales_day'){
-                        $fields[] = "min(min_available_days_start) as min_available_days_start";
-                        $fields[] = "max(max_available_days_end) as max_available_days_end";
+                        $fields['min_available_days_start'] = "min(min_available_days_start) ";
+                        $fields['max_available_days_end'] = "max(max_available_days_end)";
                     }else if($target == 'fba_suggested_replenishment_time'){
-                        $fields[] = "min(min_suggested_replenishment_time_start) as min_suggested_replenishment_time_start";
-                        $fields[] = "max(max_suggested_replenishment_time_end) as max_suggested_replenishment_time_end";
+                        $fields['min_suggested_replenishment_time_start'] = "min(min_suggested_replenishment_time_start)";
+                        $fields['max_suggested_replenishment_time_end'] = "max(max_suggested_replenishment_time_end) ";
                     }else if ($target == 'fba_turnover_times') { //周转次数单独处理
-                        $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_30_day_sale) ELSE SUM(fba_30_day_sale) END ) AS fba_30_day_sale";
+                        $fields['fba_30_day_sale'] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_30_day_sale) ELSE SUM(fba_30_day_sale) END )";
                         if(!in_array('fba_total_stock',$this->lastTargets)){
-                            $fields[] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_total_stock) ELSE SUM(fba_total_stock) END) AS fba_total_stock";
+                            $fields['fba_total_stock'] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_total_stock) ELSE SUM(fba_total_stock) END) ";
                         }
                     } else if ($target == 'fba_marketing_rate') {
-                        $fields[] = "max(fba_marketing_rate) as fba_marketing_rate";
+                        $fields['fba_marketing_rate'] = "max(fba_marketing_rate) ";
                     } else if($fbaArr[$target]['count_type'] == '3'){
-                        $fields[] = "max({$target}) as {$target}";
+                        $fields[$target] = "max({$target}) ";
                     }
                 }
             }
@@ -13395,49 +13516,57 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
                     if($fba_field_type == 'target_key'){
                         if($fbaArr[$target]['count_type'] == '1'){
-                            $fields[] = "SUM((CASE WHEN {$target} < 0 THEN 0 ELSE {$target} END )) as {$target}";
+                            $fields[$target] = "SUM((CASE WHEN {$target} < 0 THEN 0 ELSE {$target} END )) ";
                         }else if($fbaArr[$target]['count_type'] == '2' && $target == 'fba_sales_day'){   //可售天数 单独处理
-                            $fields[] = "min(min_available_days_start) as min_available_days_start";
-                            $fields[] = "max(max_available_days_end) as max_available_days_end";
+                            $fields['min_available_days_start'] = "min(min_available_days_start) ";
+                            $fields['max_available_days_end'] = "max(max_available_days_end)";
                         }else if($fbaArr[$target]['count_type'] == '2' && $target == 'fba_suggested_replenishment_time'){  //建议补货时间 单独处理
-                            $fields[] = "min(min_suggested_replenishment_time_start) as min_suggested_replenishment_time_start";
-                            $fields[] = "max(max_suggested_replenishment_time_end) as max_suggested_replenishment_time_end";
+                            $fields['min_suggested_replenishment_time_start'] = "min(min_suggested_replenishment_time_start)";
+                            $fields['max_suggested_replenishment_time_end'] = "max(max_suggested_replenishment_time_end) ";
                         }else if($fbaArr[$target]['count_type'] == '3'){
-                            $fields[] = "MAX((CASE WHEN {$target} < 0 THEN 0 ELSE {$target} END )) as {$target}";
+                            $fields[$target] = "MAX((CASE WHEN {$target} < 0 THEN 0 ELSE {$target} END ))";
                         }else if($fbaArr[$target]['count_type'] == '4' && $target == 'fba_turnover_times'){ //周转次数单独处理
-                            $fields[] = "SUM(fba_30_day_sale) AS fba_30_day_sale";
+                            $fields['fba_30_day_sale'] = "SUM(fba_30_day_sale)";
                             if(!in_array('fba_total_stock' , $this->lastTargets)){
-                                $fields[] = "SUM(fba_total_stock) AS fba_total_stock";
+                                $fields['fba_total_stock'] = "SUM(fba_total_stock)";
                             }
                         }
                     }else{
                         if($fbaArr[$target]['count_type'] == '1'){
                             if($is_currency_exchange == 1){
-                                $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.rate ,1) ) END )) as {$target}";
+                                $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.rate ,1) ) END )) ";
                             }else{
-                                $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
+                                $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END ))";
                             }
                         }else if($fbaArr[$target]['count_type'] == '2' && $target == 'fba_sales_day'){   //可售天数 单独处理
-                            $fields[] = "min(available_days_start) as min_available_days_start";
-                            $fields[] = "max(available_days_end) as max_available_days_end";
+                            $fields['min_available_days_start'] = "min(available_days_start) ";
+                            $fields['max_available_days_end'] = "max(available_days_end)";
                         }else if($fbaArr[$target]['count_type'] == '2' && $target == 'fba_suggested_replenishment_time'){  //建议补货时间 单独处理
-                            $fields[] = "min(suggested_replenishment_time_start) as min_suggested_replenishment_time_start";
-                            $fields[] = "max(suggested_replenishment_time_end) as max_suggested_replenishment_time_end";
+                            $fields['min_suggested_replenishment_time_start'] = "min(suggested_replenishment_time_start) ";
+                            $fields['max_suggested_replenishment_time_end'] = "max(suggested_replenishment_time_end)";
                         }else if($fbaArr[$target]['count_type'] == '3'){
-                            $fields[] = "MAX((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
+                            $fields[$target] = "MAX((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) ";
                         }else if($fbaArr[$target]['count_type'] == '4' && $target == 'fba_turnover_times'){ //周转次数单独处理
-                            $fields[] = $fbaArr[$target]['mysql_field'];
-                            $fields[] = "SUM(_30_day_sale) AS fba_30_day_sale";
+
+                            $fields['fba_30_day_sale'] = "SUM(_30_day_sale) ";
                             if(!in_array('fba_total_stock' , $this->lastTargets)){
-                                $fields[] = "SUM(available_stock) AS fba_total_stock";
+                                $fields['fba_total_stock'] = "SUM(available_stock) ";
                             }
                         }
                     }
                 }
             }
         }
-        $field = !empty($fields) ? $other_field . ',' . implode(',',$fields) : $other_field;
-        return $field;
+        $field_str = $other_field ;
+        if(!empty($fields)){
+            foreach($fields as $k=>$f){
+                $field_str.= " , " . $f . " AS " . $k ;
+            }
+        }
+        $rt = array() ;
+        $rt['field_str'] = $field_str ;
+        $rt['field_arr'] = $fields ;
+        return $rt;
     }
 
     /**
