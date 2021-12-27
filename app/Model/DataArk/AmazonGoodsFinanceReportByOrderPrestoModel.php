@@ -96,6 +96,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      */
     protected $haveFbaFields = false;
 
+    /**
+     * where_detail里有fba指标（含fba指标的自定义公式）筛选
+     * @var array
+     */
+    protected $fbaWhereDetail = array();
+
+    /**
+     * sort_target里有fba指标（含fba指标的自定义公式）筛选
+     * @var array
+     */
+    protected $fbaSort = array();
+
     protected  $amzon_site = array(
         1 => array("currency_code" => "USD", "currency_symbol" => "$", "code" => "US"),
         2 => array("currency_code" => "CAD", "currency_symbol" => "C$", "code" => "CA"),
@@ -637,15 +649,30 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         }
 
+        $fbaCommonArr = config('common.goods_fba_fields_arr');
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
-            $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+            //TODO 判断是否包含自定义筛选
+            if(in_array($datas['sort_target'],array_keys($fbaCommonArr))){
+                $this->fbaSort = [
+                    'sort_target' => $datas['sort_target'],
+                    'sort_order' => $datas['sort_order'],
+                ];
+            }else{
+                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+            }
         }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
             $orderby = " max(report.create_time) {$datas['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
-            $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+            $orderby = '((' . $fields[$sort] . ') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+        }
+        if(!empty($order) && !empty($sort) && in_array($sort,array_keys($fbaCommonArr)) && $datas['limit_num'] == 0){
+            $this->fbaSort = [
+                'sort_target' => $sort,
+                'sort_order' => $order,
+            ];
         }
         $orderbyTmp = $orderby;
 
@@ -1016,6 +1043,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
+                    if(in_array($target_where['key'],array_keys($fbaCommonArr))){
+                        $this->fbaWhereDetail[] = $target_where;
+                        continue;
+                    }
                     if(!empty($fields[$target_where['key']])){
                         $where_value = $target_where['value'];
                         if (strpos($where_value, '%') !== false) {
@@ -13176,6 +13207,24 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_data_join[] = "new_origin_table.{$item} = fba_table.{$item}";
         }
         $fba_data['join'] = implode(' AND ',$fba_data_join);
+
+        if (!empty($this->fbaWhereDetail)) {
+            foreach ($this->fbaWhereDetail as $target_where) {
+                if(!empty($target_where['key'])){
+                    $where_value = $target_where['value'];
+                    if (strpos($where_value, '%') !== false) {
+                        $where_value = round($where_value / 100, 4);
+                    }
+                    //日均
+                    $fba_data_where[] = "fba_table.{$target_where['key']}" . $target_where['formula'] . $where_value;
+                }
+
+            }
+            $fba_data['where'] = !empty($fba_data_where) ? implode(' AND ',$fba_data_where) : "";
+        }
+        if(!empty($this->fbaSort)){
+            $fba_data['order'] = "fba_table.{$this->fbaSort['sort_target']}" . " " . $this->fbaSort['sort_order'];
+        }
         return $fba_data;
     }
 
