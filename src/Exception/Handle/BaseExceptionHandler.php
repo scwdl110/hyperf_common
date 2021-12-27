@@ -53,11 +53,11 @@ class BaseExceptionHandler extends ExceptionHandler
         $this->logger->error(sprintf('%s[%s] in %s', $throwable->getMessage(), $throwable->getLine(), $throwable->getFile()));
         $this->logger->error($throwable->getTraceAsString());
 
-        $this->message = $throwable->getMessage() ? $throwable->getMessage() : $this->message;
-        $this->code = $throwable->getCode() ? $throwable->getCode() : $this->code;
+        $message = $this->message ? $this->message : $throwable->getMessage();
+        $code = $this->code ? $this->code : $throwable->getCode();
 
         // 格式化输出
-        $data = Result::fail($this->data, $this->message, $this->code);
+        $data = Result::fail($this->data, $message, $code);
         $this->stopPropagation();
 
         $enable_app_exception_monitor = config('monitor.enable_app_exception_monitor', false);
