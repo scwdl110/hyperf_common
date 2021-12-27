@@ -1065,8 +1065,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table .= " LEFT JOIN {$this->table_erp_storage_warehouse_isku} AS warehouse_isku ON warehouse_isku.isku_id = amazon_goods.goods_isku_id AND warehouse_isku.db_num = '{$this->dbhost}' AND warehouse_isku.user_id = report.user_id AND warehouse_isku.is_delete = 0";
         }
         if ($this->haveErpReportFields){
-            $max_min_ym = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
-            $table .= " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.user_id = report.user_id AND warehouse_storage.time_str IN(" .implode(',', $max_min_ym). ")";
+            $erpReportTable = $this->getErpReportTable($datas, $userId);
+            $table .= $erpReportTable;
         }
 
         $count = 0;
@@ -3634,10 +3634,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     if ($datas['currency_code'] != 'CNY' && $tempFormatType == 4){
                         $fields['count_total'] = "SUM({$tempField} * COALESCE(rates.rate, 1))";
-                        $time_fields = $this->getTimeFields($time_line, "{$tempField} * COALESCE(rates.rate ,1)");
+                        $time_fields = $this->getErpReportTimeFields($time_line, "{$tempField} * COALESCE(rates.rate ,1)");
                     }else{
                         $fields['count_total'] = "SUM({$tempField})";
-                        $time_fields = $this->getTimeFields($time_line, $tempField);
+                        $time_fields = $this->getErpReportTimeFields($time_line, $tempField);
                     }
                     $fields[$time_target] = $fields['count_total'];
                     $time_fields_arr[$time_target] = $time_fields;
@@ -4832,6 +4832,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else {
                 $fields[strval($time['key'])] = "({$fun}(CASE WHEN (report.create_time>={$time['start']} and report.create_time<={$time['end']}) THEN ({$field1}) ELSE 0 END)) * 1.0000 / nullif({$fun}(CASE WHEN (report.create_time>={$time['start']} and report.create_time<={$time['end']}) THEN ({$field2}) ELSE 0 END),0) ";
             }
+        }
+
+        return $fields;
+    }
+
+    private function getErpReportTimeFields($timeList, $field1 = '')
+    {
+        $fields = [];
+        foreach ($timeList as $time) {
+            $fields[strval($time['key'])] = "SUM(CASE WHEN (warehouse_storage.time>={$time['start']} and warehouse_storage.time<={$time['end']}) THEN ({$field1}) ELSE 0 END)";
         }
 
         return $fields;
@@ -13473,4 +13483,70 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $field = !empty($fields) ? $other_field . ',' . implode(',',$fields) : $other_field;
         return $field;
     }
+
+    /**
+     * erp进销存指标 跨月取最新月数据
+     * @param $datas
+     * @param $userId
+     * @return string
+     */
+    protected function getErpReportTable($datas, $userId){
+        if($datas['count_periods'] == 5){
+            $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
+            $newestMonth = [];
+            foreach ($maxMinYm as $ym){
+                $year = substr($ym, 0, 4);
+                $month = substr($ym, 4);
+                if (empty($newestMonth[$year])){
+                    $newestMonth[$year] = [
+                        'month' => $month,
+                        'ym' => $ym
+                    ];
+                }else{
+                    $exit_month = $newestMonth[$year]['month'];
+                    if ($month > $exit_month){
+                        $newestMonth[$year] = [
+                            'month' => $month,
+                            'ym' => $ym
+                        ];
+                    }
+                }
+            }
+            $ym = implode(',', array_column($newestMonth, 'ym'));
+            $erpReportTable = " LEFT JOIN (SELECT * FROM {$this->table_erp_storage_inventory_warehouse_report} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND time_str IN({$ym})) AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear";
+        }
+        else if($datas['count_periods'] == 4)
+        {
+            $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
+            $newestMonth = [];
+            foreach ($maxMinYm as $ym){
+                $year = substr($ym, 0, 4);
+                $month = substr($ym, 4);
+                $quarter = floor(($month - 1) / 3) + 1;
+                $temp_key = $year."_".$quarter;
+                if (empty($newestMonth[$temp_key])){
+                    $newestMonth[$temp_key] = [
+                        'month' => $month,
+                        'ym' => $ym
+                    ];
+                }else{
+                    $exit_month = $newestMonth[$temp_key]['month'];
+                    if ($month > $exit_month){
+                        $newestMonth[$temp_key] = [
+                            'month' => $month,
+                            'ym' => $ym
+                        ];
+                    }
+                }
+            }
+            $ym = implode(',', array_column($newestMonth, 'ym'));
+            $erpReportTable = " LEFT JOIN (SELECT *, (FLOOR((month - 1) / 3) + 1) AS quarter FROM {$this->table_erp_storage_inventory_warehouse_report} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND time_str IN({$ym})) AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.quarter AS INTEGER) = report.mquarter";
+        }
+        else{
+            $erpReportTable = " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
+        }
+
+        return $erpReportTable;
+    }
+
 }
