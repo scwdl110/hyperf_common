@@ -611,6 +611,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $newTables = array() ;
             $newTables[] = "new_origin_table AS ( {$sql} ) " ;
             $rt_field = 'new_origin_table.*,fba_table.*' ;
+            if(!empty($fba_data['other_field'])){
+                $rt_field.=" , " . $fba_data['other_field'] ;
+            }
             $rt_sql = "SELECT {$rt_field} FROM new_origin_table" ;
             $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
             $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
