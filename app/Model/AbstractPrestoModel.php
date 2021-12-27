@@ -1011,7 +1011,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $rt_sql = "SELECT count(*) as num FROM new_origin_table" ;
             $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
             $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
-            $rt_order = !empty($fba_data['order']) ? $fba_data['order'] : "" ;
             if(!empty($fba_data['child_table'])){
                 foreach($fba_data['child_table'] as $c=>$cdata){
                     $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
@@ -1027,9 +1026,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
             ' . implode(',
             ' , $newTables) . "
             " .$rt_sql ;
-            if(!empty($rt_order)){
-                $sql.= " ORDER BY " .$rt_order ;
-            }
         }
         if($isJoin){
             foreach ($this->goodsCols as $key => $value){
