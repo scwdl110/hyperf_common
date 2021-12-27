@@ -13068,7 +13068,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = channel.user_id  ";
             }
         }
-        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.seller_sku as sku,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
+        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
             'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN {$this->table_channel} as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id {$rate_table} {$where}",
@@ -13087,7 +13087,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_group = " GROUP BY sku";
                 $fba_table_field = "max(sku) as sku";
                 $fba_table_field1 = "max(g.seller_sku) as sku";
-                $fba_table_group1 = " GROUP BY g.seller_sku,g.merchant_id";
+                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id";
                 $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id";
             }
         }else if($datas['count_dimension'] == 'asin'){
@@ -13102,7 +13102,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(asin) as asin";
                 $fba_table_field1 = "max(amazon_goods.goods_asin) as asin";
                 $fba_table_group1 = " GROUP BY amazon_goods.goods_asin,g.merchant_id";
-                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             }
         }else if($datas['count_dimension'] == 'parent_asin'){
             if($datas['is_distinct_channel'] == 1){
@@ -13116,13 +13116,13 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(parent_asin) as parent_asin";
                 $fba_table_field1 = "max(amazon_goods.goods_parent_asin) as parent_asin";
                 $fba_table_group1 = " GROUP BY amazon_goods.goods_parent_asin,g.merchant_id";
-                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             }
         }else if($datas['count_dimension'] == 'isku'){
             $join_field = ["user_id","isku_id"];
             $fba_table_field = "max(isku_id) as isku_id";
             $fba_table_field1 = "max(amazon_goods.goods_isku_id) as isku_id";
-            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY amazon_goods.goods_isku_id ,g.merchant_id";
             $fba_table_group = " GROUP BY isku_id";
         }else if($datas['count_dimension'] == 'class1'){
@@ -13131,14 +13131,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $join_field = ["user_id","group_id"];
             $fba_table_field = "max(group_id) as group_id";
             $fba_table_field1 = "max(amazon_goods.goods_group) as group_id";
-            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY amazon_goods.goods_group,g.merchant_id";
             $fba_table_group = " GROUP BY group_id";
         }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
             $join_field = ["user_id","tags_id"];
             $fba_table_field = "max(tags_id) as tags_id";
             $fba_table_field1 = "max(amazon_goods.goods_tag_id) as tags_id";
-            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.seller_sku";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY amazon_goods.goods_tag_id,g.merchant_id";
             $fba_table_group = " GROUP BY tags_id";
         }else if($datas['count_dimension'] == 'head_id') { //负责人
