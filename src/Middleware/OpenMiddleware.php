@@ -65,13 +65,13 @@ class OpenMiddleware implements MiddlewareInterface
 
         //锁住同个api调用
         $redis = new Redis();
+        $redis = $redis->getClient();
         $redisKey = 'center_open_lock_'.$channelId."_".$path;
         $this->lock($redis, $redisKey);
 
 
         //center_open_client_id
         $key = 'center_open_client_id_'.$accessToken;
-        $redis = $redis->getClient();
         $clientId = $redis->get($key);
         if($clientId===false){
             //获取client
