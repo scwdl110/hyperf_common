@@ -13703,7 +13703,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
             }
             $ym = implode(',', array_column($newestMonth, 'ym'));
-            $erpReportTable = " LEFT JOIN (SELECT * FROM {$this->table_erp_storage_inventory_warehouse_report} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND time_str IN({$ym})) AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear";
+            $erpReportTable = " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND warehouse_storage.time_str IN({$ym})";
         }
         else if($datas['count_periods'] == 4)
         {
