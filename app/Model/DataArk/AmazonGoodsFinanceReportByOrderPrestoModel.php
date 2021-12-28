@@ -5674,14 +5674,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
-                    $where_value = $target_where['value'];
-                    if (strpos($where_value, '%') !== false) {
-                        $where_value = round($where_value / 100, 4);
-                    }
-                    if (empty($having)) {
-                        $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
-                    } else {
-                        $having .= ' ' . $condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                    if(!empty($fields[$target_where['key']])){
+                        $where_value = $target_where['value'];
+                        if (strpos($where_value, '%') !== false) {
+                            $where_value = round($where_value / 100, 4);
+                        }
+                        if (empty($having)) {
+                            $having .= '(' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                        } else {
+                            $having .= ' ' . $condition_relation . ' (' . $fields[$target_where['key']] . ') ' . $target_where['formula'] . $where_value;
+                        }
                     }
                 }
             }
@@ -5714,18 +5716,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if ($count_tip == 2) { //仅统计总条数
-            $count = $this->getTotalNum($where, $table, $group, false, $isMysql ,$compareData,$field_data);
+            $count = $this->getTotalNum($where, $table, $group, false, $isMysql ,$compareData,$field_data , $fbaData);
             if($limit_num > 0 && $count > $limit_num){
                 $count = $limit_num ;
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($params['is_count'] == 1){
                 if($params['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data,$fbaData);
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false,$isMysql,$compareData);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false,$isMysql,$compareData , $fbaData);
                 }else {
                     //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
                     if(!empty($compareData)){
@@ -5763,11 +5765,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else {  //统计列表和总条数
             if ($params['is_count'] == 1){
                 if($params['total_status'] == 1){
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data,$fbaData);
                 }
                 $where = $this->getLimitWhere($where,$params,$table,$limit,$orderby,$group);
                 if(!empty($where_detail['target'])){
-                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql,$compareData);
+                    $lists = $this->queryList($fields,$params, $exchangeCode, $day_param, $field_data, $table, $where, $group, false, $isMysql,$compareData , $fbaData);
                 }else {
                     //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
                     if(!empty($compareData)){
@@ -5795,8 +5797,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     return $lists;
                 });
-                $parallel->add(function () use($where, $table, $group, $isMysql,$compareData,$field_data) {
-                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data);
+                $parallel->add(function () use($where, $table, $group, $isMysql,$compareData,$field_data,$fbaData) {
+                    $count = $this->getTotalNum($where, $table, $group, false, $isMysql,$compareData,$field_data,$fbaData);
                     return $count;
                 });
 
@@ -10933,7 +10935,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     }
 
-    private function queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false,$compare_data = []){
+    private function queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,$isJoin = false,$isMysql=false,$compare_data = [],$fba_data = []){
         $fields_tmp = [];
         $rate_formula_key = array_keys($this->rate_formula);
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
@@ -10978,31 +10980,65 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
 
-        if(!empty($compare_data)){
-            $newTables = array() ;
-            $newTables[] = "origin_table AS (  SELECT {$field_data_tmp} FROM (SELECT {$field_data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS report_tmp ) " ;
-            $rt_field = 'origin_table.* ' ;
-            foreach($compare_data as $c1=>$cdata1){
-                $k1 = $c1+1 ;
-                $rt_field.= " , compare_table{$k1}.* " ;
-            }
-            $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
-            $rt_where = '' ;
-            foreach($compare_data as $c=>$cdata){
-                $k = $c+1 ;
-                $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
-                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
-                if(!empty($cdata['where'])){
-                    $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
+        if(!empty($compare_data) || !empty($fba_data)){
+            if(!empty($compare_data)){
+                $newTables = array() ;
+                $newTables[] = "origin_table AS (  SELECT {$field_data_tmp} FROM (SELECT {$field_data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS report_tmp ) " ;
+                $rt_field = 'origin_table.* ' ;
+                foreach($compare_data as $c1=>$cdata1){
+                    $k1 = $c1+1 ;
+                    $rt_field.= " , compare_table{$k1}.* " ;
                 }
+                $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
+                $rt_where = '' ;
+                foreach($compare_data as $c=>$cdata){
+                    $k = $c+1 ;
+                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
+                    if(!empty($cdata['where'])){
+                        $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
+                    }
+                }
+                if(!empty($rt_where)){
+                    $rt_sql .= " WHERE " . $rt_where ;
+                }
+                $sql = 'WITH 
+                ' . implode(',
+                ' , $newTables) . "
+                " .$rt_sql ;
+            }else{
+                $newTables = array() ;
+                $newTables[] = "new_origin_table AS (  SELECT {$field_data_tmp} FROM (SELECT {$field_data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS report_tmp ) " ;
+
+                if(empty($fba_data['fba_fields'])){
+                    $rt_field = 'new_origin_table.*,fba_table.*' ;
+                }else{
+                    $rt_field = 'new_origin_table.*,'. $fba_data['fba_fields'];
+                }
+                if(!empty($fba_data['other_field'])){
+                    $rt_field.=" , " . $fba_data['other_field'] ;
+                }
+                $rt_sql = "SELECT {$rt_field} FROM new_origin_table " ;
+                $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
+                $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
+
+                if(!empty($fba_data['child_table'])){
+                    foreach($fba_data['child_table'] as $c=>$cdata){
+                        $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                    }
+                }
+                if(!empty($rt_join)){
+                    $rt_sql .= " LEFT JOIN fba_table ON " . $rt_join ;
+                }
+                if(!empty($rt_where)){
+                    $rt_sql .= " WHERE " . $rt_where ;
+                }
+                $sql = 'WITH 
+                ' . implode(',
+                ' , $newTables) . "
+                " .$rt_sql ;
             }
-            if(!empty($rt_where)){
-                $rt_sql .= " WHERE " . $rt_where ;
-            }
-            $sql = 'WITH 
-            ' . implode(',
-            ' , $newTables) . "
-            " .$rt_sql ;
+
         }else{
             $sql = "SELECT {$field_data_tmp} FROM (SELECT {$field_data} FROM {$table} WHERE {$where} GROUP BY {$group}) AS report_tmp";
         }
@@ -13101,7 +13137,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if($this->haveFbaFields == false){
             //没有选择fba指标
             return [];
-        }
+        }//按周期排序添加
         $child_table = $fba_data_join = array();
         $fba_data = [
             'child_table' => [],
@@ -13277,7 +13313,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             //没有选择fba指标
             return [];
         }
-        $child_table = $fba_data_join = $other_fields = array();
+        $child_table = $result_fba_fields = $fba_data_join = $other_fields = array();
         $orderby = $other_field_str = $other_where = '' ;
         //判断是否需要汇率换算
         $is_currency_exchange = 0 ;
@@ -13287,6 +13323,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'join' => "",
             'where' => "",
             'order' => "",
+            'fba_fields'=>""
         ];
         $today = strtotime(date("Y-m-d", time()));
         $today = 1639843200;  //todo 测试环境没数据，先写死过去时间
@@ -13295,9 +13332,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $fbaArr = config('common.channel_fba_fields_arr');
         if($datas['currency_code'] != 'ORIGIN'){
             foreach($fbaArr as $fbaFieldKey=>$val){
-                if(in_array($fbaFieldKey , $this->lastTargets) && $val['data_type'] == 2){
-                    $is_currency_exchange = 1 ;
-                    break ;
+                if(in_array($fbaFieldKey , $this->lastTargets)){
+                    if(!in_array($fbaFieldKey,['fba_sales_day','fba_suggested_replenishment_time','fba_turnover_times'])){
+                        $result_fba_fields[] = "fba_table.".$fbaFieldKey ;
+                    }
+                    $fields[$fbaFieldKey] = "fba_table.".$fbaFieldKey ;
+                    if($val['data_type'] == 2){
+                        $is_currency_exchange = 1 ;
+                    }
                 }
             }
         }
@@ -13305,9 +13347,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if($datas['count_dimension'] == 'channel_id' && $datas['is_count'] != 1){ //按店铺维度
             $fba_rt = $this->getUnGoodsFbaField(2," c.id as channel_id , max(c.site_id) as site_id " ,'mysql_key', $is_currency_exchange) ;
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
-            if(!empty($fba_rt['field_arr'])){
-                $fields = array_merge($fields , $fba_rt['field_arr']) ;
-            }
+
             if($is_currency_exchange == 1){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 " . $where . " group by c.id" ;
@@ -13325,9 +13365,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else if($datas['count_dimension'] == 'site_id' && $datas['is_count'] != 1 ){ //按站点维度
             $fba_rt = $this->getUnGoodsFbaField(2," c.site_id as site_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
-            if(!empty($fba_rt['field_arr'])){
-                $fields = array_merge($fields , $fba_rt['field_arr']) ;
-            }
             if($is_currency_exchange == 1){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
@@ -13365,9 +13402,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by user_department_id ,merchant_id",
             ] ;
             $fba_rt = $this->getUnGoodsFbaField(2," user_department_id ",'target_key') ;
-            if(!empty($fba_rt['field_arr'])){
-                $fields = array_merge($fields , $fba_rt['field_arr']) ;
-            }
             $child_table[] = [
                 'table_name' => 'fba_table',
                 'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by user_department_id",
@@ -13397,9 +13431,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by admin_id ,merchant_id",
             ] ;
             $fba_rt = $this->getUnGoodsFbaField(2," admin_id ",'target_key') ;
-            if(!empty($fba_rt['field_arr'])){
-                $fields = array_merge($fields , $fba_rt['field_arr']) ;
-            }
             $child_table[] = [
                 'table_name' => 'fba_table',
                 'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by admin_id",
@@ -13408,9 +13439,19 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else if($datas['count_dimension'] == 'all_channels' || $datas['is_count'] == 1){  //按所有店铺 或汇总
             $fba_rt1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id", 'mysql_key' , $is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
+
+            if($is_currency_exchange == 1){
+                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ".$where." group by c.id" ; ;
+                }else{
+                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.id" ; ;
+                }
+            }else{
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id ".$where." group by c.id" ;
+            }
             $child_table[] = [
                 'table_name' => 'fba_table1',
-                'table_sql' => "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN {$this->table_channel} as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id ".$where." group by c.id",
+                'table_sql' => $table_sql,
             ] ;
             $fba_rt2 = $this->getUnGoodsFbaField(1,'merchant_id') ;
             $child_table[] = [
@@ -13418,9 +13459,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by merchant_id",
             ] ;
             $fba_rt = $this->getUnGoodsFbaField(2,"",'target_key') ;
-            if(!empty($fba_rt['field_arr'])){
-                $fields = array_merge($fields , $fba_rt['field_arr']) ;
-            }
             $child_table[] = [
                 'table_name' => 'fba_table',
                 'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by user_id",
@@ -13475,6 +13513,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if(!empty($other_where)){
             $other_where = str_replace("{:RATE}", $exchangeCode,$other_where);
             $fba_data['where'] = $other_where ;
+        }
+        if(!empty($result_fba_fields)){
+            $fba_data['fba_fields'] = implode(',' , $result_fba_fields) ;
         }
         return $fba_data;
     }
