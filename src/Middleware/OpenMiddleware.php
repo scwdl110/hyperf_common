@@ -27,6 +27,10 @@ class OpenMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
+//        defer(function(){
+//
+//        });
+
         //获取token
         $authorization = $request->getHeader('authorization');
         if(!isset($authorization[0])){
