@@ -13557,10 +13557,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     public function getUnGoodsFbaOtherField($fields = array() , $custom_fba_target_key = array()){
         $other_fields = array() ;
         if(in_array('fba_sales_day' , $this->lastTargets)){
-            $other_fields['fba_sales_day'] = "(CASE WHEN fba_table.min_available_days_start = fba_table.max_available_days_end THEN cast(CASE WHEN fba_table.max_available_days_end <0 THEN 0 ELSE fba_table.max_available_days_end END as varchar) ELSE concat( cast((CASE WHEN fba_table.min_available_days_start < 0 THEN 0 ELSE fba_table.min_available_days_start END) AS varchar ) ,'~',cast(fba_table.max_available_days_end AS varchar ) ) END )" ;
+            /*$other_fields['fba_sales_day'] = "(CASE WHEN fba_table.min_available_days_start = fba_table.max_available_days_end THEN cast(CASE WHEN fba_table.max_available_days_end <0 THEN 0 ELSE fba_table.max_available_days_end END as varchar) ELSE concat( cast((CASE WHEN fba_table.min_available_days_start < 0 THEN 0 ELSE fba_table.min_available_days_start END) AS varchar ) ,'~',cast(fba_table.max_available_days_end AS varchar ) ) END )" ;*/
+            $other_fields['min_fba_sales_day'] = "fba_table.min_available_days_start" ;
+            $other_fields['max_fba_sales_day'] = "fba_table.max_available_days_end" ;
+            $other_fields['min_egt0_fba_sales_day'] = "(CASE WHEN fba_table.min_available_days_start > 0 THEN fba_table.min_available_days_start ELSE 0 END)" ;
+            $other_fields['max_egt0_fba_sales_day'] = "(CASE WHEN fba_table.max_available_days_end > 0 THEN fba_table.max_available_days_end ELSE 0 END)" ;
+            $other_fields['fba_sales_day'] = 1 ;
         }
         if(in_array('fba_suggested_replenishment_time' , $this->lastTargets)){
-            $other_fields['fba_suggested_replenishment_time'] = "(CASE WHEN fba_table.min_suggested_replenishment_time_start = fba_table.max_suggested_replenishment_time_end THEN (CASE WHEN fba_table.max_suggested_replenishment_time_end <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd' ) END ) ELSE concat( (CASE WHEN fba_table.min_suggested_replenishment_time_start <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.min_suggested_replenishment_time_start),'yyyy-MM-dd') END )  ,'~',format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd')) END )" ;
+            /*$other_fields['fba_suggested_replenishment_time'] = "(CASE WHEN fba_table.min_suggested_replenishment_time_start = fba_table.max_suggested_replenishment_time_end THEN (CASE WHEN fba_table.max_suggested_replenishment_time_end <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd' ) END ) ELSE concat( (CASE WHEN fba_table.min_suggested_replenishment_time_start <= 0 THEN '当前' ELSE format_datetime(FROM_UNIXTIME(fba_table.min_suggested_replenishment_time_start),'yyyy-MM-dd') END )  ,'~',format_datetime(FROM_UNIXTIME(fba_table.max_suggested_replenishment_time_end),'yyyy-MM-dd')) END )" ;*/
+            $other_fields['min_suggested_replenishment_time'] = "(CASE WHEN fba_table.min_suggested_replenishment_time_start > 0 THEN fba_table.min_suggested_replenishment_time_start ELSE 0 END )" ;
+            $other_fields['max_suggested_replenishment_time'] = "(CASE WHEN fba_table.max_suggested_replenishment_time_end > 0 THEN fba_table.max_suggested_replenishment_time_end ELSE 0 END)" ;
+            $other_fields['fba_suggested_replenishment_time'] = 1 ;
         }
         if(in_array('fba_turnover_times' , $this->lastTargets)){
             $other_fields['fba_turnover_times'] = "(CASE WHEN fba_table.fba_30_day_sale > 0 THEN 1.0000*fba_table.fba_total_stock/fba_table.fba_30_day_sale ELSE 0 END )"  ;
