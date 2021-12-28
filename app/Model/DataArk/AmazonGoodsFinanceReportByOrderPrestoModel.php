@@ -614,6 +614,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         //没有按周期统计 ， 按指标展示
+        $fba_target_key = [];
         if ($datas['show_type'] == 2) {
             $fields_arr = $this->getGoodsFields($datas,$isMysql);
             $fields = $fields_arr['fields'];
@@ -652,12 +653,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fbaCommonArr = config('common.goods_fba_fields_arr');
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
-            //TODO 判断是否包含自定义筛选
-            if(in_array($datas['sort_target'],array_keys($fbaCommonArr))){
+            if(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key)){
                 $this->fbaSort = [
                     'sort_target' => $datas['sort_target'],
                     'sort_order' => $datas['sort_order'],
                 ];
+                if(in_array($datas['sort_target'],$fba_target_key)){
+                    $this->fbaSort['is_custom'] = 1;
+                }
             }else{
                 $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
             }
@@ -668,11 +671,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
             $orderby = '((' . $fields[$sort] . ') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
         }
-        if(!empty($order) && !empty($sort) && in_array($sort,array_keys($fbaCommonArr)) && $datas['limit_num'] == 0){
+        if(!empty($order) && !empty($sort) && (in_array($sort,array_keys($fbaCommonArr)) || in_array($sort,$fba_target_key)) && $datas['limit_num'] == 0){
             $this->fbaSort = [
                 'sort_target' => $sort,
                 'sort_order' => $order,
             ];
+            if(in_array($sort,$fba_target_key)){
+                $this->fbaSort['is_custom'] = 1;
+            }
         }
         $orderbyTmp = $orderby;
 
@@ -1043,7 +1049,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
-                    if(in_array($target_where['key'],array_keys($fbaCommonArr))){
+                    if(in_array($target_where['key'],array_keys($fbaCommonArr)) || in_array($target_where['key'],$fba_target_key)){
+                        if(in_array($target_where['key'],$fba_target_key)){
+                            $target_where['is_custom'] = 1;
+                        }
                         $this->fbaWhereDetail[] = $target_where;
                         continue;
                     }
@@ -13141,9 +13150,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $child_table = $fba_data_join = array();
         $fba_data = [
             'child_table' => [],
+            'other_field' => "",
             'join' => "",
             'where' => "",
             'order' => "",
+            'fba_fields' => "",
         ];
         $where = " WHERE g.user_id = " . intval($datas['user_id']) ." AND g.is_parent=0";
         if (!empty($channel_arr)){
@@ -13279,6 +13290,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         $fba_data['other_field'] = $other_field_str;
+
+        $fba_data['fba_fields'] = $this->getGoodsFbaField(4,"",$datas,$exchangeCode);
+
         if (!empty($this->fbaWhereDetail)) {
             foreach ($this->fbaWhereDetail as $target_where) {
                 if(!empty($target_where['key'])){
@@ -13287,14 +13301,28 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $where_value = round($where_value / 100, 4);
                     }
                     //日均
-                    $fba_data_where[] = "fba_table.{$target_where['key']}" . $target_where['formula'] . $where_value;
+                    if(!empty($target_where['is_custom'])) {
+                        //自定义公式
+                        if(!empty($other_fields[$target_where['key']])) {
+                            $fba_data_where[] = "{$other_fields[$target_where['key']]}" . $target_where['formula'] . $where_value;
+                        }
+                    }else{
+                        $fba_data_where[] = "fba_table.{$target_where['key']}" . $target_where['formula'] . $where_value;
+                    }
                 }
 
             }
             $fba_data['where'] = !empty($fba_data_where) ? implode(' AND ',$fba_data_where) : "";
         }
         if(!empty($this->fbaSort)){
-            $fba_data['order'] = "fba_table.{$this->fbaSort['sort_target']}" . " " . $this->fbaSort['sort_order'];
+            if(!empty($this->fbaSort['is_custom'])){
+                //自定义公式
+                if(!empty($other_fields[$this->fbaSort['sort_target']])) {
+                    $fba_data['order'] = "{$other_fields[$this->fbaSort['sort_target']]}" . " " . $this->fbaSort['sort_order'];
+                }
+            }else{
+                $fba_data['order'] = "fba_table.{$this->fbaSort['sort_target']}" . " " . $this->fbaSort['sort_order'];
+            }
         }
         return $fba_data;
     }
@@ -13696,7 +13724,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
                 }
             }
-        }else{
+        }elseif($type == 3){ //fba_table1
             foreach ($this->lastTargets as $target) {
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
                     if($fbaArr[$target]['data_type'] == 2){
@@ -13710,8 +13738,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
             }
+        }else{
+            foreach ($this->lastTargets as $target) {
+                if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
+                    $fields[] = "fba_table.{$target}";
+                }
+            }
         }
-        $field = !empty($fields) ? $other_field . ',' . implode(',',$fields) : $other_field;
+        $other_field = !empty($other_field) ? $other_field . "," : "";
+        $field = !empty($fields)  ? $other_field . implode(',',$fields) : $other_field;
         return $field;
     }
 
