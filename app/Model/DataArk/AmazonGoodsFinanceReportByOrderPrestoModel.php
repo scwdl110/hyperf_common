@@ -1087,7 +1087,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if($this->haveFbaFields){
-            $fbaData = $this->joinGoodsFbaTable($datas,$channel_arr,$currencyInfo,$exchangeCode);
+            $fbaData = $this->joinGoodsFbaTable($datas,$channel_arr,$currencyInfo,$exchangeCode,$fba_target_key);
         }else{
             $fbaData = array();
         }
@@ -3430,6 +3430,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //加入自定义指标
         $fba_target_key = $operation_table_field = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
+        $datas['list_type'] = 1;//1-商品 2-店铺 fba用的
         $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$operation_table_field,$is_count,$isMysql);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
@@ -6780,6 +6781,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //加入自定义指标
         $fba_target_key = $operation_table_field = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
+        $datas['list_type'] = 1;//1-商品 2-店铺 fba用的
         $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$operation_table_field ,$is_count,$isMysql);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
@@ -10620,7 +10622,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
         if($custom_targets_list){
             if($datas['stock_datas_origin'] == 1){
-                $fbaFieldsArr = $datas['list_type'] == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
+                $fbaFieldsArr = !empty($datas['list_type']) && $datas['list_type'] == 1 ? config('common.goods_fba_fields_arr') : config('common.channel_fba_fields_arr');
             }
             foreach ($custom_targets_list as $item){
                 if ($item['target_type'] == 1)
@@ -10683,7 +10685,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $fba_target_key[] = $item['target_key'];
                             $str = $is_count ? "1" : "'{$item['formula']}'";
                         }
-                        $fields[$item['target_key']] = $isMysql ? $str : "try(" . $str . ")";
+                        if($datas['stock_datas_origin'] != 1){
+                            $fields[$item['target_key']] = $isMysql ? $str : "try(" . $str . ")";
+                        }
                     }
                 }
             }
@@ -13092,7 +13096,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr];
     }
 
-    protected function joinGoodsFbaTable($datas = array() , $channel_arr = array() , $currencyInfo = array(),$exchangeCode = '1')
+    protected function joinGoodsFbaTable($datas = array() , $channel_arr = array() , $currencyInfo = array(),$exchangeCode = '1', $custom_fba_target_key = array())
     {
         if($this->haveFbaFields == false){
             //没有选择fba指标
@@ -13231,6 +13235,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $fba_data['join'] = implode(' AND ',$fba_data_join);
 
+        $other_field_str = "";
+        $other_fields = $this->getGoodsFbaOtherField($custom_fba_target_key) ;
+        if(!empty($other_fields)){
+            foreach($other_fields as $other_key=>$otherField){
+                $other_field_str .= empty($other_field_str) ? ($otherField. ' AS ' . $other_key ) : (' , ' . $otherField. ' AS ' . $other_key) ;
+            }
+        }
+        $fba_data['other_field'] = $other_field_str;
         if (!empty($this->fbaWhereDetail)) {
             foreach ($this->fbaWhereDetail as $target_where) {
                 if(!empty($target_where['key'])){
@@ -13727,4 +13739,43 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $erpReportTable;
     }
 
+    /**
+     *  获取商品维度FBA的自定义指标和一些特殊的指标
+     * @param array $datas
+     * @param array $fields 非FBA的指标信息
+     * @param array $custom_fba_target_key 包含FBA字段的自定义指标kry
+     */
+    public function getGoodsFbaOtherField($custom_fba_target_key = array()){
+        $other_fields = array() ;
+        if(empty($custom_fba_target_key)){
+            return $other_fields ;
+        }
+
+        $custom_targets_list = empty($this->customTargetsList) ? array() : $this->customTargetsList ;
+        $fbaCommonArr = config('common.goods_fba_fields_arr');
+        if(!empty($custom_targets_list)){
+            foreach ($custom_targets_list as $item) {
+                if(in_array($item['target_key'] , $custom_fba_target_key)){
+                    $formula_json_arr = $item['formula_json'] ? json_decode($item['formula_json'], true) : [];
+                    $formula_fields_arr = $item['formula_fields'] ? explode(",", $item['formula_fields']) : [];
+                    $str = $item['formula'];
+                    $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
+                    foreach ($formula_json_arr as $k => $f_key) {
+                        if (!is_numeric($f_key)) {
+                            $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF({' . $f_key . '},0)', $str);//分母为0的处理
+                        }
+                    }
+                    foreach ($formula_fields_arr as $field) {
+                        if(in_array($field,array_keys($fbaCommonArr))){
+                            $str = str_replace('{' . $field . '}', "fba_table.{$field}", $str);
+                        }else{
+                            $str = str_replace('{' . $field . '}', "new_origin_table.{$field}", $str);
+                        }
+                    }
+                    $other_fields[$item['target_key']] =  "try(" . $str . ")";
+                }
+            }
+        }
+        return $other_fields ;
+    }
 }
