@@ -59,8 +59,13 @@ class OpenMiddleware implements MiddlewareInterface
         }
 
 
-        //center_open_client_id
+        //锁住同个api调用
         $redis = new Redis();
+        $redisKey = 'center_open_lock_'.$channelId."_".$path;
+        $this->lock($redis, $redisKey);
+
+
+        //center_open_client_id
         $key = 'center_open_client_id_'.$accessToken;
         $redis = $redis->getClient();
         $clientId = $redis->get($key);
@@ -118,6 +123,9 @@ class OpenMiddleware implements MiddlewareInterface
                 return Context::get(ResponseInterface::class)->withStatus(401, 'client_type Unauthorized');
                 break;
         }
+
+        //验证次数
+        $this->checkCount($redis, $userId);
 
         //admin
         //center_open_admin_id
@@ -251,7 +259,11 @@ class OpenMiddleware implements MiddlewareInterface
         ]);
         Context::set(ServerRequestInterface::class, $request);
 
-        return $handler->handle($request);
+        $response = $handler->handle($request);
+
+        $this->unlock($redis, $redisKey);
+
+        return $response;
     }
 
     /**
@@ -274,9 +286,70 @@ class OpenMiddleware implements MiddlewareInterface
                 return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
             }
             $userId = data_get($clientUser, 'user_id', 0);
-            $redis->set($key, $userId, 3600);
+            $redis->set($key, $userId, 86400);
         }
 
         return $userId;
+    }
+
+
+    /**
+     * 锁住同个api调用
+     * @param $redis
+     * @param $lockKey
+     * @return bool|ResponseInterface
+     */
+    private function lock($redis, $lockKey)
+    {
+        $lock = $redis->get($lockKey);
+        if($lock){
+            return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request');
+        }else {
+            $redis->set($lockKey,1,60);
+        }
+        return true;
+    }
+
+    //解锁住同个api调用
+    private function unlock($redis, $lockKey)
+    {
+        $redis->del($lockKey);
+        return true;
+    }
+
+    //验证次数
+    private function checkCount($redis, $userId)
+    {
+        $time = time();
+        $key = 'center_open_api_count_'.$userId;
+        $apiCount = $redis->get($key);
+        if($apiCount===false){
+            $where = [
+                ['user_id', '=', $userId],
+                ['tools_id', '=', 11],
+                ['status', '=', 1],
+            ];
+            $toolsUserRel = Db::connection("erp_base")->table('tools_user_rel')->where($where)->select('api_count', 'end_time')->first();
+            if(!$toolsUserRel){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'please buy api tools');
+            }
+
+            if(data_get($toolsUserRel, 'end_time', 0) < $time){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'api tools expired');
+            }
+
+            $apiCount = data_get($toolsUserRel, 'api_count', 0);
+            $redis->set($key, $apiCount, 7200);
+        }
+
+        $minutes = date("Ymdhi");
+        $key = "center_open_check_count_"."_".$userId."_".$minutes;
+        $checkCount = $redis->incr($key);
+        if($checkCount>$apiCount){
+            return Context::get(ResponseInterface::class)->withStatus(401, 'The calling frequency is too high. Please wait or upgrade the package');
+        }
+
+        $redis->set($key,$checkCount,60);
+        return true;
     }
 }
