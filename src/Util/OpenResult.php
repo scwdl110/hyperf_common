@@ -35,6 +35,23 @@ class OpenResult
     {
         $code = $code ?: 0;
         $msg = $msg ?: 'success';
+
+        //定制化只支持开放平台log
+        $request = ApplicationContext::getContainer()->get(RequestInterface::class);
+        $path = $request->getUri()->getPath();
+        $context = Context::get(ServerRequestInterface::class);
+        $userInfo = $context->getAttribute('userInfo');
+        $insertData = [
+            'user_id' => $userInfo['user_id'],
+            'client_id' => $userInfo['client_id'],
+            'channel_id' => $userInfo['channel_id'],
+            'path' => $path,
+            'code' => $code,
+            'msg' => $msg,
+        ];
+        Db::connection("erp_report")->table("open_api_log")->insert($insertData);
+
+
         $is_open_next_token = ApplicationContext::getContainer()->get(ConfigInterface::class)->get('common.is_open_next_token');
         if ($is_open_next_token) {
             return json_encode(array(
@@ -52,22 +69,6 @@ class OpenResult
                 'data' => (object)$data,
             ), JSON_UNESCAPED_UNICODE);
         }
-
-        //定制化只支持开放平台
-        $request = ApplicationContext::getContainer()->get(RequestInterface::class);
-        $path = $request->getUri()->getPath();
-        $context = Context::get(ServerRequestInterface::class);
-        $userInfo = $context->getAttribute('userInfo');
-        $insertData = [
-            'user_id' => $userInfo['user_id'],
-            'client_id' => $userInfo['client_id'],
-            'channel_id' => $userInfo['channel_id'],
-            'path' => $path,
-            'code' => $code,
-            'msg' => $msg,
-        ];
-        Db::connection("erp_report")->table("open_api_log")->insert($insertData);
-
     }
 
     /**
