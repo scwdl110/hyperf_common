@@ -188,17 +188,17 @@ return [
         //90日退货率
         "fba_ravg90"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_90_day_sale_return * 1.0000 / nullif(fba_table.fba_90_day_sale,0)","child_key" => ["fba_90_day_sale_return","fba_90_day_sale"],"data_type" => 4),
         //是否当前补货
-        "fba_is_buhuo"=>array("count_type"=>2, "mysql_field"=>"is_buhuo","data_type" => 3),
+        "fba_is_buhuo"=>array("count_type"=>3, "mysql_field"=>"buhuo","data_type" => 3,"only_sku" => 1),
         //可售天数
-        "fba_sales_day"=>array("count_type"=>2, "mysql_field"=>"available_days","data_type" => 1),
+        "fba_sales_day"=>array("count_type"=>1, "mysql_field"=>"available_days","data_type" => 1,"only_sku" => 1),
         //到货天数
-        "fba_arrival_days"=>array("count_type"=>2, "mysql_field"=>"arrival_days","data_type" => 1),
+        "fba_arrival_days"=>array("count_type"=>1, "mysql_field"=>"arrival_days","data_type" => 1,"only_sku" => 1),
         //备货天数
-        "fba_days_of_preparation"=>array("count_type"=>2, "mysql_field"=>"days_of_preparation","data_type" => 1),
+        "fba_days_of_preparation"=>array("count_type"=>1, "mysql_field"=>"days_of_preparation","data_type" => 1,"only_sku" => 1),
         //建议补货数量
-        "fba_replenishment_quantity"=>array("count_type"=>2, "mysql_field"=>"replenishment_quantity","data_type" => 1),
+        "fba_replenishment_quantity"=>array("count_type"=>1, "mysql_field"=>"replenishment_quantity","data_type" => 1,"only_sku" => 1),
         //建议补货时间
-        "fba_suggested_replenishment_time"=>array("count_type"=>2, "mysql_field"=>"suggested_replenishment_time","data_type" => 3),
+        "fba_suggested_replenishment_time"=>array("count_type"=>3, "mysql_field"=>"suggested_replenishment_time","data_type" => 3,"only_sku" => 1),
         //库龄 ≤90
         "fba_3_month_age"=>array("count_type"=>1, "mysql_field"=>"_3_month_age","data_type" => 3),
         //库龄 90-180
@@ -218,9 +218,9 @@ return [
         //仓储费
         "fba_ccf"=>array("count_type"=>1, "mysql_field"=>"ccf","data_type" => 2,'uk_status' => 1),
         //仓储费/件
-        "fba_ccf_every"=>array("count_type"=>2, "mysql_field"=>"ccf_every","data_type" => 2,'uk_status' => 1),
+        "fba_ccf_every"=>array("count_type"=>1, "mysql_field"=>"ccf_every","data_type" => 2,'uk_status' => 1,"only_sku" => 1),
         //规格/件
-        "fba_volume_new"=>array("count_type"=>2, "mysql_field"=>"volume_new","data_type" => 3),
+        "fba_volume_new"=>array("count_type"=>1, "mysql_field"=>"volume_new","data_type" => 3,"only_sku" => 1),
         //高库龄数
         "fba_ltsf_num"=>array("count_type"=>1, "mysql_field"=>"ltsf_num","data_type" => 1),
         //高库龄数仓储费

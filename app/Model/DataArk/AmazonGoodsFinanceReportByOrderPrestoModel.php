@@ -13192,7 +13192,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $join_field = ["user_id","sku"];
                 $fba_table_group = " GROUP BY sku";
                 $fba_table_field = "max(sku) as sku";
-                $fba_table_field1 = "max(g.seller_sku) as sku";
+                $fba_table_field1 = "max(g.sku) as sku";
                 $fba_table_group1 = " GROUP BY g.sku,g.merchant_id";
                 $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id";
             }
@@ -13265,6 +13265,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
 
+        $datas['need_review_fba'] = $need_review_fba;
         if($need_review_fba){
             $field1 = $this->getGoodsFbaField(1,$fba_table_field1,$datas);
             $fba_table1 = "(SELECT {$field1} FROM fba_table1 as g {$fba_table_join1} {$fba_table_group1})";
@@ -13771,6 +13772,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                 $fields[] = "SUM((CASE WHEN {$fbaArr[$child_key]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$child_key]['mysql_field']} END )) as {$child_key}";
                             }
                         }
+                    }elseif(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5'){
+                        $fields[] = "AVG((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
+                    }elseif($fbaArr[$target]['count_type'] == '3' && !empty($fbaArr[$target]['only_sku'])){
+                        //仅区分店铺sku
+                        $fields[] = "MAX({$fbaArr[$target]['mysql_field']}) as {$target}";
                     }else{
                         $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
                     }
@@ -13779,7 +13785,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }elseif($type == 3){ //fba_table1
             foreach ($this->lastTargets as $target) {
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
-                    if($fbaArr[$target]['count_type'] == '4'){
+                    if($target == 'fba_suggested_replenishment_time'){
+                        $fields[] = "nullif(g.suggested_replenishment_time,-111111) as suggested_replenishment_time";
+                    }elseif($fbaArr[$target]['count_type'] == '4'){
                         if(!empty($fbaArr[$target]['child_key'])){
                             foreach ($fbaArr[$target]['child_key'] as $child_key) {
                                 if ($fbaArr[$target]['data_type'] == 2) {
