@@ -347,7 +347,7 @@ class OpenMiddleware implements MiddlewareInterface
         }
 
         $minutes = date("Ymdhi");
-        $key = "center_open_check_count_"."_".$userId."_".$minutes;
+        $key = "center_open_check_count_".$userId."_".$minutes;
         $checkCount = $redis->incr($key);
         if($checkCount>$apiCount){
             return Context::get(ResponseInterface::class)->withStatus(401, 'The calling frequency is too high. Please wait or upgrade the package');
