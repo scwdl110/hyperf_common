@@ -946,6 +946,39 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND report.goods_isku_id = 0 ";
                 }
             }
+            if (!empty($where_detail['developer_id'])) {
+                if(is_array($where_detail['developer_id'])){
+                    $developer_str = implode(',', $where_detail['developer_id']);
+                }else{
+                    $developer_str = $where_detail['developer_id'] ;
+                }
+
+                if (!empty($developer_str)) {
+                    $where .= " AND report.isku_developer_id  IN ( " . $developer_str . ")";
+                }
+            }
+            if (!empty($where_detail['head_id'])) {
+                if(is_array($where_detail['head_id'])){
+                    $head_str = implode(',', $where_detail['head_id']);
+                }else{
+                    $head_str = $where_detail['head_id'] ;
+                }
+
+                if (!empty($head_str)) {
+                    $where .= " AND report.isku_head_id  IN ( " . $head_str . ")";
+                }
+            }
+            if(!empty($where_detail['product_category_name'])){
+                if(is_array($where_detail['product_category_name'])){
+                    $product_category_name_str="'".join("','",$where_detail['product_category_name'])."'";
+                }else{
+                    $product_category_name_str = "'".$where_detail['product_category_name']."'" ;
+                }
+
+                if (!empty($product_category_name_str)) {
+                    $where .= " AND report.goods_product_category_name_1  IN ( " . $product_category_name_str . ")";
+                }
+            }
             if (!empty($where_detail['operators_id'])  or (isset($where_detail['operators_id']) && ($where_detail['operators_id'] === '0' or $where_detail['operators_id'] === 0))) {
                 if(is_array($where_detail['operators_id'])){
                     $operators_str = implode(',', $where_detail['operators_id']);
@@ -5793,7 +5826,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $targets_temp = $targets;//基础指标缓存
 
         //店铺月销售额目标
-        if ($isMysql && in_array('sale_channel_month_goal', $targets)) {
+        if ($isMysql && (in_array('sale_channel_month_goal', $targets) || in_array('gross_profit_channel_month_goal', $targets) || in_array('gross_margin_channel_month_goal', $targets))) {
             $isMysql = false;
             $this->is_channge_mysql = true;
         }
@@ -12258,7 +12291,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if (in_array($key,$targets)){
                 $field_rate = $value['format_type'] == 4 ? $rate : "";
                 //店铺
-                if($key == 'sale_channel_month_goal'){
+                if(in_array($key,['sale_channel_month_goal','gross_profit_channel_month_goal','gross_margin_channel_month_goal'])){
                     $this->countDimensionChannel = true;
                 }
                 if($value['is_goods_key'] == 1 && $value['goods_key_from'] == 5){
@@ -12401,7 +12434,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $field_rate =  $field[$targets]['format_type'] == 4 ? $rate : "";
 
             //店铺
-            if($targets == 'sale_channel_month_goal'){
+            if(in_array($targets,['sale_channel_month_goal','gross_profit_channel_month_goal','gross_margin_channel_month_goal'])){
                 $this->countDimensionChannel = true;
             }
             if ($field[$targets]['format_type'] == 3 or $targets == 'cpc_avg_click_cost'){

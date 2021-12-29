@@ -462,6 +462,34 @@ function getStartAndEndTimeAllSite($type = 1)
         }
     }
 
+    if ($type == 30){ //过去2周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-14 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+    if ($type == 31){ //过去3周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-21 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+    if ($type == 32){ //过去4周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-28 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+
     // date_default_timezone_set("Asia/Shanghai");
     foreach ($localDate as $key => $value) {
         $localDate[$key]["start"] = strtotime($localDate[$key]["start"]);
