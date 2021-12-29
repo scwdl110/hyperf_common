@@ -894,6 +894,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.channel_id ';
                 $orderby = empty($orderby) ? ('report.channel_id ') : ($orderby . ' ,report.channel_id ');
             }
+        }else if($datas['count_dimension'] == 'goods_site_id'){
+            //统计商品数据里的国家维度
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group = 'report.site_id ,report.myear , report.mmonth  , report.mday';
+                    $orderby = 'report.site_id ,report.myear , report.mmonth  , report.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group = 'report.site_id ,report.mweekyear , report.mweek';
+                    $orderby = 'report.site_id ,report.mweekyear , report.mweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group = 'report.site_id ,report.myear , report.mmonth';
+                    $orderby = 'report.site_id ,report.myear , report.mmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group = 'report.site_id ,report.myear , report.mquarter';
+                    $orderby = 'report.site_id ,report.myear , report.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group = 'report.site_id ,report.myear';
+                    $orderby = 'report.site_id ,report.myear';
+                }
+            }else{
+                $group = 'report.site_id ';
+                $orderby = empty($orderby) ? ('report.site_id ') : ($orderby . ' ,report.site_id ');
+            }
         }
 
         if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加

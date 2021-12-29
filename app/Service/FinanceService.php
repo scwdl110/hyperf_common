@@ -288,6 +288,10 @@ class FinanceService extends BaseService
                 if (!empty($params['where_parent']['site_id'])){
                     $where .= " AND report.site_id IN (" . $params['where_parent']['site_id'] . ")" ;
                 }
+
+                if (!empty($params['where_parent']['operators_id'])){
+                    $where .= " AND channel.operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ")";
+                }
             }
 
             if($type == 2){
