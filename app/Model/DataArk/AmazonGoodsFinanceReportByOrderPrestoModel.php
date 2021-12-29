@@ -13714,37 +13714,76 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $other_field.= sprintf('%s max(g.user_id) as user_id,max(g.area_id) as area_id,max(g.channel_id) as channel_id',$other_field ? ',' : '');
             foreach ($this->lastTargets as $target){
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
-                    $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$target]['mysql_field']}) ELSE SUM(g.{$fbaArr[$target]['mysql_field']}) END ) as {$fbaArr[$target]['mysql_field']}";
+                    if($fbaArr[$target]['count_type'] == '4'){
+                        if(!empty($fbaArr[$target]['child_key'])){
+                            foreach ($fbaArr[$target]['child_key'] as $child_key){
+                                $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$child_key]['mysql_field']}) ELSE SUM(g.{$fbaArr[$child_key]['mysql_field']}) END ) as {$fbaArr[$child_key]['mysql_field']}";
+                            }
+                        }
+                    }elseif($fbaArr[$target]['count_type'] == '5'){
+                        $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$target]['mysql_field']}) ELSE AVG(g.{$fbaArr[$target]['mysql_field']}) END ) as {$fbaArr[$target]['mysql_field']}";
+                    }else{
+                        $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$target]['mysql_field']}) ELSE SUM(g.{$fbaArr[$target]['mysql_field']}) END ) as {$fbaArr[$target]['mysql_field']}";
+                    }
                 }
             }
         }elseif($type == 2){  //不需要去重
             $other_field.= sprintf('%s  max(user_id) as user_id, max(area_id) as area_id , max(channel_id) as channel_id',$other_field ? ',' : '');
             foreach ($this->lastTargets as $target){
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
-                    $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
+                    if($fbaArr[$target]['count_type'] == '4') {
+                        if (!empty($fbaArr[$target]['child_key'])) {
+                            foreach ($fbaArr[$target]['child_key'] as $child_key) {
+                                $fields[] = "SUM((CASE WHEN {$fbaArr[$child_key]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$child_key]['mysql_field']} END )) as {$child_key}";
+                            }
+                        }
+                    }else{
+                        $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
+                    }
                 }
             }
         }elseif($type == 3){ //fba_table1
             foreach ($this->lastTargets as $target) {
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
-                    if($fbaArr[$target]['data_type'] == 2){
-                        if($datas['currency_code'] == 'ORIGIN'){
-                            $fields[] = "g.{$fbaArr[$target]['mysql_field']})";
-                        }else{
-                            $fields[] = "g.{$fbaArr[$target]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$target]['mysql_field']}";
+                    if($fbaArr[$target]['count_type'] == '4'){
+                        if(!empty($fbaArr[$target]['child_key'])){
+                            foreach ($fbaArr[$target]['child_key'] as $child_key) {
+                                if ($fbaArr[$target]['data_type'] == 2) {
+                                    if ($datas['currency_code'] == 'ORIGIN') {
+                                        $fields[] = "g.{$fbaArr[$child_key]['mysql_field']}";
+                                    } else {
+                                        $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
+                                    }
+                                } else {
+                                    $fields[] = "g.{$fbaArr[$child_key]['mysql_field']}";
+                                }
+                            }
                         }
                     }else{
-                        $fields[] = "g.{$fbaArr[$target]['mysql_field']}";
+                        if ($fbaArr[$target]['data_type'] == 2) {
+                            if ($datas['currency_code'] == 'ORIGIN') {
+                                $fields[] = "g.{$fbaArr[$target]['mysql_field']})";
+                            } else {
+                                $fields[] = "g.{$fbaArr[$target]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$target]['mysql_field']}";
+                            }
+                        } else {
+                            $fields[] = "g.{$fbaArr[$target]['mysql_field']}";
+                        }
                     }
                 }
             }
         }else{
             foreach ($this->lastTargets as $target) {
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
-                    $fields[] = "fba_table.{$target}";
+                    if($fbaArr[$target]['count_type'] == '4'){
+                        $fields[] = "{$fbaArr[$target]['mysql_field']} as {$target}";
+                    }else{
+                        $fields[] = "fba_table.{$target}";
+                    }
                 }
             }
         }
+        $fields = array_unique($fields);
         $other_field = !empty($other_field) ? $other_field . "," : "";
         $field = !empty($fields)  ? $other_field . implode(',',$fields) : $other_field;
         return $field;
