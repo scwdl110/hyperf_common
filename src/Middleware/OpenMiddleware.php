@@ -360,7 +360,7 @@ class OpenMiddleware implements MiddlewareInterface
             ];
         }
 
-        $redis->set($key,$checkCount,60);
+        $redis->expire($key,60);
         return [
             'code' => 1,
             'msg' => 'success',
