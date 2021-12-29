@@ -67,7 +67,10 @@ class OpenMiddleware implements MiddlewareInterface
         $redis = new Redis();
         $redis = $redis->getClient();
         $redisKey = 'center_open_lock_'.$channelId."_".$path;
-        $this->lock($redis, $redisKey);
+        $res = $this->lock($redis, $redisKey);
+        if(!$res){
+            return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request');
+        }
 
 
         //center_open_client_id
@@ -129,7 +132,10 @@ class OpenMiddleware implements MiddlewareInterface
         }
 
         //验证次数
-        $this->checkCount($redis, $userId);
+        $res = $this->checkCount($redis, $userId);
+        if(!$res['code']){
+            return Context::get(ResponseInterface::class)->withStatus(401, $res['msg']);
+        }
 
         //admin
         //center_open_admin_id
@@ -273,7 +279,7 @@ class OpenMiddleware implements MiddlewareInterface
     /**
      * @param $redis
      * @param $client_id
-     * @return array|mixed|ResponseInterface
+     * @return array|bool|mixed
      */
     private function self($redis, $client_id){
         //授权和取消授权需更新同个redis_key
@@ -287,7 +293,7 @@ class OpenMiddleware implements MiddlewareInterface
             ];
             $clientUser = Db::table('open_client_user')->where($where)->select('user_id')->first();
             if(!$clientUser){
-                return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
+                return false;
             }
             $userId = data_get($clientUser, 'user_id', 0);
             $redis->set($key, $userId, 86400);
@@ -307,7 +313,7 @@ class OpenMiddleware implements MiddlewareInterface
     {
         $lock = $redis->get($lockKey);
         if($lock){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request');
+            return false;
         }else {
             $redis->set($lockKey,1,60);
         }
@@ -335,11 +341,17 @@ class OpenMiddleware implements MiddlewareInterface
             ];
             $toolsUserRel = Db::connection("erp_base")->table('tools_user_rel')->where($where)->select('api_count', 'end_time')->first();
             if(!$toolsUserRel){
-                return Context::get(ResponseInterface::class)->withStatus(401, 'please buy api tools');
+                return [
+                    'code' => 0,
+                    'msg' => 'please buy api tools',
+                ];
             }
 
             if(data_get($toolsUserRel, 'end_time', 0) < $time){
-                return Context::get(ResponseInterface::class)->withStatus(401, 'api tools expired');
+                return [
+                    'code' => 0,
+                    'msg' => 'api tools expired',
+                ];
             }
 
             $apiCount = data_get($toolsUserRel, 'api_count', 0);
@@ -350,10 +362,16 @@ class OpenMiddleware implements MiddlewareInterface
         $key = "center_open_check_count_".$userId."_".$minutes;
         $checkCount = $redis->incr($key);
         if($checkCount>$apiCount){
-            return Context::get(ResponseInterface::class)->withStatus(401, 'The calling frequency is too high. Please wait or upgrade the package');
+            return [
+                'code' => 0,
+                'msg' => 'The calling frequency is too high. Please wait or upgrade the package',
+            ];
         }
 
         $redis->set($key,$checkCount,60);
-        return true;
+        return [
+            'code' => 1,
+            'msg' => 'success',
+        ];
     }
 }
