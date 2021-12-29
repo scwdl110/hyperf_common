@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Captainbi\Hyperf\Exception\Handle;
 
 use Captainbi\Hyperf\Exception\OpenException;
+use Captainbi\Hyperf\Util\OpenResult;
 use Captainbi\Hyperf\Util\Result;
 use Hyperf\ExceptionHandler\ExceptionHandler;
 use Hyperf\HttpMessage\Stream\SwooleStream;
@@ -58,7 +59,7 @@ class OpenExceptionHandler extends ExceptionHandler
         $code = $this->code ? $this->code : $throwable->getCode();
 
         // 格式化输出
-        $data = Result::fail($this->data, $message, $code);
+        $data = OpenResult::fail($this->data, $message, $code);
         $this->stopPropagation();
 
         return $response->withHeader('Server', 'Hyperf')->withStatus(200)->withBody(new SwooleStream($data));
