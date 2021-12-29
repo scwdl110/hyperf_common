@@ -15,7 +15,11 @@
 namespace Captainbi\Hyperf\Util;
 
 use Hyperf\Contract\ConfigInterface;
+use Hyperf\DbConnection\Db;
+use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\Utils\ApplicationContext;
+use Hyperf\Utils\Context;
+use Psr\Http\Message\ServerRequestInterface;
 
 class OpenResult
 {
@@ -29,23 +33,41 @@ class OpenResult
      */
     private static function data($code, $msg, $data = [], $next_token = '', $max_result = 0)
     {
+        $code = $code ?: 0;
+        $msg = $msg ?: 'success';
         $is_open_next_token = ApplicationContext::getContainer()->get(ConfigInterface::class)->get('common.is_open_next_token');
         if ($is_open_next_token) {
             return json_encode(array(
-                'code' => $code ?: 0,
-                'msg' => $msg ?: 'success',
+                'code' => $code,
+                'msg' => $msg,
                 'next_token' => $next_token ?: '',
                 'max_result' => $max_result ?: 0,
                 'data' => (object)$data,
             ), JSON_UNESCAPED_UNICODE);
         } else {
             return json_encode(array(
-                'code' => $code ?: 0,
-                'msg' => $msg ?: 'success',
+                'code' => $code,
+                'msg' => $msg,
                 'max_result' => $max_result ?: 0,
                 'data' => (object)$data,
             ), JSON_UNESCAPED_UNICODE);
         }
+
+        //定制化只支持开放平台
+        $request = ApplicationContext::getContainer()->get(RequestInterface::class);
+        $path = $request->getUri()->getPath();
+        $context = Context::get(ServerRequestInterface::class);
+        $userInfo = $context->getAttribute('userInfo');
+        $insertData = [
+            'user_id' => $userInfo['user_id'],
+            'client_id' => $userInfo['client_id'],
+            'channel_id' => $userInfo['channel_id'],
+            'path' => $path,
+            'code' => $code,
+            'msg' => $msg,
+        ];
+        Db::connection("erp_report")->table("open_api_log")->insert($insertData);
+
     }
 
     /**

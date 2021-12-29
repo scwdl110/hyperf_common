@@ -7,6 +7,7 @@ use Captainbi\Hyperf\Util\Functions;
 use Captainbi\Hyperf\Util\Redis;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\DbConnection\Db;
+use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Router\Dispatched;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Utils\ApplicationContext;
@@ -364,5 +365,20 @@ class OpenMiddleware implements MiddlewareInterface
             'code' => 1,
             'msg' => 'success',
         ];
+    }
+
+    //写日志
+    private function log($code,$msg,$path,$userId,$clientId,$channelId){
+        //定制化只支持开放平台
+        $context = Context::get(ServerRequestInterface::class);
+        $insertData = [
+            'user_id' => $userId,
+            'client_id' => $clientId,
+            'channel_id' => $channelId,
+            'path' => $path,
+            'code' => $code,
+            'msg' => $msg,
+        ];
+        Db::connection("erp_report")->table("open_api_log")->insert($insertData);
     }
 }
