@@ -210,21 +210,21 @@ return [
         //库龄 >365
         "fba_12_month_age"=>array("count_type"=>1, "mysql_field"=>"_12_month_age","data_type" => 3),
         //预计总LTSF
-        "fba_ltsf"=>array("count_type"=>1, "mysql_field"=>"ltsf","data_type" => 3),
+        "fba_ltsf"=>array("count_type"=>1, "mysql_field"=>"ltsf","data_type" => 2,'uk_status' => 1),
         //≤365天LTSF
-        "fba_ltsf_6_12"=>array("count_type"=>1, "mysql_field"=>"ltsf_6_12","data_type" => 3),
+        "fba_ltsf_6_12"=>array("count_type"=>1, "mysql_field"=>"ltsf_6_12","data_type" => 2,'uk_status' => 1),
         //>365天LTSF
-        "fba_ltsf_12"=>array("count_type"=>1, "mysql_field"=>"ltsf_6_12","data_type" => 3),
+        "fba_ltsf_12"=>array("count_type"=>1, "mysql_field"=>"ltsf_12","data_type" => 2,'uk_status' => 1),
         //仓储费
-        "fba_ccf"=>array("count_type"=>1, "mysql_field"=>"ccf","data_type" => 2),
+        "fba_ccf"=>array("count_type"=>1, "mysql_field"=>"ccf","data_type" => 2,'uk_status' => 1),
         //仓储费/件
-        "fba_ccf_every"=>array("count_type"=>2, "mysql_field"=>"ccf_every","data_type" => 2),
+        "fba_ccf_every"=>array("count_type"=>2, "mysql_field"=>"ccf_every","data_type" => 2,'uk_status' => 1),
         //规格/件
         "fba_volume_new"=>array("count_type"=>2, "mysql_field"=>"volume_new","data_type" => 3),
         //高库龄数
         "fba_ltsf_num"=>array("count_type"=>1, "mysql_field"=>"ltsf_num","data_type" => 1),
         //高库龄数仓储费
-        "fba_glccf"=>array("count_type"=>1, "mysql_field"=>"glccf","data_type" => 2),
+        "fba_glccf"=>array("count_type"=>1, "mysql_field"=>"glccf","data_type" => 2,'uk_status' => 1),
         //在库总成本
         "fba_reserved_fc_transfers_cost"=>array("count_type"=>1, "mysql_field"=>"reserved_fc_transfers_cost","data_type" => 2),
         //高库龄成本

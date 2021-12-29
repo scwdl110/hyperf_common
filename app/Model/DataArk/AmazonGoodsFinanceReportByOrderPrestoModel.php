@@ -13794,14 +13794,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             }
                         }
                     }else{
+                        $field_phix = !empty($fbaArr[$target]['uk_status']) ? "IF(g.{$fbaArr[$target]['mysql_field']}_uk > 0,g.{$fbaArr[$target]['mysql_field']}_uk,g.{$fbaArr[$target]['mysql_field']})" : "g.{$fbaArr[$target]['mysql_field']}";
                         if ($fbaArr[$target]['data_type'] == 2) {
                             if ($datas['currency_code'] == 'ORIGIN') {
-                                $fields[] = "g.{$fbaArr[$target]['mysql_field']})";
+                                $fields[] = $field_phix;
                             } else {
-                                $fields[] = "g.{$fbaArr[$target]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$target]['mysql_field']}";
+                                $fields[] = "{$field_phix} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$target]['mysql_field']}";
                             }
                         } else {
-                            $fields[] = "g.{$fbaArr[$target]['mysql_field']}";
+                            $fields[] = $field_phix;
                         }
                     }
                 }
