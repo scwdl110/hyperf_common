@@ -27,10 +27,6 @@ class OpenMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-//        defer(function(){
-//
-//        });
-
         //获取token
         $authorization = $request->getHeader('authorization');
         if(!isset($authorization[0])){
@@ -71,6 +67,9 @@ class OpenMiddleware implements MiddlewareInterface
         if(!$res){
             return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request');
         }
+        defer(function()use($redis, $redisKey){
+            $this->unlock($redis, $redisKey);
+        });
 
 
         //center_open_client_id
@@ -158,7 +157,7 @@ class OpenMiddleware implements MiddlewareInterface
 
         //channel需授权
         if($channelId){
-            $key = 'center_open_client_user_channel'.$clientId."_".$userId."_".$channelId;
+            $key = 'center_open_client_user_channel_'.$clientId."_".$userId."_".$channelId;
             $openClientUserChannelCount = $redis->get($key);
             if($openClientUserChannelCount===false){
                 $where = [
@@ -271,8 +270,6 @@ class OpenMiddleware implements MiddlewareInterface
 
         $response = $handler->handle($request);
 
-        $this->unlock($redis, $redisKey);
-
         return $response;
     }
 
@@ -311,13 +308,7 @@ class OpenMiddleware implements MiddlewareInterface
      */
     private function lock($redis, $lockKey)
     {
-        $lock = $redis->get($lockKey);
-        if($lock){
-            return false;
-        }else {
-            $redis->set($lockKey,1,60);
-        }
-        return true;
+        return $redis->set($lockKey,1,['nx', 'ex' => 60]);
     }
 
     //解锁住同个api调用
