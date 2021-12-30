@@ -264,10 +264,11 @@ class OpenMiddleware implements MiddlewareInterface
     }
 
     /**
+     * @param $redis
      * @param $client_id
-     * @return mixed
+     * @return bool
      */
-    private function self($client_id){
+    private function self($redis, $client_id){
         $arr = Functions::getOpenSelfClientUser($client_id);
         if(!isset($arr['user_id']) || !isset($arr['is_disable']) || $arr['is_disable']!=0){
             return false;
