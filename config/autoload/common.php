@@ -220,7 +220,7 @@ return [
         //仓储费/件
         "fba_ccf_every"=>array("count_type"=>1, "mysql_field"=>"ccf_every","data_type" => 2,'uk_status' => 1,"only_sku" => 1),
         //规格/件
-        "fba_volume_new"=>array("count_type"=>1, "mysql_field"=>"volume_new","data_type" => 3,"only_sku" => 1),
+        "fba_volume"=>array("count_type"=>1, "mysql_field"=>"volume","data_type" => 3,"only_sku" => 1),
         //高库龄数
         "fba_ltsf_num"=>array("count_type"=>1, "mysql_field"=>"ltsf_num","data_type" => 1),
         //高库龄数仓储费
