@@ -13143,7 +13143,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     protected function joinGoodsFbaTable($datas = array() , $channel_arr = array() , $currencyInfo = array(),$exchangeCode = '1', $custom_fba_target_key = array())
     {
-        if($this->haveFbaFields == false || in_array($datas['count_dimension'],['class1','head_id','developer_id'])){
+        if($this->haveFbaFields == false){
             //没有选择fba指标
             return [];
         }
@@ -13232,7 +13232,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_group1 = " GROUP BY amazon_goods.goods_isku_id ,g.merchant_id";
             $fba_table_group = " GROUP BY isku_id";
         }else if($datas['count_dimension'] == 'class1'){
-            //分类暂时没有
+            $join_field = ["user_id","class1","site_country_id"];
+            $fba_table_field = "max(class1) as class1,max(site_country_id) as site_country_id";
+            $fba_table_field1 = "max(amazon_goods.goods_product_category_name_1) as class1,max(amazon_goods.goods_site_id) as site_country_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+            $fba_table_group1 = " GROUP BY amazon_goods.goods_product_category_name_1,amazon_goods.goods_site_id,g.merchant_id";
+            $fba_table_group = " GROUP BY class1,site_country_id";
         }else if($datas['count_dimension'] == 'group'){ //分组
             $join_field = ["user_id","group_id"];
             $fba_table_field = "max(group_id) as group_id";
@@ -13248,9 +13253,19 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_group1 = " GROUP BY amazon_goods.goods_tag_id,g.merchant_id";
             $fba_table_group = " GROUP BY tags_id";
         }else if($datas['count_dimension'] == 'head_id') { //负责人
-            //负责人暂时没有
+            $join_field = ["user_id","head_id"];
+            $fba_table_field = "max(head_id) as head_id";
+            $fba_table_field1 = "max(amazon_goods.isku_head_id) as head_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+            $fba_table_group1 = " GROUP BY amazon_goods.isku_head_id,g.merchant_id";
+            $fba_table_group = " GROUP BY head_id";
         }else if($datas['count_dimension'] == 'developer_id') { //开发人员
-            //开发人员暂时没有
+            $join_field = ["user_id","developer_id"];
+            $fba_table_field = "max(developer_id) as developer_id";
+            $fba_table_field1 = "max(amazon_goods.isku_developer_id) as developer_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+            $fba_table_group1 = " GROUP BY amazon_goods.isku_developer_id,g.merchant_id";
+            $fba_table_group = " GROUP BY developer_id";
         }else if($datas['count_dimension'] == 'all_goods'){
             if($datas['is_distinct_channel'] == 1) { //有区分店铺
                 $join_field = ["user_id","channel_id"];
@@ -13331,7 +13346,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             } else if ($datas['count_dimension'] == 'group') {
                 $orderbyArr[] = "new_origin_table.group_id,new_origin_table.time ";
             } else if ($datas['count_dimension'] == 'class1') {
-                $orderbyArr[] = 'new_origin_table.class1 ,new_origin_table.site_id ,new_origin_table.class1_id , new_origin_table.time';
+                $orderbyArr[] = 'new_origin_table.class1 ,new_origin_table.site_country_id ,new_origin_table.class1_id , new_origin_table.time';
             } else if($datas['count_dimension'] == 'tags'){
                 $orderbyArr[] = 'new_origin_table.tags_id  , new_origin_table.time';
             } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
@@ -13802,15 +13817,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             }
                         }
                     }else{
-                        $field_phix = !empty($fbaArr[$target]['uk_status']) ? "IF(g.{$fbaArr[$target]['mysql_field']}_uk > 0,g.{$fbaArr[$target]['mysql_field']}_uk,g.{$fbaArr[$target]['mysql_field']})" : "g.{$fbaArr[$target]['mysql_field']}";
+                        $field_prefix = !empty($fbaArr[$target]['uk_status']) ? "IF(g.{$fbaArr[$target]['mysql_field']}_uk > 0,g.{$fbaArr[$target]['mysql_field']}_uk,g.{$fbaArr[$target]['mysql_field']})" : "g.{$fbaArr[$target]['mysql_field']}";
+                        $field_suffix = !empty($fbaArr[$target]['uk_status']) ? " as {$fbaArr[$target]['mysql_field']}" : "";
                         if ($fbaArr[$target]['data_type'] == 2) {
                             if ($datas['currency_code'] == 'ORIGIN') {
-                                $fields[] = $field_phix . " as {$fbaArr[$target]['mysql_field']}";
+                                $fields[] = $field_prefix . $field_suffix;
                             } else {
-                                $fields[] = "{$field_phix} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$target]['mysql_field']}";
+                                $fields[] = "{$field_prefix} * ({$exchangeCode} / COALESCE(rates.rate ,1))" . $field_suffix;
                             }
                         } else {
-                            $fields[] = $field_phix . " as {$fbaArr[$target]['mysql_field']}";
+                            $fields[] = $field_prefix . $field_suffix;
                         }
                     }
                 }
