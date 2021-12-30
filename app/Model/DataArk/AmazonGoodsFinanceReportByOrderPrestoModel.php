@@ -13157,7 +13157,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'order' => "",
             'fba_fields' => "",
         ];
-        $where = " WHERE g.user_id = " . intval($datas['user_id']) ." AND g.is_parent=0";
+        $where = " WHERE g.user_id = " . intval($datas['user_id']) ." AND g.is_parent=0 AND g.db_num = '{$this->dbhost}'";
         if (!empty($channel_arr)){
             if (count($channel_arr)==1){
                 $where .= " AND channel.id = ".intval(implode(",",$channel_arr));
