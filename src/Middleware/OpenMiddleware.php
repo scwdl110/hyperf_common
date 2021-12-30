@@ -158,7 +158,7 @@ class OpenMiddleware implements MiddlewareInterface
 
         //channel需授权
         if($channelId){
-            $channelIds = Functions::getOpenClientUserChannel($channelId, $userId);
+            $channelIds = Functions::getOpenClientUserChannel($clientId, $userId);
             if(!$channelIds || !in_array($channelId, $channelIds)){
                 return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
             }
