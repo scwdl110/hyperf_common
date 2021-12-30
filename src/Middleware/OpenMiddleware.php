@@ -94,7 +94,7 @@ class OpenMiddleware implements MiddlewareInterface
             $redis->set($key, $clientId, 86400);
         }
 
-        //授权和取消授权需更新同个redis_key
+
         //center_open_client_type
         $key = 'center_open_client_type_'.$clientId;
         $clientType = $redis->get($key);
@@ -158,20 +158,9 @@ class OpenMiddleware implements MiddlewareInterface
 
         //channel需授权
         if($channelId){
-            $key = 'center_open_client_user_channel_'.$clientId."_".$userId."_".$channelId;
-            $openClientUserChannelCount = $redis->get($key);
-            if($openClientUserChannelCount===false){
-                $where = [
-                    ['user_id', '=', $userId],
-                    ['channel_id', '=', $channelId],
-                    ['client_id', '=', $clientId],
-                ];
-                $openClientUserChannelCount = Db::table('open_client_user_channel')->where($where)->count();
-                if($openClientUserChannelCount<=0){
-                    return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
-                }
-
-                $redis->set($key, 1, 3600);
+            $channelIds = Functions::getOpenClientUserChannel($channelId, $userId);
+            if(!$channelIds || !in_array($channelId, $channelIds)){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
             }
 
             $channel = Functions::getChannel(intval($channelId));
@@ -275,29 +264,16 @@ class OpenMiddleware implements MiddlewareInterface
     }
 
     /**
-     * @param $redis
      * @param $client_id
-     * @return array|bool|mixed
+     * @return mixed
      */
-    private function self($redis, $client_id){
-        //授权和取消授权需更新同个redis_key
-        $key = 'center_open_self_user_id_'.$client_id;
-        $userId = $redis->get($key);
-        if($userId===false){
-            $where = [
-                ['client_id', '=', $client_id],
-                ['is_delete', '=', 0],
-                ['is_disable', '=', 0],
-            ];
-            $clientUser = Db::table('open_client_user')->where($where)->select('user_id')->first();
-            if(!$clientUser){
-                return false;
-            }
-            $userId = data_get($clientUser, 'user_id', 0);
-            $redis->set($key, $userId, 86400);
+    private function self($client_id){
+        $arr = Functions::getOpenSelfClientUser($client_id);
+        if(!isset($arr['user_id']) || !isset($arr['is_disable']) || $arr['is_disable']!=0){
+            return false;
         }
 
-        return $userId;
+        return $arr['user_id'];
     }
 
 
@@ -347,7 +323,8 @@ class OpenMiddleware implements MiddlewareInterface
             }
 
             $apiCount = data_get($toolsUserRel, 'api_count', 0);
-            $redis->set($key, $apiCount, 7200);
+            //有一个小时缓存
+            $redis->set($key, $apiCount, 3600);
         }
 
         $minutes = date("Ymdhi");

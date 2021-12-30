@@ -243,13 +243,16 @@ class Functions {
             return false;
         }
 
+        $defaultField = [
+            "site_id",
+            "Merchant_ID",
+            "title",
+            "user_id"
+        ];
         if(!$field){
-            $field = [
-                "site_id",
-                "Merchant_ID",
-                "title",
-                "user_id"
-            ];
+            $field = $defaultField;
+        }else{
+            $field = array_merge($field, $defaultField);
         }
 
         $key = 'center_open_channel_'.$channelId;
@@ -328,6 +331,74 @@ class Functions {
             $redis->set($key, $clientType, 86400);
         }
         return $clientType;
+    }
+
+
+    /**
+     * @param $clientId
+     * @param int $force
+     * @return bool|mixed
+     */
+    public static function getOpenSelfClientUser($clientId, int $force = 0){
+        $key = 'center_open_self_user_'.$clientId;
+        $poolName = 'default';
+        $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get($poolName);
+        $openUser = $redis->get($key);
+        if($openUser===false || $force){
+            $where = [
+                ['client_id', '=', $clientId],
+                ['is_delete', '=', 0],
+            ];
+            $clientUser = Db::table('open_client_user')->where($where)->select('user_id', 'is_disable')->first();
+            if(!$clientUser){
+                return false;
+            }
+            $userId = data_get($clientUser, 'user_id', 0);
+            $isDisable = data_get($clientUser, 'is_disable', 0);
+            $arr = [
+                'user_id' => $userId,
+                'is_disable' => $isDisable,
+            ];
+            $redis->set($key, json_encode($arr), 3600);
+        }
+
+        return json_decode($openUser, true);
+    }
+
+
+    /**
+     * @param $clientId
+     * @param $userId
+     * @param int $force
+     * @return bool|mixed
+     */
+    public static function getOpenClientUserChannel($clientId, $userId, int $force = 0){
+        $key = 'center_open_client_user_channel_'.$clientId."_".$userId;
+        $poolName = 'default';
+        $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get($poolName);
+        $openClientUserChannel = $redis->get($key);
+        if($openClientUserChannel===false || $force){
+            $where = [
+                ['client_id', '=', $clientId],
+                ['user_id', '=', $userId],
+            ];
+            $arr = Db::table('open_client_user_channel')->where($where)->select("channel_id")->get();
+            if(!$arr){
+                return false;
+            }
+
+            $openClientUserChannel = [];
+            foreach ($arr as $k=>$v){
+                $channelId = data_get($v, 'channel_id', '');
+                if($channelId){
+                    $openClientUserChannel[] = $channelId;
+                }
+
+            }
+            $redis->set($key, json_encode($openClientUserChannel), 3600);
+        }
+
+        return json_decode($openClientUserChannel, true);
     }
 
 
