@@ -13181,7 +13181,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
-        $fba_table_field = $fba_table_field1 = $fba_table_group1 = $fba_table_group = "";
+        $fba_table_field = $fba_table_field1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
         if($datas['count_dimension'] == 'sku'){
             if($datas['is_distinct_channel'] == 1){
                 $join_field = ["user_id","channel_id","sku"];
@@ -13781,6 +13781,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $other_field.= sprintf('%s  max(user_id) as user_id, max(area_id) as area_id , max(channel_id) as channel_id',$other_field ? ',' : '');
             foreach ($this->lastTargets as $target){
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
+                    if($target == 'fba_is_buhuo'){
+                        $fields[] = "MAX(buhuo_user) as fba_buhuo_user";
+                    }
                     if($fbaArr[$target]['count_type'] == '4') {
                         if (!empty($fbaArr[$target]['child_key'])) {
                             foreach ($fbaArr[$target]['child_key'] as $child_key) {
@@ -13800,6 +13803,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }elseif($type == 3){ //fba_table1
             foreach ($this->lastTargets as $target) {
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
+                    if($target == 'fba_is_buhuo'){
+                        $fields[] = "g.buhuo_user";
+                    }
                     if($target == 'fba_suggested_replenishment_time'){
                         $fields[] = "nullif(g.suggested_replenishment_time,-111111) as suggested_replenishment_time";
                     }elseif($fbaArr[$target]['count_type'] == '4'){
@@ -13834,6 +13840,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else{
             foreach ($this->lastTargets as $target) {
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
+                    if($target == 'fba_is_buhuo'){
+                        $fields[] = "fba_table.fba_buhuo_user";
+                    }
                     if($fbaArr[$target]['count_type'] == '4'){
                         $fields[] = "{$fbaArr[$target]['mysql_field']} as {$target}";
                     }else{
