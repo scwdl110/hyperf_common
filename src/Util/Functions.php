@@ -360,9 +360,11 @@ class Functions {
                 'is_disable' => $isDisable,
             ];
             $redis->set($key, json_encode($arr), 3600);
+        }else{
+            $openUser = json_decode($openUser, true);
         }
 
-        return json_decode($openUser, true);
+        return $openUser;
     }
 
 
@@ -396,9 +398,11 @@ class Functions {
 
             }
             $redis->set($key, json_encode($openClientUserChannel), 3600);
+        }else{
+            $openClientUserChannel = json_decode($openClientUserChannel, true);
         }
 
-        return json_decode($openClientUserChannel, true);
+        return $openClientUserChannel;
     }
 
 
