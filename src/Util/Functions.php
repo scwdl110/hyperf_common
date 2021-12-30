@@ -355,11 +355,11 @@ class Functions {
             }
             $userId = data_get($clientUser, 'user_id', 0);
             $isDisable = data_get($clientUser, 'is_disable', 0);
-            $arr = [
+            $openUser = [
                 'user_id' => $userId,
                 'is_disable' => $isDisable,
             ];
-            $redis->set($key, json_encode($arr), 3600);
+            $redis->set($key, json_encode($openUser), 3600);
         }else{
             $openUser = json_decode($openUser, true);
         }
