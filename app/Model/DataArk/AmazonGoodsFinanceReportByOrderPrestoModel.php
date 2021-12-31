@@ -12560,8 +12560,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if (in_array($key, ['erp_period_start_goods_cost_begin', 'erp_period_end_goods_cost_end']))
                         {
                             if ($params['currency_code'] != 'CNY'){
-                                $fields["min_{$key}"] = "min($temp_erp_field) * COALESCE(rates.rate ,1)";
-                                $fields["max_{$key}"] = "max($temp_erp_field) * COALESCE(rates.rate ,1)";
+                                $fields["min_{$key}"] = "min($temp_erp_field * COALESCE(rates.rate ,1))";
+                                $fields["max_{$key}"] = "max($temp_erp_field * COALESCE(rates.rate ,1))";
                             }else{
                                 $fields["min_{$key}"] = "min($temp_erp_field)";
                                 $fields["max_{$key}"] = "max($temp_erp_field)";
