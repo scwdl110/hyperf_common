@@ -285,6 +285,7 @@ class Functions {
             ];
             $channel = Db::connection("erp_base")->table('channel')->where($where)->select($field)->first();
             if(!$channel){
+                $redis->set($key, json_encode([]), 3600);
                 return false;
             }
             $siteId = data_get($channel, 'site_id', 0);
@@ -324,6 +325,7 @@ class Functions {
             $client = Db::table('open_client')->where($where)->select('client_type')->first();
 
             if(!$client){
+                $redis->set($key, '', 3600);
                 return false;
             }
             $clientType = data_get($client, 'client_type', '');
@@ -351,6 +353,7 @@ class Functions {
             ];
             $clientUser = Db::table('open_client_user')->where($where)->select('user_id', 'is_disable')->first();
             if(!$clientUser){
+                $redis->set($key, json_encode([]), 3600);
                 return false;
             }
             $userId = data_get($clientUser, 'user_id', 0);
@@ -386,6 +389,7 @@ class Functions {
             ];
             $arr = Db::table('open_client_user_channel')->where($where)->select("channel_id")->get();
             if(!$arr){
+                $redis->set($key, json_encode([]), 3600);
                 return false;
             }
 
