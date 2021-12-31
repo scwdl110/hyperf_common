@@ -78,7 +78,12 @@ class OpenMiddleware implements MiddlewareInterface
         $clientId = $redis->get($key);
         if($clientId===false){
             //获取client
+            $wsId = Functions::getOpenWsId();
+            if(!$wsId){
+                return Context::get(ResponseInterface::class)->withStatus(401, 'ws_id Unauthorized');
+            }
             $where = [
+                ['a.ws_id', '=', $wsId],
                 ['a.access_token', '=', $accessToken],
             ];
             $tokenArr = Db::connection('pg_kong')->table('oauth2_tokens as a')

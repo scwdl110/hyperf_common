@@ -434,4 +434,22 @@ class Functions {
         return $phone;
     }
 
+
+    /**
+     * @param int $force
+     * @return array|bool|\Hyperf\Database\Model\Model|\Hyperf\Database\Query\Builder|mixed|object|string|null
+     */
+    public static function getOpenWsId(int $force = 0){
+        $key = 'center_open_ws_id';
+        $redis = new Redis();
+        $redis = $redis->getClient();
+        $wsId = $redis->get($key);
+        if($wsId===false || $force){
+            $wsId = Db::connection("pg_kong")->table("workspaces")->where($where)->select('id')->first();
+            $wsId = data_get($wsId, 'id', '');
+            $redis->set($key, $wsId, 3600);
+        }
+        return $wsId;
+    }
+
 }
