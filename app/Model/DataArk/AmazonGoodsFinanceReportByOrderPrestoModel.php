@@ -12557,10 +12557,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
                         $temp_erp_field = $erp_report_fields_arr[$key]['mysql_field'];
 
-                        if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                            $fields[$key] = "SUM(($temp_erp_field) * COALESCE(rates.rate ,1))";
+                        if (in_array($key, ['erp_period_start_goods_cost_begin', 'erp_period_end_goods_cost_end']))
+                        {
+                            if ($params['currency_code'] != 'CNY'){
+                                $fields["min_{$key}"] = "min($temp_erp_field) * COALESCE(rates.rate ,1)";
+                                $fields["max_{$key}"] = "max($temp_erp_field) * COALESCE(rates.rate ,1)";
+                            }else{
+                                $fields["min_{$key}"] = "min($temp_erp_field)";
+                                $fields["max_{$key}"] = "max($temp_erp_field)";
+                            }
                         }else{
-                            $fields[$key] = "SUM($temp_erp_field)";
+                            if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
+                                $fields[$key] = "SUM(($temp_erp_field) * COALESCE(rates.rate ,1))";
+                            }else{
+                                $fields[$key] = "SUM($temp_erp_field)";
+                            }
                         }
                     }
                 }
