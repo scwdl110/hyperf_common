@@ -445,7 +445,7 @@ class Functions {
         $redis = $redis->getClient();
         $wsId = $redis->get($key);
         if($wsId===false || $force){
-            $wsId = Db::connection("pg_kong")->table("workspaces")->where($where)->select('id')->first();
+            $wsId = Db::connection("pg_kong")->table("workspaces")->select('id')->first();
             $wsId = data_get($wsId, 'id', '');
             $redis->set($key, $wsId, 3600);
         }
