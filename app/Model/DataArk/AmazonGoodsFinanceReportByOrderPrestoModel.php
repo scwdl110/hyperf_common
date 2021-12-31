@@ -12566,6 +12566,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                 $fields["min_{$key}"] = "min($temp_erp_field)";
                                 $fields["max_{$key}"] = "max($temp_erp_field)";
                             }
+                            $fields[$key] = 1;
                         }else{
                             if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
                                 $fields[$key] = "SUM(($temp_erp_field) * COALESCE(rates.rate ,1))";
