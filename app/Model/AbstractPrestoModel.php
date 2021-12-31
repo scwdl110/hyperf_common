@@ -23,7 +23,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected static $tableMaps = [
         'table_channel' => 'ods.ods_dataark_b_channel',
-        'table_site_area' => 'ods.ods_dataark_b_site_area',
+        'table_area' => 'ods.ods_dataark_b_site_area',
         'table_site_rate' => 'ods.ods_dataark_b_site_rate',
         'table_user_department' => 'ods.ods_dataark_b_user_department',
         'table_amazon_goods_isku' => 'ods.ods_dataark_f_amazon_goods_isku_001',
