@@ -13158,11 +13158,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'fba_fields' => "",
         ];
         $where = " WHERE g.user_id = " . intval($datas['user_id']) ." AND g.is_parent=0 AND g.db_num = '{$this->dbhost}'";
+        $channel_where = " WHERE c_tmp.user_id = 266";
         if (!empty($channel_arr)){
             if (count($channel_arr)==1){
                 $where .= " AND channel.id = ".intval(implode(",",$channel_arr));
+                $channel_where .= " AND c_tmp.id = ".intval(implode(",",$channel_arr));
             }else{
                 $where .= " AND channel.id IN (".implode(",",$channel_arr).")";
+                $channel_where .= " AND c_tmp.id IN (".implode(",",$channel_arr).")";
             }
         }
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
@@ -13174,10 +13177,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = channel.user_id  ";
             }
         }
+        $child_table[] = [
+            'table_name' => 'channel_table',
+            'table_sql' => "select c_tmp.id,c_tmp.user_id,c_tmp.site_id,c_tmp.merchant_id,area.area_id from {$this->table_channel} as c_tmp LEFT JOIN {$this->table_site_area} as area ON area.site_id = c_tmp.site_id {$channel_where}"
+        ];
         $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
-            'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN {$this->table_channel} as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id {$rate_table} {$where}",
+            'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN channel_table as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id and g.area_id = channel.area_id {$rate_table} {$where}",
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
