@@ -6792,7 +6792,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         //加入自定义指标
         $fba_target_key = $operation_table_field = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
-        $datas['list_type'] = 1;//1-商品 2-店铺 fba用的
+        $datas['list_type'] = 2;//1-商品 2-店铺 fba用的
         $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$operation_table_field ,$is_count,$isMysql);
         return ['fields' => $fields,'fba_target_key' => $fba_target_key];
     }
@@ -10695,15 +10695,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $fba_field_exits = array_merge($fba_field_exits,$formula_fields_arr);
                             $fba_target_key[] = $item['target_key'];
                             $str = $is_count ? "1" : "'{$item['formula']}'";
+
                         }
-                        if($datas['stock_datas_origin'] != 1){
+                        if($datas['stock_datas_origin'] != 1 || empty($count)){
                             $fields[$item['target_key']] = $isMysql ? $str : "try(" . $str . ")";
                         }
                     }
                 }
             }
         }
+
         $fba_field_exits = $fba_field_exits ? array_unique($fba_field_exits) : [];
+
         //unset没选的字段
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
         if(!(!empty($where_detail['target']) && $datas['is_count'] == 1)){
@@ -13424,16 +13427,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $where .= " AND c.id IN (".implode(",",$channel_arr).")";
         }
         $fbaArr = config('common.channel_fba_fields_arr');
-        if($datas['currency_code'] != 'ORIGIN'){
-            foreach($fbaArr as $fbaFieldKey=>$val){
-                if(in_array($fbaFieldKey , $this->lastTargets)){
-                    if(!in_array($fbaFieldKey,['fba_sales_day','fba_suggested_replenishment_time','fba_turnover_times'])){
-                        $result_fba_fields[] = "fba_table.".$fbaFieldKey ;
-                    }
-                    $fields[$fbaFieldKey] = "fba_table.".$fbaFieldKey ;
-                    if($val['data_type'] == 2){
-                        $is_currency_exchange = 1 ;
-                    }
+        foreach($fbaArr as $fbaFieldKey=>$val){
+            if(in_array($fbaFieldKey , $this->lastTargets)){
+
+                if(!in_array($fbaFieldKey,['fba_sales_day','fba_suggested_replenishment_time','fba_turnover_times'])){
+                    $result_fba_fields[] = "fba_table.".$fbaFieldKey ;
+                }
+                $fields[$fbaFieldKey] = "fba_table.".$fbaFieldKey ;
+                if($val['data_type'] == 2 && $datas['currency_code'] != 'ORIGIN'){
+                    $is_currency_exchange = 1 ;
                 }
             }
         }
@@ -13473,7 +13475,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_sql' =>$table_sql,
             ] ;
             $json_on = "new_origin_table.site_id = fba_table.site_id AND new_origin_table.user_id = fba_table.user_id " ;
-        }else if($datas['count_dimension'] == 'department') { //按部门
+        }else if($datas['count_dimension'] == 'department' && $datas['is_count'] != 1) { //按部门
             $where.=" AND dc.user_department_id > 0 " ;
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id ,max(c.site_id) as site_id ,max(dc.user_department_id) as user_department_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
@@ -13502,7 +13504,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ] ;
             $json_on = "new_origin_table.user_department_id = fba_table.user_department_id AND new_origin_table.user_id = fba_table.user_id " ;
 
-        }else if($datas['count_dimension'] == 'admin_id'){ //按子账号
+        }else if($datas['count_dimension'] == 'admin_id' && $datas['is_count'] != 1){ //按子账号
             $where.=" AND  uc.admin_id > 0  " ;
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id,max(c.site_id) as site_id  ,max(uc.admin_id) as admin_id",'mysql_key' ,$is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
@@ -13559,9 +13561,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ] ;
             $json_on = "new_origin_table.user_id = fba_table.user_id " ;
         }
-
-
         $other_fields = $this->getUnGoodsFbaOtherField($fields , $custom_fba_target_key) ;
+
         if(!empty($other_fields)){
             foreach($other_fields as $other_key=>$otherField){
                 $other_field_str.= empty($other_field_str) ? ($otherField. ' AS ' . $other_key ) : (' , ' . $otherField. ' AS ' . $other_key) ;
@@ -13645,9 +13646,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if(!empty($other_fields)){
             $fields = array_merge($fields , $other_fields) ;
         }
-
         $custom_targets_list = empty($this->customTargetsList) ? array() : $this->customTargetsList ;
-        if(empty($custom_targets_list)){
+        if(!empty($custom_targets_list)){
             foreach ($custom_targets_list as $item) {
                 if(in_array($item['target_key'] , $custom_fba_target_key)){
                     $formula_json_arr = $item['formula_json'] ? json_decode($item['formula_json'], true) : [];
