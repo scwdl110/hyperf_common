@@ -393,7 +393,10 @@ class Functions {
             foreach ($arr as $k=>$v){
                 $channelId = data_get($v, 'channel_id', '');
                 if($channelId){
-                    $openClientUserChannel[] = $channelId;
+                    $channel = Functions::getChannel(intval($channelId));
+                    if($channel){
+                        $openClientUserChannel[] = $channelId;
+                    }
                 }
 
             }
