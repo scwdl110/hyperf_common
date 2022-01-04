@@ -621,7 +621,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['currency_code'] != 'ORIGIN') {
                 $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
             }else{
-                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']]."/ COALESCE(rates.rate ,1)" . ' ) ' . $datas['sort_order'];
+                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$datas['sort_target']]) . ' ) ' . $datas['sort_order'];
+
             }
 
         }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
@@ -632,7 +633,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['currency_code'] != 'ORIGIN') {
                 $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
             }else{
-                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort]."/ COALESCE(rates.rate ,1)" . ' ) ' . $order;
+                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$sort]) . ' ) ' . $order;
             }
         }
         $orderbyTmp = $orderby;
@@ -5446,7 +5447,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($params['currency_code'] != 'ORIGIN') {
                 $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
             }else{
-                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]} / COALESCE(rates.rate ,1)) {$params['sort_order']}";
+                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), (".$this->getOriginOrderBy($fields[$params['sort_target']]).") {$params['sort_order']}";
             }
         }elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
             $orderby = " max(report.create_time) {$params['sort_order']}";
@@ -5456,7 +5457,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($params['currency_code'] != 'ORIGIN') {
                 $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
             }else{
-                $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]} / COALESCE(rates.rate ,1)) {$order}";
+                $orderby =  "(({$fields[$sort]}) IS NULL), (".$this->getOriginOrderBy($fields[$sort]).") {$order}";
             }
 
         }
@@ -12932,5 +12933,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $sql_key_arr = $mysql_fields['sql_key_arr'];
 
         return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr];
+    }
+
+    public function getOriginOrderBy($sort_target){
+//        $fields[$datas['sort_target']]
+        $order_field_arr = explode("/",$sort_target);
+        if (!empty($order_field_arr)){
+            $order_by = array();
+            foreach ($order_field_arr as $key =>  $order_val){
+                $order_by_tmp = str_replace("SUM","",$order_val);
+                $order_by_tmp = str_replace("sum","",$order_by_tmp);
+                $order_by[]   = "SUM(".$order_by_tmp."/ COALESCE(rates.rate ,1)".")";
+            }
+            $sort_target      = implode("/",$order_by);
+        }
+
+        return $sort_target;
     }
 }
