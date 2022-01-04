@@ -82,7 +82,7 @@ return [
         //库龄 >365
         "fba_12_month_age"=>array("count_type"=>1, "mysql_field"=>"_12_month_age" ,"data_type"=>1),
         //预计总LTSF
-        "fba_total_ltsf_num"=>array("count_type"=>1, "mysql_field"=>"total_ltsf_num" ,"data_type"=>1),
+        "fba_total_ltsf"=>array("count_type"=>1, "mysql_field"=>"total_ltsf_num" ,"data_type"=>1),
         //≤365天LTSF
         "fba_ltsf_6_12"=>array("count_type"=>1, "mysql_field"=>"ltsf_6_12" ,"data_type"=>1),
         //>365天LTSF
