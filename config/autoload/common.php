@@ -226,7 +226,7 @@ return [
         //高库龄数仓储费
         "fba_glccf"=>array("count_type"=>1, "mysql_field"=>"glccf","data_type" => 2,'uk_status' => 1),
         //在库总成本
-        "fba_reserved_fc_transfers_cost"=>array("count_type"=>1, "mysql_field"=>"reserved_fc_transfers_cost","data_type" => 2),
+        "fba_yjzhz"=>array("count_type"=>1, "mysql_field"=>"yjzhz","data_type" => 2),
         //高库龄成本
         "fba_glhz"=>array("count_type"=>1, "mysql_field"=>"glhz","data_type" => 2),
     ),
