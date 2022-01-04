@@ -13808,6 +13808,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     if($target == 'fba_is_buhuo'){
                         $fields[] = "MAX(buhuo_user) as fba_buhuo_user";
                     }
+                    if($target == 'fba_suggested_replenishment_time'){
+                        $fields[] = "MAX(available_days) as fba_sales_day";
+                    }
                     if($fbaArr[$target]['count_type'] == '4') {
                         if (!empty($fbaArr[$target]['child_key'])) {
                             foreach ($fbaArr[$target]['child_key'] as $child_key) {
@@ -13831,8 +13834,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $fields[] = "g.buhuo_user";
                     }
                     if($target == 'fba_suggested_replenishment_time'){
-                        $fields[] = "nullif(g.suggested_replenishment_time,-111111) as suggested_replenishment_time";
-                    }elseif($fbaArr[$target]['count_type'] == '4'){
+                        $fields[] = "g.available_days";
+                    }
+                    if($fbaArr[$target]['count_type'] == '4'){
                         if(!empty($fbaArr[$target]['child_key'])){
                             foreach ($fbaArr[$target]['child_key'] as $child_key) {
                                 if ($fbaArr[$target]['data_type'] == 2) {
@@ -13866,6 +13870,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])) {
                     if($target == 'fba_is_buhuo'){
                         $fields[] = "fba_table.fba_buhuo_user";
+                    }
+                    if($target == 'fba_suggested_replenishment_time'){
+                        $fields[] = "fba_table.fba_sales_day";
                     }
                     if($fbaArr[$target]['count_type'] == '4'){
                         $fields[] = "{$fbaArr[$target]['mysql_field']} as {$target}";
