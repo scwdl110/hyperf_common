@@ -13858,7 +13858,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $fields[] = "MAX(buhuo_user) as fba_buhuo_user";
                     }
                     if($target == 'fba_suggested_replenishment_time'){
-                        $fields[] = "MAX(available_days) as fba_sales_day";
+                        $fields[] = "SUM((CASE WHEN available_days < 0 THEN 0 ELSE available_days END )) as fba_sales_day";
                     }
                     if($fbaArr[$target]['count_type'] == '4') {
                         if (!empty($fbaArr[$target]['child_key'])) {
