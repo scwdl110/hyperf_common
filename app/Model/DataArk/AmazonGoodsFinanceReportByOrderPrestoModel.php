@@ -618,13 +618,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
-            $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+            if ($datas['currency_code'] != 'ORIGIN') {
+                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+            }else{
+                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']]."/ COALESCE(rates.rate ,1)" . ' ) ' . $datas['sort_order'];
+            }
+
         }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
             $orderby = " max(report.create_time) {$datas['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
-            $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+            if ($datas['currency_code'] != 'ORIGIN') {
+                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+            }else{
+                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort]."/ COALESCE(rates.rate ,1)" . ' ) ' . $order;
+            }
         }
         $orderbyTmp = $orderby;
 
@@ -656,6 +665,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
             }
+        }else{
+            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
         }
 
         $having = '';
@@ -5432,13 +5443,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $orderby = '';
         if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
-            $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
+            if ($params['currency_code'] != 'ORIGIN') {
+                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
+            }else{
+                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]} / COALESCE(rates.rate ,1)) {$params['sort_order']}";
+            }
         }elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
             $orderby = " max(report.create_time) {$params['sort_order']}";
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $params['limit_num'] == 0 ) {
-            $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
+            if ($params['currency_code'] != 'ORIGIN') {
+                $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
+            }else{
+                $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]} / COALESCE(rates.rate ,1)) {$order}";
+            }
+
         }
 
         $orderbyTmp = $orderby;
@@ -5462,6 +5482,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id ";
             }
+        }else{
+            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
         }
 
         if ($this->countDimensionChannel){
