@@ -13197,7 +13197,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'table_name' => 'channel_table',
             'table_sql' => "select c_tmp.id,c_tmp.user_id,c_tmp.site_id,c_tmp.merchant_id,area.area_id from {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id {$channel_where}"
         ];
-        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
+        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
             'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN channel_table as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id and g.area_id = channel.area_id {$rate_table} {$where}",
