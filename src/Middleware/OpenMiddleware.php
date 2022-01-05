@@ -361,6 +361,8 @@ class OpenMiddleware implements MiddlewareInterface
             'path' => $path,
             'code' => $code,
             'msg' => $msg,
+            'create_time' => $time,
+            'modified_time' => $time,
         ];
         Db::connection("erp_report")->table("open_api_log")->insert($insertData);
     }

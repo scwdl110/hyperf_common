@@ -41,6 +41,7 @@ class OpenResult
         $path = $request->getUri()->getPath();
         $context = Context::get(ServerRequestInterface::class);
         $userInfo = $context->getAttribute('userInfo');
+        $time = time();
         $insertData = [
             'user_id' => $userInfo['user_id'],
             'client_id' => $userInfo['client_id'],
@@ -48,6 +49,8 @@ class OpenResult
             'path' => $path,
             'code' => $code,
             'msg' => $msg,
+            'create_time' => $time,
+            'modified_time' => $time,
         ];
         Db::connection("erp_report")->table("open_api_log")->insert($insertData);
 
