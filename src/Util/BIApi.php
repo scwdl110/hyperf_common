@@ -47,7 +47,7 @@ class BIApi
         $param['api_signkey'] = self::sign(self::$apiSecret, $param);
 
         $httpClient = (new \Hyperf\Guzzle\ClientFactory(\Hyperf\Utils\ApplicationContext::getContainer()))->create();
-        return $httpClient->post(self::$url . "&a={$action}", $param);
+        return $httpClient->post(self::$url . "&a={$action}", ['form_params' => $param]);
     }
 
     public static function sign(string $secret, array $param): string
