@@ -72,11 +72,11 @@ class Functions {
      * 发送短信
      *
      * @param string $message
-     * @param string $mobile
+     * @param string|int $mobile
      * @param int $type 0:手机号, 1:user_id, 2:admin_id
      * @return ?array 失败返回 null，成功返回数组（仅代表请求短信服务商成功，不代表成功发送）
      */
-    public static function sendSms(string $message, string $mobile, int $type = 0): ?array
+    public static function sendSms(string $message, $mobile, int $type = 0): ?array
     {
         $param = ['message' => $message];
         $param[[
