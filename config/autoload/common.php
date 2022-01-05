@@ -190,13 +190,13 @@ return [
         //是否当前补货
         "fba_is_buhuo"=>array("count_type"=>3, "mysql_field"=>"buhuo","data_type" => 3,"only_sku" => 1),
         //可售天数
-        "fba_sales_day"=>array("count_type"=>1, "mysql_field"=>"available_days","data_type" => 1,"only_sku" => 1),
+        "fba_sales_day"=>array("count_type"=>3, "mysql_field"=>"available_days","data_type" => 1,"only_sku" => 1),
         //到货天数
         "fba_arrival_days"=>array("count_type"=>1, "mysql_field"=>"arrival_days","data_type" => 1,"only_sku" => 1),
         //备货天数
         "fba_days_of_preparation"=>array("count_type"=>1, "mysql_field"=>"days_of_preparation","data_type" => 1,"only_sku" => 1),
         //建议补货数量
-        "fba_replenishment_quantity"=>array("count_type"=>1, "mysql_field"=>"replenishment_quantity","data_type" => 1,"only_sku" => 1),
+        "fba_replenishment_quantity"=>array("count_type"=>3, "mysql_field"=>"replenishment_quantity","data_type" => 1,"only_sku" => 1),
         //建议补货时间
         "fba_suggested_replenishment_time"=>array("count_type"=>3, "mysql_field"=>"suggested_replenishment_time","data_type" => 3,"only_sku" => 1),
         //库龄 ≤90
