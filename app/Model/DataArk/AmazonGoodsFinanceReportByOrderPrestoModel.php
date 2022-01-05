@@ -1206,10 +1206,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData);
                     return $lists;
                 });
-//                $parallel->add(function () use($where, $table, $group,$isMysql,$compareData,$field_data,$fbaData){
-//                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
-//                    return $count;
-//                });
+                $parallel->add(function () use($where, $table, $group,$isMysql,$compareData,$field_data,$fbaData){
+                    $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
+                    return $count;
+                });
                 $table_sessions_views = "{$this->table_dws_goods_day_report} AS report";
                 $parallel->add(function () use($datas,$fields,$isMysql,$table_sessions_views){
                     $total_user_sessions_views = array();
@@ -1226,8 +1226,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     // $results 结果为 [1, 2]
                     $results = $parallel->wait();
                     $lists = $results[0];
-                    $count = 1;
-                    $total_user_sessions_views = [];
+                    $count = $results[1];
+                    $total_user_sessions_views = $results[2];
                 } catch(ParallelExecutionException $e){
                     // $e->getResults() 获取协程中的返回值。
                     // $e->getThrowables() 获取协程中出现的异常。
