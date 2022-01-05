@@ -94,7 +94,7 @@ return [
         //周转次数单独处理
         "fba_turnover_times"=>array("count_type"=>4, "mysql_field"=>"(CASE WHEN SUM(_30_day_sale) > 0 THEN SUM(available_stock)/SUM(_30_day_sale) ELSE 0 END )" ,"data_type"=>1),
         //上个月商品动销率
-        "fba_marketing_rate"=>array("count_type"=>3, "mysql_field"=>"marketing_rate" ,"data_type"=>1),
+        //"fba_marketing_rate"=>array("count_type"=>3, "mysql_field"=>"marketing_rate" ,"data_type"=>1),
         //已发货
         "fba_shipped_num"=>array("count_type"=>1, "mysql_field"=>"shipped_num" ,"data_type"=>1),
         //已收到
