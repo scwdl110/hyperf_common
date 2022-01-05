@@ -12941,7 +12941,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if (!empty($order_field_arr)){
             $order_by = array();
             foreach ($order_field_arr as $key =>  $order_val){
-                if(strpos(strtolower($order_val),'sum') !== false){
+                if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($order_val),'try(') === false){
                     $order_by_tmp = str_replace("SUM","",$order_val);
                     $order_by_tmp = str_replace("sum","",$order_by_tmp);
                     $order_by[]   = "SUM(".$order_by_tmp."/ COALESCE(rates.rate ,1)".")";
