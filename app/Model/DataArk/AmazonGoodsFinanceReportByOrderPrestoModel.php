@@ -13860,7 +13860,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     if($target == 'fba_suggested_replenishment_time'){
                         $fields[] = "MAX(available_days) as fba_sales_day_tmp";
                     }
-                    if($fbaArr[$target]['count_type'] == '4') {
+                    if($datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1 && in_array($target,['fba_day_sale','fba_special_purpose'])){
+                        //仅sku区分店铺
+                        $fields[] = "MAX({$fbaArr[$target]['mysql_field']}) as {$target}";
+                    }elseif($fbaArr[$target]['count_type'] == '4') {
                         if (!empty($fbaArr[$target]['child_key'])) {
                             foreach ($fbaArr[$target]['child_key'] as $child_key) {
                                 $fields[] = "SUM((CASE WHEN {$fbaArr[$child_key]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$child_key]['mysql_field']} END )) as {$child_key}";
