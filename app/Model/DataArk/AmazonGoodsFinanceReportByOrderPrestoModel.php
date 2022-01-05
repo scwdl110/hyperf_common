@@ -13174,7 +13174,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'fba_fields' => "",
         ];
         $where = " WHERE g.user_id = " . intval($datas['user_id']) ." AND g.is_parent=0 AND g.db_num = '{$this->dbhost}'";
-        $channel_where = " WHERE c_tmp.user_id = 266";
+        $channel_where = " WHERE c_tmp.user_id = " . intval($datas['user_id']);
         if (!empty($channel_arr)){
             if (count($channel_arr)==1){
                 $where .= " AND channel.id = ".intval(implode(",",$channel_arr));
@@ -13186,7 +13186,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
         $rate_table = $origin_field = "";
-        if($datas['currency_code'] != 'ORIGIN'){
+        if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz'],$this->lastTargets))){
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = 0 ";
             } else {
@@ -13890,9 +13890,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             foreach ($fbaArr[$target]['child_key'] as $child_key) {
                                 if ($fbaArr[$target]['data_type'] == 2) {
                                     if ($datas['currency_code'] == 'ORIGIN') {
-                                        $fields[] = "g.{$fbaArr[$child_key]['mysql_field']}";
+                                        if(in_array($child_key,['fba_yjzhz','fba_glhz'])){
+                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$child_key]['mysql_field']}";
+                                        }else{
+                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']}";
+                                        }
                                     } else {
-                                        $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
+                                        if(in_array($child_key,['fba_yjzhz','fba_glhz'])){
+                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * {$exchangeCode} as {$fbaArr[$child_key]['mysql_field']}";
+                                        }else{
+                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
+                                        }
                                     }
                                 } else {
                                     $fields[] = "g.{$fbaArr[$child_key]['mysql_field']}";
@@ -13904,9 +13912,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $field_suffix = !empty($fbaArr[$target]['uk_status']) ? " as {$fbaArr[$target]['mysql_field']}" : "";
                         if ($fbaArr[$target]['data_type'] == 2) {
                             if ($datas['currency_code'] == 'ORIGIN') {
-                                $fields[] = $field_prefix . $field_suffix;
+                                if(in_array($target,['fba_yjzhz','fba_glhz'])){
+                                    $fields[] = "g.{$fbaArr[$target]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$target]['mysql_field']}";
+                                }else{
+                                    $fields[] = $field_prefix . $field_suffix;
+                                }
                             } else {
-                                $fields[] = "{$field_prefix} * ({$exchangeCode} / COALESCE(rates.rate ,1))" . $field_suffix;
+                                if(in_array($target,['fba_yjzhz','fba_glhz'])){
+                                    $fields[] = "g.{$fbaArr[$target]['mysql_field']} * {$exchangeCode} as {$fbaArr[$target]['mysql_field']}";
+                                }else{
+                                    $fields[] = "{$field_prefix} * ({$exchangeCode} / COALESCE(rates.rate ,1))" . $field_suffix;
+                                }
                             }
                         } else {
                             $fields[] = $field_prefix . $field_suffix;
