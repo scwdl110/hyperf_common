@@ -31,7 +31,7 @@ class OpenResult
      * @param $max_result
      * @return string
      */
-    private static function data($code, $msg, $data = [], $next_token = '')
+    private static function data($code, $msg, $data = [], $next_token = '', $max_result = 0)
     {
         $code = $code ?: 0;
         $msg = $msg ?: 'success';
@@ -61,12 +61,14 @@ class OpenResult
                 'code' => $code,
                 'msg' => $msg,
                 'next_token' => $next_token ?: '',
+            //    'max_result' => $max_result ?: 0,
                 'data' => (object)$data,
             ), JSON_UNESCAPED_UNICODE);
         } else {
             return json_encode(array(
                 'code' => $code,
                 'msg' => $msg,
+            //    'max_result' => $max_result ?: 0,
                 'data' => (object)$data,
             ), JSON_UNESCAPED_UNICODE);
         }
@@ -80,9 +82,9 @@ class OpenResult
      * @param int $max_result
      * @return mixed
      */
-    public static function success($data = [], $msg = 'success', $next_token = '')
+    public static function success($data = [], $next_token = '', $max_result = 0, $msg = 'success')
     {
-        return self::data(200, $msg, $data, $next_token);
+        return self::data(200, $msg, $data, $next_token, $max_result);
     }
 
     /**
