@@ -354,6 +354,7 @@ class OpenMiddleware implements MiddlewareInterface
     private function log($code,$msg,$path,$userId,$clientId,$channelId){
         //定制化只支持开放平台
         $context = Context::get(ServerRequestInterface::class);
+        $time = time();
         $insertData = [
             'user_id' => $userId,
             'client_id' => $clientId,
