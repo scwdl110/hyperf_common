@@ -630,7 +630,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
-            if ($datas['currency_code'] != 'ORIGIN' or in_array($datas['sort_target'],['goods_buyer_visit_rate','goods_views_rate'])) {
+            if ($datas['currency_code'] != 'ORIGIN' or in_array($sort,['goods_buyer_visit_rate','goods_views_rate'])) {
                 $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
             }else{
                 $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$sort]) . ' ) ' . $order;
