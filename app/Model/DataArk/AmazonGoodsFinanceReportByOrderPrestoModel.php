@@ -13752,9 +13752,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if(!in_array('fba_total_stock',$this->lastTargets)){
                             $fields['fba_total_stock'] = "(CASE WHEN MAX(area_id) = 4 THEN MAX(fba_total_stock) ELSE SUM(fba_total_stock) END) ";
                         }
-                    } else if ($target == 'fba_marketing_rate') {
+                    } /*else if ($target == 'fba_marketing_rate') {
                         $fields['fba_marketing_rate'] = "max(fba_marketing_rate) ";
-                    } else if($fbaArr[$target]['count_type'] == '3'){
+                    } */else if($fbaArr[$target]['count_type'] == '3'){
                         $fields[$target] = "max({$target}) ";
                     }
                 }
