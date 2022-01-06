@@ -236,7 +236,7 @@ return [
         //次品量
         'ark_erp_bad_num' => ['mysql_field' => 'warehouse_isku.bad_num'],
         //锁仓量
-        'ark_erp_lock_num' => ['mysql_field' => 'warehouse_isku.lock_num + warehouse_isku.lock_num_work_order'],
+        'ark_erp_lock_num' => ['mysql_field' => 'warehouse_isku.lock_num'],
         //采购在途
         'ark_erp_purchasing_num' => ['mysql_field' => 'warehouse_isku.purchasing_num'],
         //调拨在途
@@ -244,7 +244,7 @@ return [
         //ERP在库总数量
         'ark_erp_total_num' => ['mysql_field' => 'warehouse_isku.total_num'],
         //ERP在库总成本
-        'ark_erp_goods_cost_total' => ['mysql_field' => 'warehouse_isku.goods_cost * warehouse_isku.total_num', 'format_type' => 4],
+        'ark_erp_goods_cost_total' => ['mysql_field' => 'warehouse_isku.goods_cost_total', 'format_type' => 4],
     ],
     'erp_report_fields_arr' => [
         //期末在途总数
