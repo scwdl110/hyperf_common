@@ -12484,6 +12484,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //erp库存指标
         $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
         $erp_report_fields_arr = config('common.erp_report_fields_arr');
+        $erp_isku_function = $params['is_count'] == 1 ? 'SUM' : 'max';
         //FBA库存指标
         $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
 
@@ -12550,9 +12551,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $temp_erp_field = $erp_isku_fields_arr[$key]['mysql_field'];
 
                         if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                            $fields[$key] = "max($temp_erp_field * COALESCE(rates.rate ,1))";
+                            $fields[$key] = "{$erp_isku_function}({$temp_erp_field} * COALESCE(rates.rate ,1))";
                         }else{
-                            $fields[$key] = "max($temp_erp_field)";
+                            $fields[$key] = "{$erp_isku_function}({$temp_erp_field})";
                         }
                     }
                 }
@@ -12564,18 +12565,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if (in_array($key, ['erp_period_start_goods_cost_begin', 'erp_period_end_goods_cost_end']))
                         {
                             if ($params['currency_code'] != 'CNY'){
-                                $fields["min_{$key}"] = "min($temp_erp_field * COALESCE(rates.rate ,1))";
-                                $fields["max_{$key}"] = "max($temp_erp_field * COALESCE(rates.rate ,1))";
+                                $fields["min_{$key}"] = "min({$temp_erp_field} * COALESCE(rates.rate ,1))";
+                                $fields["max_{$key}"] = "max({$temp_erp_field} * COALESCE(rates.rate ,1))";
                             }else{
-                                $fields["min_{$key}"] = "min($temp_erp_field)";
-                                $fields["max_{$key}"] = "max($temp_erp_field)";
+                                $fields["min_{$key}"] = "min({$temp_erp_field})";
+                                $fields["max_{$key}"] = "max({$temp_erp_field})";
                             }
                             $fields[$key] = 1;
                         }else{
                             if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                                $fields[$key] = "SUM(($temp_erp_field) * COALESCE(rates.rate ,1))";
+                                $fields[$key] = "SUM(({$temp_erp_field}) * COALESCE(rates.rate ,1))";
                             }else{
-                                $fields[$key] = "SUM($temp_erp_field)";
+                                $fields[$key] = "SUM({$temp_erp_field})";
                             }
                         }
                     }
