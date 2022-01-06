@@ -13185,12 +13185,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
-        $rate_table = $origin_field = "";
+        $rate_table = $rel_table =  $origin_field = "";
         if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz'],$this->lastTargets))){
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = 0 ";
             } else {
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = channel.user_id  ";
+            }
+        }
+        $fbaArr = config('common.goods_fba_fields_arr');
+        if(!empty($this->lastTargets)){
+            foreach ($this->lastTargets as $target_key){
+                if(!empty($fbaArr[$target_key]['rel_field_status'])){
+                    $rel_table .= "LEFT JOIN {$this->table_amazon_fba_inventory_v3_rel} as rel ON g.id = rel.inventory_id AND rel.db_num = '{$this->dbhost}'";
+                    break;
+                }
             }
         }
         $child_table[] = [
@@ -13200,7 +13209,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
-            'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN channel_table as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id and g.area_id = channel.area_id {$rate_table} {$where}",
+            'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN channel_table as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id and g.area_id = channel.area_id {$rel_table} {$rate_table} {$where}",
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
@@ -13217,7 +13226,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(sku) as sku";
                 $fba_table_field1 = "max(g.sku) as sku";
                 $fba_table_group1 = " GROUP BY g.sku,g.merchant_id";
-                $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id";
+                $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'asin'){
             if($datas['is_distinct_channel'] == 1){
@@ -13229,9 +13238,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $join_field = ["user_id","asin"];
                 $fba_table_group = " GROUP BY asin";
                 $fba_table_field = "max(asin) as asin";
-                $fba_table_field1 = "max(amazon_goods.goods_asin) as asin";
-                $fba_table_group1 = " GROUP BY amazon_goods.goods_asin,g.merchant_id";
-                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+                $fba_table_field1 = "max(g.asin) as asin";
+                $fba_table_group1 = " GROUP BY g.asin,g.merchant_id";
+                $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'parent_asin'){
             if($datas['is_distinct_channel'] == 1){
@@ -13243,9 +13252,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $join_field = ["user_id","parent_asin"];
                 $fba_table_group = " GROUP BY parent_asin";
                 $fba_table_field = "max(parent_asin) as parent_asin";
-                $fba_table_field1 = "max(amazon_goods.goods_parent_asin) as parent_asin";
-                $fba_table_group1 = " GROUP BY amazon_goods.goods_parent_asin,g.merchant_id";
-                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+                $fba_table_field1 = "max(g.parent_asin) as parent_asin";
+                $fba_table_group1 = " GROUP BY g.parent_asin,g.merchant_id";
+                $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'isku'){
             $join_field = ["user_id","isku_id"];
@@ -13891,38 +13900,40 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     if($fbaArr[$target]['count_type'] == '4'){
                         if(!empty($fbaArr[$target]['child_key'])){
                             foreach ($fbaArr[$target]['child_key'] as $child_key) {
-                                if ($fbaArr[$target]['data_type'] == 2) {
+                                $alias = !empty($fbaArr[$child_key]['rel_field_status']) ? "rel" : "g";
+                                if ($fbaArr[$child_key]['data_type'] == 2) {
                                     if ($datas['currency_code'] == 'ORIGIN') {
                                         if(in_array($child_key,['fba_yjzhz','fba_glhz'])){
-                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$child_key]['mysql_field']}";
+                                            $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$child_key]['mysql_field']}";
                                         }else{
-                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']}";
+                                            $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']}";
                                         }
                                     } else {
                                         if(in_array($child_key,['fba_yjzhz','fba_glhz'])){
-                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * {$exchangeCode} as {$fbaArr[$child_key]['mysql_field']}";
+                                            $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * {$exchangeCode} as {$fbaArr[$child_key]['mysql_field']}";
                                         }else{
-                                            $fields[] = "g.{$fbaArr[$child_key]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
+                                            $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
                                         }
                                     }
                                 } else {
-                                    $fields[] = "g.{$fbaArr[$child_key]['mysql_field']}";
+                                    $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']}";
                                 }
                             }
                         }
                     }else{
-                        $field_prefix = !empty($fbaArr[$target]['uk_status']) ? "IF(g.{$fbaArr[$target]['mysql_field']}_uk > 0,g.{$fbaArr[$target]['mysql_field']}_uk,g.{$fbaArr[$target]['mysql_field']})" : "g.{$fbaArr[$target]['mysql_field']}";
+                        $alias = !empty($fbaArr[$target]['rel_field_status']) ? "rel" : "g";
+                        $field_prefix = !empty($fbaArr[$target]['uk_status']) ? "IF({$alias}.{$fbaArr[$target]['mysql_field']}_uk > 0,{$alias}.{$fbaArr[$target]['mysql_field']}_uk,{$alias}.{$fbaArr[$target]['mysql_field']})" : "{$alias}.{$fbaArr[$target]['mysql_field']}";
                         $field_suffix = !empty($fbaArr[$target]['uk_status']) ? " as {$fbaArr[$target]['mysql_field']}" : "";
                         if ($fbaArr[$target]['data_type'] == 2) {
                             if ($datas['currency_code'] == 'ORIGIN') {
                                 if(in_array($target,['fba_yjzhz','fba_glhz'])){
-                                    $fields[] = "g.{$fbaArr[$target]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$target]['mysql_field']}";
+                                    $fields[] = "{$alias}.{$fbaArr[$target]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$target]['mysql_field']}";
                                 }else{
                                     $fields[] = $field_prefix . $field_suffix;
                                 }
                             } else {
                                 if(in_array($target,['fba_yjzhz','fba_glhz'])){
-                                    $fields[] = "g.{$fbaArr[$target]['mysql_field']} * {$exchangeCode} as {$fbaArr[$target]['mysql_field']}";
+                                    $fields[] = "{$alias}.{$fbaArr[$target]['mysql_field']} * {$exchangeCode} as {$fbaArr[$target]['mysql_field']}";
                                 }else{
                                     $fields[] = "{$field_prefix} * ({$exchangeCode} / COALESCE(rates.rate ,1))" . $field_suffix;
                                 }

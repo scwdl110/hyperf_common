@@ -120,73 +120,73 @@ return [
         //建议移除数量
         "fba_sellable_removal_quantity"=>array("count_type"=>1, "mysql_field"=>"sellable_removal_quantity","data_type" => 1),
         //昨日销量
-        "fba_1_day_sale"=>array("count_type"=>1, "mysql_field"=>"_1_day_sale","data_type" => 1),
+        "fba_1_day_sale"=>array("count_type"=>1, "mysql_field"=>"_1_day_sale","data_type" => 1,"rel_field_status" => 1),
         //3日销量
-        "fba_3_day_sale"=>array("count_type"=>1, "mysql_field"=>"_3_day_sale","data_type" => 1),
+        "fba_3_day_sale"=>array("count_type"=>1, "mysql_field"=>"_3_day_sale","data_type" => 1,"rel_field_status" => 1),
         //7日销量
-        "fba_7_day_sale"=>array("count_type"=>1, "mysql_field"=>"_7_day_sale","data_type" => 1),
+        "fba_7_day_sale"=>array("count_type"=>1, "mysql_field"=>"_7_day_sale","data_type" => 1,"rel_field_status" => 1),
         //14日销量
-        "fba_14_day_sale"=>array("count_type"=>1, "mysql_field"=>"_14_day_sale","data_type" => 1),
+        "fba_14_day_sale"=>array("count_type"=>1, "mysql_field"=>"_14_day_sale","data_type" => 1,"rel_field_status" => 1),
         //30日销量
-        "fba_30_day_sale"=>array("count_type"=>1, "mysql_field"=>"_30_day_sale","data_type" => 1),
+        "fba_30_day_sale"=>array("count_type"=>1, "mysql_field"=>"_30_day_sale","data_type" => 1,"rel_field_status" => 1),
         //60日销量
-        "fba_60_day_sale"=>array("count_type"=>1, "mysql_field"=>"_60_day_sale","data_type" => 1),
+        "fba_60_day_sale"=>array("count_type"=>1, "mysql_field"=>"_60_day_sale","data_type" => 1,"rel_field_status" => 1),
         //90日销量
-        "fba_90_day_sale"=>array("count_type"=>1, "mysql_field"=>"_90_day_sale","data_type" => 1),
+        "fba_90_day_sale"=>array("count_type"=>1, "mysql_field"=>"_90_day_sale","data_type" => 1,"rel_field_status" => 1),
         //日均销售
-        "fba_day_sale"=>array("count_type"=>5, "mysql_field"=>"day_sale","data_type" => 1),
+        "fba_day_sale"=>array("count_type"=>5, "mysql_field"=>"day_sale","data_type" => 1,"rel_field_status" => 1),
         //3日均销售
-        "fba_3_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_3_avg_sale","data_type" => 1),
+        "fba_3_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_3_avg_sale","data_type" => 1,"rel_field_status" => 1),
         //7日均销售
-        "fba_7_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_7_avg_sale","data_type" => 1),
+        "fba_7_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_7_avg_sale","data_type" => 1,"rel_field_status" => 1),
         //14日均销售
-        "fba_14_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_14_avg_sale","data_type" => 1),
+        "fba_14_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_14_avg_sale","data_type" => 1,"rel_field_status" => 1),
         //30日均销售
-        "fba_30_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_30_avg_sale","data_type" => 1),
+        "fba_30_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_30_avg_sale","data_type" => 1,"rel_field_status" => 1),
         //60日均销售
-        "fba_60_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_60_avg_sale","data_type" => 1),
+        "fba_60_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_60_avg_sale","data_type" => 1,"rel_field_status" => 1),
         //90日均销售
-        "fba_90_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_90_avg_sale","data_type" => 1),
+        "fba_90_avg_sale"=>array("count_type"=>5, "mysql_field"=>"_90_avg_sale","data_type" => 1,"rel_field_status" => 1),
         //昨日退货量
-        "fba_1_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_1_day_sale_return","data_type" => 1),
+        "fba_1_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_1_day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //3日退货量
-        "fba_3_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_3_day_sale_return","data_type" => 1),
+        "fba_3_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_3_day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //7日退货量
-        "fba_7_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_7_day_sale_return","data_type" => 1),
+        "fba_7_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_7_day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //14日退货量
-        "fba_14_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_14_day_sale_return","data_type" => 1),
+        "fba_14_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_14_day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //30日退货量
-        "fba_30_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_30_day_sale_return","data_type" => 1),
+        "fba_30_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_30_day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //60日退货量
-        "fba_60_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_60_day_sale_return","data_type" => 1),
+        "fba_60_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_60_day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //90日退货量
-        "fba_90_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_90_day_sale_return","data_type" => 1),
+        "fba_90_day_sale_return"=>array("count_type"=>1, "mysql_field"=>"_90_day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //日均退货量
-        "fba_day_sale_return"=>array("count_type"=>5, "mysql_field"=>"day_sale_return","data_type" => 1),
+        "fba_day_sale_return"=>array("count_type"=>5, "mysql_field"=>"day_sale_return","data_type" => 1,"rel_field_status" => 1),
         //3日均退货量
-        "fba_3_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_3_avg_sale_return","data_type" => 1),
+        "fba_3_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_3_avg_sale_return","data_type" => 1,"rel_field_status" => 1),
         //7日均退货量
-        "fba_7_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_7_avg_sale_return","data_type" => 1),
+        "fba_7_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_7_avg_sale_return","data_type" => 1,"rel_field_status" => 1),
         //14日均退货量
-        "fba_14_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_14_avg_sale_return","data_type" => 1),
+        "fba_14_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_14_avg_sale_return","data_type" => 1,"rel_field_status" => 1),
         //30日均退货量
-        "fba_30_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_30_avg_sale_return","data_type" => 1),
+        "fba_30_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_30_avg_sale_return","data_type" => 1,"rel_field_status" => 1),
         //60日均退货量
-        "fba_60_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_60_avg_sale_return","data_type" => 1),
+        "fba_60_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_60_avg_sale_return","data_type" => 1,"rel_field_status" => 1),
         //90日均退货量
-        "fba_90_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_90_avg_sale_return","data_type" => 1),
+        "fba_90_avg_sale_return"=>array("count_type"=>5, "mysql_field"=>"_90_avg_sale_return","data_type" => 1,"rel_field_status" => 1),
         //3日退货率
-        "fba_ravg3"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_3_day_sale_return * 1.0000 / nullif(fba_table.fba_3_day_sale,0)","child_key" => ["fba_3_day_sale_return","fba_3_day_sale"],"data_type" => 4),
+        "fba_ravg3"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_3_day_sale_return * 1.0000 / nullif(fba_table.fba_3_day_sale,0)","child_key" => ["fba_3_day_sale_return","fba_3_day_sale"],"data_type" => 4,"rel_field_status" => 1),
         //7日退货率
-        "fba_ravg7"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_7_day_sale_return * 1.0000 / nullif(fba_table.fba_7_day_sale,0)","child_key" => ["fba_7_day_sale_return","fba_7_day_sale"],"data_type" => 4),
+        "fba_ravg7"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_7_day_sale_return * 1.0000 / nullif(fba_table.fba_7_day_sale,0)","child_key" => ["fba_7_day_sale_return","fba_7_day_sale"],"data_type" => 4,"rel_field_status" => 1),
         //14日退货率
-        "fba_ravg14"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_14_day_sale_return * 1.0000 / nullif(fba_table.fba_14_day_sale,0)","child_key" => ["fba_14_day_sale_return","fba_14_day_sale"],"data_type" => 4),
+        "fba_ravg14"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_14_day_sale_return * 1.0000 / nullif(fba_table.fba_14_day_sale,0)","child_key" => ["fba_14_day_sale_return","fba_14_day_sale"],"data_type" => 4,"rel_field_status" => 1),
         //30日退货率
-        "fba_ravg30"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_30_day_sale_return * 1.0000 / nullif(fba_table.fba_30_day_sale,0)","child_key" => ["fba_30_day_sale_return","fba_30_day_sale"],"data_type" => 4),
+        "fba_ravg30"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_30_day_sale_return * 1.0000 / nullif(fba_table.fba_30_day_sale,0)","child_key" => ["fba_30_day_sale_return","fba_30_day_sale"],"data_type" => 4,"rel_field_status" => 1),
         //60日退货率
-        "fba_ravg60"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_60_day_sale_return * 1.0000 / nullif(fba_table.fba_60_day_sale,0)","child_key" => ["fba_60_day_sale_return","fba_60_day_sale"],"data_type" => 4),
+        "fba_ravg60"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_60_day_sale_return * 1.0000 / nullif(fba_table.fba_60_day_sale,0)","child_key" => ["fba_60_day_sale_return","fba_60_day_sale"],"data_type" => 4,"rel_field_status" => 1),
         //90日退货率
-        "fba_ravg90"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_90_day_sale_return * 1.0000 / nullif(fba_table.fba_90_day_sale,0)","child_key" => ["fba_90_day_sale_return","fba_90_day_sale"],"data_type" => 4),
+        "fba_ravg90"=>array("count_type"=>4, "mysql_field"=>"fba_table.fba_90_day_sale_return * 1.0000 / nullif(fba_table.fba_90_day_sale,0)","child_key" => ["fba_90_day_sale_return","fba_90_day_sale"],"data_type" => 4,"rel_field_status" => 1),
         //是否当前补货
         "fba_is_buhuo"=>array("count_type"=>3, "mysql_field"=>"buhuo","data_type" => 3,"only_sku" => 1),
         //可售天数
