@@ -19,6 +19,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class OpenMiddleware implements MiddlewareInterface
 {
+    public $freeLimit = 20;
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $path = $request->getUri()->getPath();
@@ -315,20 +317,29 @@ class OpenMiddleware implements MiddlewareInterface
             ];
             $toolsUserRel = Db::connection("erp_base")->table('tools_user_rel')->where($where)->select('api_count', 'end_time')->first();
             if(!$toolsUserRel){
-                return [
-                    'code' => 0,
-                    'msg' => 'please buy api tools',
+//                return [
+//                    'code' => 0,
+//                    'msg' => 'please buy api tools',
+//                ];
+                $toolsUserRel = [
+                    'api_count' => $this->freeLimit,
+                    'end_time' => -1
                 ];
             }
 
-            if(data_get($toolsUserRel, 'end_time', 0) < $time){
-                return [
-                    'code' => 0,
-                    'msg' => 'api tools expired',
-                ];
+            $endTime = data_get($toolsUserRel, 'end_time', 0);
+            //过期或者没套餐的
+            if($endTime == -1 || $endTime < $time){
+//                return [
+//                    'code' => 0,
+//                    'msg' => 'api tools expired',
+//                ];
+                $apiCount = $this->freeLimit;
+            }else{
+                $apiCount = data_get($toolsUserRel, 'api_count', 0);
             }
 
-            $apiCount = data_get($toolsUserRel, 'api_count', 0);
+
             //有一个小时缓存
             $redis->set($key, $apiCount, 3600);
         }
