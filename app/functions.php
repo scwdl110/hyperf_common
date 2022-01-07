@@ -551,7 +551,8 @@ function getUserInfo(): array
 }
 
 function getUserIdMod($user_id){
-    $big_selling_users = config("common.big_selling_users");
+//    $big_selling_users = config("common.big_selling_users");
+    $big_selling_users = "20567,323435,21,221336,281463,342133,98271,210568,313691,94952";
     $user_id_arr = array();
     if (!empty($big_selling_users)){
         $user_id_arr = explode(',',$big_selling_users);
