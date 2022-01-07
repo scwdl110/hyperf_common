@@ -72,31 +72,20 @@ class Functions {
      * 发送短信
      *
      * @param string $message
-     * @param string $mobile
+     * @param string|int $mobile
+     * @param int $type 0:手机号, 1:user_id, 2:admin_id
      * @return ?array 失败返回 null，成功返回数组（仅代表请求短信服务商成功，不代表成功发送）
      */
-    public static function sendSms(string $message, string $mobile): ?array
+    public static function sendSms(string $message, $mobile, int $type = 0): ?array
     {
-        if ('' === ($url = config('sms.url', ''))) {
-            return null;
-        }
+        $param = ['message' => $message];
+        $param[[
+            'mobile',
+            'user_id',
+            'admin_id'
+        ][$type] ?? 'mobile'] = $mobile;
 
-        $mobile = self::mobileDecrypt($mobile);
-        $postFields = [
-            'account' => config('sms.account', ''),
-            'password' => config('sms.password', ''),
-            'msg' => urlencode($message),
-            'phone' => $mobile,
-            'report' => 'true'
-        ];
-
-        $httpClient = (new \Hyperf\Guzzle\ClientFactory(\Hyperf\Utils\ApplicationContext::getContainer()))->create();
-        $httpResponse = $httpClient->post($url, [
-            'json' => $postFields,
-            'headers' => [
-                'Accept' => 'application/json'
-            ]
-        ]);
+        $httpResponse = (new BIApi())->request(BIApi::ACTION_SEND_SMS, $param);
         return @json_decode((string)$httpResponse->getBody(), true);
     }
 
