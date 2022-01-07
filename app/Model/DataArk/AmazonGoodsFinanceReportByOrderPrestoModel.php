@@ -663,13 +663,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }else{
                 $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+                $this->fbaSort = [
+                    'sort_target' => $datas['sort_target'],
+                    'sort_order' => $datas['sort_order'],
+                    'is_origin' => 1,
+                ];
             }
         }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
             $orderby = " max(report.create_time) {$datas['sort_order']}";
+            $this->fbaSort = [
+                'sort_target' => 'create_time',
+                'sort_order' => $datas['sort_order'],
+                'is_origin' => 1,
+            ];
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
             $orderby = '((' . $fields[$sort] . ') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+            $this->fbaSort = [
+                'sort_target' => $sort,
+                'sort_order' => $order,
+                'is_origin' => 1,
+            ];
         }
         if(!empty($order) && !empty($sort) && (in_array($sort,array_keys($fbaCommonArr)) || in_array($sort,$fba_target_key)) && $datas['limit_num'] == 0){
             $this->fbaSort = [
@@ -13389,13 +13404,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         if(!empty($this->fbaSort)){
-            if(!empty($this->fbaSort['is_custom'])){
+            if(!empty($this->fbaSort['is_origin'])){
+                //类似销量这样的排序
+                if(!empty($this->fbaSort['sort_target'])) {
+                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
+                }
+            }elseif(!empty($this->fbaSort['is_custom'])){
                 //自定义公式
                 if(!empty($other_fields[$this->fbaSort['sort_target']])) {
-                    $orderbyArr[] = "{$other_fields[$this->fbaSort['sort_target']]}" . " " . $this->fbaSort['sort_order'];
+                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];;
                 }
             }else{
-                $orderbyArr[] = "fba_table.{$this->fbaSort['sort_target']}" . " " . $this->fbaSort['sort_order'];
+                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];;
             }
         }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
