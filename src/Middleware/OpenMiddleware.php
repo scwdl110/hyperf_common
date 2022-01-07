@@ -146,20 +146,26 @@ class OpenMiddleware implements MiddlewareInterface
 
         //admin
         //center_open_admin_id
-        $key = 'center_open_admin_id_'.$userId;
-        $adminId = $redis->get($key);
-        if($adminId===false){
+        $key = 'center_open_admin_id_' . $userId;
+        $cache = $redis->get($key);
+        if ($cache === false) {
             $where = [
                 ['is_master', '=', 1],
                 ['user_id', '=', $userId],
             ];
-            $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select('id')->first();
-            if(!$admin){
+            $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select(array('id', 'is_master'))->first();
+            if (!$admin) {
                 return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
             }
             $adminId = data_get($admin, 'id', 0);
-
-            $redis->set($key, $adminId, 86400);
+            $isMaster = data_get($admin, 'is_master', 0);
+            $userInfo['admin_id'] = $adminId;
+            $userInfo['is_master'] = $isMaster;
+            $redis->set($key, json_encode($userInfo), 86400);
+        } else {
+            $userInfo = json_decode($cache, true);
+            $adminId = $userInfo['admin_id'];
+            $isMaster = $userInfo['is_master'];
         }
 
 
@@ -254,6 +260,7 @@ class OpenMiddleware implements MiddlewareInterface
         $request = $request->withAttribute('userInfo', [
             'user_id' => $userId,
             'admin_id' => $adminId,
+            'is_master' => $isMaster,
             'client_id' => $clientId,
             'channel_id' => $channelId,
             'dbhost' => $dbhost,
