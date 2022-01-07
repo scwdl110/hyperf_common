@@ -13206,10 +13206,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $channel_where = " WHERE c_tmp.user_id = " . intval($datas['user_id']);
         if (!empty($channel_arr)){
             if (count($channel_arr)==1){
-                $where .= " AND channel.id = ".intval(implode(",",$channel_arr));
+                $where .= " AND g.channel_id = ".intval(implode(",",$channel_arr));
                 $channel_where .= " AND c_tmp.id = ".intval(implode(",",$channel_arr));
             }else{
-                $where .= " AND channel.id IN (".implode(",",$channel_arr).")";
+                $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
                 $channel_where .= " AND c_tmp.id IN (".implode(",",$channel_arr).")";
             }
         }
@@ -13217,16 +13217,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $rate_table = $rel_table =  $origin_field = "";
         if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz'],$this->lastTargets))){
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = 0 ";
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
             } else {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = channel.site_id AND rates.user_id = channel.user_id  ";
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
             }
         }
         $fbaArr = config('common.goods_fba_fields_arr');
         if(!empty($this->lastTargets)){
             foreach ($this->lastTargets as $target_key){
                 if(!empty($fbaArr[$target_key]['rel_field_status'])){
-                    $rel_table .= "LEFT JOIN {$this->table_amazon_fba_inventory_v3_rel} as rel ON g.id = rel.inventory_id AND rel.db_num = '{$this->dbhost}'";
+                    $rel_table .= "LEFT JOIN {$this->table_amazon_fba_inventory_v3_rel} as rel ON g.id = rel.inventory_id AND g.channel_id = rel.channel_id AND rel.db_num = '{$this->dbhost}'";
                     break;
                 }
             }
@@ -13235,10 +13235,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'table_name' => 'channel_table',
             'table_sql' => "select c_tmp.id,c_tmp.user_id,c_tmp.site_id,c_tmp.merchant_id,area.area_id from {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id {$channel_where}"
         ];
-        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,channel.id as channel_id,channel.site_id",$datas,$exchangeCode);
+        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,g.channel_id,g.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
-            'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN channel_table as channel ON g.user_id = channel.user_id and g.merchant_id = channel.merchant_id and g.area_id = channel.area_id {$rel_table} {$rate_table} {$where}",
+            'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id) as g {$rel_table} {$rate_table} {$where}",
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
@@ -13420,15 +13420,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if(!empty($this->fbaSort['is_origin'])){
                 //类似销量这样的排序
                 if(!empty($this->fbaSort['sort_target'])) {
-                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
+                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];
                 }
             }elseif(!empty($this->fbaSort['is_custom'])){
                 //自定义公式
                 if(!empty($other_fields[$this->fbaSort['sort_target']])) {
-                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];;
+                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
                 }
+            }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
+                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
             }else{
-                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];;
+                $orderbyArr[] = '((fba_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (fba_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
             }
         }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
