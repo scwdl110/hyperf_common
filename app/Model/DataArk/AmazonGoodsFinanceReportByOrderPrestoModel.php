@@ -12500,6 +12500,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
         $erp_report_fields_arr = config('common.erp_report_fields_arr');
         $erp_isku_function = $params['is_count'] == 1 ? 'SUM' : 'max';
+        $erp_report_function = $params['is_count'] == 1 ? 'SUM' : 'max';
         //FBA库存指标
         $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
 
@@ -12580,18 +12581,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if (in_array($key, ['erp_period_start_goods_cost_begin', 'erp_period_end_goods_cost_end']))
                         {
                             if ($params['currency_code'] != 'CNY'){
-                                $fields["min_{$key}"] = "min({$temp_erp_field} * COALESCE(rates.rate ,1))";
-                                $fields["max_{$key}"] = "max({$temp_erp_field} * COALESCE(rates.rate ,1))";
+                                $fields["min_{$key}"] = "min({$temp_erp_field}_min * COALESCE(rates.rate ,1))";
+                                $fields["max_{$key}"] = "max({$temp_erp_field}_max * COALESCE(rates.rate ,1))";
                             }else{
-                                $fields["min_{$key}"] = "min({$temp_erp_field})";
-                                $fields["max_{$key}"] = "max({$temp_erp_field})";
+                                $fields["min_{$key}"] = "min({$temp_erp_field}_min)";
+                                $fields["max_{$key}"] = "max({$temp_erp_field}_max)";
                             }
-                            $fields[$key] = 1;
+                            $fields[$key] = "SUM({$temp_erp_field})";
+                        }
+                        elseif ($key == 'erp_period_current_stock_rate')
+                        {
+                            $fields[$key] = "max({$temp_erp_field})";
                         }else{
                             if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                                $fields[$key] = "SUM(({$temp_erp_field}) * COALESCE(rates.rate ,1))";
+                                $fields[$key] = "{$erp_report_function}(({$temp_erp_field}) * COALESCE(rates.rate ,1))";
                             }else{
-                                $fields[$key] = "SUM({$temp_erp_field})";
+                                $fields[$key] = "{$erp_report_function}({$temp_erp_field})";
                             }
                         }
                     }
@@ -13995,7 +14000,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return string
      */
     protected function getErpReportTable($datas, $userId){
-        $erpReportTable = " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.user_id = {$userId} AND warehouse_storage.warehouse_id = 0";
+        $childTable = "SELECT isku_id, year, month, SUM(goods_cost_begin) AS goods_cost_begin, min(goods_cost_begin) AS goods_cost_begin_min, max(goods_cost_begin) AS goods_cost_begin_max,
+SUM(goods_cost_end) AS goods_cost_end, min(goods_cost_end) AS goods_cost_end_min, max(goods_cost_end) AS goods_cost_end_max, SUM(purchasing_send_num) AS purchasing_send_num, SUM(purchasing_num) AS purchasing_num,
+SUM(send_num) AS send_num, SUM(num_begin) AS num_begin, SUM(goods_cost_total_begin) AS goods_cost_total_begin, SUM(in_num) AS in_num, SUM(in_cost) AS in_cost, SUM(out_num) AS out_num, SUM(out_cost) AS out_cost,
+SUM(supplement_cost) AS supplement_cost, SUM(num_end) AS num_end, SUM(goods_cost_total_end) AS goods_cost_total_end, SUM(out_cost * 2) / NULLIF(SUM(goods_cost_total_begin + goods_cost_total_end), 0) AS stock_rate
+FROM {$this->table_erp_storage_inventory_warehouse_report} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND warehouse_id > 0";
         $yearMonth = '';
         if($datas['count_periods'] == 5){
             $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
@@ -14052,13 +14061,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $month = intval(substr($datas['max_ym'], 4));
             $yearMonth = $year.$month;
         }
-
         if (!empty($yearMonth)){
-            $erpReportTable .= " AND warehouse_storage.time_str IN({$yearMonth})";
+            $childTable .= " AND time_str IN({$yearMonth})";
         }
-
-        $erpReportTable .= " AND warehouse_storage.isku_id = amazon_goods.goods_isku_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
-
+        $childTable .= " GROUP BY isku_id, year, month";
+        $erpReportTable = " LEFT JOIN ({$childTable}) AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
         return $erpReportTable;
     }
 
