@@ -16,7 +16,7 @@ return [
         \Hyperf\Validation\Middleware\ValidationMiddleware::class,
         //\Captainbi\Hyperf\Middleware\RecordLoggerMiddleware::class,
     ],
-    'jsonrpc-tcp'=>[
+    'jsonrpc-http'=>[
         \Captainbi\Hyperf\Middleware\OAuth2Middleware::class,
     ],
 ];
