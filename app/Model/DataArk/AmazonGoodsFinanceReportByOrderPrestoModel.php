@@ -13263,7 +13263,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_group = " GROUP BY asin";
                 $fba_table_field = "max(asin) as asin";
                 $fba_table_field1 = "max(g.asin) as asin";
-                $fba_table_group1 = " GROUP BY g.asin,g.merchant_id";
+                $fba_table_group1 = " GROUP BY g.asin,g.merchant_id,g.area_id";
                 $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'parent_asin'){
@@ -13277,7 +13277,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_group = " GROUP BY parent_asin";
                 $fba_table_field = "max(parent_asin) as parent_asin";
                 $fba_table_field1 = "max(g.parent_asin) as parent_asin";
-                $fba_table_group1 = " GROUP BY g.parent_asin,g.merchant_id";
+                $fba_table_group1 = " GROUP BY g.parent_asin,g.merchant_id,g.area_id";
                 $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'isku'){
@@ -13285,53 +13285,53 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_field = "max(isku_id) as isku_id";
             $fba_table_field1 = "max(amazon_goods.goods_isku_id) as isku_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_isku_id ,g.merchant_id";
+            $fba_table_group1 = " GROUP BY amazon_goods.goods_isku_id ,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY isku_id";
         }else if($datas['count_dimension'] == 'class1'){
             $join_field = ["user_id","class1","site_country_id"];
             $fba_table_field = "max(class1) as class1,max(site_country_id) as site_country_id";
             $fba_table_field1 = "max(amazon_goods.goods_product_category_name_1) as class1,max(amazon_goods.goods_site_id) as site_country_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_product_category_name_1,amazon_goods.goods_site_id,g.merchant_id";
+            $fba_table_group1 = " GROUP BY amazon_goods.goods_product_category_name_1,amazon_goods.goods_site_id,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY class1,site_country_id";
         }else if($datas['count_dimension'] == 'group'){ //分组
             $join_field = ["user_id","group_id"];
             $fba_table_field = "max(group_id) as group_id";
             $fba_table_field1 = "max(amazon_goods.goods_group) as group_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_group,g.merchant_id";
+            $fba_table_group1 = " GROUP BY amazon_goods.goods_group,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY group_id";
         }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
             $join_field = ["user_id","tags_id"];
             $fba_table_field = "max(tags_id) as tags_id";
             $fba_table_field1 = "max(amazon_goods.goods_tag_id) as tags_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_tag_id,g.merchant_id";
+            $fba_table_group1 = " GROUP BY amazon_goods.goods_tag_id,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY tags_id";
         }else if($datas['count_dimension'] == 'head_id') { //负责人
             $join_field = ["user_id","head_id"];
             $fba_table_field = "max(head_id) as head_id";
             $fba_table_field1 = "max(amazon_goods.isku_head_id) as head_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.isku_head_id,g.merchant_id";
+            $fba_table_group1 = " GROUP BY amazon_goods.isku_head_id,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY head_id";
         }else if($datas['count_dimension'] == 'developer_id') { //开发人员
             $join_field = ["user_id","developer_id"];
             $fba_table_field = "max(developer_id) as developer_id";
             $fba_table_field1 = "max(amazon_goods.isku_developer_id) as developer_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.isku_developer_id,g.merchant_id";
+            $fba_table_group1 = " GROUP BY amazon_goods.isku_developer_id,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY developer_id";
         }else if($datas['count_dimension'] == 'all_goods'){
             if($datas['is_distinct_channel'] == 1) { //有区分店铺
                 $join_field = ["user_id","channel_id"];
                 $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON channel.id = g.channel_id";
-                $fba_table_group1 = " GROUP BY g.merchant_id";
+                $fba_table_group1 = " GROUP BY g.merchant_id,g.area_id";
                 $fba_table_group = " GROUP BY channel_id";
             }else{
                 $join_field = ["user_id"];
                 $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON channel.id = g.channel_id";
-                $fba_table_group1 = " GROUP BY g.merchant_id";
+                $fba_table_group1 = " GROUP BY g.merchant_id,g.area_id";
                 $fba_table_group = " GROUP BY user_id";
             }
         }
