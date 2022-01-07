@@ -1079,9 +1079,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     if (false !== strpos($tableName,'dw_channel_')){
                         $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
                     }else{
-                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
-//                        $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
-//                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
+//                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
+                        $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
+                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
                     }
                 }else{
                     $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
