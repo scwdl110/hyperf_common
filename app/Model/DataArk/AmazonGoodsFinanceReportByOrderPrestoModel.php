@@ -13302,16 +13302,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else if($datas['count_dimension'] == 'group'){ //分组
             $join_field = ["user_id","group_id"];
             $fba_table_field = "max(group_id) as group_id";
-            $fba_table_field1 = "max(amazon_goods.goods_group) as group_id";
+            $fba_table_field1 = "max(amazon_goods.goods_group_id) as group_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_group,g.merchant_id,g.area_id";
+            $fba_table_group1 = " GROUP BY amazon_goods.goods_group_id,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY group_id";
         }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
             $join_field = ["user_id","tags_id"];
             $fba_table_field = "max(tags_id) as tags_id";
-            $fba_table_field1 = "max(amazon_goods.goods_tag_id) as tags_id";
-            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_tag_id,g.merchant_id,g.area_id";
+            $fba_table_field1 = "max(tags_rel.tags_id) as tags_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = amazon_goods.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' and  tags_rel.status = 1";
+            $fba_table_group1 = " GROUP BY tags_rel.tags_id,g.merchant_id,g.area_id";
             $fba_table_group = " GROUP BY tags_id";
         }else if($datas['count_dimension'] == 'head_id') { //负责人
             $join_field = ["user_id","head_id"];
