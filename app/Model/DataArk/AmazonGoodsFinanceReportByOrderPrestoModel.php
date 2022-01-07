@@ -13975,6 +13975,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return string
      */
     protected function getErpReportTable($datas, $userId){
+        $erpReportTable = " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.user_id = {$userId} AND warehouse_storage.warehouse_id = 0";
+        $yearMonth = '';
         if($datas['count_periods'] == 5){
             $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
             $newestMonth = [];
@@ -13996,8 +13998,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
             }
-            $ym = implode(',', array_column($newestMonth, 'ym'));
-            $erpReportTable = " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND warehouse_storage.time_str IN({$ym})";
+            $yearMonth = implode(',', array_column($newestMonth, 'ym'));
         }
         else if($datas['count_periods'] == 4)
         {
@@ -14023,19 +14024,20 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
             }
-            $ym = implode(',', array_column($newestMonth, 'ym'));
-            $erpReportTable = " LEFT JOIN (SELECT *, (FLOOR((month - 1) / 3) + 1) AS quarter FROM {$this->table_erp_storage_inventory_warehouse_report} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND time_str IN({$ym})) AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.quarter AS INTEGER) = report.mquarter";
+            $yearMonth = implode(',', array_column($newestMonth, 'ym'));
         }
         else if($datas['count_periods'] == 0)
         {
             $year = intval(substr($datas['max_ym'], 0, 4));
             $month = intval(substr($datas['max_ym'], 4));
-            $ym = $year.$month;
-            $erpReportTable = " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth AND warehouse_storage.time_str IN({$ym})";
+            $yearMonth = $year.$month;
         }
-        else{
-            $erpReportTable = " LEFT JOIN {$this->table_erp_storage_inventory_warehouse_report} AS warehouse_storage ON warehouse_storage.db_num = '{$this->dbhost}' AND warehouse_storage.isku_id = amazon_goods.goods_isku_id AND warehouse_storage.user_id = report.user_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
+
+        if (!empty($yearMonth)){
+            $erpReportTable .= " AND warehouse_storage.time_str IN({$yearMonth})";
         }
+
+        $erpReportTable .= " AND warehouse_storage.isku_id = amazon_goods.goods_isku_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
 
         return $erpReportTable;
     }
