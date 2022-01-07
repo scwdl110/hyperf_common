@@ -1069,10 +1069,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
 
             if (false !== strpos($tableName, '{DWSDBHOST}')) {
-
-                $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
-
-
                 $big_selling_users = config("common.big_selling_users");
                 $user_id_arr = array();
                 if (!empty($big_selling_users)){
@@ -1080,7 +1076,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 }
                 $user_id = \app\getUserInfo()['user_id']??0;
                 if (in_array($user_id,$user_id_arr)){
-                    $tableName = str_replace("dws.","dwsslave.",$tableName);
+                    if (false !== strpos($tableName,'dw_channel_')){
+                        $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
+                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
+                    }else{
+                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
+                    }
+                }else{
+                    $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
                 }
             }
 
