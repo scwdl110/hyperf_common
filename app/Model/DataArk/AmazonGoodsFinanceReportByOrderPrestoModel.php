@@ -1117,7 +1117,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if ($this->haveErpIskuFields){
-            $table .= " LEFT JOIN (SELECT max(isku_id) AS isku_id, SUM(good_num) AS good_num, SUM(bad_num) AS bad_num, SUM(lock_num + lock_num_work_order) AS lock_num, SUM(purchasing_num) AS purchasing_num, SUM(send_num) AS send_num, SUM(goods_cost * total_num) AS goods_cost_total, SUM(total_num) AS total_num FROM {$this->table_erp_storage_warehouse_isku} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND is_delete = 0 GROUP BY isku_id) AS warehouse_isku ON warehouse_isku.isku_id = amazon_goods.goods_isku_id";
+            $table .= " LEFT JOIN (SELECT max(isku_id) AS isku_id, SUM(good_num) AS good_num, SUM(bad_num) AS bad_num, SUM(lock_num + lock_num_work_order + lock_num_shipment_order) AS lock_num, SUM(purchasing_num) AS purchasing_num, SUM(send_num) AS send_num, SUM(goods_cost * total_num) AS goods_cost_total, SUM(total_num) AS total_num FROM {$this->table_erp_storage_warehouse_isku} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND is_delete = 0 GROUP BY isku_id) AS warehouse_isku ON warehouse_isku.isku_id = amazon_goods.goods_isku_id";
         }
         if ($this->haveErpReportFields){
             $erpReportTable = $this->getErpReportTable($datas, $userId);
@@ -1861,7 +1861,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $selectFields .= ", SUM(bad_num) as ark_erp_bad_num";
         }
         if (!empty($fields['ark_erp_lock_num'])){ //库存锁仓量
-            $selectFields .= ", SUM(lock_num) + SUM(lock_num_work_order) as ark_erp_lock_num";
+            $selectFields .= ", SUM(lock_num) + SUM(lock_num_work_order) + SUM(lock_num_shipment_order) as ark_erp_lock_num";
         }
         if (!empty($fields['ark_erp_goods_cost_total'])){ //ERP在库总成本
             //币种是人民币
