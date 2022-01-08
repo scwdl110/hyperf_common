@@ -45,6 +45,7 @@ class OAuth2RpcMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $authenticatedUserId = $request->getHeader('x-authenticated-userid');
+        $authenticatedUserId = $authenticatedUserId[0] ?? '';
         if(!$authenticatedUserId){
             return Context::get(ResponseInterface::class)->withStatus(200);
         }
