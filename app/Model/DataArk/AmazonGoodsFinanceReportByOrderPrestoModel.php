@@ -5248,7 +5248,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if(!empty($params['compare_data'])){  //当有对比数据时 ， 不从mysql查
             return $isMysql ;
         }
-        return $isMysql;
+//        return $isMysql;
 //        if ($params['user_id'] == 343459){
 //            return true;
 //        }
