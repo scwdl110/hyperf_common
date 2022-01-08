@@ -17,6 +17,6 @@ return [
         //\Captainbi\Hyperf\Middleware\RecordLoggerMiddleware::class,
     ],
     'jsonrpc-http'=>[
-        \Captainbi\Hyperf\Middleware\OAuth2Middleware::class,
+        \Captainbi\Hyperf\Middleware\OAuth2RpcMiddleware::class,
     ],
 ];
