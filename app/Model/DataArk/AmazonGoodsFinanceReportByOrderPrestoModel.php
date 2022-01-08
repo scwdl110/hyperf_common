@@ -549,7 +549,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
-        echo "test";
         $datas['method'] = "getListByGoods";
         $this->dws_user_id_mod = getUserIdMod($datas['user_id']);
         $this->handleTargets($datas, 1);
@@ -11053,9 +11052,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 if(!empty($fba_data['child_table'])){
                     foreach($fba_data['child_table'] as $c=>$cdata){
-                        if($fba_data['is_count'] == 1 && $c == '0'){
+                        if(!empty($fba_data['is_count']) && $c == '0'){
                             if($fba_data['dimension'] == 'channel'){
                                 $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
+                            }elseif($fba_data['dimension'] == 'sku'){
+                                $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} GROUP BY {$group})";
                             }else{
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                             }
@@ -13244,7 +13246,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
         $fba_table_field = $fba_table_field1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
-        if($datas['count_dimension'] == 'sku'){
+        if($datas['is_count'] == 1){
+            $join_field = ["user_id","sku"];
+            $fba_table_group = " GROUP BY user_id";
+            $fba_table_field = "max(sku) as sku";
+            $fba_table_field1 = "max(g.sku) as sku";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
+            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.sku=g.sku and g.channel_id = c.channel_id";
+            $fba_data['is_count'] = 1 ;
+            $fba_data['dimension'] = 'sku' ; //统计商品有关的维度
+        }elseif($datas['count_dimension'] == 'sku'){
             if($datas['is_distinct_channel'] == 1){
                 $join_field = ["user_id","channel_id","sku"];
                 $fba_table_group = " GROUP BY sku,channel_id";
@@ -13255,7 +13266,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_group = " GROUP BY sku";
                 $fba_table_field = "max(sku) as sku";
                 $fba_table_field1 = "max(g.sku) as sku";
-                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id";
+                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
                 $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'asin'){
@@ -13343,7 +13354,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         $datas['need_review_fba'] = $need_review_fba;
-        if($need_review_fba){
+        if($datas['is_count'] == 1){
+            $field1 = $this->getGoodsFbaField(1,$fba_table_field1,$datas);
+            $fba_table1 = "(SELECT {$field1} FROM count_table as c {$fba_table_join1} {$fba_table_group1})";
+        }elseif($need_review_fba){
             $field1 = $this->getGoodsFbaField(1,$fba_table_field1,$datas);
             $fba_table1 = "(SELECT {$field1} FROM fba_table1 as g {$fba_table_join1} {$fba_table_group1})";
         }else{
@@ -13868,7 +13882,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     if($target == 'fba_suggested_replenishment_time'){
                         $fields[] = "MAX(available_days) as fba_sales_day_tmp";
                     }
-                    if($datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1 && in_array($target,['fba_day_sale','fba_special_purpose'])){
+                    if($datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1 && empty($datas['is_count']) && in_array($target,['fba_day_sale','fba_special_purpose'])){
                         //仅sku区分店铺
                         $fields[] = "MAX({$fbaArr[$target]['mysql_field']}) as {$target}";
                     }elseif($fbaArr[$target]['count_type'] == '4') {
