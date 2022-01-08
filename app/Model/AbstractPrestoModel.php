@@ -41,16 +41,16 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DWSDBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_day_report' => 'dws.dws_dataark_f_dw_channel_day_report_{DWSDBHOST}',
         'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DWSDBHOST} AS week_report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
-        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_slave_{DWSDBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
+        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_slave_bigusers_{DWSDBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_week_report' => 'dws.dws_dataark_f_dw_channel_week_report_{DWSDBHOST}' ,
-        'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_slave_{DWSDBHOST}' ,
+        'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_slave_bigusers_{DWSDBHOST}' ,
         'table_operation_day_report' => 'dws.dws_dataark_f_dw_operation_day_report_{DWSDBHOST}' ,
         'table_operation_week_report' => 'dws.dws_dataark_f_dw_operation_week_report_{DWSDBHOST}',
         'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_slave_{DWSDBHOST}',
 
         'table_dwd_goods_report' => 'dwd.dwd_dataark_f_dw_goods_report_{DBHOST}',
         'table_dws_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DWSDBHOST}',
-        'table_dws_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_slave_{DWSDBHOST}',
+        'table_dws_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_slave_bigusers_{DWSDBHOST}',
 
         'table_dws_idm_category01_topn_kpi' => 'dwsslave.dws_dataark_idm_category01_topn_kpi',
         'table_dws_idm_category02_topn_kpi' => 'dwsslave.dws_dataark_idm_category02_topn_kpi',
@@ -1067,6 +1067,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $tableName = strtr($tableName, ['{DBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
 
             }
+            //月报未拆表
+            if (false !== strpos($tableName, 'bigusers_')) {
+                $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
+            }
+
 
             if (false !== strpos($tableName, '{DWSDBHOST}')) {
                 $big_selling_users = config("common.big_selling_users");
@@ -1076,7 +1081,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 }
                 $user_id = \app\getUserInfo()['user_id']??0;
                 if (in_array($user_id,$user_id_arr)){
-                    $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
+                    if (false !== strpos($tableName,'dw_channel_day')){
+                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
+                    }else{
+//                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
+                        $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
+                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
+                    }
                 }else{
                     $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
                 }
