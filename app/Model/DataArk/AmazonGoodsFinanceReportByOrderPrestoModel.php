@@ -13246,7 +13246,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
         $fba_table_field = $fba_table_field1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
-        if($datas['is_count'] == 1){
+        if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
             $join_field = ["user_id","sku"];
             $fba_table_group = " GROUP BY user_id";
             $fba_table_field = "max(sku) as sku";
@@ -13354,7 +13354,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         $datas['need_review_fba'] = $need_review_fba;
-        if($datas['is_count'] == 1){
+        if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
             $field1 = $this->getGoodsFbaField(1,$fba_table_field1,$datas);
             $fba_table1 = "(SELECT {$field1} FROM count_table as c {$fba_table_join1} {$fba_table_group1})";
         }elseif($need_review_fba){

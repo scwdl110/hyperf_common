@@ -627,15 +627,18 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $rt_order = !empty($fba_data['order']) ? $fba_data['order'] : "" ;
             if(!empty($fba_data['child_table'])){
                 foreach($fba_data['child_table'] as $c=>$cdata){
-//                    if($fba_data['is_count'] == 1 && $c == '0'){
-//                        if($fba_data['dimension'] == 'channel'){
-//                            $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
-//                        }else{
-//                            $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-//                        }
-//                    }else{
+                    if(!empty($fba_data['is_count']) && $c == '0'){
+                        if($fba_data['dimension'] == 'channel'){
+                            $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
+                        }elseif($fba_data['dimension'] == 'sku'){
+                            $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                            $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} GROUP BY {$group})";
+                        }else{
+                            $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                        }
+                    }else{
                         $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-//                    }
+                    }
                 }
             }
             if(!empty($rt_join)){
