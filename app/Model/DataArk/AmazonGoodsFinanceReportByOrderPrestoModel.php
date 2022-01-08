@@ -549,6 +549,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
+        echo "test";
         $datas['method'] = "getListByGoods";
         $this->dws_user_id_mod = getUserIdMod($datas['user_id']);
         $this->handleTargets($datas, 1);
