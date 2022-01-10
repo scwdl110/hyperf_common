@@ -1165,10 +1165,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if ($this->haveErpIskuFields){
-            $table .= " LEFT JOIN (SELECT max(isku_id) AS isku_id, SUM(good_num) AS good_num, SUM(bad_num) AS bad_num, SUM(lock_num + lock_num_work_order + lock_num_shipment_order) AS lock_num, SUM(purchasing_num) AS purchasing_num, SUM(send_num) AS send_num, SUM(goods_cost * total_num) AS goods_cost_total, SUM(total_num) AS total_num FROM {$this->table_erp_storage_warehouse_isku} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND is_delete = 0 GROUP BY isku_id) AS warehouse_isku ON warehouse_isku.isku_id = amazon_goods.goods_isku_id";
+            $erpIskuTable = $this->getErpIskuTable($datas, $userId, $channel_arr);
+            $table .= $erpIskuTable;
         }
         if ($this->haveErpReportFields){
-            $erpReportTable = $this->getErpReportTable($datas, $userId);
+            $erpReportTable = $this->getErpReportTable($datas, $userId, $channel_arr);
             $table .= $erpReportTable;
         }
 
@@ -14080,18 +14081,82 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     }
 
     /**
+     * erp库存明细指标
+     * @param $datas
+     * @param $userId
+     * @param $channelIds
+     * @return string
+     */
+    protected function getErpIskuTable($datas, $userId, $channelIds){
+        $userIdMod = $userId % 20;
+        $channelIdStr = implode(',', $channelIds);
+
+        $childFields = "SUM(isku_temp.good_num) AS good_num, SUM(isku_temp.bad_num) AS bad_num, SUM(isku_temp.lock_num + isku_temp.lock_num_work_order + isku_temp.lock_num_shipment_order) AS lock_num, SUM(isku_temp.purchasing_num) AS purchasing_num, SUM(isku_temp.send_num) AS send_num, SUM(isku_temp.goods_cost * isku_temp.total_num) AS goods_cost_total, SUM(isku_temp.total_num) AS total_num";
+        $childTable = "{$this->table_erp_storage_warehouse_isku} AS isku_temp";
+        $groupField = "isku_temp.isku_id";
+        $childJoin = "warehouse_isku.isku_id = amazon_goods.goods_isku_id";
+        $JoinWhere = "";
+        if ($datas['count_dimension'] == 'head_id')
+        {
+            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON isku_temp.isku_id = amazon_goods_temp.goods_isku_id";
+            $groupField = "amazon_goods_temp.isku_head_id";
+            $childJoin = "warehouse_isku.isku_head_id = amazon_goods.isku_head_id";
+            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
+        }
+        elseif ($datas['count_dimension'] == 'developer_id')
+        {
+            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON isku_temp.isku_id = amazon_goods_temp.goods_isku_id";
+            $groupField = "amazon_goods_temp.isku_developer_id";
+            $childJoin = "warehouse_isku.isku_developer_id = amazon_goods.isku_developer_id";
+            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
+        }
+
+        $childFields .= ", {$groupField}";
+
+        $childWhere = "isku_temp.db_num = '{$this->dbhost}' AND isku_temp.user_id = {$userId} AND isku_temp.is_delete = 0";
+        if (!empty($JoinWhere)){
+            $childWhere .= $JoinWhere;
+        }
+
+        $childSql = "SELECT {$childFields} FROM {$childTable} WHERE {$childWhere} GROUP BY {$groupField}";
+        $erpIskuTable = " LEFT JOIN ({$childSql}) AS warehouse_isku ON {$childJoin}";
+        return $erpIskuTable;
+    }
+
+    /**
      * erp进销存指标 跨月取最新月数据
      * @param $datas
      * @param $userId
+     * @param $channelIds
      * @return string
      */
-    protected function getErpReportTable($datas, $userId){
-        $childTable = "SELECT isku_id, year, month, SUM(goods_cost_begin) AS goods_cost_begin, min(goods_cost_begin) AS goods_cost_begin_min, max(goods_cost_begin) AS goods_cost_begin_max,
-SUM(goods_cost_end) AS goods_cost_end, min(goods_cost_end) AS goods_cost_end_min, max(goods_cost_end) AS goods_cost_end_max, SUM(purchasing_send_num) AS purchasing_send_num, SUM(purchasing_num) AS purchasing_num,
-SUM(send_num) AS send_num, SUM(num_begin) AS num_begin, SUM(goods_cost_total_begin) AS goods_cost_total_begin, SUM(in_num) AS in_num, SUM(in_cost) AS in_cost, SUM(out_num) AS out_num, SUM(out_cost) AS out_cost,
-SUM(supplement_cost) AS supplement_cost, SUM(num_end) AS num_end, SUM(goods_cost_total_end) AS goods_cost_total_end, SUM(out_cost * 2) / NULLIF(SUM(goods_cost_total_begin + goods_cost_total_end), 0) AS stock_rate
-FROM {$this->table_erp_storage_inventory_warehouse_report} WHERE db_num = '{$this->dbhost}' AND user_id = {$userId} AND warehouse_id > 0";
-        $yearMonth = '';
+    protected function getErpReportTable($datas, $userId, $channelIds){
+        $userIdMod = $userId % 20;
+        $channelIdStr = implode(',', $channelIds);
+
+        $childFields = "SUM(storage_temp.goods_cost_begin) AS goods_cost_begin, min(storage_temp.goods_cost_begin) AS goods_cost_begin_min, max(storage_temp.goods_cost_begin) AS goods_cost_begin_max, SUM(storage_temp.goods_cost_end) AS goods_cost_end, min(storage_temp.goods_cost_end) AS goods_cost_end_min, max(storage_temp.goods_cost_end) AS goods_cost_end_max, SUM(storage_temp.purchasing_send_num) AS purchasing_send_num, SUM(storage_temp.purchasing_num) AS purchasing_num, SUM(storage_temp.send_num) AS send_num, SUM(storage_temp.num_begin) AS num_begin, SUM(storage_temp.goods_cost_total_begin) AS goods_cost_total_begin, SUM(storage_temp.in_num) AS in_num, SUM(storage_temp.in_cost) AS in_cost, SUM(storage_temp.out_num) AS out_num, SUM(storage_temp.out_cost) AS out_cost, SUM(storage_temp.supplement_cost) AS supplement_cost, SUM(storage_temp.num_end) AS num_end, SUM(storage_temp.goods_cost_total_end) AS goods_cost_total_end, SUM(storage_temp.out_cost * 2) / NULLIF(SUM(storage_temp.goods_cost_total_begin + storage_temp.goods_cost_total_end), 0) AS stock_rate, storage_temp.year, storage_temp.month";
+        $childTable = "{$this->table_erp_storage_inventory_warehouse_report} AS storage_temp";
+
+        $groupField = "storage_temp.isku_id";
+        $childJoin = "warehouse_storage.isku_id = amazon_goods.goods_isku_id";
+        $JoinWhere = "";
+        if ($datas['count_dimension'] == 'head_id')
+        {
+            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
+            $groupField = "amazon_goods_temp.isku_head_id";
+            $childJoin = "warehouse_storage.isku_head_id = amazon_goods.isku_head_id";
+            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
+        }
+        elseif ($datas['count_dimension'] == 'developer_id')
+        {
+            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
+            $groupField = "amazon_goods_temp.isku_developer_id";
+            $childJoin = "warehouse_storage.isku_developer_id = amazon_goods.isku_developer_id";
+            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
+        }
+        $childFields .= ", {$groupField}";
+        $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
+
         if($datas['count_periods'] == 5){
             $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
             $newestMonth = [];
@@ -14147,11 +14212,22 @@ FROM {$this->table_erp_storage_inventory_warehouse_report} WHERE db_num = '{$thi
             $month = intval(substr($datas['max_ym'], 4));
             $yearMonth = $year.$month;
         }
-        if (!empty($yearMonth)){
-            $childTable .= " AND time_str IN({$yearMonth})";
+        else{
+            $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
+            $yearMonth = implode(',', $maxMinYm);
         }
-        $childTable .= " GROUP BY isku_id, year, month";
-        $erpReportTable = " LEFT JOIN ({$childTable}) AS warehouse_storage ON warehouse_storage.isku_id = amazon_goods.goods_isku_id AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
+
+        $childWhere = "storage_temp.db_num = '{$this->dbhost}' AND storage_temp.user_id = {$userId} AND storage_temp.warehouse_id > 0";
+        if (!empty($yearMonth)){
+            $childWhere .= " AND storage_temp.time_str IN({$yearMonth})";
+        }
+        if (!empty($JoinWhere)){
+            $childWhere .= $JoinWhere;
+        }
+
+        $childSql = "SELECT {$childFields} FROM {$childTable} WHERE {$childWhere} GROUP BY {$childGroup}";
+
+        $erpReportTable = " LEFT JOIN ({$childSql}) AS warehouse_storage ON {$childJoin} AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
         return $erpReportTable;
     }
 
