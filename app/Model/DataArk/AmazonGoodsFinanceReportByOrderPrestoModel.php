@@ -13347,7 +13347,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $need_review_fba = true;//需要去重
         $fba_table_field = $fba_table_field1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
         if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
-            $join_field = ["user_id","sku"];
+            $join_field = ["user_id"];
             $fba_table_group = " GROUP BY user_id";
             $fba_table_field = "max(sku) as sku";
             $fba_table_field1 = "max(g.sku) as sku";
@@ -13908,7 +13908,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }
                     }else{
                         if($fbaArr[$target]['count_type'] == '1'){
-                            if($is_currency_exchange == 1){
+                            if($is_currency_exchange == 1 && $fbaArr[$target]['data_type'] == '2'){
                                 $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.rate ,1) ) END )) ";
                             }else{
                                 $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END ))";
