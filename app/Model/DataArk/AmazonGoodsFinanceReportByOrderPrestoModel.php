@@ -13907,7 +13907,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }
                     }else{
                         if($fbaArr[$target]['count_type'] == '1'){
-                            if($is_currency_exchange == 1){
+                            if($is_currency_exchange == 1 && $fbaArr[$target]['data_type'] == '2'){
                                 $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.rate ,1) ) END )) ";
                             }else{
                                 $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END ))";
