@@ -414,16 +414,18 @@ function getStartAndEndTimeAllSite($type = 1)
         foreach ($localDate as $key => $value) {
             $season = ceil((date('n' , strtotime($localDate[$key]["start"])))/3);//当月是第几季度
             $localDate[$key]["site_id"] = $key;
-            $localDate[$key]["start"] = date("Y-m-d 00:00:00", mktime(0, 0, 0,$season*3-3+1,1,date('Y' , strtotime($localDate[$key]["start"]))));
-            $localDate[$key]["end"] = date("Y-m-d 23:59:59", (mktime(0, 0, 0,$season*3+1,1,date('Y' , strtotime($localDate[$key]["start"]))) - 1) );
+            $start_tmp = $localDate[$key]["start"];
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", mktime(0, 0, 0,$season*3-3+1,1,date('Y' , strtotime($start_tmp))));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", (mktime(0, 0, 0,$season*3+1,1,date('Y' , strtotime($start_tmp))) - 1) );
         }
     }
     if ($type == 21) { // 上季度
         foreach ($localDate as $key => $value) {
             $season = ceil((date('n' , strtotime($localDate[$key]["start"])))/3)-1;
             $localDate[$key]["site_id"] = $key;
-            $localDate[$key]["start"] = date("Y-m-d 00:00:00",mktime(0, 0, 0,$season*3-3+1,1,date('Y' ,strtotime($localDate[$key]["start"]))));
-            $localDate[$key]["end"] = date("Y-m-d 23:59:59", (mktime(0, 0, 0,$season*3+1,1,date('Y' , strtotime($localDate[$key]["start"]))) - 1) );
+            $start_tmp = $localDate[$key]["start"];
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00",mktime(0, 0, 0,$season*3-3+1,1,date('Y' ,strtotime($start_tmp))));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", (mktime(0, 0, 0,$season*3+1,1,date('Y' , strtotime($start_tmp))) - 1) );
         }
     }
     if($type == 22){  //近3个月
@@ -459,6 +461,34 @@ function getStartAndEndTimeAllSite($type = 1)
                 $localDate[$key]["start"] = date("Y-m-d 00:00:00",strtotime("-1 week Sunday") + 24*3600);
                 $localDate[$key]["end"] = date("Y-m-d 23:59:59",strtotime(date("Y-m-d",strtotime("today")))+86399);
             }
+        }
+    }
+
+    if ($type == 30){ //过去2周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-14 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+    if ($type == 31){ //过去3周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-21 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+    if ($type == 32){ //过去4周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-28 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
         }
     }
 

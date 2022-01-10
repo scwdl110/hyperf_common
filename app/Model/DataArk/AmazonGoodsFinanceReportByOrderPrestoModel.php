@@ -212,6 +212,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ];
 
     private $dws_user_id_mod = 0;
+    private $channel_user_id_mod = 0;
 
     protected $operate_channel_amazon_goods_fee = " +report.bychannel_reserved_field44 + report.bychannel_reserved_field43 ";
     protected $operate_channel_amazon_other_fee = " +report.bychannel_reserved_field43 ";
@@ -653,7 +654,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fbaCommonArr = config('common.goods_fba_fields_arr');
         $orderby = '';
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
-            if(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key)){
+            if ($datas['currency_code'] != 'ORIGIN' or in_array($datas['sort_target'],['goods_buyer_visit_rate','goods_views_rate'])) {
+                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+                $this->fbaSort = [
+                    'sort_target' => $datas['sort_target'],
+                    'sort_order' => $datas['sort_order'],
+                    'is_origin' => 1,
+                ];
+            }elseif(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key)){
                 $this->fbaSort = [
                     'sort_target' => $datas['sort_target'],
                     'sort_order' => $datas['sort_order'],
@@ -662,13 +670,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $this->fbaSort['is_custom'] = 1;
                 }
             }else{
-                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
+                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$datas['sort_target']]) . ' ) ' . $datas['sort_order'];
                 $this->fbaSort = [
                     'sort_target' => $datas['sort_target'],
                     'sort_order' => $datas['sort_order'],
                     'is_origin' => 1,
                 ];
             }
+
         }elseif ($datas['sort_target'] == 'create_time' && !empty($datas['sort_order'])){
             $orderby = " max(report.create_time) {$datas['sort_order']}";
             $this->fbaSort = [
@@ -679,7 +688,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
-            $orderby = '((' . $fields[$sort] . ') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+            if ($datas['currency_code'] != 'ORIGIN' or in_array($sort,['goods_buyer_visit_rate','goods_views_rate'])) {
+                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
+            }else{
+                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$sort]) . ' ) ' . $order;
+            }
             $this->fbaSort = [
                 'sort_target' => $sort,
                 'sort_order' => $order,
@@ -725,6 +738,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
             }
+        }else{
+            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
         }
 
         $having = '';
@@ -1013,6 +1028,39 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND report.goods_isku_id  IN ( " . $isku_id_str . ")";
                 }elseif ($isku_id_str == 0){
                     $where .= " AND report.goods_isku_id = 0 ";
+                }
+            }
+            if (!empty($where_detail['developer_id'])) {
+                if(is_array($where_detail['developer_id'])){
+                    $developer_str = implode(',', $where_detail['developer_id']);
+                }else{
+                    $developer_str = $where_detail['developer_id'] ;
+                }
+
+                if (!empty($developer_str)) {
+                    $where .= " AND report.isku_developer_id  IN ( " . $developer_str . ")";
+                }
+            }
+            if (!empty($where_detail['head_id'])) {
+                if(is_array($where_detail['head_id'])){
+                    $head_str = implode(',', $where_detail['head_id']);
+                }else{
+                    $head_str = $where_detail['head_id'] ;
+                }
+
+                if (!empty($head_str)) {
+                    $where .= " AND report.isku_head_id  IN ( " . $head_str . ")";
+                }
+            }
+            if(!empty($where_detail['product_category_name'])){
+                if(is_array($where_detail['product_category_name'])){
+                    $product_category_name_str="'".join("','",$where_detail['product_category_name'])."'";
+                }else{
+                    $product_category_name_str = "'".$where_detail['product_category_name']."'" ;
+                }
+
+                if (!empty($product_category_name_str)) {
+                    $where .= " AND report.goods_product_category_name_1  IN ( " . $product_category_name_str . ")";
                 }
             }
             if (!empty($where_detail['operators_id'])  or (isset($where_detail['operators_id']) && ($where_detail['operators_id'] === '0' or $where_detail['operators_id'] === 0))) {
@@ -5410,7 +5458,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fields = [];
         $this->handleTargets($params, 2);
         $isMysql = $this->getIsMysql($params);
-        $this->dws_user_id_mod = getUserIdMod($params['user_id']);
+
+        //  店铺日报user_id_mod取模20，只是表名不一样，店铺月表按大卖区分取模
+        if(($params['count_periods'] == 0 || $params['count_periods'] == 1) && $params['cost_count_type'] != 2){ //按天或无统计周期
+            $this->dws_user_id_mod = intval($params['user_id'] % 20);
+        }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
+            $this->dws_user_id_mod = intval($params['user_id'] % 20);
+        }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
+            $this->dws_user_id_mod = getUserIdMod($params['user_id']);
+        }else if($params['cost_count_type'] == 2 ){
+            $this->dws_user_id_mod = getUserIdMod($params['user_id']);
+        } else {
+            return [];
+        }
+
         $searchKey = $datas['searchKey'] ?? '';
         $searchVal = $datas['searchVal'] ?? '';
         $matchType = $datas['matchType'] ?? '';
@@ -5504,16 +5565,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $channel_fba_fields_arr = array_keys(config('common.channel_fba_fields_arr')) ;
         $orderby = '';
-        if( !empty($params['sort_target']) && in_array($params['sort_target'] , $channel_fba_fields_arr) && $params['stock_datas_origin'] == 1 ){  //FBA 库存排序不在此处理
-            if( !empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order']) ){
-                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
-            }elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
+        if( !empty($params['sort_target']) && in_array($params['sort_target'] , $channel_fba_fields_arr) && $params['stock_datas_origin'] == 1 ) {  //FBA 库存排序不在此处理
+            if (!empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order'])) {
+                if ($params['currency_code'] != 'ORIGIN') {
+                    $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
+                } else {
+                    $orderby = "(({$fields[$params['sort_target']]}) IS NULL), (" . $this->getOriginOrderBy($fields[$params['sort_target']]) . ") {$params['sort_order']}";
+                }
+            } elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])) {
                 $orderby = " max(report.create_time) {$params['sort_order']}";
             }
         }
+
         if( !empty($order) && in_array($order , $channel_fba_fields_arr) && $params['stock_datas_origin'] == 1 ) {  //FBA 库存排序不在此处理
             if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $params['limit_num'] == 0) {
-                $orderby = "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
+                if ($params['currency_code'] != 'ORIGIN') {
+                    $orderby = "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
+                } else {
+                    $orderby = "(({$fields[$sort]}) IS NULL), (" . $this->getOriginOrderBy($fields[$sort]) . ") {$order}";
+                }
+
             }
         }
 
@@ -5538,6 +5609,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             } else {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id ";
             }
+        }else{
+            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
         }
 
         if ($this->countDimensionChannel){
@@ -5917,7 +5990,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $targets_temp = $targets;//基础指标缓存
 
         //店铺月销售额目标
-        if ($isMysql && in_array('sale_channel_month_goal', $targets)) {
+        if ($isMysql && (in_array('sale_channel_month_goal', $targets) || in_array('gross_profit_channel_month_goal', $targets) || in_array('gross_margin_channel_month_goal', $targets))) {
             $isMysql = false;
             $this->is_channge_mysql = true;
         }
@@ -11271,6 +11344,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @return string  返回table
      */
     public function operationTable($datas,$ym_where,$table_type = "day",$operation_table_field = array()){
+        if ($table_type == 'month'){
+            $this->channel_user_id_mod = $this->dws_user_id_mod;
+        }else{
+            $this->channel_user_id_mod = intval($datas['user_id'] % 20);
+        }
         if ($datas['is_new_index']){
             return $this->operationNewIndexTable($datas,$ym_where,$table_type,$operation_table_field);
         }
@@ -11283,7 +11361,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $where_dw_report_amazon_goods .= " ".str_replace("create_time",'dw_report.create_time',$create_time_tmp);
 
 
-        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".$this->dws_user_id_mod." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
+        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".$this->channel_user_id_mod." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
         $goods_month_table = '';
         if ($table_type == 'week'){
             $goods_table = "{$this->table_dws_goods_day_report} AS dw_report
@@ -11956,7 +12034,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $channel_field = "(channel.operation_user_admin_id) as operation_user_admin_id,channel_id,myear,mmonth,mquarter,(dw_report.site_id) as site_id,(dw_report.user_id) as user_id,bychannel_create_time";
 
 
-        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".$this->dws_user_id_mod." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
+        $where_channel = "dw_report.user_id = {$datas['user_id']} AND channel.operation_user_admin_id > 0 AND dw_report.user_id_mod = ".$this->channel_user_id_mod." AND dw_report.channel_id IN (".$datas['operation_channel_ids'].") ".str_replace("create_time",'dw_report.create_time',$datas['origin_time'])." AND ".str_replace("report.",'dw_report.',$ym_where);
         $channel_table = "{$this->table_channel} as  channel  JOIN {$this->table_channel_day_report} as dw_report on channel.id  = dw_report.channel_id WHERE {$where_channel} ) AS bychannel ON goods.channel_id = bychannel.channel_id AND goods.myear = bychannel.myear AND goods.mmonth = bychannel.mmonth AND goods.mday = bychannel.mday AND goods.goods_operation_pattern != 1";
         $goods_group = "amazon_goods.goods_operation_user_admin_id,dw_report.channel_id,dw_report.myear,dw_report.mmonth,dw_report.mday";
         if ($table_type == 'week'){
@@ -12527,7 +12605,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
                 $field_rate = $value['format_type'] == 4 ? $rate : "";
                 //店铺
-                if($key == 'sale_channel_month_goal'){
+                if(in_array($key,['sale_channel_month_goal','gross_profit_channel_month_goal','gross_margin_channel_month_goal'])){
                     $this->countDimensionChannel = true;
                 }
                 if($value['is_goods_key'] == 1 && $value['goods_key_from'] == 5){
@@ -12711,7 +12789,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $field_rate =  $field[$targets]['format_type'] == 4 ? $rate : "";
 
             //店铺
-            if($targets == 'sale_channel_month_goal'){
+            if(in_array($targets,['sale_channel_month_goal','gross_profit_channel_month_goal','gross_margin_channel_month_goal'])){
                 $this->countDimensionChannel = true;
             }
             if ($field[$targets]['format_type'] == 3 or $targets == 'cpc_avg_click_cost'){
@@ -13187,6 +13265,27 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $sql_key_arr = $mysql_fields['sql_key_arr'];
 
         return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr];
+    }
+
+    public function getOriginOrderBy($sort_target){
+//        $fields[$datas['sort_target']]
+        $order_field_arr = explode("/",$sort_target);
+        if (!empty($order_field_arr)){
+            $order_by = array();
+            foreach ($order_field_arr as $key =>  $order_val){
+                if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($sort_target),'try(') === false){
+                    $order_by_tmp = str_replace("SUM","",$order_val);
+                    $order_by_tmp = str_replace("sum","",$order_by_tmp);
+                    $order_by[]   = "SUM(".$order_by_tmp."/ COALESCE(rates.rate ,1)".")";
+                }else{
+                    $order_by[]   = $order_val;
+                }
+
+            }
+            $sort_target      = implode("/",$order_by);
+        }
+
+        return $sort_target;
     }
 
     protected function joinGoodsFbaTable($datas = array() , $channel_arr = array() , $currencyInfo = array(),$exchangeCode = '1', $custom_fba_target_key = array())
