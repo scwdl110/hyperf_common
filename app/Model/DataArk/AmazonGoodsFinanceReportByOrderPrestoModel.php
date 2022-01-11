@@ -14010,7 +14010,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $fields[] = "MAX(g.buhuo_user) as buhuo_user";
                     }
                     if($target == 'fba_suggested_replenishment_time'){
-                        $fields[] = "MAX(g.fba_sales_day_tmp) as fba_sales_day_tmp";
+                        $fields[] = "MAX(g.available_days) as fba_sales_day_tmp";
                     }
                     if(!empty($fbaArr[$target]['rel_field_status'])){
                         //rel不需要去重
