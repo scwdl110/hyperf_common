@@ -626,6 +626,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
             $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
             $rt_order = !empty($fba_data['order']) ? $fba_data['order'] : "" ;
+            $count_table_group = empty($fba_data['group']) ? '' : " GROUP BY {$fba_data['group']}";
             if(!empty($fba_data['child_table'])){
                 foreach($fba_data['child_table'] as $c=>$cdata){
                     if(!empty($fba_data['is_count']) && $c == '0'){
@@ -633,7 +634,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                             $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                         }elseif($fba_data['dimension'] == 'sku'){
                             $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-                            $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} {$where} {$group})";
+                            $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} {$where} {$count_table_group})";
                         }else{
                             $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                         }

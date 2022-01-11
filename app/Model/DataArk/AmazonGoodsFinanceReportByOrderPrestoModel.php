@@ -1260,6 +1260,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
                         }
                     }
+                    if($datas['is_count'] == 1 && $datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
+                        //sku区分店铺总计
+                        $fbaData['group'] = $group;//给count_table用的
+                    }
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql,$compareData,$fbaData);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
