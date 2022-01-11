@@ -1112,7 +1112,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
+                    //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
                     if(in_array($target_where['key'],array_keys($fbaCommonArr)) || in_array($target_where['key'],$fba_target_key)){
+                        //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
+                        if($datas['is_count'] == 1 && $datas['stock_datas_origin'] == 1){
+                            return array('lists'=>[] , 'count'=>0);
+                        }
                         if(in_array($target_where['key'],$fba_target_key)){
                             $target_where['is_custom'] = 1;
                         }
@@ -1274,6 +1279,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         foreach($compareData as $k3=>$cdata3){
                             $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
                         }
+                    }
+                    if($datas['is_count'] == 1 && $datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
+                        //sku区分店铺总计
+                        $fbaData['group'] = $group;//给count_table用的
                     }
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql,$compareData,$fbaData);
                 }
@@ -5508,12 +5517,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $isMysql = false;
             }
             $fields = $fields_arr['fields'];
+            //自定义指标中含有FBA指标的key
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
             $fba_target_key = [] ;
             $fields = $this->getUnGoodsTimeFields($params, $timeLine,$isMysql);
         }
-
 
         if (empty($fields)) {
             return [];
@@ -5792,6 +5801,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
+                    //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
+                    if($params['is_count'] == 1 && $params['stock_datas_origin'] == 1 && (in_array($target_where['key'],$channel_fba_fields_arr) || (!empty($fba_target_key) && in_array($target_where['key'] , $fba_target_key))) ){
+                        return array('lists'=>[] , 'count'=>0);
+                        exit ;
+                    }
                     if(!empty($fields[$target_where['key']])){
                         $where_value = $target_where['value'];
                         if (strpos($where_value, '%') !== false) {
@@ -11148,7 +11162,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     foreach($fba_data['child_table'] as $c=>$cdata){
                         if(!empty($fba_data['is_count']) && $c == '0'){
                             if($fba_data['dimension'] == 'channel'){
-                                $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
+                                $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} WHERE {$where} group by {$group} ) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                             }elseif($fba_data['dimension'] == 'sku'){
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                                 $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} GROUP BY {$group})";
@@ -13315,6 +13329,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             //没有选择fba指标
             return [];
         }
+        if(($datas['count_dimension'] != 'sku' && $datas['is_count'] == 1) || ($datas['count_dimension'] == 'sku' && $datas['is_count'] == 1 && empty($datas['is_distinct_channel']))){
+            //非sku区分店铺总计
+            return [];
+        }
         //按周期排序添加
         $child_table = $fba_data_join = array();
         $fba_data = [
@@ -13361,7 +13379,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,g.channel_id,g.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
-            'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id) as g {$rel_table} {$rate_table} {$where}",
+            'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id and v.db_num = '{$this->dbhost}') as g {$rel_table} {$rate_table} {$where}",
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
@@ -13400,7 +13418,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_group = " GROUP BY asin";
                 $fba_table_field = "max(asin) as asin";
                 $fba_table_field1 = "max(g.asin) as asin";
-                $fba_table_group1 = " GROUP BY g.asin,g.merchant_id,g.area_id";
+                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,g.asin";
                 $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'parent_asin'){
@@ -13414,7 +13432,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_group = " GROUP BY parent_asin";
                 $fba_table_field = "max(parent_asin) as parent_asin";
                 $fba_table_field1 = "max(g.parent_asin) as parent_asin";
-                $fba_table_group1 = " GROUP BY g.parent_asin,g.merchant_id,g.area_id";
+                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,g.parent_asin";
                 $fba_table_join1 = "";
             }
         }else if($datas['count_dimension'] == 'isku'){
@@ -13422,53 +13440,53 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_field = "max(isku_id) as isku_id";
             $fba_table_field1 = "max(amazon_goods.goods_isku_id) as isku_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_isku_id ,g.merchant_id,g.area_id";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.goods_isku_id";
             $fba_table_group = " GROUP BY isku_id";
         }else if($datas['count_dimension'] == 'class1'){
             $join_field = ["user_id","class1","site_country_id"];
             $fba_table_field = "max(class1) as class1,max(site_country_id) as site_country_id";
             $fba_table_field1 = "max(amazon_goods.goods_product_category_name_1) as class1,max(amazon_goods.goods_site_id) as site_country_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_product_category_name_1,amazon_goods.goods_site_id,g.merchant_id,g.area_id";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.goods_product_category_name_1,amazon_goods.goods_site_id";
             $fba_table_group = " GROUP BY class1,site_country_id";
         }else if($datas['count_dimension'] == 'group'){ //分组
             $join_field = ["user_id","group_id"];
             $fba_table_field = "max(group_id) as group_id";
             $fba_table_field1 = "max(amazon_goods.goods_group_id) as group_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.goods_group_id,g.merchant_id,g.area_id";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.goods_group_id";
             $fba_table_group = " GROUP BY group_id";
         }else if($datas['count_dimension'] == 'tags'){ //标签（需要刷数据）
             $join_field = ["user_id","tags_id"];
             $fba_table_field = "max(tags_id) as tags_id";
             $fba_table_field1 = "max(tags_rel.tags_id) as tags_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = amazon_goods.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' and  tags_rel.status = 1";
-            $fba_table_group1 = " GROUP BY tags_rel.tags_id,g.merchant_id,g.area_id";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,tags_rel.tags_id";
             $fba_table_group = " GROUP BY tags_id";
         }else if($datas['count_dimension'] == 'head_id') { //负责人
             $join_field = ["user_id","head_id"];
             $fba_table_field = "max(head_id) as head_id";
             $fba_table_field1 = "max(amazon_goods.isku_head_id) as head_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.isku_head_id,g.merchant_id,g.area_id";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_head_id";
             $fba_table_group = " GROUP BY head_id";
         }else if($datas['count_dimension'] == 'developer_id') { //开发人员
             $join_field = ["user_id","developer_id"];
             $fba_table_field = "max(developer_id) as developer_id";
             $fba_table_field1 = "max(amazon_goods.isku_developer_id) as developer_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY amazon_goods.isku_developer_id,g.merchant_id,g.area_id";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_developer_id,";
             $fba_table_group = " GROUP BY developer_id";
         }else if($datas['count_dimension'] == 'all_goods'){
             if($datas['is_distinct_channel'] == 1) { //有区分店铺
                 $join_field = ["user_id","channel_id"];
                 $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON channel.id = g.channel_id";
-                $fba_table_group1 = " GROUP BY g.merchant_id,g.area_id";
+                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
                 $fba_table_group = " GROUP BY channel_id";
             }else{
                 $join_field = ["user_id"];
                 $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON channel.id = g.channel_id";
-                $fba_table_group1 = " GROUP BY g.merchant_id,g.area_id";
+                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
                 $fba_table_group = " GROUP BY user_id";
             }
         }
@@ -13761,12 +13779,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields = array_merge($fields , $other_fields) ;
         }
 
-        if( !empty($datas['sort_target']) && !empty($fbaArr[$datas['sort_target']])  && !empty($datas['sort_order']) ){
-            $orderby = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+        if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
+            if(!empty($fbaArr[$datas['sort_target']]) ) {
+                $orderby = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
+            }else{
+                $orderby = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
+            }
         }
 
-        if (!empty($datas['order']) && !empty($fbaArr[$datas['sort']]) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
-            $orderby = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+        if (!empty($datas['order']) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
+            if(!empty($fbaArr[$datas['sort']]) ){
+                $orderby = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
+            }else{
+                $orderby = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
+            }
+
         }
         $target_wheres = $datas['where_detail']['target'] ?? array();
         $condition_relation = $datas['where_detail']['condition_relation'] ?? 'AND';
@@ -13979,11 +14006,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $other_field.= sprintf('%s max(g.user_id) as user_id,max(g.area_id) as area_id,max(g.channel_id) as channel_id',$other_field ? ',' : '');
             foreach ($this->lastTargets as $target){
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
-                    if($fbaArr[$target]['count_type'] == '4'){
-                        if(!empty($fbaArr[$target]['child_key'])){
-                            foreach ($fbaArr[$target]['child_key'] as $child_key){
-                                $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$child_key]['mysql_field']}) ELSE SUM(g.{$fbaArr[$child_key]['mysql_field']}) END ) as {$fbaArr[$child_key]['mysql_field']}";
+                    if(!empty($fbaArr[$target]['rel_field_status'])){
+                        //rel不需要去重
+                        if(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5') {
+                            $fields[] = "AVG(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
+                        }elseif($fbaArr[$target]['count_type'] == '4'){
+                            if(!empty($fbaArr[$target]['child_key'])){
+                                foreach ($fbaArr[$target]['child_key'] as $child_key){
+                                    $fields[] = "SUM(g.{$fbaArr[$child_key]['mysql_field']}) as {$fbaArr[$child_key]['mysql_field']}";
+                                }
                             }
+                        }else{
+                            $fields[] = "SUM(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
                         }
                     }elseif($fbaArr[$target]['count_type'] == '5'){
                         $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$target]['mysql_field']}) ELSE AVG(g.{$fbaArr[$target]['mysql_field']}) END ) as {$fbaArr[$target]['mysql_field']}";
