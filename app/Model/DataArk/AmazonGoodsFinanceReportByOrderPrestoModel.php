@@ -13759,12 +13759,21 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields = array_merge($fields , $other_fields) ;
         }
 
-        if( !empty($datas['sort_target']) && !empty($fbaArr[$datas['sort_target']])  && !empty($datas['sort_order']) ){
-            $orderby = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+        if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
+            if(!empty($fbaArr[$datas['sort_target']]) ) {
+                $orderby = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
+            }else{
+                $orderby = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
+            }
         }
 
-        if (!empty($datas['order']) && !empty($fbaArr[$datas['sort']]) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
-            $orderby = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+        if (!empty($datas['order']) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
+            if(!empty($fbaArr[$datas['sort']]) ){
+                $orderby = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
+            }else{
+                $orderby = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
+            }
+
         }
         $target_wheres = $datas['where_detail']['target'] ?? array();
         $condition_relation = $datas['where_detail']['condition_relation'] ?? 'AND';
