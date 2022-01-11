@@ -1112,7 +1112,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
+                    //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
                     if(in_array($target_where['key'],array_keys($fbaCommonArr)) || in_array($target_where['key'],$fba_target_key)){
+                        //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
+                        if($datas['is_count'] == 1 && $datas['stock_datas_origin'] == 1){
+                            return array('lists'=>[] , 'count'=>0);
+                        }
                         if(in_array($target_where['key'],$fba_target_key)){
                             $target_where['is_custom'] = 1;
                         }
