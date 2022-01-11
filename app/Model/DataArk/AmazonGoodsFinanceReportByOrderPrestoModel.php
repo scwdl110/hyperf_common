@@ -1169,11 +1169,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fbaData = array();
         }
 
-        if ($this->haveErpIskuFields){
+        if ($this->haveErpIskuFields && $datas['is_count'] != 1){
             $erpIskuTable = $this->getErpIskuTable($datas, $userId, $channel_arr);
             $table .= $erpIskuTable;
         }
-        if ($this->haveErpReportFields){
+        if ($this->haveErpReportFields && $datas['is_count'] != 1){
             $erpReportTable = $this->getErpReportTable($datas, $userId, $channel_arr);
             $table .= $erpReportTable;
         }
@@ -1191,7 +1191,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                if(!empty($where_detail['target'])){
+
+                if ($this->haveErpIskuFields || $this->haveErpReportFields)
+                {
+                    $other_param = [
+                        'currency_info' => $currencyInfo,
+                        'user_id' => $userId,
+                        'channel_arr' => $channel_arr
+                    ];
+                    $lists = $this->queryHaveErpList($fields, $datas, $exchangeCode, $day_param, $field_data, $table, $where, $group, true, $isMysql, $compareData, $fbaData, $other_param);
+
+                } elseif(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql,$compareData,$fbaData);
                 }else {
                     //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
@@ -1251,7 +1261,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
-                if(!empty($where_detail['target'])){
+
+                if ($this->haveErpIskuFields || $this->haveErpReportFields)
+                {
+                    $other_param = [
+                        'currency_info' => $currencyInfo,
+                        'user_id' => $userId,
+                        'channel_arr' => $channel_arr
+                    ];
+                    $lists = $this->queryHaveErpList($fields, $datas, $exchangeCode, $day_param, $field_data, $table, $where, $group, true, $isMysql, $compareData, $fbaData, $other_param);
+
+                }elseif(!empty($where_detail['target'])){
                     $lists = $this->queryList($fields,$datas,$exchangeCode,$day_param,$field_data,$table,$where,$group,true,$isMysql,$compareData,$fbaData);
                 }else{
                     //获取总计时 ， 更改连表ON 为 origin_table.user_id = compare_table1.user_id ;
@@ -14125,29 +14145,30 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @param $datas
      * @param $userId
      * @param $channelIds
+     * @param $is_count
      * @return string
      */
-    protected function getErpIskuTable($datas, $userId, $channelIds){
+    protected function getErpIskuTable($datas, $userId, $channelIds, $is_count = 0){
         $userIdMod = $userId % 20;
         $channelIdStr = implode(',', $channelIds);
 
         $childFields = "SUM(isku_temp.good_num) AS good_num, SUM(isku_temp.bad_num) AS bad_num, SUM(isku_temp.lock_num + isku_temp.lock_num_work_order + isku_temp.lock_num_shipment_order) AS lock_num, SUM(isku_temp.purchasing_num) AS purchasing_num, SUM(isku_temp.send_num) AS send_num, SUM(isku_temp.goods_cost * isku_temp.total_num) AS goods_cost_total, SUM(isku_temp.total_num) AS total_num";
         $childTable = "{$this->table_erp_storage_warehouse_isku} AS isku_temp";
         $groupField = "isku_temp.isku_id";
-        $childJoin = "warehouse_isku.isku_id = amazon_goods.goods_isku_id";
+        $childJoin = $is_count == 1 ? "warehouse_isku.isku_id = report_inner.isku_id" : "warehouse_isku.isku_id = amazon_goods.goods_isku_id";
         $JoinWhere = "";
         if ($datas['count_dimension'] == 'head_id')
         {
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON isku_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_head_id";
-            $childJoin = "warehouse_isku.isku_head_id = amazon_goods.isku_head_id";
+            $childJoin = $is_count == 1 ? "warehouse_isku.isku_head_id = report_inner.head_id" : "warehouse_isku.isku_head_id = amazon_goods.isku_head_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
         }
         elseif ($datas['count_dimension'] == 'developer_id')
         {
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON isku_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_developer_id";
-            $childJoin = "warehouse_isku.isku_developer_id = amazon_goods.isku_developer_id";
+            $childJoin = $is_count == 1 ? "warehouse_isku.isku_developer_id = report_inner.developer_id" : "warehouse_isku.isku_developer_id = amazon_goods.isku_developer_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
         }
 
@@ -14168,34 +14189,39 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @param $datas
      * @param $userId
      * @param $channelIds
+     * @param $is_count
      * @return string
      */
-    protected function getErpReportTable($datas, $userId, $channelIds){
+    protected function getErpReportTable($datas, $userId, $channelIds, $is_count = 0){
         $userIdMod = $userId % 20;
         $channelIdStr = implode(',', $channelIds);
 
-        $childFields = "SUM(storage_temp.goods_cost_begin) AS goods_cost_begin, min(storage_temp.goods_cost_begin) AS goods_cost_begin_min, max(storage_temp.goods_cost_begin) AS goods_cost_begin_max, SUM(storage_temp.goods_cost_end) AS goods_cost_end, min(storage_temp.goods_cost_end) AS goods_cost_end_min, max(storage_temp.goods_cost_end) AS goods_cost_end_max, SUM(storage_temp.purchasing_send_num) AS purchasing_send_num, SUM(storage_temp.purchasing_num) AS purchasing_num, SUM(storage_temp.send_num) AS send_num, SUM(storage_temp.num_begin) AS num_begin, SUM(storage_temp.goods_cost_total_begin) AS goods_cost_total_begin, SUM(storage_temp.in_num) AS in_num, SUM(storage_temp.in_cost) AS in_cost, SUM(storage_temp.out_num) AS out_num, SUM(storage_temp.out_cost) AS out_cost, SUM(storage_temp.supplement_cost) AS supplement_cost, SUM(storage_temp.num_end) AS num_end, SUM(storage_temp.goods_cost_total_end) AS goods_cost_total_end, SUM(storage_temp.out_cost * 2) / NULLIF(SUM(storage_temp.goods_cost_total_begin + storage_temp.goods_cost_total_end), 0) AS stock_rate, storage_temp.year, storage_temp.month";
+        $childFields = "SUM(storage_temp.goods_cost_begin) AS goods_cost_begin, min(storage_temp.goods_cost_begin) AS goods_cost_begin_min, max(storage_temp.goods_cost_begin) AS goods_cost_begin_max, SUM(storage_temp.goods_cost_end) AS goods_cost_end, min(storage_temp.goods_cost_end) AS goods_cost_end_min, max(storage_temp.goods_cost_end) AS goods_cost_end_max, SUM(storage_temp.purchasing_send_num) AS purchasing_send_num, SUM(storage_temp.purchasing_num) AS purchasing_num, SUM(storage_temp.send_num) AS send_num, SUM(storage_temp.num_begin) AS num_begin, SUM(storage_temp.goods_cost_total_begin) AS goods_cost_total_begin, SUM(storage_temp.in_num) AS in_num, SUM(storage_temp.in_cost) AS in_cost, SUM(storage_temp.out_num) AS out_num, SUM(storage_temp.out_cost) AS out_cost, SUM(storage_temp.supplement_cost) AS supplement_cost, SUM(storage_temp.num_end) AS num_end, SUM(storage_temp.goods_cost_total_end) AS goods_cost_total_end, SUM(storage_temp.out_cost * 2) / NULLIF(SUM(storage_temp.goods_cost_total_begin + storage_temp.goods_cost_total_end), 0) AS stock_rate, max(storage_temp.time) AS time, max(storage_temp.year) AS year, max(storage_temp.month) AS month";
         $childTable = "{$this->table_erp_storage_inventory_warehouse_report} AS storage_temp";
 
         $groupField = "storage_temp.isku_id";
-        $childJoin = "warehouse_storage.isku_id = amazon_goods.goods_isku_id";
+        $childJoin = $is_count == 1 ? "warehouse_storage.isku_id = report_inner.isku_id" : "warehouse_storage.isku_id = amazon_goods.goods_isku_id";
         $JoinWhere = "";
         if ($datas['count_dimension'] == 'head_id')
         {
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_head_id";
-            $childJoin = "warehouse_storage.isku_head_id = amazon_goods.isku_head_id";
+            $childJoin = $is_count == 1 ? "warehouse_storage.isku_head_id = report_inner.head_id" : "warehouse_storage.isku_head_id = amazon_goods.isku_head_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
         }
         elseif ($datas['count_dimension'] == 'developer_id')
         {
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_developer_id";
-            $childJoin = "warehouse_storage.isku_developer_id = amazon_goods.isku_developer_id";
+            $childJoin = $is_count == 1 ? "warehouse_storage.isku_developer_id = report_inner.developer_id" : "warehouse_storage.isku_developer_id = amazon_goods.isku_developer_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
         }
         $childFields .= ", {$groupField}";
-        $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
+        if ($is_count){
+            $childGroup = "{$groupField}";
+        }else{
+            $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
+        }
 
         if($datas['count_periods'] == 5){
             $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
@@ -14267,7 +14293,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         $childSql = "SELECT {$childFields} FROM {$childTable} WHERE {$childWhere} GROUP BY {$childGroup}";
 
-        $erpReportTable = " LEFT JOIN ({$childSql}) AS warehouse_storage ON {$childJoin} AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
+        $erpReportTable = " LEFT JOIN ({$childSql}) AS warehouse_storage ON {$childJoin}";
+        if (!$is_count){
+            $erpReportTable .= " AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
+        }
+
         return $erpReportTable;
     }
 
@@ -14310,4 +14340,260 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         return $other_fields ;
     }
+
+
+    private function queryHaveErpList($fields, $datas, $exchangeCode, $day_param, $field_data, $table, $where, $group, $isJoin = false, $isMysql = false, $compare_data = [], $fba_data = [], $other_param = []){
+        $currencyInfo = $other_param['currency_info'];
+        $userId = $other_param['user_id'];
+        $channelIds = $other_param['channel_arr'];
+
+        $fields_tmp = [];
+        $rate_formula_key = array_keys($this->rate_formula);
+        $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
+        $query_origin_fields = [];
+        $query_inner_fields = [];
+        $query_outer_fields = [];
+        foreach ($fields as $key => $value){
+            $key_value = $key;
+            if($key == "group"){
+                $key = $isMysql ? '`group`' : '"group"';
+                $key_value = $isMysql ? '`group`' : $key_value;
+            }
+
+            if(in_array($key,$rate_formula_key)){
+                $str = $this->rate_formula[$key]['formula'] ;
+                $formula_json_arr = json_decode($this->rate_formula[$key]['formula_json'],true) ;
+                $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
+                foreach ($formula_json_arr as $k => $f_key) {
+                    if(!in_array($f_key,$operational_char_arr)) {
+                        if (!is_numeric($f_key)) {
+                            if($datas['count_dimension'] == 'operators'){
+                                $str = str_replace('{cpc_cost}','SUM(report_tmp.cpc_ad_fee) ', $str);//分母为0的处理
+                            }
+                            $str = str_replace('/{total_views_number}', ' * 1.0000 /NULLIF(' . $this->total_views_numbers['total_views_number'] . ',0)', $str);//分母为0的处理
+                            $str = str_replace('/{total_user_sessions}', ' * 1.0000 /NULLIF(' . $this->total_user_sessions['total_user_sessions'] . ',0)', $str);//分母为0的处理
+                            $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF(SUM(report_tmp.' . $f_key . '),0)', $str);//分母为0的处理
+                            $str = str_replace('{' . $f_key . '}', 'SUM(report_tmp.' . $f_key . ') ', $str);//分母为0的处理
+                        }
+                    }
+                }
+                $fields_tmp[] = $isMysql ? $str . ' AS "' . $key_value . '"' : "try(" . $str . ")" . ' AS "' . $key_value . '"';
+            }else{
+                if(stripos($value,"min(") !== false){
+                    $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                    $query_outer_fields[] = "min(report_outer.{$key}) AS \"{$key}\"";
+                }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
+                    $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                    $query_outer_fields[] = "max(report_outer.{$key}) AS \"{$key}\"";
+                }elseif (stripos($value,"count(") !== false){
+                    $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                    $query_outer_fields[] = "max(report_outer.{$key}) AS \"{$key}\"";
+                }elseif($value == 'NULL'){
+                    $fields_tmp[] = "NULL" . ' AS "' . $key_value . '"';
+                    $query_outer_fields[] = "NULL AS \"{$key}\"";
+                }else{
+                    $fields_tmp[] = "SUM(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                    $query_outer_fields[] = "SUM(report_outer.{$key}) AS \"{$key}\"";
+                }
+            }
+
+            //子查询
+            if (stripos($value, "warehouse_isku.") !== false){
+                $temp_value = str_replace("rates.rate", "rates_inner.rate", $value);
+                $query_inner_fields[] = "{$temp_value} AS \"{$key}\"";
+            }elseif (stripos($value, "warehouse_storage.") !== false){
+                $temp_value = str_replace("rates.rate", "rates_inner.rate", $value);
+                $query_inner_fields[] = "{$temp_value} AS \"{$key}\"";
+            }else{
+                $query_origin_fields[] = "{$value} AS {$key}";
+                if(stripos($value,"min(") !== false){
+                    $query_inner_fields[] = "min(report_inner.{$key}) AS \"{$key}\"";
+                }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
+                    $query_inner_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
+                }elseif (stripos($value,"count(") !== false){
+                    $query_inner_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
+                }elseif($value == 'NULL'){
+                    $query_inner_fields[] = "NULL AS \"{$key}\"";
+                }else{
+                    $query_inner_fields[] = "SUM(report_inner.{$key}) AS \"{$key}\"";
+                }
+            }
+        }
+        $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
+        $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
+        $query_origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_origin_fields));
+        $query_inner_fields_tmp = implode(',', $query_inner_fields);
+
+        //组装子查询
+        if ($datas['count_dimension'] == 'head_id'){
+            $group_inner = "amazon_goods.isku_head_id";
+            $group_outer = "report_outer.head_id";
+        }elseif ($datas['count_dimension'] == 'developer_id'){
+            $group_inner = "amazon_goods.isku_developer_id";
+            $group_outer = "report_outer.developer_id";
+        }else{
+            $group_inner = "amazon_goods.goods_isku_id";
+            $group_outer = "report_outer.isku_id";
+        }
+
+        $have_outer = "";
+        if (!empty($datas['where_detail']['target'])){
+            $have_outer_arr = [];
+            foreach ($datas['where_detail']['target'] as $val){
+                $temp_func = "SUM";
+                if (isset($fields[$val['key']])){
+                    $temp_val = $fields[$val['key']];
+                    if(stripos($temp_val, "min(") !== false){
+                        $temp_func = "min";
+                    }elseif (stripos($temp_val, "max(") !== false){
+                        $temp_func = "max";
+                    }
+                }
+                $have_outer_arr[] = "{$temp_func}(report_outer.{$val['key']}) {$val['formula']} {$val['value']}";
+            }
+            $condition = $datas['where_detail']['condition_relation'];
+            $have_outer = implode(" {$condition} ", $have_outer_arr);
+        }else{
+            $group_outer = "";
+        }
+
+        $erp_isku_table = "";
+        if ($this->haveErpIskuFields){
+            $erp_isku_table = $this->getErpIskuTable($datas, $userId, $channelIds, 1);
+        }
+        $erp_report_table = "";
+        if ($this->haveErpReportFields){
+            $erp_report_table = $this->getErpReportTable($datas, $userId, $channelIds, 1);
+        }
+
+        $rates_inner_table = "";
+        if ($datas['currency_code'] != 'CNY'){
+            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                $rates_inner_table = " LEFT JOIN {$this->table_site_rate} as rates_inner ON rates_inner.site_id = report_inner.site_id AND rates_inner.user_id = 0 ";
+            } else {
+                $rates_inner_table = " LEFT JOIN {$this->table_site_rate} as rates_inner ON rates_inner.site_id = report_inner.site_id AND rates_inner.user_id = {$userId}";
+            }
+        }
+
+        $inner_sql = "SELECT {$query_inner_fields_tmp} FROM (SELECT {$query_origin_fields_tmp} FROM {$table} WHERE {$where} GROUP BY {$group_inner}) AS report_inner";
+        if (!empty($erp_isku_table)){
+            $inner_sql .= $erp_isku_table;
+        }
+        if (!empty($erp_report_table)){
+            $inner_sql .= $erp_report_table;
+        }
+        if (!empty($rates_inner_table)){
+            $inner_sql .= $rates_inner_table;
+        }
+
+        if (!empty($group_outer)){
+            $query_outer_fields_tmp = implode(',', $query_outer_fields);
+            $final_child_sql = "SELECT {$query_outer_fields_tmp} FROM ({$inner_sql}) AS report_outer GROUP BY {$group_outer} HAVING {$have_outer}";
+        }else{
+            $final_child_sql = $inner_sql;
+        }
+
+        if(!empty($compare_data) || !empty($fba_data)){
+            if(!empty($compare_data)){
+                $newTables = array() ;
+                $newTables[] = "origin_table AS ( SELECT {$field_data_tmp} FROM ({$final_child_sql}) AS report_tmp ) " ;
+                $rt_field = 'origin_table.* ' ;
+                foreach($compare_data as $c1=>$cdata1){
+                    $k1 = $c1+1 ;
+                    $rt_field.= " , compare_table{$k1}.* " ;
+                }
+                $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
+                $rt_where = '' ;
+                foreach($compare_data as $c=>$cdata){
+                    $k = $c+1 ;
+                    $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$group} ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
+                    if(!empty($cdata['where'])){
+                        $rt_where .= empty($rt_where) ? $cdata['where'] : (' AND ' . $cdata['where'] ) ;
+                    }
+                }
+                if(!empty($rt_where)){
+                    $rt_sql .= " WHERE " . $rt_where ;
+                }
+                $sql = 'WITH 
+                ' . implode(',
+                ' , $newTables) . "
+                " .$rt_sql ;
+            }else{
+                $newTables = array() ;
+                $newTables[] = "new_origin_table AS ( SELECT {$field_data_tmp} FROM ({$final_child_sql}) AS report_tmp ) " ;
+
+                if(empty($fba_data['fba_fields'])){
+                    $rt_field = 'new_origin_table.*,fba_table.*' ;
+                }else{
+                    $rt_field = 'new_origin_table.*,'. $fba_data['fba_fields'];
+                }
+                if(!empty($fba_data['other_field'])){
+                    $rt_field.=" , " . $fba_data['other_field'] ;
+                }
+                $rt_sql = "SELECT {$rt_field} FROM new_origin_table " ;
+                $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
+                $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
+
+                if(!empty($fba_data['child_table'])){
+                    foreach($fba_data['child_table'] as $c=>$cdata){
+                        if(!empty($fba_data['is_count']) && $c == '0'){
+                            if($fba_data['dimension'] == 'channel'){
+                                $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
+                            }elseif($fba_data['dimension'] == 'sku'){
+                                $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} GROUP BY {$group})";
+                            }else{
+                                $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                            }
+                        }else{
+                            $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                        }
+                    }
+                }
+                if(!empty($rt_join)){
+                    $rt_sql .= " LEFT JOIN fba_table ON " . $rt_join ;
+                }
+                if(!empty($rt_where)){
+                    $rt_sql .= " WHERE " . $rt_where ;
+                }
+                $sql = 'WITH 
+                ' . implode(',
+                ' , $newTables) . "
+                " .$rt_sql ;
+            }
+
+        }else{
+            $sql = "SELECT {$field_data_tmp} FROM ({$final_child_sql}) AS report_tmp";
+        }
+
+        //商品维度
+        if($isJoin){
+            foreach ($this->goodsCols as $key => $value){
+                if (!is_array($value)) {
+                    $sql = str_replace('report.' . $key, 'amazon_goods.' . $value, $sql);
+                    $sql = str_replace('report."' . $key.'"', 'amazon_goods.' . $value, $sql);
+
+                } else {
+                    if (strpos($table, '_day_report_') && !strpos($table,'week_report' ) ) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['day'], $sql);
+                    } elseif (strpos($table,'week_report' )) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['week'], $sql);
+                    } elseif (strpos($table,'_month_report_')) {
+                        $sql = str_replace('report.' . $key, 'amazon_goods.' . $value['month'], $sql);
+                    }
+                }
+            }
+            if (strpos($table,'week_report' )){
+                $sql = str_replace('week_report' , 'report' , $sql);
+
+            }
+        }
+
+        $lists = $this->query($sql, [], null, 300, $isMysql);
+        return $lists;
+    }
+
+
+
 }
