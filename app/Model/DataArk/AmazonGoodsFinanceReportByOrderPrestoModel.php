@@ -622,7 +622,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['currency_code'] != 'ORIGIN' or in_array($datas['sort_target'],['goods_buyer_visit_rate','goods_views_rate'])) {
                 $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
             }else{
-                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$datas['sort_target']]) . ' ) ' . $datas['sort_order'];
+                $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$datas['sort_target']],$datas['sort_target'],$datas) . ' ) ' . $datas['sort_order'];
 
             }
 
@@ -634,7 +634,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($datas['currency_code'] != 'ORIGIN' or in_array($sort,['goods_buyer_visit_rate','goods_views_rate'])) {
                 $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $fields[$sort] . ' ) ' . $order;
             }else{
-                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$sort]) . ' ) ' . $order;
+                $orderby =  '(('.$fields[$sort].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$sort],$sort,$datas) . ' ) ' . $order;
             }
         }
         $orderbyTmp = $orderby;
@@ -5461,7 +5461,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($params['currency_code'] != 'ORIGIN') {
                 $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
             }else{
-                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), (".$this->getOriginOrderBy($fields[$params['sort_target']]).") {$params['sort_order']}";
+                $orderby = "(({$fields[$params['sort_target']]}) IS NULL), (".$this->getOriginOrderBy($fields[$params['sort_target']],$params['sort_target'],$params).") {$params['sort_order']}";
             }
         }elseif (!empty($params['sort_target']) && $params['sort_target'] == 'create_time' && !empty($params['sort_order'])){
             $orderby = " max(report.create_time) {$params['sort_order']}";
@@ -5471,7 +5471,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if ($params['currency_code'] != 'ORIGIN') {
                 $orderby =  "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
             }else{
-                $orderby =  "(({$fields[$sort]}) IS NULL), (".$this->getOriginOrderBy($fields[$sort]).") {$order}";
+                $orderby =  "(({$fields[$sort]}) IS NULL), (".$this->getOriginOrderBy($fields[$sort],$sort,$params).") {$order}";
             }
 
         }
@@ -12954,13 +12954,26 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr];
     }
 
-    public function getOriginOrderBy($sort_target){
+    public function getOriginOrderBy($sort_target,$order_field = '',$datas = array()){
+        $redis = new Redis();
+        $origin_order_array = $redis->get("finance_index_data");
+        if (!is_array($origin_order_array) or empty($origin_order_array)){
+            $origin_order_array = FinanceIndexModel::whereIn("format_type",[4])->get()->toArray();
+            $origin_order_array = array_column($origin_order_array,"return_field_key");
+            $old_field_arr      = array("avg_sales_quota","sale_refund","promote_discount","promote_refund_discount","amazon_fee","amazon_sales_commission","amazon_settlement_fee","amazon_other_fee","amazon_return_shipping_fee","amazon_return_sale_commission","amazon_fba_return_processing_fee","cpc_acos","cpc_sales_quota","cost_profit_total_income","cost_profit_total_pay","cost_profit_profit","purchase_purchase_cost_unit");
+            $origin_order_array = array_merge($origin_order_array,$old_field_arr);
+            $redis->set("finance_index_data",$origin_order_array);
+        }
+        if (isset($datas['show_type']) && $datas['show_type'] != 2 && isset($datas['time_target'])) {
+            $order_field = $datas['time_target'];
+        }
+
 //        $fields[$datas['sort_target']]
-        $order_field_arr = explode("/",$sort_target);
-        if (!empty($order_field_arr)){
+        if ($order_field == 'avg_sales_quota'){//上面分母是金额下面分子是数量的情况
+            $order_field_arr = explode("/",$sort_target);
             $order_by = array();
             foreach ($order_field_arr as $key =>  $order_val){
-                if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($sort_target),'try(') === false){
+                if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($sort_target),'try(') === false and $key == 0){
                     $order_by_tmp = str_replace("SUM","",$order_val);
                     $order_by_tmp = str_replace("sum","",$order_by_tmp);
                     $order_by[]   = "SUM(".$order_by_tmp."/ COALESCE(rates.rate ,1)".")";
@@ -12970,7 +12983,24 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
             }
             $sort_target      = implode("/",$order_by);
+        }else{
+            $order_field_arr = explode("/",$sort_target);
+            if (!empty($order_field_arr) and in_array($order_field,$origin_order_array)){
+                $order_by = array();
+                foreach ($order_field_arr as $key =>  $order_val){
+                    if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($sort_target),'try(') === false){
+                        $order_by_tmp = str_replace("SUM","",$order_val);
+                        $order_by_tmp = str_replace("sum","",$order_by_tmp);
+                        $order_by[]   = "SUM(".$order_by_tmp."/ COALESCE(rates.rate ,1)".")";
+                    }else{
+                        $order_by[]   = $order_val;
+                    }
+
+                }
+                $sort_target      = implode("/",$order_by);
+            }
         }
+
 
         return $sort_target;
     }
