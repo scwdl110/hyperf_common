@@ -12969,11 +12969,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
 //        $fields[$datas['sort_target']]
-        $order_field_arr = explode("/",$sort_target);
-        if (!empty($order_field_arr) and in_array($order_field,$origin_order_array)){
+        if ($order_field == 'avg_sales_quota'){//上面分母是金额下面分子是数量的情况
+            $order_field_arr = explode("/",$sort_target);
             $order_by = array();
             foreach ($order_field_arr as $key =>  $order_val){
-                if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($sort_target),'try(') === false){
+                if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($sort_target),'try(') === false and $key == 0){
                     $order_by_tmp = str_replace("SUM","",$order_val);
                     $order_by_tmp = str_replace("sum","",$order_by_tmp);
                     $order_by[]   = "SUM(".$order_by_tmp."/ COALESCE(rates.rate ,1)".")";
@@ -12983,7 +12983,24 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
             }
             $sort_target      = implode("/",$order_by);
+        }else{
+            $order_field_arr = explode("/",$sort_target);
+            if (!empty($order_field_arr) and in_array($order_field,$origin_order_array)){
+                $order_by = array();
+                foreach ($order_field_arr as $key =>  $order_val){
+                    if(strpos(strtolower($order_val),'sum') !== false and strpos(strtolower($sort_target),'try(') === false){
+                        $order_by_tmp = str_replace("SUM","",$order_val);
+                        $order_by_tmp = str_replace("sum","",$order_by_tmp);
+                        $order_by[]   = "SUM(".$order_by_tmp."/ COALESCE(rates.rate ,1)".")";
+                    }else{
+                        $order_by[]   = $order_val;
+                    }
+
+                }
+                $sort_target      = implode("/",$order_by);
+            }
         }
+
 
         return $sort_target;
     }
