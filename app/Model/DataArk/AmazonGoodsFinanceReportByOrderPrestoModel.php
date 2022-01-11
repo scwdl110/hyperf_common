@@ -13309,6 +13309,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             //没有选择fba指标
             return [];
         }
+        if(($datas['count_dimension'] != 'sku' && $datas['is_count'] == 1) || ($datas['count_dimension'] == 'sku' && $datas['is_count'] == 1 && empty($datas['is_distinct_channel']))){
+            //非sku区分店铺总计
+            return [];
+        }
         //按周期排序添加
         $child_table = $fba_data_join = array();
         $fba_data = [
