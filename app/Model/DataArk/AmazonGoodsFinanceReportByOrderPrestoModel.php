@@ -11128,7 +11128,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     foreach($fba_data['child_table'] as $c=>$cdata){
                         if(!empty($fba_data['is_count']) && $c == '0'){
                             if($fba_data['dimension'] == 'channel'){
-                                $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
+                                $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} WHERE {$where} group by {$group} ) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                             }elseif($fba_data['dimension'] == 'sku'){
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                                 $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} GROUP BY {$group})";
