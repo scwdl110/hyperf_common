@@ -5488,12 +5488,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $isMysql = false;
             }
             $fields = $fields_arr['fields'];
+            //自定义指标中含有FBA指标的key
             $fba_target_key = $fields_arr['fba_target_key'];
         } else {
             $fba_target_key = [] ;
             $fields = $this->getUnGoodsTimeFields($params, $timeLine,$isMysql);
         }
-
 
         if (empty($fields)) {
             return [];
@@ -5772,6 +5772,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
                 foreach ($target_wheres as $target_where) {
+                    //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
+                    if($params['is_count'] == 1 && $params['stock_datas_origin'] == 1 && (in_array($target_where['key'],$channel_fba_fields_arr) || (!empty($fba_target_key) && in_array($target_where['key'] , $fba_target_key))) ){
+                        return array('lists'=>[] , 'count'=>0);
+                        exit ;
+                    }
                     if(!empty($fields[$target_where['key']])){
                         $where_value = $target_where['value'];
                         if (strpos($where_value, '%') !== false) {
