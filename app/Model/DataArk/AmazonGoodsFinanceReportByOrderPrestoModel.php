@@ -13341,7 +13341,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,g.channel_id,g.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
-            'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id) as g {$rel_table} {$rate_table} {$where}",
+            'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id and v.db_num = '{$this->dbhost}') as g {$rel_table} {$rate_table} {$where}",
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
@@ -13959,11 +13959,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $other_field.= sprintf('%s max(g.user_id) as user_id,max(g.area_id) as area_id,max(g.channel_id) as channel_id',$other_field ? ',' : '');
             foreach ($this->lastTargets as $target){
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
-                    if($fbaArr[$target]['count_type'] == '4'){
-                        if(!empty($fbaArr[$target]['child_key'])){
-                            foreach ($fbaArr[$target]['child_key'] as $child_key){
-                                $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$child_key]['mysql_field']}) ELSE SUM(g.{$fbaArr[$child_key]['mysql_field']}) END ) as {$fbaArr[$child_key]['mysql_field']}";
+                    if(!empty($fbaArr[$target]['rel_field_status'])){
+                        //rel不需要去重
+                        if(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5') {
+                            $fields[] = "AVG(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
+                        }elseif($fbaArr[$target]['count_type'] == '4'){
+                            if(!empty($fbaArr[$target]['child_key'])){
+                                foreach ($fbaArr[$target]['child_key'] as $child_key){
+                                    $fields[] = "SUM(g.{$fbaArr[$child_key]['mysql_field']}) as {$fbaArr[$child_key]['mysql_field']}";
+                                }
                             }
+                        }else{
+                            $fields[] = "SUM(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
                         }
                     }elseif($fbaArr[$target]['count_type'] == '5'){
                         $fields[] = "( CASE WHEN MAX(g.area_id) = 4 THEN MAX(g.{$fbaArr[$target]['mysql_field']}) ELSE AVG(g.{$fbaArr[$target]['mysql_field']}) END ) as {$fbaArr[$target]['mysql_field']}";
