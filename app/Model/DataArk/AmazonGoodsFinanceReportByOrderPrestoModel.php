@@ -13986,6 +13986,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $other_field.= sprintf('%s max(g.user_id) as user_id,max(g.area_id) as area_id,max(g.channel_id) as channel_id',$other_field ? ',' : '');
             foreach ($this->lastTargets as $target){
                 if(isset($fbaArr[$target]) && is_array($fbaArr[$target])){
+                    if($target == 'fba_is_buhuo'){
+                        $fields[] = "MAX(g.buhuo_user) as buhuo_user";
+                    }
+                    if($target == 'fba_suggested_replenishment_time'){
+                        $fields[] = "MAX(g.fba_sales_day_tmp) as fba_sales_day_tmp";
+                    }
                     if(!empty($fbaArr[$target]['rel_field_status'])){
                         //rel不需要去重
                         if(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5') {
