@@ -14354,7 +14354,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
         $query_origin_fields = [];
         $query_inner_fields = [];
-        $query_outer_fields = [];
         foreach ($fields as $key => $value){
             $key_value = $key;
             if($key == "group"){
@@ -14383,19 +14382,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }else{
                 if(stripos($value,"min(") !== false){
                     $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-                    $query_outer_fields[] = "min(report_outer.{$key}) AS \"{$key}\"";
                 }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
                     $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-                    $query_outer_fields[] = "max(report_outer.{$key}) AS \"{$key}\"";
                 }elseif (stripos($value,"count(") !== false){
                     $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-                    $query_outer_fields[] = "max(report_outer.{$key}) AS \"{$key}\"";
                 }elseif($value == 'NULL'){
                     $fields_tmp[] = "NULL" . ' AS "' . $key_value . '"';
-                    $query_outer_fields[] = "NULL AS \"{$key}\"";
                 }else{
                     $fields_tmp[] = "SUM(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
-                    $query_outer_fields[] = "SUM(report_outer.{$key}) AS \"{$key}\"";
                 }
             }
 
@@ -14429,13 +14423,13 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //组装子查询
         if ($datas['count_dimension'] == 'head_id'){
             $group_inner = "amazon_goods.isku_head_id";
-            $group_outer = "report_outer.head_id";
+            $group_outer = "report_inner.head_id";
         }elseif ($datas['count_dimension'] == 'developer_id'){
             $group_inner = "amazon_goods.isku_developer_id";
-            $group_outer = "report_outer.developer_id";
+            $group_outer = "report_inner.developer_id";
         }else{
             $group_inner = "amazon_goods.goods_isku_id";
-            $group_outer = "report_outer.isku_id";
+            $group_outer = "report_inner.isku_id";
         }
 
         $have_outer = "";
@@ -14451,7 +14445,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $temp_func = "max";
                     }
                 }
-                $have_outer_arr[] = "{$temp_func}(report_outer.{$val['key']}) {$val['formula']} {$val['value']}";
+                $have_outer_arr[] = "{$temp_func}(report_inner.{$val['key']}) {$val['formula']} {$val['value']}";
             }
             $condition = $datas['where_detail']['condition_relation'];
             $have_outer = implode(" {$condition} ", $have_outer_arr);
@@ -14489,8 +14483,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         if (!empty($group_outer)){
-            $query_outer_fields_tmp = implode(',', $query_outer_fields);
-            $final_child_sql = "SELECT {$query_outer_fields_tmp} FROM ({$inner_sql}) AS report_outer GROUP BY {$group_outer} HAVING {$have_outer}";
+            $final_child_sql = "SELECT {$field_data_tmp} FROM ({$inner_sql} GROUP BY {$group_outer} HAVING {$have_outer}) AS report_tmp";
         }else{
             $final_child_sql = $inner_sql;
         }
@@ -14498,7 +14491,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if(!empty($compare_data) || !empty($fba_data)){
             if(!empty($compare_data)){
                 $newTables = array() ;
-                $newTables[] = "origin_table AS ( SELECT {$field_data_tmp} FROM ({$final_child_sql}) AS report_tmp ) " ;
+                $newTables[] = "origin_table AS ( {$final_child_sql} ) " ;
                 $rt_field = 'origin_table.* ' ;
                 foreach($compare_data as $c1=>$cdata1){
                     $k1 = $c1+1 ;
@@ -14523,7 +14516,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 " .$rt_sql ;
             }else{
                 $newTables = array() ;
-                $newTables[] = "new_origin_table AS ( SELECT {$field_data_tmp} FROM ({$final_child_sql}) AS report_tmp ) " ;
+                $newTables[] = "new_origin_table AS ( {$final_child_sql} ) " ;
 
                 if(empty($fba_data['fba_fields'])){
                     $rt_field = 'new_origin_table.*,fba_table.*' ;
@@ -14566,7 +14559,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
 
         }else{
-            $sql = "SELECT {$field_data_tmp} FROM ({$final_child_sql}) AS report_tmp";
+            $sql = "{$final_child_sql}";
         }
 
         //商品维度
