@@ -1081,17 +1081,19 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 }
                 $user_id = \app\getUserInfo()['user_id']??0;
                 if (in_array($user_id,$user_id_arr)){
-                    //商品月报大卖和小卖表名互换
-                    if (false !== strpos($tableName, 'dw_goods_month_report_slave_bigusers_')) {
-                        $tableName = str_replace("_bigusers","",$tableName);
-                    }
+
 
                     if (false !== strpos($tableName,'dw_channel_day')){
                         $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
                     }else{
-//                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
-                        $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
-                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
+                        //商品月报大卖和小卖表名互换
+                        if (false !== strpos($tableName, 'dw_goods_month_report_slave_bigusers_')) {
+                            $tableName = str_replace("_bigusers","",$tableName);
+                        }else{
+                            $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
+                            $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
+                        }
+
                     }
                 }else{
                     $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
