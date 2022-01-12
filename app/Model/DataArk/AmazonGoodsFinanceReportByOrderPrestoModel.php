@@ -1181,6 +1181,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if($this->haveFbaFields){
             $fbaData = $this->joinGoodsFbaTable($datas,$channel_arr,$currencyInfo,$exchangeCode,$fba_target_key);
+            if(!empty($fbaData) && $datas['is_count'] == 1 && $datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
+                //sku区分店铺总计
+                $fbaData['group'] = $fbaDataGroup;//给count_table用的
+            }
         }else{
             $fbaData = array();
         }
@@ -1203,10 +1207,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
-                if($datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
-                    //sku区分店铺总计
-                    $fbaData['group'] = $fbaDataGroup;//给count_table用的
-                }
                 if($datas['total_status'] == 1){
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
                 }
@@ -1276,10 +1276,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
-                if($datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
-                    //sku区分店铺总计
-                    $fbaData['group'] = $fbaDataGroup;//给count_table用的
-                }
                 if($datas['total_status'] == 1){
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
                 }
