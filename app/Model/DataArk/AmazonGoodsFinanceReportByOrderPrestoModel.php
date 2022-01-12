@@ -748,6 +748,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
             if($datas['is_distinct_channel'] == 1){ //有区分店铺
+                $fbaDataGroup = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id';
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                     if($datas['count_periods'] == '4'){ //按季度
                         $group = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
@@ -758,8 +759,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }else {
                         $group = 'report.' . $datas['count_dimension'] . '_group, report.channel_id  ';
                         $orderby = "report." . $datas['count_dimension'] . "_group, report.channel_id ";
+                        $fbaDataGroup = 'amazon_goods.goods_sku,amazon_goods.goods_channel_id';
                     }
-
                 }else{
                     $group = 'report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ';
                     $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
@@ -786,10 +787,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $group = 'report.goods_' . $datas['count_dimension'] . ' ';
                     $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension']) : ($orderby . ' , report.goods_'. $datas['count_dimension'] );
                 }
+                $fbaDataGroup = 'report.goods_' . $datas['count_dimension'];
             }
 
             $where .= " AND report.goods_" . $datas['count_dimension'] . " != '' ";
         } else if ($datas['count_dimension'] == 'isku') {
+            $fbaDataGroup = 'report.goods_isku_id ';
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
                     $group = 'report.goods_isku_id  , report.myear , report.mquarter ';
@@ -800,6 +803,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $group = "report.isku_group ";
                     $orderby = "report.isku_group ";
+                    $fbaDataGroup = 'amazon_goods.goods_isku_id ';
                 }
 
             }else{
@@ -808,6 +812,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             $where .= " AND report.goods_isku_id > 0";
         } else if ($datas['count_dimension'] == 'group') {
+            $fbaDataGroup = 'report.goods_group_id ';
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
                     $group = 'report.goods_group_id , report.myear , report.mquarter ';
@@ -818,6 +823,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $group = 'report.group_id_group  ';
                     $orderby = "report.group_id_group ";
+                    $fbaDataGroup = 'amazon_goods.goods_group_id ';
                 }
 
             }else{
@@ -849,6 +855,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.goods_product_category_name_1,report.site_id ';
                 $orderby = empty($orderby) ? ('max(report.goods_product_category_name_1) , max(report.site_id) ') : ($orderby . ' , max(report.goods_product_category_name_1), max(report.site_id) ');
             }
+            $fbaDataGroup = 'report.goods_product_category_name_1,report.site_id ';
             $where .= " AND report.goods_product_category_name_1 != ''";
 
         } else if($datas['count_dimension'] == 'tags'){
@@ -874,12 +881,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'tags_rel.tags_id  ' ;
                 $orderby = empty($orderby) ? ('tags_rel.tags_id ') : ($orderby . ' , tags_rel.tags_id');
             }
+            $fbaDataGroup = 'tags_rel.tags_id ';
             if ($isMysql){
                 $where.= " AND tags_rel.tags_id > 0";
             }else{
                 $where.= " AND CAST(tags_rel.tags_id  as bigint) > 0";
             }
         } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
+            $fbaDataGroup = 'report.isku_head_id ';
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
                     $group = 'report.isku_head_id , report.myear , report.mquarter ';
@@ -890,6 +899,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $group = 'report.isku_head_id_group  ';
                     $orderby = "report.isku_head_id_group ";
+                    $fbaDataGroup = 'amazon_goods.isku_head_id ';
                 }
             }else{
                 $group = 'report.isku_head_id  ';
@@ -897,6 +907,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             $where.= " AND report.isku_head_id > 0";
         }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
+            $fbaDataGroup = 'report.isku_developer_id ';
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 if($datas['count_periods'] == '4'){ //按季度
                     $group = 'report.isku_developer_id , report.myear , report.mquarter ';
@@ -907,6 +918,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else {
                     $group = 'report.isku_developer_id_group  ';
                     $orderby = "report.isku_developer_id_group ";
+                    $fbaDataGroup = 'amazon_goods.isku_developer_id ';
                 }
             }else{
                 $group = 'report.isku_developer_id  ';
@@ -914,6 +926,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
             $where.= " AND report.isku_developer_id > 0";
         } else if($datas['count_dimension'] == 'all_goods'){ //按全部商品维度统计
+            $fbaDataGroup = 'report.user_id ';
             if($datas['is_distinct_channel'] == 1) { //有区分店铺
                 if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                     if ($datas['count_periods'] == '1' ) { //按天
@@ -959,6 +972,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }else if($datas['count_dimension'] == 'goods_channel'){  //统计商品数据里的店铺维度
+            $fbaDataGroup = 'report.channel_id ';
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                 if ($datas['count_periods'] == '1' ) { //按天
                     $group = 'report.channel_id ,report.myear , report.mmonth  , report.mday';
@@ -1189,6 +1203,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if ($count_tip == 1) {  //仅仅统计列表
             if ($datas['is_count'] == 1){
+                if($datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
+                    //sku区分店铺总计
+                    $fbaData['group'] = $fbaDataGroup;//给count_table用的
+                }
                 if($datas['total_status'] == 1){
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
                 }
@@ -1258,6 +1276,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
+                if($datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
+                    //sku区分店铺总计
+                    $fbaData['group'] = $fbaDataGroup;//给count_table用的
+                }
                 if($datas['total_status'] == 1){
                     $count = $this->getTotalNum($where, $table, $group,true,$isMysql,$compareData,$field_data,$fbaData);
                 }
@@ -1279,10 +1301,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         foreach($compareData as $k3=>$cdata3){
                             $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
                         }
-                    }
-                    if($datas['is_count'] == 1 && $datas['count_dimension'] == 'sku' && $datas['is_distinct_channel'] == 1) {
-                        //sku区分店铺总计
-                        $fbaData['group'] = $group;//给count_table用的
                     }
                     $lists = $this->select($where, $field_data, $table,"","","",true,null,300,$isMysql,$compareData,$fbaData);
                 }
@@ -11157,6 +11175,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $rt_sql = "SELECT {$rt_field} FROM new_origin_table " ;
                 $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
                 $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
+                $count_table_group = empty($fba_data['group']) ? '' : " GROUP BY {$fba_data['group']}";
 
                 if(!empty($fba_data['child_table'])){
                     foreach($fba_data['child_table'] as $c=>$cdata){
@@ -11165,7 +11184,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} WHERE {$where} group by {$group} ) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                             }elseif($fba_data['dimension'] == 'sku'){
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} GROUP BY {$group})";
+                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} {$count_table_group})";
                             }else{
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                             }
