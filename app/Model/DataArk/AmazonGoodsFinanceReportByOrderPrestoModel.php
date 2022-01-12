@@ -14237,7 +14237,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $childFields .= ", {$groupField}";
         if ($is_count){
-            $childGroup = "{$groupField}, storage_temp.time";
+            if ($datas['show_type'] == 1){
+                $childGroup = "{$groupField}, storage_temp.time";
+            }else{
+                $childGroup = "{$groupField}";
+            }
         }else{
             $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
         }
