@@ -1215,7 +1215,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($this->haveErpIskuFields || $this->haveErpReportFields)
                 {
                     $other_param = [
-                        'currency_info' => $currencyInfo,
                         'user_id' => $userId,
                         'channel_arr' => $channel_arr
                     ];
@@ -1289,7 +1288,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if ($this->haveErpIskuFields || $this->haveErpReportFields)
                 {
                     $other_param = [
-                        'currency_info' => $currencyInfo,
                         'user_id' => $userId,
                         'channel_arr' => $channel_arr
                     ];
@@ -3787,8 +3785,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $tempFormatType = $erpReportTargets[$time_target]['format_type'] ?? 0;
 
                     if ($datas['currency_code'] != 'CNY' && $tempFormatType == 4){
-                        $fields['count_total'] = "SUM({$tempField} * COALESCE(rates.rate, 1))";
-                        $time_fields = $this->getErpReportTimeFields($time_line, "{$tempField} * COALESCE(rates.rate ,1)");
+                        $fields['count_total'] = "SUM({$tempField} * {:RATE})";
+                        $time_fields = $this->getErpReportTimeFields($time_line, "{$tempField} * {:RATE}");
                     }else{
                         $fields['count_total'] = "SUM({$tempField})";
                         $time_fields = $this->getErpReportTimeFields($time_line, $tempField);
@@ -12712,7 +12710,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $temp_erp_field = $erp_isku_fields_arr[$key]['mysql_field'];
 
                         if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                            $fields[$key] = "{$erp_isku_function}({$temp_erp_field} * COALESCE(rates.rate ,1))";
+                            $fields[$key] = "{$erp_isku_function}({$temp_erp_field} * {:RATE})";
                         }else{
                             $fields[$key] = "{$erp_isku_function}({$temp_erp_field})";
                         }
@@ -12726,8 +12724,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if (in_array($key, ['erp_period_start_goods_cost_begin', 'erp_period_end_goods_cost_end']))
                         {
                             if ($params['currency_code'] != 'CNY'){
-                                $fields["min_{$key}"] = "min({$temp_erp_field}_min * COALESCE(rates.rate ,1))";
-                                $fields["max_{$key}"] = "max({$temp_erp_field}_max * COALESCE(rates.rate ,1))";
+                                $fields["min_{$key}"] = "min({$temp_erp_field}_min * {:RATE})";
+                                $fields["max_{$key}"] = "max({$temp_erp_field}_max * {:RATE})";
                             }else{
                                 $fields["min_{$key}"] = "min({$temp_erp_field}_min)";
                                 $fields["max_{$key}"] = "max({$temp_erp_field}_max)";
@@ -12739,7 +12737,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             $fields[$key] = "max({$temp_erp_field})";
                         }else{
                             if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                                $fields[$key] = "{$erp_report_function}(({$temp_erp_field}) * COALESCE(rates.rate ,1))";
+                                $fields[$key] = "{$erp_report_function}({$temp_erp_field} * {:RATE})";
                             }else{
                                 $fields[$key] = "{$erp_report_function}({$temp_erp_field})";
                             }
@@ -14239,7 +14237,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $childFields .= ", {$groupField}";
         if ($is_count){
-            $childGroup = "{$groupField}";
+            if ($datas['show_type'] == 1){
+                $childGroup = "{$groupField}, storage_temp.time";
+            }else{
+                $childGroup = "{$groupField}";
+            }
         }else{
             $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
         }
@@ -14364,7 +14366,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
 
     private function queryHaveErpList($fields, $datas, $exchangeCode, $day_param, $field_data, $table, $where, $group, $isJoin = false, $isMysql = false, $compare_data = [], $fba_data = [], $other_param = []){
-        $currencyInfo = $other_param['currency_info'];
         $userId = $other_param['user_id'];
         $channelIds = $other_param['channel_arr'];
 
@@ -14414,11 +14415,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
             //子查询
             if (stripos($value, "warehouse_isku.") !== false){
-                $temp_value = str_replace("rates.rate", "rates_inner.rate", $value);
-                $query_inner_fields[] = "{$temp_value} AS \"{$key}\"";
+                $query_inner_fields[] = "{$value} AS \"{$key}\"";
             }elseif (stripos($value, "warehouse_storage.") !== false){
-                $temp_value = str_replace("rates.rate", "rates_inner.rate", $value);
-                $query_inner_fields[] = "{$temp_value} AS \"{$key}\"";
+                $query_inner_fields[] = "{$value} AS \"{$key}\"";
             }else{
                 $query_origin_fields[] = "{$value} AS {$key}";
                 if(stripos($value,"min(") !== false){
@@ -14437,7 +14436,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
         $query_origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_origin_fields));
-        $query_inner_fields_tmp = implode(',', $query_inner_fields);
+        $query_inner_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_inner_fields));
 
         //组装子查询
         if ($datas['count_dimension'] == 'head_id'){
@@ -14481,24 +14480,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $erp_report_table = $this->getErpReportTable($datas, $userId, $channelIds, 1);
         }
 
-        $rates_inner_table = "";
-        if ($datas['currency_code'] != 'CNY'){
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $rates_inner_table = " LEFT JOIN {$this->table_site_rate} as rates_inner ON rates_inner.site_id = report_inner.site_id AND rates_inner.user_id = 0 ";
-            } else {
-                $rates_inner_table = " LEFT JOIN {$this->table_site_rate} as rates_inner ON rates_inner.site_id = report_inner.site_id AND rates_inner.user_id = {$userId}";
-            }
-        }
-
         $inner_sql = "SELECT {$query_inner_fields_tmp} FROM (SELECT {$query_origin_fields_tmp} FROM {$table} WHERE {$where} GROUP BY {$group_inner}) AS report_inner";
         if (!empty($erp_isku_table)){
             $inner_sql .= $erp_isku_table;
         }
         if (!empty($erp_report_table)){
             $inner_sql .= $erp_report_table;
-        }
-        if (!empty($rates_inner_table)){
-            $inner_sql .= $rates_inner_table;
         }
 
         if (!empty($group_outer)){
