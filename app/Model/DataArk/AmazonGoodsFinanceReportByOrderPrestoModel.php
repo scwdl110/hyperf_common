@@ -661,14 +661,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     'sort_order' => $datas['sort_order'],
                     'is_origin' => 1,
                 ];
-            }elseif(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key)){
-                $this->fbaSort = [
-                    'sort_target' => $datas['sort_target'],
-                    'sort_order' => $datas['sort_order'],
-                ];
-                if(in_array($datas['sort_target'],$fba_target_key)){
-                    $this->fbaSort['is_custom'] = 1;
-                }
             }else{
                 $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $this->getOriginOrderBy($fields[$datas['sort_target']]) . ' ) ' . $datas['sort_order'];
                 $this->fbaSort = [
@@ -685,6 +677,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 'sort_order' => $datas['sort_order'],
                 'is_origin' => 1,
             ];
+        }
+
+        if(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key)){
+            $this->fbaSort = [
+                'sort_target' => $datas['sort_target'],
+                'sort_order' => $datas['sort_order'],
+            ];
+            if(in_array($datas['sort_target'],$fba_target_key)){
+                $this->fbaSort['is_custom'] = 1;
+            }
         }
 
         if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $datas['limit_num'] == 0 ) {
