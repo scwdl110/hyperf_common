@@ -1072,32 +1072,34 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
             }
 
+            $big_selling_users = config("common.big_selling_users");
+            $user_id_arr = array();
+            if (!empty($big_selling_users)){
+                $user_id_arr = explode(',',$big_selling_users);
+            }
+            $user_id = \app\getUserInfo()['user_id']??0;
 
             if (false !== strpos($tableName, '{DWSDBHOST}')) {
-                $big_selling_users = config("common.big_selling_users");
-                $user_id_arr = array();
-                if (!empty($big_selling_users)){
-                    $user_id_arr = explode(',',$big_selling_users);
-                }
-                $user_id = \app\getUserInfo()['user_id']??0;
+
                 if (in_array($user_id,$user_id_arr)){
-
-
                     if (false !== strpos($tableName,'dw_channel_day')){
                         $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
                     }else{
-                        //商品月报大卖和小卖表名互换
-                        if (false !== strpos($tableName, 'dw_goods_month_report_slave_bigusers_')) {
-                            $tableName = str_replace("_bigusers","",$tableName);
-                        }else{
-                            $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
-                            $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
-                        }
-
+//                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
+                        $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
+                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
                     }
                 }else{
                     $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
                 }
+            }else{
+
+                if (in_array($user_id,$user_id_arr)){
+                    if (false !== strpos($tableName, 'dw_goods_month_report_slave_bigusers_')) {
+                        $tableName = str_replace("_bigusers","",$tableName);
+                    }
+                }
+
             }
 
             return $tableName;
