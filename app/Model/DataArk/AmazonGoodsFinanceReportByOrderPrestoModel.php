@@ -3779,13 +3779,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //erp库存指标
                     $tempField = $erpReportTargets[$time_target]['mysql_field'];
                     $tempFormatType = $erpReportTargets[$time_target]['format_type'] ?? 0;
+                    $erp_function = $datas['is_count'] == 1 ? 'SUM' : 'max';
 
                     if ($datas['currency_code'] != 'CNY' && $tempFormatType == 4){
                         $fields['count_total'] = "SUM({$tempField} * {:RATE})";
-                        $time_fields = $this->getErpReportTimeFields($time_line, "{$tempField} * {:RATE}");
+                        $time_fields = $this->getErpReportTimeFields($time_line, "{$tempField} * {:RATE}", $erp_function);
                     }else{
                         $fields['count_total'] = "SUM({$tempField})";
-                        $time_fields = $this->getErpReportTimeFields($time_line, $tempField);
+                        $time_fields = $this->getErpReportTimeFields($time_line, $tempField, $erp_function);
                     }
                     $fields[$time_target] = $fields['count_total'];
                     $time_fields_arr[$time_target] = $time_fields;
@@ -4985,11 +4986,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $fields;
     }
 
-    private function getErpReportTimeFields($timeList, $field1 = '')
+    private function getErpReportTimeFields($timeList, $field1 = '', $func = 'SUM')
     {
         $fields = [];
         foreach ($timeList as $time) {
-            $fields[strval($time['key'])] = "SUM(CASE WHEN (warehouse_storage.time>={$time['start']} and warehouse_storage.time<={$time['end']}) THEN ({$field1}) ELSE 0 END)";
+            $fields[strval($time['key'])] = "{$func}(CASE WHEN (warehouse_storage.time>={$time['start']} and warehouse_storage.time<={$time['end']}) THEN ({$field1}) ELSE 0 END)";
         }
 
         return $fields;
