@@ -734,7 +734,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 
-        if ($datas['currency_code'] != 'ORIGIN' || (($this->haveErpReportFields || $this->haveErpIskuFields) && $datas['currency_code'] != 'CNY')) {
+        if ($datas['currency_code'] != 'ORIGIN') {
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                 $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
             } else {
