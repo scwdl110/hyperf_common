@@ -14216,12 +14216,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $childTable = "{$this->table_erp_storage_inventory_warehouse_report} AS storage_temp";
 
         $groupField = "storage_temp.isku_id";
+        $groupFieldValue = "isku_id";
         $childJoin = $is_count == 1 ? "warehouse_storage.isku_id = report_inner.isku_id" : "warehouse_storage.isku_id = amazon_goods.goods_isku_id";
         $JoinWhere = "";
         if ($datas['count_dimension'] == 'head_id')
         {
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_head_id";
+            $groupFieldValue = "isku_head_id";
             $childJoin = $is_count == 1 ? "warehouse_storage.isku_head_id = report_inner.head_id" : "warehouse_storage.isku_head_id = amazon_goods.isku_head_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
         }
@@ -14229,19 +14231,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         {
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_developer_id";
+            $groupFieldValue = "isku_developer_id";
             $childJoin = $is_count == 1 ? "warehouse_storage.isku_developer_id = report_inner.developer_id" : "warehouse_storage.isku_developer_id = amazon_goods.isku_developer_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
         }
-        $childFields .= ", {$groupField}";
-        if ($is_count){
-            if ($datas['show_type'] == 1){
-                $childGroup = "{$groupField}, storage_temp.time";
-            }else{
-                $childGroup = "{$groupField}";
-            }
-        }else{
-            $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
-        }
+        $childFields .= ", max({$groupField}) AS {$groupFieldValue}";
+        $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
 
         if($datas['count_periods'] == 5){
             $maxMinYm = $this->calculateYn($datas['max_ym'], $datas['min_ym']);
@@ -14314,7 +14309,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $childSql = "SELECT {$childFields} FROM {$childTable} WHERE {$childWhere} GROUP BY {$childGroup}";
 
         $erpReportTable = " LEFT JOIN ({$childSql}) AS warehouse_storage ON {$childJoin}";
-        if (!$is_count){
+        if ($is_count){
+            $erpReportTable .= " AND warehouse_storage.year = report_inner.myear AND warehouse_storage.month = report_inner.mmonth";
+        }else{
             $erpReportTable .= " AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
         }
 
@@ -14432,18 +14429,20 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
+        $query_origin_fields[] = "max(report.myear) AS myear";
+        $query_origin_fields[] = "max(report.mmonth) AS mmonth";
         $query_origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_origin_fields));
         $query_inner_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_inner_fields));
 
         //组装子查询
         if ($datas['count_dimension'] == 'head_id'){
-            $group_inner = "amazon_goods.isku_head_id";
+            $group_inner = "amazon_goods.isku_head_id,report.myear,report.mmonth";
             $group_outer = "report_inner.head_id";
         }elseif ($datas['count_dimension'] == 'developer_id'){
-            $group_inner = "amazon_goods.isku_developer_id";
+            $group_inner = "amazon_goods.isku_developer_id,report.myear,report.mmonth";
             $group_outer = "report_inner.developer_id";
         }else{
-            $group_inner = "amazon_goods.goods_isku_id";
+            $group_inner = "amazon_goods.goods_isku_id,report.myear,report.mmonth";
             $group_outer = "report_inner.isku_id";
         }
 
