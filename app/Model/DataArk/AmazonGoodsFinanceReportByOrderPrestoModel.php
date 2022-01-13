@@ -13498,7 +13498,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_field = "max(developer_id) as developer_id";
             $fba_table_field1 = "max(amazon_goods.isku_developer_id) as developer_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
-            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_developer_id,";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_developer_id";
             $fba_table_group = " GROUP BY developer_id";
         }
 
