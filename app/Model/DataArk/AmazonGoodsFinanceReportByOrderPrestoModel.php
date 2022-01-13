@@ -13345,7 +13345,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             //没有选择fba指标
             return [];
         }
-        if(($datas['count_dimension'] != 'sku' && $datas['is_count'] == 1) || ($datas['count_dimension'] == 'sku' && $datas['is_count'] == 1 && empty($datas['is_distinct_channel']))){
+        if($datas['count_dimension'] == 'all_goods' || ($datas['count_dimension'] != 'sku' && $datas['is_count'] == 1) || ($datas['count_dimension'] == 'sku' && $datas['is_count'] == 1 && empty($datas['is_distinct_channel']))){
             //非sku区分店铺总计
             return [];
         }
@@ -13493,18 +13493,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_developer_id,";
             $fba_table_group = " GROUP BY developer_id";
-        }else if($datas['count_dimension'] == 'all_goods'){
-            if($datas['is_distinct_channel'] == 1) { //有区分店铺
-                $join_field = ["user_id","channel_id"];
-                $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON channel.id = g.channel_id";
-                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
-                $fba_table_group = " GROUP BY channel_id";
-            }else{
-                $join_field = ["user_id"];
-                $fba_table_join1 = " LEFT JOIN {$this->table_channel} AS channel ON channel.id = g.channel_id";
-                $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
-                $fba_table_group = " GROUP BY user_id";
-            }
         }
 
         $datas['need_review_fba'] = $need_review_fba;
