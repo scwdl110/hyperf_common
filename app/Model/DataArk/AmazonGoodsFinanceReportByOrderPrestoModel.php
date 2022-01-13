@@ -12646,7 +12646,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //erp库存指标
         $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
         $erp_report_fields_arr = config('common.erp_report_fields_arr');
-        $erp_isku_function = $params['is_count'] == 1 ? 'SUM' : 'max';
+        $erp_isku_function = 'max';
         $erp_report_function = $params['is_count'] == 1 ? 'SUM' : 'max';
         //FBA库存指标
         $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
@@ -14412,10 +14412,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $query_inner_fields = [];
         foreach ($fields as $key => $value){
             $key_value = $key;
-            if($key == "group"){
-                $key = $isMysql ? '`group`' : '"group"';
-                $key_value = $isMysql ? '`group`' : $key_value;
-            }
 
             if(in_array($key,$rate_formula_key)){
                 $str = $this->rate_formula[$key]['formula'] ;
@@ -14455,11 +14451,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif (stripos($value, "warehouse_storage.") !== false){
                 $query_inner_fields[] = "{$value} AS \"{$key}\"";
             }else{
-                $query_origin_fields[] = "{$value} AS {$key}";
+                $query_origin_fields[] = "{$value} AS \"{$key}\"";
                 if(stripos($value,"min(") !== false){
                     $query_inner_fields[] = "min(report_inner.{$key}) AS \"{$key}\"";
                 }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
-                    $query_inner_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
+                    if ($key == 'group'){
+                        $left_key = "report_inner.\"{$key}\"";
+                    }else{
+                        $left_key = "report_inner.{$key}";
+                    }
+                    $query_inner_fields[] = "max({$left_key}) AS \"{$key}\"";
                 }elseif (stripos($value,"count(") !== false){
                     $query_inner_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
                 }elseif($value == 'NULL'){
