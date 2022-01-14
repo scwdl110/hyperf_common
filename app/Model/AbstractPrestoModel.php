@@ -510,7 +510,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         int $cacheTTL = 300,
         bool $isMysql = false,
         array $compare_data = [],
-        array $fba_data = []
+        array $fba_data = [],
+        array $erp_data = []
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -605,6 +606,16 @@ abstract class AbstractPrestoModel implements BIModelInterface
             if(!empty($rt_order)){
                 $sql.= " ORDER BY " .$rt_order ;
             }
+        }
+        elseif (!empty($erp_data))
+        {
+            $erp_origin_fields = $erp_data['origin_fields'];
+            $erp_query_fields = $erp_data['query_fields'];
+            $erp_query_group = $erp_data['query_group'];
+            $erp_query_order = $erp_data['query_order'];
+            $erp_report_table = $erp_data['report_table'];
+            $erp_origin_sql = "SELECT {$erp_origin_fields} FROM {$table} {$where} {$group}, report.myear, report.mmonth";
+            $sql = "SELECT {$erp_query_fields} FROM ({$erp_origin_sql}) AS report_inner {$erp_report_table} GROUP BY {$erp_query_group} ORDER BY {$erp_query_order}";
         }else{
             $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
         }

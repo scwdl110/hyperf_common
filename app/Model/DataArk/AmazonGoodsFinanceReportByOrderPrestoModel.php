@@ -1193,9 +1193,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $erpIskuTable = $this->getErpIskuTable($datas, $userId, $channel_arr);
             $table .= $erpIskuTable;
         }
+        $erpData = [];
         if ($this->haveErpReportFields && $datas['is_count'] != 1){
             $erpReportTable = $this->getErpReportTable($datas, $userId, $channel_arr);
-            $table .= $erpReportTable;
+
+            if ($datas['show_type'] == 1){
+                $erpData = $this->getTimeErpReportData($datas, $fields, $exchangeCode);
+                $erpData['report_table'] = $erpReportTable;
+            }else{
+                $table .= $erpReportTable;
+            }
         }
 
         $count = 0;
@@ -1237,7 +1244,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,true,$isMysql);
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData,$erpData);
                 $total_user_sessions_views = array();
                 if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
                     $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
@@ -1309,8 +1316,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
                 $parallel = new Parallel();
-                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql,$compareData,$fbaData){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData);
+                $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql,$compareData,$fbaData, $erpData){
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData, $erpData);
                     return $lists;
                 });
                 $parallel->add(function () use($where, $table, $group,$isMysql,$compareData,$field_data,$fbaData){
@@ -12639,7 +12646,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //erp库存指标
         $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
         $erp_report_fields_arr = config('common.erp_report_fields_arr');
-        $erp_isku_function = $params['is_count'] == 1 ? 'SUM' : 'max';
+        $erp_isku_function = 'max';
         $erp_report_function = $params['is_count'] == 1 ? 'SUM' : 'max';
         //FBA库存指标
         $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
@@ -14188,6 +14195,53 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $erpIskuTable;
     }
 
+    protected function getTimeErpReportData($datas, $fields, $exchangeCode){
+        $origin_fields = [];
+        $query_fields = [];
+        foreach ($fields as $key => $val){
+            if (stripos($val, "warehouse_storage.") !== false){
+                $query_fields[] = "{$val} AS \"{$key}\"";
+            }else{
+                $origin_fields[] = "{$val} AS \"{$key}\"";
+                if(stripos($val, "min(") !== false){
+                    $query_fields[] = "min(report_inner.{$key}) AS \"{$key}\"";
+                }elseif (stripos($val,"max(") !== false){
+                    $query_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
+                }elseif (stripos($val,"count(") !== false){
+                    $query_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
+                }elseif($val == 'NULL'){
+                    $query_fields[] = "NULL AS \"{$key}\"";
+                }else{
+                    $query_fields[] = "SUM(report_inner.{$key}) AS \"{$key}\"";
+                }
+            }
+        }
+        $origin_fields[] = "max(report.myear) AS \"myear\"";
+        $origin_fields[] = "max(report.mmonth) AS \"mmonth\"";
+        $origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $origin_fields));
+        $query_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_fields));
+
+        $query_group = "report_inner.isku_id";
+        $query_order = "report_inner.isku_id";
+        if ($datas['count_dimension'] == 'head_id')
+        {
+            $query_group = "report_inner.head_id";
+            $query_order = "report_inner.head_id";
+        }
+        elseif ($datas['count_dimension'] == 'developer_id')
+        {
+            $query_group = "report_inner.developer_id";
+            $query_order = "report_inner.developer_id";
+        }
+
+        return [
+            'origin_fields' => $origin_fields_tmp,
+            'query_fields' => $query_fields_tmp,
+            'query_group' => $query_group,
+            'query_order' => $query_order
+        ];
+    }
+
     /**
      * erp进销存指标 跨月取最新月数据
      * @param $datas
@@ -14205,14 +14259,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         $groupField = "storage_temp.isku_id";
         $groupFieldValue = "isku_id";
-        $childJoin = $is_count == 1 ? "warehouse_storage.isku_id = report_inner.isku_id" : "warehouse_storage.isku_id = amazon_goods.goods_isku_id";
+        $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.isku_id = report_inner.isku_id" : "warehouse_storage.isku_id = amazon_goods.goods_isku_id";
         $JoinWhere = "";
         if ($datas['count_dimension'] == 'head_id')
         {
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_head_id";
             $groupFieldValue = "isku_head_id";
-            $childJoin = $is_count == 1 ? "warehouse_storage.isku_head_id = report_inner.head_id" : "warehouse_storage.isku_head_id = amazon_goods.isku_head_id";
+            $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.isku_head_id = report_inner.head_id" : "warehouse_storage.isku_head_id = amazon_goods.isku_head_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
         }
         elseif ($datas['count_dimension'] == 'developer_id')
@@ -14220,7 +14274,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
             $groupField = "amazon_goods_temp.isku_developer_id";
             $groupFieldValue = "isku_developer_id";
-            $childJoin = $is_count == 1 ? "warehouse_storage.isku_developer_id = report_inner.developer_id" : "warehouse_storage.isku_developer_id = amazon_goods.isku_developer_id";
+            $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.isku_developer_id = report_inner.developer_id" : "warehouse_storage.isku_developer_id = amazon_goods.isku_developer_id";
             $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
         }
         $childFields .= ", max({$groupField}) AS {$groupFieldValue}";
@@ -14297,7 +14351,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $childSql = "SELECT {$childFields} FROM {$childTable} WHERE {$childWhere} GROUP BY {$childGroup}";
 
         $erpReportTable = " LEFT JOIN ({$childSql}) AS warehouse_storage ON {$childJoin}";
-        if ($is_count){
+        if ($is_count  || $datas['show_type'] == 1){
             $erpReportTable .= " AND warehouse_storage.year = report_inner.myear AND warehouse_storage.month = report_inner.mmonth";
         }else{
             $erpReportTable .= " AND CAST(warehouse_storage.year AS INTEGER) = report.myear AND CAST(warehouse_storage.month AS INTEGER) = report.mmonth";
@@ -14361,10 +14415,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $query_inner_fields = [];
         foreach ($fields as $key => $value){
             $key_value = $key;
-            if($key == "group"){
-                $key = $isMysql ? '`group`' : '"group"';
-                $key_value = $isMysql ? '`group`' : $key_value;
-            }
 
             if(in_array($key,$rate_formula_key)){
                 $str = $this->rate_formula[$key]['formula'] ;
@@ -14404,11 +14454,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif (stripos($value, "warehouse_storage.") !== false){
                 $query_inner_fields[] = "{$value} AS \"{$key}\"";
             }else{
-                $query_origin_fields[] = "{$value} AS {$key}";
+                $query_origin_fields[] = "{$value} AS \"{$key}\"";
                 if(stripos($value,"min(") !== false){
                     $query_inner_fields[] = "min(report_inner.{$key}) AS \"{$key}\"";
                 }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
-                    $query_inner_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
+                    if ($key == 'group'){
+                        $left_key = "report_inner.\"{$key}\"";
+                    }else{
+                        $left_key = "report_inner.{$key}";
+                    }
+                    $query_inner_fields[] = "max({$left_key}) AS \"{$key}\"";
                 }elseif (stripos($value,"count(") !== false){
                     $query_inner_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
                 }elseif($value == 'NULL'){
