@@ -10896,6 +10896,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $this->rate_formula[$item['target_key']] = [
                         'formula' => $item['formula'],
                         'formula_json' => $item['formula_json'],
+                        'formula_fields' => !empty($item['formula_fields']) ? explode(',',$item['formula_fields']) : [],
                     ];
                 }
                 if($item['formula_fields']){
