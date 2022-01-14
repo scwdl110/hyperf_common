@@ -14333,7 +14333,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }
                     }
                     foreach ($formula_fields_arr as $field) {
-                        if(in_array($field,array_keys($fbaCommonArr))){
+                        if($field == 'fba_replenishment_quantity'){
+                            //含有建议补货数量自定义公式，特殊处理
+                            $str = str_replace('{fba_replenishment_quantity}',"IF(fba_table.fba_replenishment_quantity < 0,if(fba_table.fba_replenishment_quantity = -111111,null,0),fba_table.fba_replenishment_quantity)",$str);
+                        }elseif(in_array($field,array_keys($fbaCommonArr))){
                             $str = str_replace('{' . $field . '}', "fba_table.{$field}", $str);
                         }else{
                             $str = str_replace('{' . $field . '}', "new_origin_table.{$field}", $str);
