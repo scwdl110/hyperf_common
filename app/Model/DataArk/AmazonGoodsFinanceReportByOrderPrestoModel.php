@@ -14484,6 +14484,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
         $query_origin_fields = [];
         $query_inner_fields = [];
+        $map_rate_fields = [];
         foreach ($fields as $key => $value){
             $key_value = $key;
             if(in_array($key,$rate_formula_key)){
@@ -14512,8 +14513,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }
                     }
                 }
-                $fields_tmp[] = "({$tmp_str}) AS {$key_value}";
+                $fields_tmp[] = "({$tmp_str}) AS \"{$key_value}\"";
                 $query_inner_fields[] = "try(" . $str . ")" . ' AS "' . $key_value . '"';
+                $map_rate_fields[$key] = $str;
             }else{
                 //子查询
                 if (stripos($value, "warehouse_isku.") !== false){
@@ -14585,7 +14587,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $temp_func = "max";
                     }
                 }
-                $have_outer_arr[] = "{$temp_func}(report_inner.{$val['key']}) {$val['formula']} {$val['value']}";
+                if (isset($map_rate_fields[$val['key']])){
+                    $have_outer_arr[] = "({$map_rate_fields[$val['key']]}) {$val['formula']} {$val['value']}";
+                }else{
+                    $have_outer_arr[] = "{$temp_func}(report_inner.{$val['key']}) {$val['formula']} {$val['value']}";
+                }
             }
             $condition = $datas['where_detail']['condition_relation'];
             $have_outer = implode(" {$condition} ", $have_outer_arr);
