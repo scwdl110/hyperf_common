@@ -14510,9 +14510,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $key_value = $key;
             if(in_array($key,$rate_formula_key)){
                 $str = $this->rate_formula[$key]['formula'] ;
-                $tmp_str = $str;
                 $formula_json_arr = json_decode($this->rate_formula[$key]['formula_json'],true) ;
                 $str = str_replace('/(', ' * 1.0000 /(', $str);//指标数据数据类型为整数
+                $tmp_str = $str;
                 foreach ($formula_json_arr as $k => $f_key) {
                     if(!in_array($f_key,$operational_char_arr)) {
                         if (!is_numeric($f_key)) {
@@ -14530,6 +14530,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             $str = str_replace('/{total_user_sessions}', ' * 1.0000 /NULLIF(' . $this->total_user_sessions['total_user_sessions'] . ',0)', $str);//分母为0的处理
                             $str = str_replace('/{' . $f_key . '}', " * 1.0000 /NULLIF(SUM({$table_name}." . $f_key . '),0)', $str);//分母为0的处理
                             $str = str_replace('{' . $f_key . '}', "SUM({$table_name}." . $f_key . ') ', $str);//分母为0的处理
+                            $tmp_str = str_replace('/{' . $f_key . '}', " * 1.0000 /NULLIF(SUM(report_tmp." . $f_key . '),0)', $tmp_str);
                             $tmp_str = str_replace('{' . $f_key . '}', 'SUM(report_tmp.' . $f_key . ') ', $tmp_str);
                         }
                     }
