@@ -12687,7 +12687,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //erp库存指标
         $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
         $erp_report_fields_arr = config('common.erp_report_fields_arr');
-        $erp_isku_function = 'max';
+        $erp_isku_function = $params['is_count'] == 1 ? 'SUM' : 'max';
         $erp_report_function = $params['is_count'] == 1 ? 'SUM' : 'max';
         //FBA库存指标
         $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
