@@ -14485,6 +14485,27 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $query_origin_fields = [];
         $query_inner_fields = [];
         $map_rate_fields = [];
+        //自定义公式
+        if ($datas['show_type'] == 2 && $this->customTargetsList){
+            foreach ($this->customTargetsList as $val){
+                if ($val['target_type'] == 2){
+                    $rate_formula_key[] = $val['target_key'];
+                    $this->rate_formula[$val['target_key']] = [
+                        'formula' => $val['formula'],
+                        'formula_json' => $val['formula_json'],
+                        'formula_fields' => explode(',', $val['formula_fields']),
+                    ];
+                }
+            }
+        }elseif ($datas['show_type'] == 1 && $this->timeCustomTarget && $this->timeCustomTarget['target_type'] == 2){
+            $rate_formula_key[] = $this->timeCustomTarget['target_key'];
+            $this->rate_formula[$this->timeCustomTarget['target_key']] = [
+                'formula' => $this->timeCustomTarget['formula'],
+                'formula_json' => $this->timeCustomTarget['formula_json'],
+                'formula_fields' => explode(',', $this->timeCustomTarget['formula_fields'])
+            ];
+        }
+
         foreach ($fields as $key => $value){
             $key_value = $key;
             if(in_array($key,$rate_formula_key)){
