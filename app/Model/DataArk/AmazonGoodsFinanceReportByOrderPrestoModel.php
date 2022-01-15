@@ -10911,6 +10911,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $this->rate_formula[$item['target_key']] = [
                         'formula' => $item['formula'],
                         'formula_json' => $item['formula_json'],
+                        'formula_fields' => !empty($item['formula_fields']) ? explode(',',$item['formula_fields']) : [],
                     ];
                 }
                 if($item['formula_fields']){
@@ -14455,6 +14456,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if($field == 'fba_replenishment_quantity'){
                             //含有建议补货数量自定义公式，特殊处理
                             $str = str_replace('{fba_replenishment_quantity}',"IF(fba_table.fba_replenishment_quantity < 0,if(fba_table.fba_replenishment_quantity = -111111,null,0),fba_table.fba_replenishment_quantity)",$str);
+                        }elseif(in_array($field,['fba_sales_day','fba_day_sale','fba_special_purpose'])){
+                            //含有可售天数、日均销量、FBA专用自定义公式，特殊处理
+                            $str = str_replace('{' . $field . '}',"NULLIF(fba_table.{$field},-111111)",$str);
                         }elseif(in_array($field,array_keys($fbaCommonArr))){
                             $str = str_replace('{' . $field . '}', "fba_table.{$field}", $str);
                         }else{
