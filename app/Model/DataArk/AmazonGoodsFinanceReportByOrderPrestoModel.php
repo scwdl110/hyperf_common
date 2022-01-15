@@ -220,6 +220,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             'formula_json' => '["cpc_cost","/","sale_sales_quota"]',
             'formula_fields' => ['cpc_cost', 'sale_sales_quota'],
         ],//花费占比
+        'erp_period_current_stock_rate' => [
+            'formula' => '({erp_period_current_out_cost}*2)/({erp_period_start_goods_cost_total_begin}+{erp_period_end_goods_cost_total_end})',
+            'formula_json' => '["(","erp_period_current_out_cost","*","2",")","/","(","erp_period_start_goods_cost_total_begin","+","erp_period_end_goods_cost_total_end",")"]',
+            'formula_fields' => ['erp_period_current_out_cost', 'erp_period_start_goods_cost_total_begin', 'erp_period_end_goods_cost_total_end'],
+        ],//erp本期库存周转率
     );
 
     protected  $total_views_numbers = [
@@ -3802,16 +3807,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $time_fields_arr[$time_target] = $time_fields ;
                 } elseif (isset($erpReportTargets[$time_target])){
                     //erp库存指标
-                    $tempField = $erpReportTargets[$time_target]['mysql_field'];
                     $tempFormatType = $erpReportTargets[$time_target]['format_type'] ?? 0;
                     $erp_function = $datas['is_count'] == 1 ? 'SUM' : 'max';
 
                     if ($datas['currency_code'] != 'CNY' && $tempFormatType == 4){
-                        $fields['count_total'] = "SUM({$tempField} * {:RATE})";
-                        $time_fields = $this->getErpReportTimeFields($time_line, "{$tempField} * {:RATE}", $erp_function);
+                        $fields['count_total'] = "SUM(warehouse_storage.{$time_target} * {:RATE})";
+                        $time_fields = $this->getErpReportTimeFields($time_line, "warehouse_storage.{$time_target} * {:RATE}", $erp_function);
                     }else{
-                        $fields['count_total'] = "SUM({$tempField})";
-                        $time_fields = $this->getErpReportTimeFields($time_line, $tempField, $erp_function);
+                        if ($time_target == 'erp_period_current_stock_rate'){
+                            $field1 = "warehouse_storage.erp_period_current_out_cost * 2";
+                            $field2 = "(warehouse_storage.erp_period_start_goods_cost_total_begin + warehouse_storage.erp_period_end_goods_cost_total_end)";
+                            $fields['count_total'] = "SUM({$field1}) / NULLIF(SUM({$field2}), 0)";
+                            $time_fields = $this->getErpReportTimeFields($time_line, $field1, 'SUM', $field2);
+                        }else{
+                            $fields['count_total'] = "SUM(warehouse_storage.{$time_target})";
+                            $time_fields = $this->getErpReportTimeFields($time_line, "warehouse_storage.{$time_target}", $erp_function);
+                        }
                     }
                     $fields[$time_target] = $fields['count_total'];
                     $time_fields_arr[$time_target] = $time_fields;
@@ -5011,11 +5022,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $fields;
     }
 
-    private function getErpReportTimeFields($timeList, $field1 = '', $func = 'SUM')
+    private function getErpReportTimeFields($timeList, $field1 = '', $func = 'SUM', $field2 = '')
     {
         $fields = [];
         foreach ($timeList as $time) {
-            $fields[strval($time['key'])] = "{$func}(CASE WHEN (warehouse_storage.time>={$time['start']} and warehouse_storage.time<={$time['end']}) THEN ({$field1}) ELSE 0 END)";
+            if (!empty($field2)){
+                $fields[strval($time['key'])] = "({$func}(CASE WHEN (warehouse_storage.time>={$time['start']} and warehouse_storage.time<={$time['end']}) THEN ({$field1}) ELSE 0 END)) * 1.0000 / nullif({$func}(CASE WHEN (warehouse_storage.time>={$time['start']} and warehouse_storage.time<={$time['end']}) THEN ({$field2}) ELSE 0 END), 0)";
+            }else{
+                $fields[strval($time['key'])] = "{$func}(CASE WHEN (warehouse_storage.time>={$time['start']} and warehouse_storage.time<={$time['end']}) THEN ({$field1}) ELSE 0 END)";
+            }
         }
 
         return $fields;
@@ -11002,10 +11017,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $rateFields = array_merge($rateFields, $this->rate_formula[$target]['formula_fields']);
                 }
             }
-            if ($datas['show_type'] == 2){
-                $targetsLast = array_unique(array_merge($targetsLast, $rateFields));
-                $this->lastTargets = $targetsLast;
-            }
+            $targetsLast = array_unique(array_merge($targetsLast, $rateFields));
+            $this->lastTargets = $targetsLast;
         }
     }
 
@@ -12738,39 +12751,37 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 if ($this->haveErpIskuFields){
                     if (isset($erp_isku_fields_arr[$key])){
                         $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
-                        $temp_erp_field = $erp_isku_fields_arr[$key]['mysql_field'];
 
                         if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                            $fields[$key] = "{$erp_isku_function}({$temp_erp_field} * {:RATE})";
+                            $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key} * {:RATE})";
                         }else{
-                            $fields[$key] = "{$erp_isku_function}({$temp_erp_field})";
+                            $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key})";
                         }
                     }
                 }
                 if ($this->haveErpReportFields){
                     if (isset($erp_report_fields_arr[$key])){
                         $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
-                        $temp_erp_field = $erp_report_fields_arr[$key]['mysql_field'];
 
                         if (in_array($key, ['erp_period_start_goods_cost_begin', 'erp_period_end_goods_cost_end']))
                         {
                             if ($params['currency_code'] != 'CNY'){
-                                $fields["min_{$key}"] = "min({$temp_erp_field}_min * {:RATE})";
-                                $fields["max_{$key}"] = "max({$temp_erp_field}_max * {:RATE})";
+                                $fields["min_{$key}"] = "min(warehouse_storage.{$key}_min * {:RATE})";
+                                $fields["max_{$key}"] = "max(warehouse_storage.{$key}_max * {:RATE})";
                             }else{
-                                $fields["min_{$key}"] = "min({$temp_erp_field}_min)";
-                                $fields["max_{$key}"] = "max({$temp_erp_field}_max)";
+                                $fields["min_{$key}"] = "min(warehouse_storage.{$key}_min)";
+                                $fields["max_{$key}"] = "max(warehouse_storage.{$key}_max)";
                             }
-                            $fields[$key] = "SUM({$temp_erp_field})";
+                            $fields[$key] = "SUM(warehouse_storage.{$key})";
                         }
                         elseif ($key == 'erp_period_current_stock_rate')
                         {
-                            $fields[$key] = "max({$temp_erp_field})";
+                            $fields[$key] = "max(warehouse_storage.{$key})";
                         }else{
                             if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                                $fields[$key] = "{$erp_report_function}({$temp_erp_field} * {:RATE})";
+                                $fields[$key] = "{$erp_report_function}(warehouse_storage.{$key} * {:RATE})";
                             }else{
-                                $fields[$key] = "{$erp_report_function}({$temp_erp_field})";
+                                $fields[$key] = "{$erp_report_function}(warehouse_storage.{$key})";
                             }
                         }
                     }
@@ -14190,7 +14201,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $userIdMod = $userId % 20;
         $channelIdStr = implode(',', $channelIds);
 
-        $childFields = "SUM(isku_temp.good_num) AS good_num, SUM(isku_temp.bad_num) AS bad_num, SUM(isku_temp.lock_num + isku_temp.lock_num_work_order + isku_temp.lock_num_shipment_order) AS lock_num, SUM(isku_temp.purchasing_num) AS purchasing_num, SUM(isku_temp.send_num) AS send_num, SUM(isku_temp.goods_cost * isku_temp.total_num) AS goods_cost_total, SUM(isku_temp.total_num) AS total_num";
+        $childFields = "SUM(isku_temp.good_num) AS ark_erp_good_num, SUM(isku_temp.bad_num) AS ark_erp_bad_num, SUM(isku_temp.lock_num + isku_temp.lock_num_work_order + isku_temp.lock_num_shipment_order) AS ark_erp_lock_num, SUM(isku_temp.purchasing_num) AS ark_erp_purchasing_num, SUM(isku_temp.send_num) AS ark_erp_send_num, SUM(isku_temp.goods_cost * isku_temp.total_num) AS ark_erp_goods_cost_total, SUM(isku_temp.total_num) AS ark_erp_total_num";
         $childTable = "{$this->table_erp_storage_warehouse_isku} AS isku_temp";
         $groupField = "isku_temp.isku_id";
         $childJoin = $is_count == 1 ? "warehouse_isku.isku_id = report_inner.isku_id" : "warehouse_isku.isku_id = amazon_goods.goods_isku_id";
@@ -14281,7 +14292,34 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $userIdMod = $userId % 20;
         $channelIdStr = implode(',', $channelIds);
 
-        $childFields = "SUM(storage_temp.goods_cost_begin) AS goods_cost_begin, min(storage_temp.goods_cost_begin) AS goods_cost_begin_min, max(storage_temp.goods_cost_begin) AS goods_cost_begin_max, SUM(storage_temp.goods_cost_end) AS goods_cost_end, min(storage_temp.goods_cost_end) AS goods_cost_end_min, max(storage_temp.goods_cost_end) AS goods_cost_end_max, SUM(storage_temp.purchasing_send_num) AS purchasing_send_num, SUM(storage_temp.purchasing_num) AS purchasing_num, SUM(storage_temp.send_num) AS send_num, SUM(storage_temp.num_begin) AS num_begin, SUM(storage_temp.goods_cost_total_begin) AS goods_cost_total_begin, SUM(storage_temp.in_num) AS in_num, SUM(storage_temp.in_cost) AS in_cost, SUM(storage_temp.out_num) AS out_num, SUM(storage_temp.out_cost) AS out_cost, SUM(storage_temp.supplement_cost) AS supplement_cost, SUM(storage_temp.num_end) AS num_end, SUM(storage_temp.goods_cost_total_end) AS goods_cost_total_end, SUM(storage_temp.out_cost * 2) / NULLIF(SUM(storage_temp.goods_cost_total_begin + storage_temp.goods_cost_total_end), 0) AS stock_rate, max(storage_temp.time) AS time, max(storage_temp.year) AS year, max(storage_temp.month) AS month";
+        $reportFieldsConfig = config('common.erp_report_fields_arr');
+        $reportFieldsArr = [];
+        foreach ($this->lastTargets as $val){
+            if (isset($reportFieldsConfig[$val])){
+                $tempField = $reportFieldsConfig[$val]['mysql_field'];
+                if ($val == 'erp_period_start_goods_cost_begin'){
+                    $reportFieldsArr[$val] = "SUM(storage_temp.{$tempField}) AS {$val}";
+                    $reportFieldsArr["{$val}_min"] = "min(storage_temp.{$tempField}) AS {$val}_min";
+                    $reportFieldsArr["{$val}_max"] = "max(storage_temp.{$tempField}) AS {$val}_max";
+                }elseif ($val == 'erp_period_end_goods_cost_end'){
+                    $reportFieldsArr[$val] = "SUM(storage_temp.{$tempField}) AS {$val}";
+                    $reportFieldsArr["{$val}_min"] = "min(storage_temp.{$tempField}) AS {$val}_min";
+                    $reportFieldsArr["{$val}_max"] = "max(storage_temp.{$tempField}) AS {$val}_max";
+                }elseif ($val == 'erp_period_current_stock_rate'){
+                    $reportFieldsArr['erp_period_current_stock_rate'] = "SUM(storage_temp.out_cost * 2) / NULLIF(SUM(storage_temp.goods_cost_total_begin + storage_temp.goods_cost_total_end), 0) AS erp_period_current_stock_rate";
+                    $reportFieldsArr['erp_period_current_out_cost'] = "SUM(storage_temp.out_cost * 2) AS erp_period_current_out_cost";
+                    $reportFieldsArr['erp_period_start_goods_cost_total_begin'] = "SUM(storage_temp.goods_cost_total_begin) AS erp_period_start_goods_cost_total_begin";
+                    $reportFieldsArr['erp_period_end_goods_cost_total_end'] = "SUM(storage_temp.goods_cost_total_end) AS erp_period_end_goods_cost_total_end";
+                }else{
+                    $reportFieldsArr[$val] = "SUM(storage_temp.{$tempField}) AS {$val}";
+                }
+            }
+        }
+        $reportFieldsArr[] = "max(storage_temp.time) AS time";
+        $reportFieldsArr[] = "max(storage_temp.year) AS year";
+        $reportFieldsArr[] = "max(storage_temp.month) AS month";
+
+        $childFields = implode(',', $reportFieldsArr);
         $childTable = "{$this->table_erp_storage_inventory_warehouse_report} AS storage_temp";
 
         $groupField = "storage_temp.isku_id";
@@ -14434,6 +14472,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     private function queryHaveErpList($fields, $datas, $exchangeCode, $day_param, $field_data, $table, $where, $group, $isJoin = false, $isMysql = false, $compare_data = [], $fba_data = [], $other_param = []){
         $userId = $other_param['user_id'];
         $channelIds = $other_param['channel_arr'];
+        $erp_isku_fields_arr = array_keys(config('common.erp_isku_fields_arr'));
+        $erp_report_fields_arr = array_keys(config('common.erp_report_fields_arr'));
 
         $fields_tmp = [];
         $rate_formula_key = array_keys($this->rate_formula);
@@ -14453,10 +14493,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             if($datas['count_dimension'] == 'operators'){
                                 $str = str_replace('{cpc_cost}','SUM(report_inner.cpc_ad_fee) ', $str);//分母为0的处理
                             }
+                            if (in_array($f_key, $erp_isku_fields_arr)){
+                                $table_name = "warehouse_isku";
+                            }elseif (in_array($f_key, $erp_report_fields_arr)){
+                                $table_name = "warehouse_storage";
+                            }else{
+                                $table_name = "report_inner";
+                            }
                             $str = str_replace('/{total_views_number}', ' * 1.0000 /NULLIF(' . $this->total_views_numbers['total_views_number'] . ',0)', $str);//分母为0的处理
                             $str = str_replace('/{total_user_sessions}', ' * 1.0000 /NULLIF(' . $this->total_user_sessions['total_user_sessions'] . ',0)', $str);//分母为0的处理
-                            $str = str_replace('/{' . $f_key . '}', ' * 1.0000 /NULLIF(SUM(report_inner.' . $f_key . '),0)', $str);//分母为0的处理
-                            $str = str_replace('{' . $f_key . '}', 'SUM(report_inner.' . $f_key . ') ', $str);//分母为0的处理
+                            $str = str_replace('/{' . $f_key . '}', " * 1.0000 /NULLIF(SUM({$table_name}." . $f_key . '),0)', $str);//分母为0的处理
+                            $str = str_replace('{' . $f_key . '}', "SUM({$table_name}." . $f_key . ') ', $str);//分母为0的处理
                             $tmp_str = str_replace('{' . $f_key . '}', 'SUM(report_tmp.' . $f_key . ') ', $tmp_str);
                         }
                     }
