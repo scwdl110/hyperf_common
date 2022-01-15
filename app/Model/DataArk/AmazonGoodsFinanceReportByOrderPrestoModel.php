@@ -14590,7 +14590,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 if (isset($map_rate_fields[$val['key']])){
                     $have_outer_arr[] = "({$map_rate_fields[$val['key']]}) {$val['formula']} {$val['value']}";
                 }else{
-                    $have_outer_arr[] = "{$temp_func}(report_inner.{$val['key']}) {$val['formula']} {$val['value']}";
+                    if (in_array($val['key'], $erp_isku_fields_arr)){
+                        $table_name = "warehouse_isku";
+                    }elseif (in_array($val['key'], $erp_report_fields_arr)){
+                        $table_name = "warehouse_storage";
+                    }else{
+                        $table_name = "report_inner";
+                    }
+                    $have_outer_arr[] = "{$temp_func}({$table_name}.{$val['key']}) {$val['formula']} {$val['value']}";
                 }
             }
             $condition = $datas['where_detail']['condition_relation'];
