@@ -13434,7 +13434,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
-        $fba_table_field = $fba_table_field1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
+        $fba_table_field = $fba_table_field1 = $fba_table_where1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
         if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
             $join_field = ["user_id"];
             $fba_table_group = " GROUP BY user_id";
@@ -13456,7 +13456,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(sku) as sku";
                 $fba_table_field1 = "max(g.sku) as sku";
                 $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
-                $fba_table_join1 = "";
+                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             }
         }else if($datas['count_dimension'] == 'asin'){
             if($datas['is_distinct_channel'] == 1){
@@ -13470,7 +13470,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(asin) as asin";
                 $fba_table_field1 = "max(g.asin) as asin";
                 $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,g.asin";
-                $fba_table_join1 = "";
+                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             }
         }else if($datas['count_dimension'] == 'parent_asin'){
             if($datas['is_distinct_channel'] == 1){
@@ -13484,7 +13484,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_field = "max(parent_asin) as parent_asin";
                 $fba_table_field1 = "max(g.parent_asin) as parent_asin";
                 $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,g.parent_asin";
-                $fba_table_join1 = "";
+                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             }
         }else if($datas['count_dimension'] == 'isku'){
             $join_field = ["user_id","isku_id"];
@@ -13529,6 +13529,132 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_developer_id";
             $fba_table_group = " GROUP BY developer_id";
         }
+        $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
+        if (!empty($where_detail)) {
+            if (!empty($where_detail['transport_mode'])) {
+                if (!is_array($where_detail['transport_mode'])) {
+                    $transport_modes = explode(',', $where_detail['transport_mode']);
+                } else {
+                    $transport_modes = $where_detail['transport_mode'];
+                }
+                if (count($transport_modes) == 1) {
+                    $fba_table_where1 .= ' AND report.goods_Transport_mode = ' . ($transport_modes[0] == 'FBM' ? 1 : 2);
+                }
+            }
+            if (!empty($where_detail['up_status'])) {
+                $fba_table_where1 .= " AND report.goods_up_status = " . (intval($where_detail['up_status']) == 1 ? 1 : 2);
+            }
+            if (!empty($where_detail['is_care'])) {
+                $fba_table_where1 .= " AND report.goods_is_care = " . (intval($where_detail['is_care']) == 1 ? 1 : 0);
+            }
+            if (!empty($where_detail['is_new'])) {
+                $fba_table_where1 .= " AND report.goods_is_new = " . (intval($where_detail['is_new']) == 1 ? 1 : 0);
+            }
+            if (!empty($where_detail['group_id'])) {
+                if (is_array($where_detail['group_id'])) {
+                    $group_str = implode(',', $where_detail['group_id']);
+                } else {
+                    $group_str = $where_detail['group_id'];
+                }
+
+                if (!empty($group_str)) {
+                    $fba_table_where1 .= " AND report.goods_group_id  IN ( " . $group_str . ")";
+                } elseif ($group_str == 0) {
+                    $fba_table_where1 .= " AND report.goods_group_id = 0 ";
+                }
+            }
+            if (!empty($where_detail['isku_id'])) {
+                if (is_array($where_detail['isku_id'])) {
+                    $isku_id_str = implode(',', $where_detail['isku_id']);
+                } else {
+                    $isku_id_str = $where_detail['isku_id'];
+                }
+
+                if (!empty($isku_id_str)) {
+                    $fba_table_where1 .= " AND report.goods_isku_id  IN ( " . $isku_id_str . ")";
+                } elseif ($isku_id_str == 0) {
+                    $fba_table_where1 .= " AND report.goods_isku_id = 0 ";
+                }
+            }
+            if (!empty($where_detail['developer_id'])) {
+                if (is_array($where_detail['developer_id'])) {
+                    $developer_str = implode(',', $where_detail['developer_id']);
+                } else {
+                    $developer_str = $where_detail['developer_id'];
+                }
+
+                if (!empty($developer_str)) {
+                    $fba_table_where1 .= " AND report.isku_developer_id  IN ( " . $developer_str . ")";
+                }
+            }
+            if (!empty($where_detail['head_id'])) {
+                if (is_array($where_detail['head_id'])) {
+                    $head_str = implode(',', $where_detail['head_id']);
+                } else {
+                    $head_str = $where_detail['head_id'];
+                }
+
+                if (!empty($head_str)) {
+                    $fba_table_where1 .= " AND report.isku_head_id  IN ( " . $head_str . ")";
+                }
+            }
+            if (!empty($where_detail['product_category_name'])) {
+                $where_detail['product_category_name'] = json_decode(stripcslashes($where_detail['product_category_name']),true);
+                if (is_array($where_detail['product_category_name'])) {
+                    $product_category_name_str = "'" . join("','", $where_detail['product_category_name']) . "'";
+                } else {
+                    $product_category_name_str = "'" . $where_detail['product_category_name'] . "'";
+                }
+
+                if (!empty($product_category_name_str)) {
+                    $fba_table_where1 .= " AND report.goods_product_category_name_1  IN ( " . $product_category_name_str . ")";
+                }
+            }
+            if (!empty($where_detail['operators_id']) or (isset($where_detail['operators_id']) && ($where_detail['operators_id'] === '0' or $where_detail['operators_id'] === 0))) {
+                if (is_array($where_detail['operators_id'])) {
+                    $operators_str = implode(',', $where_detail['operators_id']);
+                } else {
+                    $operators_str = $where_detail['operators_id'];
+                }
+                $fba_table_where1 .= " AND report.goods_operation_user_admin_id  IN ( " . $operators_str . " ) ";
+            }
+
+            if (!empty($where_detail['tag_id'])) {
+                if (strpos($fba_table_group1, 'tags_rel.tags_id') === false) {
+                    $fba_table_join1 .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 ";
+
+                }
+                if (is_array($where_detail['tag_id'])) {
+                    $tag_str = implode(',', $where_detail['tag_id']);
+
+                } else {
+                    $tag_str = $where_detail['tag_id'];
+                }
+                if (!empty($tag_str)) {
+                    if (in_array(0, explode(",", $tag_str))) {
+                        $fba_table_where1 .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+
+                    } else {
+                        $fba_table_where1 .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+
+                    }
+                } elseif ($tag_str == 0) {
+                    $fba_table_where1 .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                }
+            }
+
+            if (!empty($where_detail['sku'])) {
+                if (is_array($where_detail['sku'])) {
+                    $sku_str = "'" . join("','", $where_detail['sku']) . "'";
+                } else {
+                    $sku_str = "'" . $where_detail['sku'] . "'";
+                }
+
+                if (!empty($sku_str)) {
+                    $fba_table_where1 .= " AND report.goods_sku  IN ( " . $sku_str . ")";
+                }
+            }
+        }
 
         $datas['need_review_fba'] = $need_review_fba;
         if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
@@ -13536,7 +13662,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table1 = "(SELECT {$field1} FROM count_table as c {$fba_table_join1} {$fba_table_group1})";
         }elseif($need_review_fba){
             $field1 = $this->getGoodsFbaField(1,$fba_table_field1,$datas);
-            $fba_table1 = "(SELECT {$field1} FROM fba_table1 as g {$fba_table_join1} {$fba_table_group1})";
+            $fba_table1 = "(SELECT {$field1} FROM fba_table1 as g {$fba_table_join1} {$fba_table_where1} {$fba_table_group1})";
         }else{
             $fba_table1 = "fba_table1";
         }
