@@ -1253,7 +1253,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
 
-                if (($this->haveErpIskuFields || $this->haveErpReportFields) && $datas['count_dimension'] != 'sku')
+                if ($this->haveErpIskuFields || $this->haveErpReportFields)
                 {
                     $other_param = [
                         'user_id' => $userId,
@@ -1322,7 +1322,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
 
-                if (($this->haveErpIskuFields || $this->haveErpReportFields) && $datas['count_dimension'] != 'sku')
+                if ($this->haveErpIskuFields || $this->haveErpReportFields)
                 {
                     $other_param = [
                         'user_id' => $userId,
@@ -11022,10 +11022,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $rateKeys = array_keys($this->rate_formula);
             $rateFields = [];
             foreach ($targetsLast as $target){
-                if (in_array($target, $iskuFieldsArr) && $datas['stock_datas_origin'] == 1){
+                if (in_array($target, $iskuFieldsArr) && $datas['stock_datas_origin'] == 1 && $datas['count_dimension'] != 'sku' && $datas['is_count'] != 1){
                     $this->haveErpIskuFields = true;
                 }
-                if (in_array($target, $reportFieldsArr) && $datas['stock_datas_origin'] == 1){
+                if (in_array($target, $reportFieldsArr) && $datas['stock_datas_origin'] == 1 && $datas['count_dimension'] != 'sku' && $datas['is_count'] != 1){
                     $this->haveErpReportFields = true;
                 }
                 if (in_array($target, $fbaFieldsArr) && $datas['stock_datas_origin'] == 1){
@@ -12766,7 +12766,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
 
-                if ($this->haveErpIskuFields && $params['is_count'] != 1 && $params['count_dimension'] != 'sku'){
+                if ($this->haveErpIskuFields){
                     if (isset($erp_isku_fields_arr[$key])){
                         $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
 
@@ -12777,7 +12777,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }
                     }
                 }
-                if ($this->haveErpReportFields && $params['is_count'] != 1 && $params['count_dimension'] != 'sku'){
+                if ($this->haveErpReportFields){
                     if (isset($erp_report_fields_arr[$key])){
                         $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
 
