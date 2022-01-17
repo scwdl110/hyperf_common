@@ -14245,7 +14245,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 if(stripos($val, "min(") !== false){
                     $query_fields[] = "min(report_inner.{$key}) AS \"{$key}\"";
                 }elseif (stripos($val,"max(") !== false){
-                    $query_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
+                    if ($key == 'group'){
+                        $left_key = '"group"';
+                    }else{
+                        $left_key = $key;
+                    }
+                    $query_fields[] = "max(report_inner.{$left_key}) AS \"{$key}\"";
                 }elseif (stripos($val,"count(") !== false){
                     $query_fields[] = "max(report_inner.{$key}) AS \"{$key}\"";
                 }elseif($val == 'NULL'){
@@ -14271,6 +14276,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         {
             $query_group = "report_inner.developer_id";
             $query_order = "report_inner.developer_id";
+        }
+        if (!empty($datas['sort']) && !empty($datas['order'])){
+            $query_order = "\"{$datas['sort']}\" {$datas['order']}, {$query_order}";
         }
 
         return [
@@ -14308,7 +14316,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $reportFieldsArr["{$val}_max"] = "max(storage_temp.{$tempField}) AS {$val}_max";
                 }elseif ($val == 'erp_period_current_stock_rate'){
                     $reportFieldsArr['erp_period_current_stock_rate'] = "SUM(storage_temp.out_cost * 2) / NULLIF(SUM(storage_temp.goods_cost_total_begin + storage_temp.goods_cost_total_end), 0) AS erp_period_current_stock_rate";
-                    $reportFieldsArr['erp_period_current_out_cost'] = "SUM(storage_temp.out_cost * 2) AS erp_period_current_out_cost";
+                    $reportFieldsArr['erp_period_current_out_cost'] = "SUM(storage_temp.out_cost) AS erp_period_current_out_cost";
                     $reportFieldsArr['erp_period_start_goods_cost_total_begin'] = "SUM(storage_temp.goods_cost_total_begin) AS erp_period_start_goods_cost_total_begin";
                     $reportFieldsArr['erp_period_end_goods_cost_total_end'] = "SUM(storage_temp.goods_cost_total_end) AS erp_period_end_goods_cost_total_end";
                 }else{
