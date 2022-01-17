@@ -1422,13 +1422,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
         }
-        if(!empty($lists) && empty($datas['is_median']) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
+        $targets = is_array($datas['target']) ? $datas['target'] :  explode(',' , $datas['target'])  ;
+        if(!empty($lists) && empty($datas['is_median']) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($datas['sort_target']) && !empty($sort) && !empty($datas['sort_order'] &&  in_array($sort , $targets) && in_array($datas['sort_target'] , $targets))){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
-            $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
+            $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC ;
             array_multisort($sort_names,$order2,$lists);
         }
-
         $rt['lists'] = empty($lists) ? array() : $lists;
         $rt['count'] = intval($count);
         return $rt;
@@ -6035,7 +6035,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $count = $limit_num ;
             }
         }
-        if(!empty($lists) && empty($params['is_median']) && $params['show_type'] == 2 && $params['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$params['sort_target']]) && !empty($params['sort_target']) && !empty($params['sort_order'])){
+        $targets = is_array($params['target']) ? $params['target'] :  explode(',' , $params['target'])  ;
+        if(!empty($lists) && empty($params['is_median']) && $params['show_type'] == 2 && $params['limit_num'] > 0 && !empty($order) && !empty($params['sort_target']) && !empty($sort) && !empty($params['sort_order'] &&  in_array($sort , $targets) && in_array($params['sort_target'] , $targets))){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
             $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC ;
@@ -8787,13 +8788,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $count = $limit_num ;
             }
         }
-        if(!empty($lists) && empty($datas['is_median']) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($sort) && !empty($fields[$sort]) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_target']) && !empty($datas['sort_order'])){
+        $targets = is_array($datas['target']) ? $datas['target'] :  explode(',' , $datas['target'])  ;
+        if(!empty($lists) && empty($datas['is_median']) && $datas['show_type'] == 2 && $datas['limit_num'] > 0 && !empty($order) && !empty($datas['sort_target']) && !empty($sort) && !empty($datas['sort_order'] &&  in_array($sort , $targets) && in_array($datas['sort_target'] , $targets))){
             //根据字段对数组$lists进行排列
             $sort_names = array_column($lists,$sort);
-            $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC;
+            $order2  =  $order == 'desc' ? \SORT_DESC : \SORT_ASC ;
             array_multisort($sort_names,$order2,$lists);
         }
-
         $rt['lists'] = empty($lists) ? array() : $lists;
         $rt['count'] = intval($count);
         return $rt;
@@ -13810,7 +13811,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'fba_fields'=>""
         ];
         $today = strtotime(date("Y-m-d", time()));
-        $today = 1639843200;  //todo 测试环境没数据，先写死过去时间
+        //$today = 1639843200;  //todo 测试环境没数据，先写死过去时间
         $now_time = time();
         $where = " WHERE tend.user_id = ".intval($datas['user_id'])." AND tend.db_num = '".$this->dbhost."' AND tend.create_time >= {$today} AND tend.create_time <= {$now_time}";
         if (count($channel_arr)==1){
