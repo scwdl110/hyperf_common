@@ -14732,6 +14732,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
         $query_origin_fields[] = "max(report.myear) AS myear";
         $query_origin_fields[] = "max(report.mmonth) AS mmonth";
+        $query_origin_fields[] = "max(report.mquarter) AS mquarter";
         $query_origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_origin_fields));
         $query_inner_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_inner_fields));
 
@@ -14745,6 +14746,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else{
             $group_inner = $this->haveErpReportFields ? "amazon_goods.goods_isku_id,report.myear,report.mmonth" : "amazon_goods.goods_isku_id";
             $group_outer = "report_inner.isku_id";
+        }
+
+        if ($this->haveErpReportFields){
+            if ($datas['count_periods'] == 5){
+                $group_outer.= ", report_inner.myear";
+            }elseif ($datas['count_periods'] == 4){
+                $group_outer.= ", report_inner.mquarter";
+            }elseif ($datas['count_periods'] == 3){
+                $group_outer.= ", report_inner.mmonth";
+            }
         }
 
         $have_outer = "";
