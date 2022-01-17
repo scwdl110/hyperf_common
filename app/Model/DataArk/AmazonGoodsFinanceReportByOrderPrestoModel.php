@@ -1253,7 +1253,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
 
-                if ($this->haveErpIskuFields || $this->haveErpReportFields)
+                if (($this->haveErpIskuFields || $this->haveErpReportFields) && $datas['count_dimension'] != 'sku')
                 {
                     $other_param = [
                         'user_id' => $userId,
@@ -1322,7 +1322,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
 
-                if ($this->haveErpIskuFields || $this->haveErpReportFields)
+                if (($this->haveErpIskuFields || $this->haveErpReportFields) && $datas['count_dimension'] != 'sku')
                 {
                     $other_param = [
                         'user_id' => $userId,
@@ -12766,7 +12766,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
 
-                if ($this->haveErpIskuFields){
+                if ($this->haveErpIskuFields && $params['is_count'] != 1 && $params['count_dimension'] != 'sku'){
                     if (isset($erp_isku_fields_arr[$key])){
                         $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
 
@@ -12777,7 +12777,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }
                     }
                 }
-                if ($this->haveErpReportFields){
+                if ($this->haveErpReportFields && $params['is_count'] != 1 && $params['count_dimension'] != 'sku'){
                     if (isset($erp_report_fields_arr[$key])){
                         $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
 
