@@ -14718,7 +14718,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 if(stripos($value,"min(") !== false){
                     $fields_tmp[] = "min(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
                 }elseif (stripos($value,"max(") !== false || stripos($value,"array_join(") !== false){
-                    $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
+                    if ($key == 'group'){
+                        $left_key = "report_tmp.\"{$key}\"";
+                    }else{
+                        $left_key = "report_tmp.{$key}";
+                    }
+                    $fields_tmp[] = "max({$left_key}) " . ' AS "' . $key_value . '"';
                 }elseif (stripos($value,"count(") !== false){
                     $fields_tmp[] = "max(report_tmp.{$key}) " . ' AS "' . $key_value . '"';
                 }elseif($value == 'NULL'){
