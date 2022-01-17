@@ -13963,6 +13963,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ] ;
             $json_on = "new_origin_table.user_id = fba_table.user_id " ;
         }
+
         $other_fields = $this->getUnGoodsFbaOtherField($fields , $custom_fba_target_key) ;
 
         if(!empty($other_fields)){
@@ -13971,6 +13972,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
             $fields = array_merge($fields , $other_fields) ;
         }
+
 
         if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
             if(!empty($fbaArr[$datas['sort_target']]) ) {
@@ -14057,6 +14059,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if(!empty($other_fields)){
             $fields = array_merge($fields , $other_fields) ;
         }
+        $fbaCommonArr = config('common.channel_fba_fields_arr');
         $custom_targets_list = empty($this->customTargetsList) ? array() : $this->customTargetsList ;
         if(!empty($custom_targets_list)){
             foreach ($custom_targets_list as $item) {
@@ -14072,7 +14075,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                     foreach ($formula_fields_arr as $field) {
                         if(!empty($fields[$field])){
-                            $str = str_replace('{' . $field . '}', $fields[$field], $str);
+                            if(in_array($field,array_keys($fbaCommonArr))){
+                                $str = str_replace('{' . $field . '}', $fields[$field], $str);
+                            }else{
+                                $str = str_replace('{' . $field . '}', "new_origin_table.{$field}", $str);
+                            }
                         }else {
                             $str = 'NULL';
                         }
@@ -14080,7 +14087,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $other_fields[$item['target_key']] =  "try(" . $str . ")";
                 }
             }
+
         }
+
         return $other_fields ;
     }
 
