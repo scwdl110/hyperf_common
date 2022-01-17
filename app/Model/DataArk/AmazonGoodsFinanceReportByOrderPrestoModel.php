@@ -639,10 +639,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         //没有按周期统计 ， 按指标展示
         $fba_target_key = [];
+        $erp_target_key = [];
         if ($datas['show_type'] == 2) {
             $fields_arr = $this->getGoodsFields($datas,$isMysql);
             $fields = $fields_arr['fields'];
             $fba_target_key = $fields_arr['fba_target_key'];
+            $erp_target_key = $fields_arr['erp_target_key'];
         } else {  //按时间维度统计，没有对比数据
             $fields = $this->getGoodsTimeFields($datas, $timeLine,$isMysql);
         }
@@ -1092,6 +1094,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
             if(!empty($where_detail['product_category_name'])){
+                $where_detail['product_category_name'] = is_array($where_detail['product_category_name']) ? $where_detail['product_category_name'] : json_decode($where_detail['product_category_name'],true);
                 if(is_array($where_detail['product_category_name'])){
                     $product_category_name_str="'".join("','",$where_detail['product_category_name'])."'";
                 }else{
@@ -1150,6 +1153,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $target_wheres = $where_detail['target'] ?? '';
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
+                $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
+                $erp_report_fields_arr = config('common.erp_report_fields_arr');
                 foreach ($target_wheres as $target_where) {
                     //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
                     if(in_array($target_where['key'],array_keys($fbaCommonArr)) || in_array($target_where['key'],$fba_target_key)){
@@ -1162,6 +1167,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         }
                         $this->fbaWhereDetail[] = $target_where;
                         continue;
+                    }
+                    //新版指标筛选里包含了ERP指标,不汇总
+                    if (in_array($target_where['key'], $erp_target_key) || isset($erp_isku_fields_arr[$target_where['key']]) || isset($erp_report_fields_arr[$target_where['key']])){
+                        if($datas['is_count'] == 1 && $datas['stock_datas_origin'] == 1){
+                            return ['lists' => [], 'count' => 0];
+                        }
                     }
                     if(!empty($fields[$target_where['key']])){
                         $where_value = $target_where['value'];
@@ -3574,11 +3585,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
 
         //加入自定义指标
-        $fba_target_key = $operation_table_field = [];
+        $fba_target_key = $operation_table_field = $erp_target_key = [];
         $is_count = !empty($datas['is_count']) ? $datas['is_count'] : 0;
         $datas['list_type'] = 1;//1-商品 2-店铺 fba用的
-        $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$operation_table_field,$is_count,$isMysql);
-        return ['fields' => $fields,'fba_target_key' => $fba_target_key];
+        $this->getCustomTargetFields($fields,$this->customTargetsList,$targets,$targets_temp, $datas,$fba_target_key,$operation_table_field,$is_count,$isMysql, $erp_target_key);
+        return ['fields' => $fields,'fba_target_key' => $fba_target_key, 'erp_target_key' => $erp_target_key];
     }
 
     private function getGoodsTheSameFields($datas,$fields,$isMysql = false){
@@ -10807,12 +10818,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        return $fields;
     }
 
-    private function getCustomTargetFields(&$fields,$custom_targets_list,$targets = array(),$targets_temp = array(), $datas = [],&$fba_target_key = array(),&$operation_table_field = array(),$is_count = 0,$isMysql = false){
+    private function getCustomTargetFields(&$fields,$custom_targets_list,$targets = array(),$targets_temp = array(), $datas = [],&$fba_target_key = array(),&$operation_table_field = array(),$is_count = 0,$isMysql = false, &$erp_target_key = []){
         $fba_field_exits = [];
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
         if($custom_targets_list){
             if($datas['stock_datas_origin'] == 1){
                 $fbaFieldsArr = !empty($datas['list_type']) && $datas['list_type'] == 1 ? config('common.goods_fba_fields_arr') : config('common.channel_fba_fields_arr');
+                $erpIskuFieldsArr = config('common.erp_isku_fields_arr');
+                $erpReportFieldsArr = config('common.erp_report_fields_arr');
             }
             foreach ($custom_targets_list as $item){
                 if ($item['target_type'] == 1)
@@ -10859,6 +10872,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 if(!empty($fbaFieldsArr[$field])){
                                     $count++;
                                 }
+                                if (isset($erpIskuFieldsArr[$field]) || isset($erpReportFieldsArr[$field])){
+                                    $erp_target_key[] = $item['target_key'];
+                                }
                             }else{
                                 if(in_array($field,$this->fba_fields_arr)){ //FBA数据源是Mysql
                                     $count++;
@@ -10885,6 +10901,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $fba_field_exits = $fba_field_exits ? array_unique($fba_field_exits) : [];
+        $erp_target_key = array_unique($erp_target_key);
 
         //unset没选的字段，有erp指标时不去掉
         if (!($this->haveErpIskuFields || $this->haveErpReportFields)){
@@ -13610,7 +13627,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
             }
             if (!empty($where_detail['product_category_name'])) {
-                $where_detail['product_category_name'] = json_decode(stripcslashes($where_detail['product_category_name']),true);
+                $where_detail['product_category_name'] = is_array($where_detail['product_category_name']) ? $where_detail['product_category_name'] : json_decode($where_detail['product_category_name'],true);
                 if (is_array($where_detail['product_category_name'])) {
                     $product_category_name_str = "'" . join("','", $where_detail['product_category_name']) . "'";
                 } else {
@@ -14724,6 +14741,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
         $query_origin_fields[] = "max(report.myear) AS myear";
         $query_origin_fields[] = "max(report.mmonth) AS mmonth";
+        $query_origin_fields[] = "max(report.mquarter) AS mquarter";
         $query_origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_origin_fields));
         $query_inner_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_inner_fields));
 
@@ -14737,6 +14755,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else{
             $group_inner = $this->haveErpReportFields ? "amazon_goods.goods_isku_id,report.myear,report.mmonth" : "amazon_goods.goods_isku_id";
             $group_outer = "report_inner.isku_id";
+        }
+
+        if ($this->haveErpReportFields){
+            if ($datas['count_periods'] == 5){
+                $group_outer.= ", report_inner.myear";
+            }elseif ($datas['count_periods'] == 4){
+                $group_outer.= ", report_inner.mquarter";
+            }elseif ($datas['count_periods'] == 3){
+                $group_outer.= ", report_inner.mmonth";
+            }
         }
 
         $have_outer = "";
