@@ -1092,6 +1092,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
             if(!empty($where_detail['product_category_name'])){
+                $where_detail['product_category_name'] = json_decode($where_detail['product_category_name'],true);
                 if(is_array($where_detail['product_category_name'])){
                     $product_category_name_str="'".join("','",$where_detail['product_category_name'])."'";
                 }else{
@@ -13610,7 +13611,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
             }
             if (!empty($where_detail['product_category_name'])) {
-                $where_detail['product_category_name'] = json_decode(stripcslashes($where_detail['product_category_name']),true);
+                $where_detail['product_category_name'] = json_decode($where_detail['product_category_name'],true);
                 if (is_array($where_detail['product_category_name'])) {
                     $product_category_name_str = "'" . join("','", $where_detail['product_category_name']) . "'";
                 } else {
