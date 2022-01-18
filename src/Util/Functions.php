@@ -441,4 +441,34 @@ class Functions {
         return $wsId;
     }
 
+
+    /**
+     * 获取上报token
+     * @param int $id
+     * @param string $aesKey
+     * @param int $force
+     * @return array|bool|false|\Hyperf\Database\Model\Model|\Hyperf\Database\Query\Builder|mixed|object|string|null
+     */
+    public static function getSeapigeonToken(int $id, string $aesKey, int $force = 0)
+    {
+        if(!$id || !$aesKey){
+            return false;
+        }
+        $key = 'center_seapigeon_token_'.$id;
+        $redis = new Redis();
+        $redis = $redis->getClient();
+        $token = $redis->get($key);
+        if($token===false || $force){
+            $where = [
+                ['id', '=', $id],
+            ];
+            $token = Db::table("redo_seapigeon_author_user")->where($where)->select('access_token')->first();
+            $token = data_get($token, 'access_token', '');
+            $redis->set($key, $token, 3600);
+        }
+
+        $token = self::decryOpen($token, $aesKey);
+        return $token;
+    }
+
 }
