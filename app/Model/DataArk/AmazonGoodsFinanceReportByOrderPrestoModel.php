@@ -1009,21 +1009,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $tag_str = $where_detail['tag_id'] ;
                 }
-                if (strpos($group, 'tags_rel.tags_id') === false) {
-                    if($datas['count_dimension'] == 'tags'){
-                        $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 ";
-                        if (!empty($tag_str)) {
-                            if (in_array(0,explode(",",$tag_str))){
-                                $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+                if($datas['count_dimension'] == 'tags'){
+                    if (!empty($tag_str)) {
+                        if (in_array(0,explode(",",$tag_str))){
+                            $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
 
-                            }else{
-                                $where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+                        }else{
+                            $where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
 
-                            }
-                        }elseif ($tag_str == 0){
-                            $where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
                         }
-                    }else{
+                    }elseif ($tag_str == 0){
+                        $where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                    }
+                }else{
+                    if (strpos($group, 'tags_rel.tags_id') === false) {
                         if (!empty($tag_str)) {
                             $tag_arr = explode(",",$tag_str);
                             $where_or_temp = [];
@@ -1050,7 +1049,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         }
                         $table .= "LEFT JOIN (SELECT tags_rel.goods_id,concat(',', {$concat_str}, ',') as \"tags_id\" FROM {$this->table_amazon_goods_tags_rel} AS tags_rel LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 where tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 {$tags_where} GROUP BY tags_rel.goods_id) as tags ON tags.goods_id = amazon_goods.goods_g_amazon_goods_id";
                     }
-
                 }
             }
 
