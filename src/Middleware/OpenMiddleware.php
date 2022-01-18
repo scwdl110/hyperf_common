@@ -153,13 +153,14 @@ class OpenMiddleware implements MiddlewareInterface
                 ['is_master', '=', 1],
                 ['user_id', '=', $userId],
             ];
-            $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select(array('id', 'is_master', 'redis_id'))->first();
+            $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select(array('id', 'is_master'))->first();
+            $user = Db::connection('erp_base')->table('user')->where([['id','=',$userId]])->select(array('redis_id'))->first();
             if (!$admin) {
                 return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
             }
             $adminId = data_get($admin, 'id', 0);
             $isMaster = data_get($admin, 'is_master', 0);
-            $redisId = data_get($admin, 'redis_id', 0);
+            $redisId = data_get($user, 'redis_id', 0);
             $userInfo['admin_id'] = $adminId;
             $userInfo['is_master'] = $isMaster;
             $userInfo['redis_id'] = $redisId;
