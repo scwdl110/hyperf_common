@@ -13692,7 +13692,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             $fba_table_where1 .= " AND (tags.tags_id = 0 OR tags.tags_id IS NULL) ";
                         }
                         $concat_str = "array_join(array_agg(tags_rel.tags_id), ',')";
-                        $fba_table_join1 .= " LEFT JOIN (SELECT tags_rel.goods_id,concat(',', {$concat_str}, ',') as \"tags_id\" FROM {$this->table_amazon_goods_tags_rel} AS tags_rel LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 where tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 {$tags_where} GROUP BY tags_rel.goods_id) as tags ON tags.goods_id = c.goods_id";
+                        if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
+                            $concat_join = " ON tags.goods_id = c.goods_id";
+                        }else{
+                            $concat_join = " ON tags.goods_id = amazon_goods.goods_g_amazon_goods_id";
+                        }
+                        $fba_table_join1 .= " LEFT JOIN (SELECT tags_rel.goods_id,concat(',', {$concat_str}, ',') as \"tags_id\" FROM {$this->table_amazon_goods_tags_rel} AS tags_rel LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 where tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 {$tags_where} GROUP BY tags_rel.goods_id) as tags {$concat_join}";
                     }
 
                 }
