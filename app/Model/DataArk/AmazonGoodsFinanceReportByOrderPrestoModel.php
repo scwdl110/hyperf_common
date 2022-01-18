@@ -1030,7 +1030,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 $where_or_temp[] = "tags.tags_id like '%,{$val},%'";
                             }
                             if (in_array(0,$tag_arr)){
-                                $tags_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " ))  ";
+//                                $tags_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " ))  ";
                                 $where_or_temp[] = " tags.tags_id IS NULL ";
                             }else{
                                 $tags_where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
