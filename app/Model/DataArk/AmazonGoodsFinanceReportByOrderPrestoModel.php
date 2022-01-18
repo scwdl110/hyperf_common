@@ -1002,26 +1002,52 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             if (!empty($where_detail['tag_id'])) {
-                if (strpos($group, 'tags_rel.tags_id') === false) {
-                    $table .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 ";
-
-                }
+                $tags_where = "";
                 if(is_array($where_detail['tag_id'])){
                     $tag_str = implode(',', $where_detail['tag_id']);
 
                 }else{
                     $tag_str = $where_detail['tag_id'] ;
                 }
-                if (!empty($tag_str)) {
-                    if (in_array(0,explode(",",$tag_str))){
-                        $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+                if($datas['count_dimension'] == 'tags'){
+                    if (!empty($tag_str)) {
+                        if (in_array(0,explode(",",$tag_str))){
+                            $where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
 
-                    }else{
-                        $where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+                        }else{
+                            $where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
 
+                        }
+                    }elseif ($tag_str == 0){
+                        $where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
                     }
-                }elseif ($tag_str == 0){
-                    $where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                }else{
+                    if (strpos($group, 'tags_rel.tags_id') === false) {
+                        if (!empty($tag_str)) {
+                            $tag_arr = explode(",",$tag_str);
+                            $where_or_temp = [];
+                            foreach ($tag_arr as $val){
+                                $where_or_temp[] = "tags.tags_id like '%,{$val},%'";
+                            }
+                            if (in_array(0,$tag_arr)){
+//                                $tags_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " ))  ";
+                                $where_or_temp[] = " tags.tags_id IS NULL ";
+                            }else{
+                                $tags_where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+
+                            }
+                            $where .= " AND (". implode(' OR ',$where_or_temp)." )";
+                        }elseif ($tag_str == 0){
+//                            $tags_where .= " AND (tags_rel.tags_id = 0) ";
+                            $where .= " AND (tags.tags_id like '%,0,%' OR tags.tags_id IS NULL) ";
+                        }
+                        if($isMysql){
+                            $concat_str = "GROUP_CONCAT(DISTINCT tags_rel.tags_id SEPARATOR ',')";
+                        }else{
+                            $concat_str = "array_join(array_agg(tags_rel.tags_id), ',')";
+                        }
+                        $table .= "LEFT JOIN (SELECT tags_rel.goods_id,concat(',', {$concat_str}, ',') as \"tags_id\" FROM {$this->table_amazon_goods_tags_rel} AS tags_rel LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 where tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 {$tags_where} GROUP BY tags_rel.goods_id) as tags ON tags.goods_id = amazon_goods.goods_g_amazon_goods_id";
+                    }
                 }
             }
 
