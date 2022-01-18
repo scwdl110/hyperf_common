@@ -1030,7 +1030,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 $where_or_temp[] = "tags.tags_id like '%,{$val},%'";
                             }
                             if (in_array(0,$tag_arr)){
-                                $tags_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+                                $tags_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " ))  ";
                                 $where .= " AND (". implode(' OR ',$where_or_temp) ." OR  tags.tags_id IS NULL )  ";
 
                             }else{
@@ -1039,7 +1039,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                             }
                         }elseif ($tag_str == 0){
-                            $tags_where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                            $tags_where .= " AND (tags_rel.tags_id = 0) ";
                             $where .= " AND (tags.tags_id = 0 OR tags.tags_id IS NULL) ";
                         }
                         if($isMysql){
