@@ -11023,10 +11023,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $rateKeys = array_keys($this->rate_formula);
             $rateFields = [];
             foreach ($targetsLast as $target){
-                if (in_array($target, $iskuFieldsArr) && $datas['stock_datas_origin'] == 1 && $datas['count_dimension'] != 'sku' && $datas['is_count'] != 1){
+                if (in_array($target, $iskuFieldsArr) && $datas['stock_datas_origin'] == 1 && !($datas['count_dimension'] == 'sku' && $datas['is_count'] == 1)){
                     $this->haveErpIskuFields = true;
                 }
-                if (in_array($target, $reportFieldsArr) && $datas['stock_datas_origin'] == 1 && $datas['count_dimension'] != 'sku' && $datas['is_count'] != 1){
+                if (in_array($target, $reportFieldsArr) && $datas['stock_datas_origin'] == 1 && !($datas['count_dimension'] == 'sku' && $datas['is_count'] == 1)){
                     $this->haveErpReportFields = true;
                 }
                 if (in_array($target, $fbaFieldsArr) && $datas['stock_datas_origin'] == 1){
