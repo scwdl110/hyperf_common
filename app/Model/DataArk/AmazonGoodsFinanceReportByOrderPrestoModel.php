@@ -1038,7 +1038,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             }
                             $where .= " AND (". implode(' OR ',$where_or_temp);
                         }elseif ($tag_str == 0){
-                            $tags_where .= " AND (tags_rel.tags_id = 0) ";
+//                            $tags_where .= " AND (tags_rel.tags_id = 0) ";
                             $where .= " AND (tags.tags_id like '%,0,%' OR tags.tags_id IS NULL) ";
                         }
                         if($isMysql){
