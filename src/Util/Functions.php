@@ -465,7 +465,7 @@ class Functions {
             $token = Db::table("redo_seapigeon_author_user")->where($where)->select('access_token')->first();
             $token = data_get($token, 'access_token', '');
             $redis->set($key, $token, 3600);
-            
+
         }
 
         $token = self::decryOpen($token, $aesKey);
