@@ -13679,16 +13679,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             }
                             if (in_array(0, $tag_arr)) {
                                 $tags_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
-                                $fba_table_where1 .= " AND (" . implode(' OR ', $where_or_temp) . " OR  tags.tags_id IS NULL )  ";
-
                             } else {
                                 $tags_where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
-                                $fba_table_where1 .= " AND (" . implode(' OR ', $where_or_temp) . ") ";
-
                             }
                         } elseif ($tag_str == 0) {
                             $tags_where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
-                            $fba_table_where1 .= " AND (tags.tags_id = 0 OR tags.tags_id IS NULL) ";
                         }
                         $concat_str = "array_join(array_agg(tags_rel.tags_id), ',')";
                         if ($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1) {
