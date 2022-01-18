@@ -1043,7 +1043,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $tags_where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
                             $where .= " AND (tags.tags_id = 0 OR tags.tags_id IS NULL) ";
                         }
-                        $table .= "LEFT JOIN (SELECT tags_rel.goods_id,concat(',', array_join(array_agg(tags_rel.tags_id), ','), ',') as \"tags_id\" FROM {$this->table_amazon_goods_tags_rel} AS tags_rel LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 where tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 {$tags_where} GROUP BY tags_rel.goods_id) as tags ON tags.goods_id = amazon_goods.goods_g_amazon_goods_id";
+                        if($isMysql){
+                            $concat_str = "GROUP_CONCAT(DISTINCT tags_rel.tags_id SEPARATOR ',')";
+                        }else{
+                            $concat_str = "array_join(array_agg(tags_rel.tags_id), ',')";
+                        }
+                        $table .= "LEFT JOIN (SELECT tags_rel.goods_id,concat(',', {$concat_str}, ','), ',') as \"tags_id\" FROM {$this->table_amazon_goods_tags_rel} AS tags_rel LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 where tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 {$tags_where} GROUP BY tags_rel.goods_id) as tags ON tags.goods_id = amazon_goods.goods_g_amazon_goods_id";
                     }
 
                 }
