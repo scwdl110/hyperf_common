@@ -13872,7 +13872,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt = $this->getUnGoodsFbaField(2," c.id as channel_id , max(c.site_id) as site_id " ,'mysql_key', $is_currency_exchange) ;
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
 
-            if($is_currency_exchange == 1){
+            if($is_currency_exchange == 1 || in_array('fba_goods_value',$this->lastTargets ) ) {
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id   LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 " . $where . " group by c.id" ;
                 }else{
@@ -13889,7 +13889,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else if($datas['count_dimension'] == 'site_id' && $datas['is_count'] != 1 ){ //按站点维度
             $fba_rt = $this->getUnGoodsFbaField(2," c.site_id as site_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
-            if($is_currency_exchange == 1){
+            if($is_currency_exchange == 1 || in_array('fba_goods_value',$this->lastTargets )){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
                 }else{
@@ -13907,7 +13907,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $where.=" AND dc.user_department_id > 0 AND dc.status = 1 " ;
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id ,max(c.site_id) as site_id ,max(dc.user_department_id) as user_department_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
-            if($is_currency_exchange == 1){
+            if($is_currency_exchange == 1 || in_array('fba_goods_value',$this->lastTargets )){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
                 }else{
@@ -13936,7 +13936,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $where.=" AND  uc.admin_id > 0  AND uc.status = 1 AND uc.is_master = 0  " ;
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id,max(c.site_id) as site_id  ,max(uc.admin_id) as admin_id",'mysql_key' ,$is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
-            if($is_currency_exchange == 1){
+            if($is_currency_exchange == 1 || in_array('fba_goods_value',$this->lastTargets )){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
 
@@ -13967,7 +13967,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt1 = $this->getUnGoodsFbaField(2,"c.id as channel_id ,max(c.site_id) as site_id", 'mysql_key' , $is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
 
-            if($is_currency_exchange == 1){
+            if($is_currency_exchange == 1 || in_array('fba_goods_value',$this->lastTargets )){
                 if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                     $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0  ".$where."  group by c.id" ; ;
                 }else{
@@ -14188,9 +14188,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }else{
                         if($fbaArr[$target]['count_type'] == '1'){
                             if($is_currency_exchange == 1 && $fbaArr[$target]['data_type'] == '2'){
-                                $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.rate ,1) ) END )) ";
+                                if($target == 'fba_goods_value'){  //在库总成本在数据库存储的为人民币
+                                    $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} ) END )) ";
+                                }else{
+                                    $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.rate ,1) ) END )) ";
+                                }
                             }else{
-                                $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END ))";
+                                if($target == 'fba_goods_value'){
+                                    $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} * COALESCE(rates.rate ,1) END ))";
+                                }else{
+                                    $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END ))";
+                                }
                             }
                         }else if($fbaArr[$target]['count_type'] == '2' && $target == 'fba_sales_day'){   //可售天数 单独处理
                             $fields['min_available_days_start'] = "min(available_days_start) ";
