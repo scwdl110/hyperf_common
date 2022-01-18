@@ -11247,7 +11247,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} WHERE {$where} group by {$group} ) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                             }elseif($fba_data['dimension'] == 'sku'){
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} {$count_table_group})";
+                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} WHERE {$where} {$count_table_group})";
                             }else{
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                             }
@@ -13559,6 +13559,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_group = " GROUP BY developer_id";
         }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
+        $fba_table_where1 = "WHERE 1=1";
         if (!empty($where_detail)) {
             if (!empty($where_detail['transport_mode'])) {
                 if (!is_array($where_detail['transport_mode'])) {
@@ -13649,26 +13650,51 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
 
             if (!empty($where_detail['tag_id'])) {
-                if (strpos($fba_table_group1, 'tags_rel.tags_id') === false) {
-                    $fba_table_join1 .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = report.goods_g_amazon_goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 ";
-
-                }
-                if (is_array($where_detail['tag_id'])) {
+                $tags_where = "";
+                if(is_array($where_detail['tag_id'])){
                     $tag_str = implode(',', $where_detail['tag_id']);
 
-                } else {
-                    $tag_str = $where_detail['tag_id'];
+                }else{
+                    $tag_str = $where_detail['tag_id'] ;
                 }
-                if (!empty($tag_str)) {
-                    if (in_array(0, explode(",", $tag_str))) {
-                        $fba_table_where1 .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+                if (strpos($fba_table_group1, 'tags_rel.tags_id') === false) {
+                    if($datas['count_dimension'] == 'tags'){
+                        $fba_table_join1 .= " LEFT JOIN {$this->table_amazon_goods_tags_rel} AS tags_rel ON tags_rel.goods_id = c.goods_id AND tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 ";
+                        if (!empty($tag_str)) {
+                            if (in_array(0,explode(",",$tag_str))){
+                                $fba_table_where1 .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
 
-                    } else {
-                        $fba_table_where1 .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+                            }else{
+                                $fba_table_where1 .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
 
+                            }
+                        }elseif ($tag_str == 0){
+                            $fba_table_where1 .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                        }
+                    }else{
+                        if (!empty($tag_str)) {
+                            $tag_arr = explode(",",$tag_str);
+                            $where_or_temp = [];
+                            foreach ($tag_arr as $val){
+                                $where_or_temp[] = "tags.tags_id like '%,{$val},%'";
+                            }
+                            if (in_array(0,$tag_arr)){
+                                $tags_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+                                $fba_table_where1 .= " AND (". implode(' OR ',$where_or_temp) ." OR  tags.tags_id IS NULL )  ";
+
+                            }else{
+                                $tags_where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+                                $fba_table_where1 .= " AND (" . implode(' OR ',$where_or_temp) . ") ";
+
+                            }
+                        }elseif ($tag_str == 0){
+                            $tags_where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                            $fba_table_where1 .= " AND (tags.tags_id = 0 OR tags.tags_id IS NULL) ";
+                        }
+                        $concat_str = "array_join(array_agg(tags_rel.tags_id), ',')";
+                        $fba_table_join1 .= " LEFT JOIN (SELECT tags_rel.goods_id,concat(',', {$concat_str}, ',') as \"tags_id\" FROM {$this->table_amazon_goods_tags_rel} AS tags_rel LEFT JOIN {$this->table_amazon_goods_tags} AS gtags ON gtags.id = tags_rel.tags_id AND gtags.db_num = '{$this->dbhost}' AND gtags.status = 1 where tags_rel.db_num = '{$this->dbhost}' AND tags_rel.status = 1 {$tags_where} GROUP BY tags_rel.goods_id) as tags ON tags.goods_id = c.goods_id";
                     }
-                } elseif ($tag_str == 0) {
-                    $fba_table_where1 .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+
                 }
             }
 
@@ -13688,7 +13714,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $datas['need_review_fba'] = $need_review_fba;
         if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
             $field1 = $this->getGoodsFbaField(1,$fba_table_field1,$datas);
-            $fba_table1 = "(SELECT {$field1} FROM count_table as c {$fba_table_join1} {$fba_table_group1})";
+            $fba_table1 = "(SELECT {$field1} FROM count_table as c {$fba_table_join1} {$fba_table_where1} {$fba_table_group1})";
         }elseif($need_review_fba){
             $field1 = $this->getGoodsFbaField(1,$fba_table_field1,$datas);
             $fba_table1 = "(SELECT {$field1} FROM fba_table1 as g {$fba_table_join1} {$fba_table_where1} {$fba_table_group1})";
@@ -14878,7 +14904,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                 $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                             }elseif($fba_data['dimension'] == 'sku'){
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id FROM {$table} WHERE {$where} {$count_table_group})";
+                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} WHERE {$where} {$count_table_group})";
                             }else{
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                             }
