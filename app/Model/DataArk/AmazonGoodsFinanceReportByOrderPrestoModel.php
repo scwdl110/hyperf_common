@@ -2501,14 +2501,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $targets = explode(',', $datas['target']);
         $targets_temp = $targets;//基础指标缓存
 
-        //自定义指标
-        $datas_ark_custom_target_md = new DatasArkCustomTargetMySQLModel([], $this->dbhost, $this->codeno);
-        $target_key_str = trim("'" . implode("','",explode(",",$datas['target'])) . "'");
-        $target_template = $datas['is_new_index'] == 1 ? 1 : 0;
-        $custom_targets_list = $datas_ark_custom_target_md->getList("user_id = {$datas['user_id']} AND target_type in(1, 2) AND count_dimension IN (1,2) AND target_key IN ({$target_key_str}) AND target_template = {$target_template}");
-        //自定义公式里包含新增指标
-        $custom_targets_list = $this->addNewTargets($datas_ark_custom_target_md,$datas['user_id'],$custom_targets_list);
-        $targets = $this->addCustomTargets($targets,$custom_targets_list);
+        $targets = $this->lastTargets;
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2' && (in_array('goods_rank', $targets) || in_array('goods_min_rank', $targets)) && in_array($datas['count_dimension'],['asin'])){
@@ -11099,9 +11092,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if (in_array($target, $fbaFieldsArr) && $datas['stock_datas_origin'] == 1){
                     $this->haveFbaFields = true;
                 }
-                if (in_array($target, $rateKeys)){
-                    $rateFields = array_merge($rateFields, $this->rate_formula[$target]['formula_fields']);
+            }
+            if ($this->haveErpIskuFields || $this->haveErpReportFields){
+                foreach ($targetsLast as $target){
+                    if (in_array($target, $rateKeys)){
+                        $rateFields = array_merge($rateFields, $this->rate_formula[$target]['formula_fields']);
+                    }
                 }
+                $targetsLast = array_unique(array_merge($targetsLast, $rateFields));
             }
             $targetsLast = array_unique(array_merge($targetsLast, $rateFields));
             $this->lastTargets = $targetsLast;
