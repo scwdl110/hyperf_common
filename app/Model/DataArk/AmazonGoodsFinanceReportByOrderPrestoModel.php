@@ -677,10 +677,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $fbaCommonArr = config('common.goods_fba_fields_arr');
+        $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
+        $erp_report_fields_arr = config('common.erp_report_fields_arr');
         $orderby = '';
         if(!empty($datas['sort_target']) && !empty($datas['sort_order']) && !empty($datas['limit_num']) && $datas['is_count'] == 1 && $datas['stock_datas_origin'] == 1){
             //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
-            if(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key)){
+            if(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key) || in_array($datas['sort_target'],array_keys($erp_isku_fields_arr))|| in_array($datas['sort_target'],array_keys($erp_report_fields_arr)) || in_array($datas['sort_target'],$erp_target_key)){
                 return array('lists'=>[] , 'count'=>0);
             }
         }
@@ -1159,8 +1161,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $target_wheres = $where_detail['target'] ?? '';
             $condition_relation = $where_detail['condition_relation'] ?? 'AND';
             if (!empty($target_wheres)) {
-                $erp_isku_fields_arr = config('common.erp_isku_fields_arr');
-                $erp_report_fields_arr = config('common.erp_report_fields_arr');
                 foreach ($target_wheres as $target_where) {
                     //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
                     if(in_array($target_where['key'],array_keys($fbaCommonArr)) || in_array($target_where['key'],$fba_target_key)){
