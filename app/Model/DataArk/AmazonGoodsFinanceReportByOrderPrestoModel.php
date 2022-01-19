@@ -14019,26 +14019,26 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
 
-        if ($params['count_dimension'] == 'channel_id') {
-            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+        if ($datas['count_dimension'] == 'channel_id') {
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 $orderby = 'new_origin_table.channel_id , new_origin_table.time ';
             }else{
                 $orderby = empty($orderby) ? 'new_origin_table.channel_id ' : ($orderby . ' , new_origin_table.channel_id ');
             }
-        } else if ($params['count_dimension'] == 'site_id') {
-            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+        } else if ($datas['count_dimension'] == 'site_id') {
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 $orderby = 'new_origin_table.site_id , new_origin_table.time ';
             }else{
                 $orderby = empty($orderby) ? 'new_origin_table.site_id ' : ($orderby . ' , new_origin_table.site_id ');
             }
-        } else if ($params['count_dimension'] == 'department') {
-            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+        } else if ($datas['count_dimension'] == 'department') {
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.time';
             }else{
                 $orderby = empty($orderby) ? 'new_origin_table.level , new_origin_table.user_department_id ' : ($orderby . ' , dc.user_department_id ');
             }
-        }else if($params['count_dimension'] == 'admin_id'){
-            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+        }else if($datas['count_dimension'] == 'admin_id'){
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
                 $orderby = 'new_origin_table.admin_id , new_origin_table.time';
             } else {
                 $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
