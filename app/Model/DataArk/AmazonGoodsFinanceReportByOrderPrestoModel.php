@@ -14053,6 +14053,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
             if(!empty($fbaArr[$datas['sort_target']]) ) {
                 $orderby = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
+            }else if(!empty($custom_fba_target_key) && in_array($datas['sort_target'] , $custom_fba_target_key)) { //自定义指标
+                $orderby = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
             }else{
                 $orderby = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }
@@ -14061,6 +14063,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if (!empty($datas['order']) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
             if(!empty($fbaArr[$datas['sort']]) ){
                 $orderby = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
+            }else if(!empty($custom_fba_target_key) && in_array($datas['sort'] , $custom_fba_target_key)) { //自定义指标
+                $orderby = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
             }else{
                 $orderby = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
             }
