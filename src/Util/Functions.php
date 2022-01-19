@@ -443,13 +443,13 @@ class Functions {
 
 
     /**
-     * 获取上报token
+     * 获取上报用户
      * @param int $id
      * @param string $aesKey
      * @param int $force
-     * @return array|bool|false|\Hyperf\Database\Model\Model|\Hyperf\Database\Query\Builder|mixed|object|string|null
+     * @return array|bool|mixed|string
      */
-    public static function getSeapigeonToken(int $id, string $aesKey, int $force = 0)
+    public static function getSeapigeonUser(int $id, string $aesKey, int $force = 0)
     {
         if(!$id || !$aesKey){
             return false;
@@ -457,19 +457,27 @@ class Functions {
         $key = 'center_seapigeon_token_'.$id;
         $redis = new Redis();
         $redis = $redis->getClient();
-        $token = $redis->get($key);
-        if($token===false || $force){
+        $arr = $redis->get($key);
+        if($arr===false || $force){
             $where = [
                 ['id', '=', $id],
             ];
-            $token = Db::table("redo_seapigeon_author_user")->where($where)->select('access_token')->first();
-            $token = data_get($token, 'access_token', '');
-            $redis->set($key, $token, 3600);
+            $seapigeonUser = Db::table("redo_seapigeon_author_user")->where($where)->select('access_token', 'account_name')->first();
 
+            $token = self::decryOpen(data_get($seapigeonUser, 'access_token', ''), $aesKey);
+            $account_name = data_get($seapigeonUser, 'account_name', '');
+
+            $arr = [
+                'access_token' => $token?:'',
+                'account_name' => $account_name,
+            ];
+
+            $redis->set($key, json_encode($arr), 3600);
+        }else{
+            $arr = json_decode($arr, true);
         }
 
-        $token = self::decryOpen($token, $aesKey);
-        return $token;
+        return $arr;
     }
 
 }
