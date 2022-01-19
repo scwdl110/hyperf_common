@@ -6071,6 +6071,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_group'] = 'max(report.area_id)';
         } elseif ($datas['count_dimension'] === 'department') {
             $fields['user_department_id'] = 'max(dc.user_department_id)';
+            $fields['level'] = 'max(dc.level)' ;
         } elseif ($datas['count_dimension'] === 'admin_id') {
             $fields['admin_id'] = 'max(uc.admin_id)';
             $fields['user_admin_id'] = 'max(uc.admin_id)';
@@ -14016,8 +14017,34 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }else{
                 $orderby = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
             }
-
         }
+
+        if ($params['count_dimension'] == 'channel_id') {
+            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+                $orderby = 'new_origin_table.channel_id , new_origin_table.time ';
+            }else{
+                $orderby = empty($orderby) ? 'new_origin_table.channel_id ' : ($orderby . ' , new_origin_table.channel_id ');
+            }
+        } else if ($params['count_dimension'] == 'site_id') {
+            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+                $orderby = 'new_origin_table.site_id , new_origin_table.time ';
+            }else{
+                $orderby = empty($orderby) ? 'new_origin_table.site_id ' : ($orderby . ' , new_origin_table.site_id ');
+            }
+        } else if ($params['count_dimension'] == 'department') {
+            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+                $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.time';
+            }else{
+                $orderby = empty($orderby) ? 'new_origin_table.level , new_origin_table.user_department_id ' : ($orderby . ' , dc.user_department_id ');
+            }
+        }else if($params['count_dimension'] == 'admin_id'){
+            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+                $orderby = 'new_origin_table.admin_id , new_origin_table.time';
+            } else {
+                $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
+            }
+        }
+
         $target_wheres = $datas['where_detail']['target'] ?? array();
         $condition_relation = $datas['where_detail']['condition_relation'] ?? 'AND';
         if (!empty($target_wheres)) {
