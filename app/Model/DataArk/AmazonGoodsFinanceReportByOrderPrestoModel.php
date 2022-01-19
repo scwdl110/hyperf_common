@@ -14141,7 +14141,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.myear';
                 }
             }else{
-                $orderby = empty($orderby) ? 'new_origin_table.level , new_origin_table.user_department_id ' : ($orderby . ' , dc.user_department_id ');
+                $orderby = empty($orderby) ? 'new_origin_table.level , new_origin_table.user_department_id ' : ($orderby . ' , new_origin_table.user_department_id ');
             }
         }else if($datas['count_dimension'] == 'admin_id'){
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
