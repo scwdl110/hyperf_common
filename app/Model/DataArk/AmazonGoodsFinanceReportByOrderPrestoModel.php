@@ -11128,7 +11128,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $targetsLast = array_unique(array_merge($targetsLast, $rateFields));
             }
-            $targetsLast = array_unique(array_merge($targetsLast, $rateFields));
             $this->lastTargets = $targetsLast;
         }
     }
