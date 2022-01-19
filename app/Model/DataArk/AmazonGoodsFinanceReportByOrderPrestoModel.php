@@ -13818,24 +13818,37 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $orderbyArr = array();
         //非按无周期的，指标展现排序
         if($datas['count_periods'] > 0 && $datas['show_type'] == '2'){
+            if($datas['count_periods'] == '4'){ //按季度
+                $time_group = ',new_origin_table.myear , new_origin_table.mquarter ';
+            }else if($datas['count_periods'] == '5') { //年
+                $time_group = ',new_origin_table.myear' ;
+            }else if($datas['count_periods'] == '3'){ //按月
+                $time_group = ',new_origin_table.myear ,new_origin_table.mmonth' ;
+            }else if($datas['count_periods'] == '2'){  //按周
+                $time_group = ',new_origin_table.mweekyear ,new_origin_table.mweek' ;
+            }else if($datas['count_periods'] == '1') {  //按天
+                $time_group = ',new_origin_table.myear ,new_origin_table.mmonth ,new_origin_table.mday' ;
+            }else{
+                $time_group= ',new_origin_table.myear' ;
+            }
             if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
                 if($datas['is_distinct_channel'] == 1){ //有区分店铺
-                    $orderbyArr[] = "new_origin_table." . $datas['count_dimension'] . ", new_origin_table.channel_id, new_origin_table.time ";
+                    $orderbyArr[] = "new_origin_table." . $datas['count_dimension'] . ", new_origin_table.channel_id" . $time_group;
                 }else{  //不区分店铺
-                    $orderbyArr[] = 'new_origin_table.' . $datas['count_dimension'] . ',new_origin_table.time';
+                    $orderbyArr[] = 'new_origin_table.' . $datas['count_dimension'] . $time_group;
                 }
             } else if ($datas['count_dimension'] == 'isku') {
-                $orderbyArr[] = "new_origin_table.isku_id,new_origin_table.time";
+                $orderbyArr[] = "new_origin_table.isku_id" . $time_group;
             } else if ($datas['count_dimension'] == 'group') {
-                $orderbyArr[] = "new_origin_table.group_id,new_origin_table.time ";
+                $orderbyArr[] = "new_origin_table.group_id " . $time_group;
             } else if ($datas['count_dimension'] == 'class1') {
-                $orderbyArr[] = 'new_origin_table.class1 ,new_origin_table.site_country_id ,new_origin_table.class1_id , new_origin_table.time';
+                $orderbyArr[] = 'new_origin_table.class1 ,new_origin_table.site_country_id ,new_origin_table.class1_id' . $time_group;
             } else if($datas['count_dimension'] == 'tags'){
-                $orderbyArr[] = 'new_origin_table.tags_id  , new_origin_table.time';
+                $orderbyArr[] = 'new_origin_table.tags_id' . $time_group;
             } else if($datas['count_dimension'] == 'head_id'){ //按负责人维度统计
-                $orderbyArr[] = 'new_origin_table.head_id , new_origin_table.time' ;
+                $orderbyArr[] = 'new_origin_table.head_id' . $time_group ;
             }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
-                $orderbyArr[] = 'new_origin_table.developer_id , new_origin_table.time ';
+                $orderbyArr[] = 'new_origin_table.developer_id ' . $time_group;
             }
         }
         if(!empty($this->fbaSort)){
