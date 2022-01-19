@@ -2460,7 +2460,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
                 $fields['myear']  = 'max(report.myear)' ;
                 $fields['mmonth']  = 'max(report.mmonth)' ;
-                $fields['mday']  = 'max(mday.mday)' ;
+                $fields['mday']  = 'max(report.mday)' ;
             }
 
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
