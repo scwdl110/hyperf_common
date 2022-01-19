@@ -14387,34 +14387,29 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return string
      */
     protected function getErpIskuTable($datas, $userId, $channelIds, $is_count = 0){
-        $userIdMod = $userId % 20;
-        $channelIdStr = implode(',', $channelIds);
-
         $childFields = "SUM(isku_temp.good_num) AS ark_erp_good_num, SUM(isku_temp.bad_num) AS ark_erp_bad_num, SUM(isku_temp.lock_num + isku_temp.lock_num_work_order + isku_temp.lock_num_shipment_order) AS ark_erp_lock_num, SUM(isku_temp.purchasing_num) AS ark_erp_purchasing_num, SUM(isku_temp.send_num) AS ark_erp_send_num, SUM(isku_temp.goods_cost * isku_temp.total_num) AS ark_erp_goods_cost_total, SUM(isku_temp.total_num) AS ark_erp_total_num";
         $childTable = "{$this->table_erp_storage_warehouse_isku} AS isku_temp";
         $groupField = "isku_temp.isku_id";
         $childJoin = $is_count == 1 ? "warehouse_isku.isku_id = report_inner.isku_id" : "warehouse_isku.isku_id = amazon_goods.goods_isku_id";
-        $JoinWhere = "";
+        $goodsIskuWhere = "";
         if ($datas['count_dimension'] == 'head_id')
         {
-            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON isku_temp.isku_id = amazon_goods_temp.goods_isku_id";
-            $groupField = "amazon_goods_temp.isku_head_id";
-            $childJoin = $is_count == 1 ? "warehouse_isku.isku_head_id = report_inner.head_id" : "warehouse_isku.isku_head_id = amazon_goods.isku_head_id";
-            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
+            $childTable .= " LEFT JOIN {$this->table_amazon_goods_isku} AS goods_isku_temp ON isku_temp.isku_id = goods_isku_temp.id";
+            $groupField = "goods_isku_temp.head_id";
+            $childJoin = $is_count == 1 ? "warehouse_isku.head_id = report_inner.head_id" : "warehouse_isku.head_id = amazon_goods.isku_head_id";
+            $goodsIskuWhere = "  AND goods_isku_temp.db_num ='{$this->dbhost}' AND goods_isku_temp.user_id = {$userId} AND goods_isku_temp.status = 1 AND goods_isku_temp.head_id > 0";
         }
         elseif ($datas['count_dimension'] == 'developer_id')
         {
-            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON isku_temp.isku_id = amazon_goods_temp.goods_isku_id";
-            $groupField = "amazon_goods_temp.isku_developer_id";
-            $childJoin = $is_count == 1 ? "warehouse_isku.isku_developer_id = report_inner.developer_id" : "warehouse_isku.isku_developer_id = amazon_goods.isku_developer_id";
-            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
+            $childTable .= " LEFT JOIN {$this->table_amazon_goods_isku} AS goods_isku_temp ON isku_temp.isku_id = goods_isku_temp.id";
+            $groupField = "goods_isku_temp.developer_id";
+            $childJoin = $is_count == 1 ? "warehouse_isku.developer_id = report_inner.developer_id" : "warehouse_isku.developer_id = amazon_goods.isku_developer_id";
+            $goodsIskuWhere = "  AND goods_isku_temp.db_num ='{$this->dbhost}' AND goods_isku_temp.user_id = {$userId} AND goods_isku_temp.status = 1 AND goods_isku_temp.developer_id > 0";
         }
-
         $childFields .= ", {$groupField}";
-
         $childWhere = "isku_temp.db_num = '{$this->dbhost}' AND isku_temp.user_id = {$userId} AND isku_temp.is_delete = 0";
-        if (!empty($JoinWhere)){
-            $childWhere .= $JoinWhere;
+        if (!empty($goodsIskuWhere)){
+            $childWhere .= $goodsIskuWhere;
         }
 
         $childSql = "SELECT {$childFields} FROM {$childTable} WHERE {$childWhere} GROUP BY {$groupField}";
@@ -14486,9 +14481,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return string
      */
     protected function getErpReportTable($datas, $userId, $channelIds, $is_count = 0){
-        $userIdMod = $userId % 20;
-        $channelIdStr = implode(',', $channelIds);
-
         $reportFieldsConfig = config('common.erp_report_fields_arr');
         $reportFieldsArr = [];
         foreach ($this->lastTargets as $val){
@@ -14522,22 +14514,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $groupField = "storage_temp.isku_id";
         $groupFieldValue = "isku_id";
         $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.isku_id = report_inner.isku_id" : "warehouse_storage.isku_id = amazon_goods.goods_isku_id";
-        $JoinWhere = "";
+        $goodsIskuWhere = "";
         if ($datas['count_dimension'] == 'head_id')
         {
-            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
-            $groupField = "amazon_goods_temp.isku_head_id";
-            $groupFieldValue = "isku_head_id";
-            $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.isku_head_id = report_inner.head_id" : "warehouse_storage.isku_head_id = amazon_goods.isku_head_id";
-            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_head_id > 0";
+            $childTable .= " LEFT JOIN {$this->table_amazon_goods_isku} AS goods_isku_temp ON storage_temp.isku_id = goods_isku_temp.id";
+            $groupField = "goods_isku_temp.head_id";
+            $groupFieldValue = "head_id";
+            $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.head_id = report_inner.head_id" : "warehouse_storage.head_id = amazon_goods.isku_head_id";
+            $goodsIskuWhere = " AND goods_isku_temp.db_num = '{$this->dbhost}' AND goods_isku_temp.user_id = {$userId} AND goods_isku_temp.status = 1 AND goods_isku_temp.head_id > 0";
         }
         elseif ($datas['count_dimension'] == 'developer_id')
         {
-            $childTable .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods_temp ON storage_temp.isku_id = amazon_goods_temp.goods_isku_id";
-            $groupField = "amazon_goods_temp.isku_developer_id";
-            $groupFieldValue = "isku_developer_id";
-            $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.isku_developer_id = report_inner.developer_id" : "warehouse_storage.isku_developer_id = amazon_goods.isku_developer_id";
-            $JoinWhere = " AND amazon_goods_temp.goods_user_id_mod = {$userIdMod} AND amazon_goods_temp.goods_user_id = {$userId} AND amazon_goods_temp.goods_channel_id IN({$channelIdStr}) AND amazon_goods_temp.isku_developer_id > 0";
+            $childTable .= " LEFT JOIN {$this->table_amazon_goods_isku} AS goods_isku_temp ON storage_temp.isku_id = goods_isku_temp.id";
+            $groupField = "goods_isku_temp.developer_id";
+            $groupFieldValue = "developer_id";
+            $childJoin = $is_count == 1 || $datas['show_type'] == 1 ? "warehouse_storage.developer_id = report_inner.developer_id" : "warehouse_storage.developer_id = amazon_goods.isku_developer_id";
+            $goodsIskuWhere = " AND goods_isku_temp.db_num = '{$this->dbhost}' AND goods_isku_temp.user_id = {$userId} AND goods_isku_temp.status = 1 AND goods_isku_temp.developer_id > 0";
         }
         $childFields .= ", max({$groupField}) AS {$groupFieldValue}";
         $childGroup = "{$groupField}, storage_temp.year, storage_temp.month";
@@ -14606,8 +14598,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if (!empty($yearMonth)){
             $childWhere .= " AND storage_temp.time_str IN({$yearMonth})";
         }
-        if (!empty($JoinWhere)){
-            $childWhere .= $JoinWhere;
+        if (!empty($goodsIskuWhere)){
+            $childWhere .= $goodsIskuWhere;
         }
 
         $childSql = "SELECT {$childFields} FROM {$childTable} WHERE {$childWhere} GROUP BY {$childGroup}";
