@@ -2717,6 +2717,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
+            if (in_array('sales_evaluation_quote', $targets)) {  //测试销售额
+                if ($datas['sale_datas_origin'] == '1') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['sale_sales_quota'] = "sum( report.byorderitem_reserved_field72 )";
+                    } else {
+                        $fields['sale_sales_quota'] = "sum( report.byorderitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                    }
+                } elseif ($datas['sale_datas_origin'] == '2') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['sale_sales_quota'] = "sum( report.reportitem_reserved_field72 )";
+                    } else {
+                        $fields['sale_sales_quota'] = "sum( report.reportitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                    }
+                }
+            }
+
             if (in_array('sale_return_goods_number', $targets) || in_array('sale_refund_rate', $targets)) {  //退款量
                 if ($datas['refund_datas_origin'] == '1') {
                     $fields['sale_return_goods_number'] = "sum(report.byorder_refund_num )";
