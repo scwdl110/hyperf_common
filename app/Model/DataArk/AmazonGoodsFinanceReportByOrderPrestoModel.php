@@ -5661,7 +5661,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $channel_fba_fields_arr = array_keys(config('common.channel_fba_fields_arr')) ;
         $orderby = '';
-        if( !empty($params['sort_target']) && in_array($params['sort_target'] , $channel_fba_fields_arr) && $params['stock_datas_origin'] == 1 ) {  //FBA 库存排序不在此处理
+        if( !empty($params['sort_target']) && (!in_array($params['sort_target'] , $channel_fba_fields_arr) || $params['stock_datas_origin'] != 1 ) ) {  //FBA 库存排序不在此处理
             if (!empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order'])) {
                 if ($params['currency_code'] != 'ORIGIN') {
                     $orderby = "(({$fields[$params['sort_target']]}) IS NULL), ({$fields[$params['sort_target']]}) {$params['sort_order']}";
@@ -5673,7 +5673,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        if( !empty($order) && in_array($order , $channel_fba_fields_arr) && $params['stock_datas_origin'] == 1 ) {  //FBA 库存排序不在此处理
+        if( !empty($order) && (!in_array($order , $channel_fba_fields_arr) || $params['stock_datas_origin'] != 1) ) {  //FBA 库存排序不在此处理
             if (!empty($order) && !empty($sort) && !empty($fields[$sort]) && $params['limit_num'] == 0) {
                 if ($params['currency_code'] != 'ORIGIN') {
                     $orderby = "(({$fields[$sort]}) IS NULL), ({$fields[$sort]}) {$order}";
@@ -6071,7 +6071,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $fields['site_group'] = 'max(report.area_id)';
         } elseif ($datas['count_dimension'] === 'department') {
             $fields['user_department_id'] = 'max(dc.user_department_id)';
-            $fields['level'] = 'max(dc.level)' ;
+            if($this->haveFbaFields == true  && $datas['stock_datas_origin'] == 1){
+                $fields['level'] = 'max(dc.level)' ;
+            }
+
         } elseif ($datas['count_dimension'] === 'admin_id') {
             $fields['admin_id'] = 'max(uc.admin_id)';
             $fields['user_admin_id'] = 'max(uc.admin_id)';
@@ -6079,14 +6082,35 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mmonth']  = 'max(report.mmonth)' ;
+                $fields['mday']  = 'max(report.mday)' ;
+            }
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
             $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['mweekyear']  = 'max(report.mweekyear)' ;
+                $fields['mweek']  = 'max(report.mweek)' ;
+            }
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mmonth']  = 'max(report.mmonth)' ;
+            }
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mquarter) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mquarter']  = 'max(report.mquarter)' ;
+            }
+
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
             $fields['time'] = "cast(max(report.myear) as varchar)";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+            }
         }
 
         $targets = explode(',', $datas['target']);
@@ -14021,25 +14045,65 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         if ($datas['count_dimension'] == 'channel_id') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                $orderby = 'new_origin_table.channel_id , new_origin_table.time ';
+                if ($datas['count_periods'] == '1') { //按天
+                    $orderby = 'new_origin_table.channel_id , new_origin_table.myear , new_origin_table.mmonth , new_origin_table.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $orderby = 'new_origin_table.channel_id , new_origin_table.mweekyear , new_origin_table.mweek ';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $orderby = 'new_origin_table.channel_id , new_origin_table.myear , new_origin_table.mmonth';
+                } else if ($datas['count_periods'] == '4') {  //按季
+                    $orderby = 'new_origin_table.channel_id , new_origin_table.myear , new_origin_table.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $orderby = 'new_origin_table.channel_id , new_origin_table.myear';
+                }
             }else{
                 $orderby = empty($orderby) ? 'new_origin_table.channel_id ' : ($orderby . ' , new_origin_table.channel_id ');
             }
         } else if ($datas['count_dimension'] == 'site_id') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                $orderby = 'new_origin_table.site_id , new_origin_table.time ';
+                if ($datas['count_periods'] == '1') { //按天
+                    $orderby = 'new_origin_table.site_id , new_origin_table.myear , new_origin_table.mmonth , new_origin_table.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $orderby = 'new_origin_table.site_id , new_origin_table.mweekyear , new_origin_table.mweek ';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $orderby = 'new_origin_table.site_id , new_origin_table.myear , new_origin_table.mmonth';
+                } else if ($datas['count_periods'] == '4') {  //按季
+                    $orderby = 'new_origin_table.site_id , new_origin_table.myear , new_origin_table.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $orderby = 'new_origin_table.site_id , new_origin_table.myear';
+                }
             }else{
                 $orderby = empty($orderby) ? 'new_origin_table.site_id ' : ($orderby . ' , new_origin_table.site_id ');
             }
         } else if ($datas['count_dimension'] == 'department') {
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.time';
+                if ($datas['count_periods'] == '1') { //按天
+                    $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.myear , new_origin_table.mmonth , new_origin_table.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $orderby = 'new_origin_table.level , new_origin_table.user_department_id ,new_origin_table.mweekyear , new_origin_table.mweek ';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.myear , new_origin_table.mmonth';
+                } else if ($datas['count_periods'] == '4') {  //按季
+                    $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.myear , new_origin_table.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $orderby = 'new_origin_table.level , new_origin_table.user_department_id , new_origin_table.myear';
+                }
             }else{
                 $orderby = empty($orderby) ? 'new_origin_table.level , new_origin_table.user_department_id ' : ($orderby . ' , dc.user_department_id ');
             }
         }else if($datas['count_dimension'] == 'admin_id'){
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                $orderby = 'new_origin_table.admin_id , new_origin_table.time';
+                if ($datas['count_periods'] == '1') { //按天
+                    $orderby = 'new_origin_table.admin_id , new_origin_table.myear , new_origin_table.mmonth , new_origin_table.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $orderby = 'new_origin_table.admin_id , new_origin_table.mweekyear , new_origin_table.mweek ';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $orderby = 'new_origin_table.admin_id , new_origin_table.myear , new_origin_table.mmonth';
+                } else if ($datas['count_periods'] == '4') {  //按季
+                    $orderby = 'new_origin_table.admin_id , new_origin_table.myear , new_origin_table.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $orderby = 'new_origin_table.admin_id , new_origin_table.myear';
+                }
             } else {
                 $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
             }
