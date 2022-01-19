@@ -12768,7 +12768,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
 
                 if ($this->haveErpIskuFields){
-                    if (isset($erp_isku_fields_arr[$key])){
+                    if (isset($erp_isku_fields_arr[$key]) && !($params['count_dimension'] == 'sku' && $params['is_count'] == 1)){
                         $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
 
                         if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
@@ -12779,7 +12779,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     }
                 }
                 if ($this->haveErpReportFields){
-                    if (isset($erp_report_fields_arr[$key])){
+                    if (isset($erp_report_fields_arr[$key]) && !($params['count_dimension'] == 'sku' && $params['is_count'] == 1)){
                         $temp_erp_format_type = isset($erp_report_fields_arr[$key]['format_type']) ?? 0;
 
                         if (in_array($key, ['erp_period_start_goods_cost_begin', 'erp_period_end_goods_cost_end']))
