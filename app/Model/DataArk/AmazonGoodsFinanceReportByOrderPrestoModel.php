@@ -2457,14 +2457,37 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mmonth']  = 'max(report.mmonth)' ;
+                $fields['mday']  = 'max(mday.mday)' ;
+            }
+
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
             $fields['time'] = "concat(cast(max(report.mweekyear) as varchar), '-', cast(max(report.mweek) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['mweekyear']  = 'max(report.mweekyear)' ;
+                $fields['mweek']  = 'max(report.mweek)' ;
+            }
         } else if ($datas['count_periods'] == '3' && $datas['show_type'] == '2') { //按月
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mmonth']  = 'max(report.mmonth)' ;
+            }
+
         } else if ($datas['count_periods'] == '4' && $datas['show_type'] == '2') {  //按季
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mquarter) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mquarter']  = 'max(report.mquarter)' ;
+            }
+
         } else if ($datas['count_periods'] == '5' && $datas['show_type'] == '2') { //按年
             $fields['time'] = "cast(max(report.myear) as varchar)";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+            }
         }
 
 
