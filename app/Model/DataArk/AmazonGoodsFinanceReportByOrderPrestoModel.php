@@ -678,6 +678,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $fbaCommonArr = config('common.goods_fba_fields_arr');
         $orderby = '';
+        if(!empty($datas['sort_target']) && !empty($datas['sort_order']) && !empty($datas['limit_num']) && $datas['is_count'] == 1 && $datas['stock_datas_origin'] == 1){
+            //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
+            if(in_array($datas['sort_target'],array_keys($fbaCommonArr)) || in_array($datas['sort_target'],$fba_target_key)){
+                return array('lists'=>[] , 'count'=>0);
+            }
+        }
         if( !empty($datas['sort_target']) && !empty($fields[$datas['sort_target']]) && !empty($datas['sort_order']) ){
             if ($datas['currency_code'] != 'ORIGIN' or in_array($datas['sort_target'],['goods_buyer_visit_rate','goods_views_rate'])) {
                 $orderby = '(('.$fields[$datas['sort_target']].') IS NULL) ,  (' . $fields[$datas['sort_target']] . ' ) ' . $datas['sort_order'];
@@ -5684,6 +5690,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $channel_fba_fields_arr = array_keys(config('common.channel_fba_fields_arr')) ;
         $orderby = '';
+        if(!empty($params['sort_target']) && !empty($params['sort_order']) && !empty($params['limit_num']) && $params['is_count'] == 1 && $params['stock_datas_origin'] == 1){
+            //如果新版FBA指标筛选里包含了FBA指标 ， 那么汇总就不展示
+            if((in_array($params['sort_target'],$channel_fba_fields_arr) || (!empty($fba_target_key) && in_array($params['sort_target'] , $fba_target_key))) ){
+                return array('lists'=>[] , 'count'=>0);
+            }
+        }
         if( !empty($params['sort_target']) && (!in_array($params['sort_target'] , $channel_fba_fields_arr) || $params['stock_datas_origin'] != 1 ) ) {  //FBA 库存排序不在此处理
             if (!empty($params['sort_target']) && !empty($fields[$params['sort_target']]) && !empty($params['sort_order'])) {
                 if ($params['currency_code'] != 'ORIGIN') {
