@@ -1259,7 +1259,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
 
-                if (($this->haveErpIskuFields || $this->haveErpReportFields) && $datas['count_dimension'] != 'sku')
+                if (($this->haveErpIskuFields || $this->haveErpReportFields) && !($datas['count_dimension'] == 'sku' && $datas['show_type'] == 2))
                 {
                     $other_param = [
                         'user_id' => $userId,
@@ -1328,7 +1328,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $where = $this->getLimitWhere($where,$datas,$table,$limit,$orderby,$group);
 
-                if (($this->haveErpIskuFields || $this->haveErpReportFields) && $datas['count_dimension'] != 'sku')
+                if (($this->haveErpIskuFields || $this->haveErpReportFields) && !($datas['count_dimension'] == 'sku' && $datas['show_type'] == 2))
                 {
                     $other_param = [
                         'user_id' => $userId,
