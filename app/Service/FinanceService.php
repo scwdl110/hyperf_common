@@ -87,6 +87,9 @@ class FinanceService extends BaseService
         $params['is_new_index'] = $req['is_new_index'];
         $params['is_median'] = $params['is_median'] ?? 0;
         $params['total_status'] = $params['total_status'] ?? 0;
+        //erp、fba库存指标数据源 1presto
+        $params['stock_datas_origin'] = isset($req['stock_datas_origin']) ? intval($req['stock_datas_origin']) : 0;
+
         $limit = intval($req['rows'] ?? 100);
         $sort = trim(strval($req['sort'] ?? ''));
         $order = trim(strval($req['order'] ?? ''));
