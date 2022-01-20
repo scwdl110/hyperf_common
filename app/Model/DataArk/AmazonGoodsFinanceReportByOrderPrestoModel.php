@@ -3803,6 +3803,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $time_fields = $this->getTimeFields($time_line, "report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))");
                     }
                 }
+            }else if ($time_target == 'sales_evaluation_quote') {  //商品销售额
+                if ($datas['sale_datas_origin'] == '1') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['count_total'] = "sum( report.byorderitem_reserved_field72 )";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorderitem_reserved_field72");
+                    } else {
+                        $fields['count_total'] = "sum( report.byorderitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorderitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1))");
+                    }
+                } elseif ($datas['sale_datas_origin'] == '2') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['count_total'] = "sum( report.report_reserved_field72 )";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_reserved_field72");
+                    } else {
+                        $fields['count_total'] = "sum( report.report_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1))");
+                    }
+                }
             } else if ($time_target == 'sale_return_goods_number') {  //退款量
                 if ($datas['refund_datas_origin'] == '1') {
                     $fields['count_total'] = "sum(report.byorder_refund_num )";
