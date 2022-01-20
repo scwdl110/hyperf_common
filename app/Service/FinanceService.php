@@ -23,10 +23,13 @@ use Hyperf\Logger\LoggerFactory;
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\Validation\Contract\ValidatorFactoryInterface;
 use Hyperf\Contract\ConfigInterface;
-
+use Hyperf\RpcServer\Annotation\RpcService;
 use Hyperf\Utils\ApplicationContext;
 
 
+/**
+ * @RpcService(name="FinanceService", protocol="jsonrpc-http", server="jsonrpc-http", publishTo="consul")
+ */
 class FinanceService extends BaseService
 {
 
@@ -49,12 +52,13 @@ class FinanceService extends BaseService
     }
 
 
-    public function handleRequest($type = 1,$req = array())
+    public function handleRequest($type = 1, $req = array())
     {
         $userInfo = $this->getUserInfo();
+
 //        $req = $this->request->all();
         $result = ['lists' => [], 'count' => 0];
-        if (empty($req)){
+        if (empty($req)) {
             return $result;
         }
 
@@ -70,13 +74,13 @@ class FinanceService extends BaseService
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
         $params = $req['params'] ?? [];
-        if (isset($params['is_count']) && $params['is_count'] == 1){//总计的页数只能为1
+        if (isset($params['is_count']) && $params['is_count'] == 1) {//总计的页数只能为1
             $page = 1;
-        }else{
+        } else {
             $params['is_count'] = 0;
             $page = intval($req['page'] ?? 1);
         }
-        if (isset($params['user_id']) && $params['user_id'] == 266){
+        if (isset($params['user_id']) && $params['user_id'] == 266) {
             $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
             $logger1->info('request body', [$req, $userInfo]);
         }
@@ -93,7 +97,7 @@ class FinanceService extends BaseService
         $exchangeCode = $req['exchangeCode'] ?? '1';
         $timeLine = $req['timeLine'] ?? [];
         $deparmentData = $req['deparmentData'] ?? [];
-        $rateInfo= $req['rateInfo'] ?? [];
+        $rateInfo = $req['rateInfo'] ?? [];
         $offset = ($page - 1) * $limit;
         $params['searchKey'] = $searchKey;
         $params['searchVal'] = $searchVal;
@@ -119,14 +123,14 @@ class FinanceService extends BaseService
             )
         )*/
 
-        $compare_data = $params['compare_data'] ?? [] ;
-        if($params['count_periods'] != '0' ){  //统计维度不为无周期 ， 无法使用对比数据
-            $compare_data = [] ;
+        $compare_data = $params['compare_data'] ?? [];
+        if ($params['count_periods'] != '0') {  //统计维度不为无周期 ， 无法使用对比数据
+            $compare_data = [];
         }
         $where = '';
 
         //不含时间的条件 ， 因对比数据为原筛选条件，改掉筛选时间范围
-        $notime_where = '' ;
+        $notime_where = '';
 
         if (empty($channelIds)) {
             return $result;
@@ -138,7 +142,7 @@ class FinanceService extends BaseService
         //结束
 
         if (count($channelIds) > 1) {
-            $params['operation_channel_ids'] = implode(',' , $channelIds);
+            $params['operation_channel_ids'] = implode(',', $channelIds);
             $where = "report.user_id={$userInfo['user_id']} AND report.channel_id IN (" . implode(',', $channelIds) . ')';
             $params['user_sessions_where'] = $where;
             if ($type == 1) {
@@ -180,113 +184,113 @@ class FinanceService extends BaseService
             }
         }
 
-        if (isset($params['where_parent']) && !empty($params['where_parent'])){//维度下钻需要的相关信息
+        if (isset($params['where_parent']) && !empty($params['where_parent'])) {//维度下钻需要的相关信息
 
-            if($type == 1){
-                if (!empty($params['where_parent']['parent_asin'])){
-                    $where .= " AND amazon_goods.goods_parent_asin = '" . addslashes($params['where_parent']['parent_asin']) . "'" ;
+            if ($type == 1) {
+                if (!empty($params['where_parent']['parent_asin'])) {
+                    $where .= " AND amazon_goods.goods_parent_asin = '" . addslashes($params['where_parent']['parent_asin']) . "'";
                 }
 
-                if (!empty($params['where_parent']['asin'])){
-                    $where .= " AND amazon_goods.goods_asin = '" . addslashes($params['where_parent']['asin']) . "'" ;
+                if (!empty($params['where_parent']['asin'])) {
+                    $where .= " AND amazon_goods.goods_asin = '" . addslashes($params['where_parent']['asin']) . "'";
                 }
 
-                if (!empty($params['where_parent']['goods_parent_asin'])){
-                    $goods_parent_asin = json_decode(base64_decode($params['where_parent']['goods_parent_asin']),true);
-                    if($params['is_distinct_channel'] == 1){
+                if (!empty($params['where_parent']['goods_parent_asin'])) {
+                    $goods_parent_asin = json_decode(base64_decode($params['where_parent']['goods_parent_asin']), true);
+                    if ($params['is_distinct_channel'] == 1) {
                         $where_strs = array();
-                        foreach ($goods_parent_asin as $item){
-                            $where_strs[] = '( amazon_goods.goods_channel_id = ' . $item['channel_id'] . " AND amazon_goods.goods_parent_asin = '" . addslashes($item['parent_asin']) . "')" ;
+                        foreach ($goods_parent_asin as $item) {
+                            $where_strs[] = '( amazon_goods.goods_channel_id = ' . $item['channel_id'] . " AND amazon_goods.goods_parent_asin = '" . addslashes($item['parent_asin']) . "')";
                         }
-                        $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
+                        $where_str = !empty($where_strs) ? " AND (" . implode(' OR ', $where_strs) . ")" : "";
                         $where .= $where_str;
-                    }else{
-                        $params['where_parent']['goods_parent_asin'] = implode("','",array_column($goods_parent_asin,'parent_asin'));
-                        $where .= " AND amazon_goods.goods_parent_asin IN ('" . $params['where_parent']['goods_parent_asin'] . "')" ;
+                    } else {
+                        $params['where_parent']['goods_parent_asin'] = implode("','", array_column($goods_parent_asin, 'parent_asin'));
+                        $where .= " AND amazon_goods.goods_parent_asin IN ('" . $params['where_parent']['goods_parent_asin'] . "')";
                     }
                 }
 
-                if (!empty($params['where_parent']['goods_asin'])){
-                    $goods_asin = json_decode(base64_decode($params['where_parent']['goods_asin']),true);
-                    if($params['is_distinct_channel'] == 1){
+                if (!empty($params['where_parent']['goods_asin'])) {
+                    $goods_asin = json_decode(base64_decode($params['where_parent']['goods_asin']), true);
+                    if ($params['is_distinct_channel'] == 1) {
                         $where_strs = array();
-                        foreach ($goods_asin as $item){
+                        foreach ($goods_asin as $item) {
                             $where_strs[] = '( amazon_goods.goods_channel_id = ' . $item['channel_id'] . " AND amazon_goods.goods_asin = '" . addslashes($item['asin']) . "')";
                         }
-                        $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
+                        $where_str = !empty($where_strs) ? " AND (" . implode(' OR ', $where_strs) . ")" : "";
                         $where .= $where_str;
-                    }else {
-                        $params['where_parent']['goods_asin'] = implode("','", array_column($goods_asin,'asin'));
+                    } else {
+                        $params['where_parent']['goods_asin'] = implode("','", array_column($goods_asin, 'asin'));
                         $where .= " AND amazon_goods.goods_asin IN ('" . $params['where_parent']['goods_asin'] . "')";
                     }
                 }
 
-                if (!empty($params['where_parent']['goods_sku'])){
-                    $goods_sku = json_decode(base64_decode($params['where_parent']['goods_sku']),true);
-                    if($params['is_distinct_channel'] == 1){
-                        $params['where_parent']['goods_sku'] = implode(",",array_column($goods_sku,'goods_id'));
-                        $where .= " AND report.amazon_goods_id IN (" . $params['where_parent']['goods_sku'] . ")" ;
-                    }else {
-                        $params['where_parent']['goods_sku'] = implode("','", array_column($goods_sku,'sku'));
+                if (!empty($params['where_parent']['goods_sku'])) {
+                    $goods_sku = json_decode(base64_decode($params['where_parent']['goods_sku']), true);
+                    if ($params['is_distinct_channel'] == 1) {
+                        $params['where_parent']['goods_sku'] = implode(",", array_column($goods_sku, 'goods_id'));
+                        $where .= " AND report.amazon_goods_id IN (" . $params['where_parent']['goods_sku'] . ")";
+                    } else {
+                        $params['where_parent']['goods_sku'] = implode("','", array_column($goods_sku, 'sku'));
                         $where .= " AND report.goods_sku IN ('" . $params['where_parent']['goods_sku'] . "')";
                     }
                 }
 
-                if (!empty($params['where_parent']['isku_id'])){
-                    $where .= " AND amazon_goods.goods_isku_id IN (" . $params['where_parent']['isku_id'] . ")" ;
+                if (!empty($params['where_parent']['isku_id'])) {
+                    $where .= " AND amazon_goods.goods_isku_id IN (" . $params['where_parent']['isku_id'] . ")";
                 }
 
-                if (!empty($params['where_parent']['group_id'])){
-                    $where .= " AND report.goods_group_id  IN (" . $params['where_parent']['group_id'] . ")" ;
+                if (!empty($params['where_parent']['group_id'])) {
+                    $where .= " AND report.goods_group_id  IN (" . $params['where_parent']['group_id'] . ")";
                 }
 
-                if (!empty($params['where_parent']['tags_id'])){
-                    $where .= " AND tags_rel.tags_id  IN (" . $params['where_parent']['tags_id'] . ")" ;
+                if (!empty($params['where_parent']['tags_id'])) {
+                    $where .= " AND tags_rel.tags_id  IN (" . $params['where_parent']['tags_id'] . ")";
                 }
 
-                if (!empty($params['where_parent']['class1'])){//数据对比 一级类目
-                    $class1 = $params['where_parent']['class1'] ? json_decode(base64_decode($params['where_parent']['class1']),true) : "";
+                if (!empty($params['where_parent']['class1'])) {//数据对比 一级类目
+                    $class1 = $params['where_parent']['class1'] ? json_decode(base64_decode($params['where_parent']['class1']), true) : "";
                     $where_strs = array();
-                    foreach ($class1 as $item){
+                    foreach ($class1 as $item) {
                         $where_strs[] = '( report.goods_product_category_name_1 = ' . trim($item['product_category_name_1']) . " AND report.site_id = '" . addslashes($item['site_id']) . "')";
                     }
-                    $where_str = !empty($where_strs) ? " AND (".implode(' OR ' , $where_strs).")" : "";
+                    $where_str = !empty($where_strs) ? " AND (" . implode(' OR ', $where_strs) . ")" : "";
                     $where .= $where_str;
                 }
 
-                if (!empty($params['where_parent']['class1_name']) && !empty($params['where_parent']['site_id'])){//维度下钻 一级类目
-                    if (is_array($params['where_parent']['class1_name'])){
+                if (!empty($params['where_parent']['class1_name']) && !empty($params['where_parent']['site_id'])) {//维度下钻 一级类目
+                    if (is_array($params['where_parent']['class1_name'])) {
                         $class1_name = implode("','", $params['where_parent']['class1_name']);
-                    }else{
+                    } else {
                         $class1_name = trim($params['where_parent']['class1_name']);
                     }
                     $where .= " AND report.goods_product_category_name_1 IN('{$class1_name}') AND report.site_id = {$params['where_parent']['site_id']}";
                 }
 
-                if (!empty($params['where_parent']['head_id'])){
-                    $where .= " AND amazon_goods.isku_head_id  IN (" . $params['where_parent']['head_id'] . ")" ;
+                if (!empty($params['where_parent']['head_id'])) {
+                    $where .= " AND amazon_goods.isku_head_id  IN (" . $params['where_parent']['head_id'] . ")";
                 }
 
-                if (!empty($params['where_parent']['developer_id'])){
-                    $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_parent']['developer_id'] . ")" ;
+                if (!empty($params['where_parent']['developer_id'])) {
+                    $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_parent']['developer_id'] . ")";
                 }
             }
 
-            if($type == 0){
-                if (!empty($params['where_parent']['user_department_id'])){
-                    $where .= " AND dc.user_department_id IN (" . $params['where_parent']['user_department_id'] . ")" ;
+            if ($type == 0) {
+                if (!empty($params['where_parent']['user_department_id'])) {
+                    $where .= " AND dc.user_department_id IN (" . $params['where_parent']['user_department_id'] . ")";
                 }
 
-                if (!empty($params['where_parent']['admin_id'])){
-                    $where .= " AND uc.admin_id IN (" . $params['where_parent']['admin_id'] . ")" ;
+                if (!empty($params['where_parent']['admin_id'])) {
+                    $where .= " AND uc.admin_id IN (" . $params['where_parent']['admin_id'] . ")";
                 }
 
-                if (!empty($params['where_parent']['channel_id'])){
-                    $where .= " AND report.channel_id IN (" . $params['where_parent']['channel_id'] . ")" ;
+                if (!empty($params['where_parent']['channel_id'])) {
+                    $where .= " AND report.channel_id IN (" . $params['where_parent']['channel_id'] . ")";
                 }
 
-                if (!empty($params['where_parent']['site_id'])){
-                    $where .= " AND report.site_id IN (" . $params['where_parent']['site_id'] . ")" ;
+                if (!empty($params['where_parent']['site_id'])) {
+                    $where .= " AND report.site_id IN (" . $params['where_parent']['site_id'] . ")";
                 }
 
                 if (!empty($params['where_parent']['operators_id'])){
@@ -294,69 +298,69 @@ class FinanceService extends BaseService
                 }
             }
 
-            if($type == 2){
-                if (!empty($params['where_parent']['operators_id'])){
-                    $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ")" ;
+            if ($type == 2) {
+                if (!empty($params['where_parent']['operators_id'])) {
+                    $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ")";
                 }
             }
 
         }
 
-        if (isset($params['where_search']) && !empty($params['where_search'])){//额外的搜索筛选功能，且关系
-            if($type == 1){
+        if (isset($params['where_search']) && !empty($params['where_search'])) {//额外的搜索筛选功能，且关系
+            if ($type == 1) {
                 //分组
-                if (!empty($params['where_search']['group_id'])){
-                    $where .= " AND report.goods_group_id  IN (" . $params['where_search']['group_id'] . ")" ;
+                if (!empty($params['where_search']['group_id'])) {
+                    $where .= " AND report.goods_group_id  IN (" . $params['where_search']['group_id'] . ")";
                 }
                 //标签
-                if (!empty($params['where_search']['tags_id'])){
-                    $where .= " AND tags_rel.tags_id  IN (" . $params['where_search']['tags_id'] . ")" ;
+                if (!empty($params['where_search']['tags_id'])) {
+                    $where .= " AND tags_rel.tags_id  IN (" . $params['where_search']['tags_id'] . ")";
                 }
                 //负责人
-                if (!empty($params['where_search']['head_id'])){
-                    $where .= " AND amazon_goods.isku_head_id  IN (" . $params['where_search']['head_id'] . ")" ;
+                if (!empty($params['where_search']['head_id'])) {
+                    $where .= " AND amazon_goods.isku_head_id  IN (" . $params['where_search']['head_id'] . ")";
                 }
                 //开发人员
-                if (!empty($params['where_search']['developer_id'])){
-                    $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_search']['developer_id'] . ")" ;
+                if (!empty($params['where_search']['developer_id'])) {
+                    $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_search']['developer_id'] . ")";
                 }
             }
-            if($type == 0){
+            if ($type == 0) {
                 //子账号
-                if (!empty($params['where_search']['admin_id'])){
-                    $where .= " AND uc.admin_id IN (" . $params['where_search']['admin_id'] . ")" ;
+                if (!empty($params['where_search']['admin_id'])) {
+                    $where .= " AND uc.admin_id IN (" . $params['where_search']['admin_id'] . ")";
                 }
             }
-            if($type == 2){
+            if ($type == 2) {
                 //运营人员
-                if (!empty($params['where_search']['operators_id'])){
-                    $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_search']['operators_id'] . ")" ;
+                if (!empty($params['where_search']['operators_id'])) {
+                    $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_search']['operators_id'] . ")";
                 }
             }
         }
 
         if ($params['show_type'] == 2 && $params['limit_num'] > 0 && $params['count_periods'] == 0) {
             $offset = 0;
-            $limit = (int)$params['limit_num'] ;
+            $limit = (int)$params['limit_num'];
         }
 
-        if(!empty($compare_data)){
-            $notime_where = $where ;
-            $params['notime_where'] = $notime_where ;
-            $params['compare_data'] = $compare_data ;
+        if (!empty($compare_data)) {
+            $notime_where = $where;
+            $params['notime_where'] = $notime_where;
+            $params['compare_data'] = $compare_data;
         }
 
 
         if ((int)$params['time_type'] === 99) {
-            if (isset($params['site_search_time']) && !empty($params['site_search_time'])){
+            if (isset($params['site_search_time']) && !empty($params['site_search_time'])) {
                 $site_where = [];
-                foreach ($params['site_search_time'] as $val){
+                foreach ($params['site_search_time'] as $val) {
                     $site_where[] = "(report.site_id = {$val['site_id']} AND report.create_time >= {$val['start_time']} AND report.create_time <= {$val['end_time']})";
                 }
-                $site_where_str = "(". implode(' OR ', $site_where) .")";
+                $site_where_str = "(" . implode(' OR ', $site_where) . ")";
 
                 $where .= $where ? " AND {$site_where_str} " : " {$site_where_str} ";
-            }else{
+            } else {
                 $where .= sprintf(
                     '%s report.create_time>=%d and report.create_time<=%d',
                     $where ? ' AND' : '',
@@ -365,12 +369,12 @@ class FinanceService extends BaseService
                 );
             }
             $params['origin_where'] .= " AND report.create_time>={$params['search_start_time']} AND report.create_time<={$params['search_end_time']}";
-            $params['origin_time']  = '  AND create_time >= ' .$params['search_start_time'] . ' AND create_time <= ' . $params['search_end_time'] ;
+            $params['origin_time'] = '  AND create_time >= ' . $params['search_start_time'] . ' AND create_time <= ' . $params['search_end_time'];
             $params['origin_create_start_time'] = $params['search_start_time'];
             $params['origin_create_end_time'] = $params['search_end_time'];
 
-            $min_ym = date('Ym',(int)$params['search_start_time']) ;
-            $max_ym = date('Ym',(int)$params['search_end_time']) ;
+            $min_ym = date('Ym', (int)$params['search_start_time']);
+            $max_ym = date('Ym', (int)$params['search_end_time']);
             $day_param_start_time = (int)$params['search_start_time'];
             $day_param_end_time = (int)$params['search_end_time'] > time() ? (int)strtotime(date('Y-m-d 23:59:59')) : (int)$params['search_end_time'];
             $day_param = ($day_param_end_time + 1 - $day_param_start_time) / 86400;
@@ -380,8 +384,8 @@ class FinanceService extends BaseService
             $time_arr = $this->getSiteLocalTime(array_keys(\App\getAmazonSitesConfig()), (int)$params['time_type'], $params['search_start_time'], $params['search_end_time']);
             foreach ($time_arr as $times) {
 
-                $min_ym = empty($min_ym) ? date('Ym',$times['start']) : ($min_ym > date('Ym',$times['start']) ? date('Ym',$times['start']) : $min_ym) ;
-                $max_ym = empty($max_ym) ? date('Ym',$times['end']) : ($max_ym < date('Ym',$times['end']) ? date('Ym',$times['end']) : $max_ym) ;
+                $min_ym = empty($min_ym) ? date('Ym', $times['start']) : ($min_ym > date('Ym', $times['start']) ? date('Ym', $times['start']) : $min_ym);
+                $max_ym = empty($max_ym) ? date('Ym', $times['end']) : ($max_ym < date('Ym', $times['end']) ? date('Ym', $times['end']) : $max_ym);
                 $ors[] = sprintf(
                     '( report.create_time>=%d and report.create_time<=%d)',
                     (int)$times['start'],
@@ -406,7 +410,7 @@ class FinanceService extends BaseService
             $params['origin_time'] = " AND ({$origin_time})";
 
         }
-        $params['origin_report_where'] .= str_replace("create_time","report.create_time",$params['origin_time']);
+        $params['origin_report_where'] .= str_replace("create_time", "report.create_time", $params['origin_time']);
 
         $method = [
             'getListByUnGoods',
@@ -419,30 +423,30 @@ class FinanceService extends BaseService
         //需要读取athena 的才使用该方法，其他不使用
         $big_data_user = "255981,33882,108142,22819,26060,34726,45723,53247,47562,57082,59221,255687,137346,255371,121069,83780,62473,74734,82142,337446,90330,95578,95336,99204,114937,101119,101133,114092,121675,346891,255707,98806,96975,105015,96119,95430,213581,219775,240755,243595,203705,185031,217593,245779,256968,220051,201375,243823,247442,268287,261217,310036,262106,306543,269036,21";
         $is_goods_day_report = false;//日报表才读
-        if(($params['count_periods'] == 0 || $params['count_periods'] == 1 || $params['count_periods'] == 2 ) && $params['cost_count_type'] != 2){ //按天,按周或无统计周期
+        if (($params['count_periods'] == 0 || $params['count_periods'] == 1 || $params['count_periods'] == 2) && $params['cost_count_type'] != 2) { //按天,按周或无统计周期
             $is_goods_day_report = true;
         }
-        if(empty($compare_data)){  // 有对比数据需使用PRESTO
-            if ($method == 'getListByGoods' and $day_param > 90 AND in_array($userInfo['user_id'],explode(",",$big_data_user)) and $is_goods_day_report){
+        if (empty($compare_data)) {  // 有对比数据需使用PRESTO
+            if ($method == 'getListByGoods' and $day_param > 90 and in_array($userInfo['user_id'], explode(",", $big_data_user)) and $is_goods_day_report) {
                 $isReadAthena = true;
             }
-            if ($method == 'getListByGoods' and $day_param > 15 AND $userInfo['user_id'] == 20567){//20567单独读取
+            if ($method == 'getListByGoods' and $day_param > 15 and $userInfo['user_id'] == 20567) {//20567单独读取
                 $isReadAthena = true;
             }
         }
 
         $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
-        if(!empty($compare_data)) {  // 有对比数据需使用PRESTO
-            $dataChannel = 'Presto' ;
-        }else{
+        if (!empty($compare_data)) {  // 有对比数据需使用PRESTO
+            $dataChannel = 'Presto';
+        } else {
             $dataChannel = $searchType === 0 ? 'Presto' : 'ES';
         }
 
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
-        $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno'],$isReadAthena);
+        $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno'], $isReadAthena);
         $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
-        $params['min_ym'] = $min_ym ;
-        $params['max_ym'] = $max_ym ;
+        $params['min_ym'] = $min_ym;
+        $params['max_ym'] = $max_ym;
         $result = $amazonGoodsFinanceReportByOrderMD->{$method}(
             $where,
             $params,
@@ -463,7 +467,7 @@ class FinanceService extends BaseService
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
         }
-        if (isset($params['user_id']) && $params['user_id'] == 266){
+        if (isset($params['user_id']) && $params['user_id'] == 266) {
             $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
             $logger1->info('result', [$result]);
         }
