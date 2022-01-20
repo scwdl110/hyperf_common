@@ -3356,7 +3356,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             if (in_array('sales_evaluation_order_nums', $targets)) {  //测评订单量
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
+                $tmp_field = $datas['sales_evaluation_nums'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
                 $fields['sales_evaluation_order_nums'] = "sum( report.{$tmp_field} )";
             }
 
@@ -4741,7 +4741,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['count_total'] = "SUM( report.{$tmp_field} )";
                 $time_fields = $this->getTimeFields($time_line, $tmp_field);
             }else if ($time_target == 'sales_evaluation_order_nums') {  //测评订单量
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
+                $tmp_field = $datas['sales_evaluation_nums'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
                 $fields['count_total'] = "SUM( report.{$tmp_field} )";
                 $time_fields = $this->getTimeFields($time_line, $tmp_field);
             }else if ($time_target == 'fba_sales_refund') {  //FBA退款金额
