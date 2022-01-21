@@ -1030,6 +1030,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }else if($datas['count_dimension'] == 'goods_site_id'){
             //统计商品数据里的国家维度
+            $fbaDataGroup = 'report.site_id';
+            $group = 'report.site_id ';
+            $orderby = 'report.site_id ';
             if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
                 if ($datas['count_periods'] == '1' ) { //按天
                     $group = 'report.site_id ,report.myear , report.mmonth  , report.mday';
@@ -1047,10 +1050,56 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $group = 'report.site_id ,report.myear';
                     $orderby = 'report.site_id ,report.myear';
                 }
-            }else{
-                $group = 'report.site_id ';
-                $orderby = empty($orderby) ? ('report.site_id ') : ($orderby . ' ,report.site_id ');
             }
+        }else if($datas['count_dimension'] == 'goods_operators'){
+            //统计商品数据里的运营人员维度
+            if($datas['is_distinct_channel'] == 1) {
+                //有区分店铺
+                $fbaDataGroup = 'amazon_goods.goods_operation_user_admin_id, report.channel_id';
+                $group = 'amazon_goods.goods_operation_user_admin_id, report.channel_id';
+                $orderby = "amazon_goods.goods_operation_user_admin_id, report.channel_id";
+                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                    if ($datas['count_periods'] == '1' ) { //按天
+                        $group .= ', report.myear , report.mmonth  , report.mday';
+                        $orderby .= ', report.myear , report.mmonth  , report.mday';
+                    } else if ($datas['count_periods'] == '2' ) { //按周
+                        $group .= ', report.mweekyear , report.mweek';
+                        $orderby .= ', report.mweekyear , report.mweek';
+                    } else if ($datas['count_periods'] == '3' ) { //按月
+                        $group .= ', report.myear , report.mmonth';
+                        $orderby .= ', report.myear , report.mmonth';
+                    } else if ($datas['count_periods'] == '4' ) {  //按季
+                        $group .= ', report.myear , report.mquarter';
+                        $orderby .= ', report.myear , report.mquarter';
+                    } else if ($datas['count_periods'] == '5' ) { //按年
+                        $group .= ', report.myear';
+                        $orderby .= ', report.myear';
+                    }
+                }
+            }else{
+                $fbaDataGroup = 'amazon_goods.goods_operation_user_admin_id';
+                $group = 'amazon_goods.goods_operation_user_admin_id';
+                $orderby = "amazon_goods.goods_operation_user_admin_id";
+                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                    if ($datas['count_periods'] == '1' ) { //按天
+                        $group .= ',report.myear , report.mmonth  , report.mday';
+                        $orderby .= ',report.myear , report.mmonth  , report.mday';
+                    } else if ($datas['count_periods'] == '2' ) { //按周
+                        $group .= ',report.mweekyear , report.mweek';
+                        $orderby .= ',report.mweekyear , report.mweek';
+                    } else if ($datas['count_periods'] == '3' ) { //按月
+                        $group .= ',report.myear , report.mmonth';
+                        $orderby .= ',report.myear , report.mmonth';
+                    } else if ($datas['count_periods'] == '4' ) {  //按季
+                        $group .= ',report.myear , report.mquarter';
+                        $orderby .= ',report.myear , report.mquarter';
+                    } else if ($datas['count_periods'] == '5' ) { //按年
+                        $group .= ',report.myear';
+                        $orderby .= ',report.myear';
+                    }
+                }
+            }
+            $where .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern != 1";
         }
 
         if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
@@ -3826,8 +3875,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if($datas['count_dimension'] == 'goods_channel'){
             $fields['channel_id'] = 'max(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+        }elseif($datas['count_dimension'] == 'goods_site_id'){
+            $fields['site_id'] = 'max(report.site_id)';
+        }elseif($datas['count_dimension'] == 'goods_operators'){
+            $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
+            if ($datas['is_distinct_channel'] == 1) {
+                $fields['channel_id'] = 'max(report.channel_id)';
+                $fields['site_id'] = 'max(report.site_id)';
+            }
         }
-
         return $fields;
     }
 
@@ -5941,6 +5998,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.user_id  ';
             }
 
+        }else if($params['count_dimension'] == 'channel_operators'){
+            $group = "channel.operation_user_admin_id";
+            $orderby = "channel.operation_user_admin_id";
+            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+                if ($params['count_periods'] == '1') { //按天
+                    $group .= ',report.myear , report.mmonth  , report.mday';
+                    $orderby .= ',report.myear , report.mmonth  , report.mday';
+                } else if ($params['count_periods'] == '2') { //按周
+                    $group .= ',report.mweekyear , report.mweek';
+                    $orderby .= ',report.mweekyear , report.mweek';
+                } else if ($params['count_periods'] == '3') { //按月
+                    $group .= ',report.myear , report.mmonth';
+                    $orderby .= ',report.myear , report.mmonth';
+                } else if ($params['count_periods'] == '4') {  //按季
+                    $group .= ',report.myear , report.mquarter';
+                    $orderby .= ',report.myear , report.mquarter';
+                } else if ($params['count_periods'] == '5') { //按年
+                    $group .= ',report.myear';
+                    $orderby .= ',report.myear';
+                }
+            }
+
+            $where .= " AND channel.operation_user_admin_id > 0";
         }
 
         if (isset($params['is_time_sort']) && $params['is_time_sort'] == 1 && !empty($orderbyTmp) && $params['count_periods'] > 0 && $params['show_type'] == '2'){//按周期排序添加
@@ -6163,6 +6243,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } elseif ($datas['count_dimension'] === 'admin_id') {
             $fields['admin_id'] = 'max(uc.admin_id)';
             $fields['user_admin_id'] = 'max(uc.admin_id)';
+        }elseif ($datas['count_dimension'] == 'channel_operators'){
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
@@ -7118,6 +7200,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }else if($datas['count_dimension'] == 'admin_id'){
             $fields['admin_id'] = 'max(uc.admin_id)';
             $fields['user_admin_id'] = 'max(uc.admin_id)';
+        }elseif ($datas['count_dimension'] == 'channel_operators'){
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         }
 
         $target_key = $datas['time_target'];
