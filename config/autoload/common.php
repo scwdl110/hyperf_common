@@ -116,7 +116,7 @@ return [
         //买家订单预留
         "fba_reserved_customerorders"=>array("count_type"=>1, "mysql_field"=>"reserved_customerorders","data_type" => 1),
         //调拨预留
-        "fba_reserved_fc_transfers_cost"=>array("count_type"=>1, "mysql_field"=>"reserved_fc_transfers_cost","data_type" => 1),
+        "fba_reserved_fc_transfers"=>array("count_type"=>1, "mysql_field"=>"reserved_fc_transfers","data_type" => 1),
         //处理预留
         "fba_reserved_fc_processing"=>array("count_type"=>1, "mysql_field"=>"reserved_fc_processing","data_type" => 1),
         //不可售
