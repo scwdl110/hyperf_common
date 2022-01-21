@@ -13889,6 +13889,23 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         $orderbyArr = array();
+        if(!empty($this->fbaSort)){
+            if(!empty($this->fbaSort['is_origin'])){
+                //类似销量这样的排序
+                if(!empty($this->fbaSort['sort_target'])) {
+                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];
+                }
+            }elseif(!empty($this->fbaSort['is_custom'])){
+                //自定义公式
+                if(!empty($other_fields[$this->fbaSort['sort_target']])) {
+                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
+                }
+            }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
+                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
+            }else{
+                $orderbyArr[] = '((fba_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (fba_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
+            }
+        }
         //非按无周期的，指标展现排序
         if($datas['count_periods'] > 0 && $datas['show_type'] == '2'){
             if($datas['count_periods'] == '4'){ //按季度
@@ -13922,23 +13939,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $orderbyArr[] = 'new_origin_table.head_id' . $time_group ;
             }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
                 $orderbyArr[] = 'new_origin_table.developer_id ' . $time_group;
-            }
-        }
-        if(!empty($this->fbaSort)){
-            if(!empty($this->fbaSort['is_origin'])){
-                //类似销量这样的排序
-                if(!empty($this->fbaSort['sort_target'])) {
-                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];
-                }
-            }elseif(!empty($this->fbaSort['is_custom'])){
-                //自定义公式
-                if(!empty($other_fields[$this->fbaSort['sort_target']])) {
-                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
-                }
-            }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
-                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
-            }else{
-                $orderbyArr[] = '((fba_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (fba_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
             }
         }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
@@ -14135,24 +14135,24 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields = array_merge($fields , $other_fields) ;
         }
 
-
+        $orderby_sort = "";
         if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
             if(!empty($fbaArr[$datas['sort_target']]) ) {
-                $orderby = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
+                $orderby_sort = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort_target'] , $custom_fba_target_key)) { //自定义指标
-                $orderby = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+                $orderby_sort = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
             }else{
-                $orderby = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
+                $orderby_sort = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }
         }
 
         if (!empty($datas['order']) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
             if(!empty($fbaArr[$datas['sort']]) ){
-                $orderby = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
+                $orderby_sort = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort'] , $custom_fba_target_key)) { //自定义指标
-                $orderby = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+                $orderby_sort = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
             }else{
-                $orderby = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
+                $orderby_sort = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
             }
         }
 
@@ -14220,6 +14220,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             } else {
                 $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
             }
+        }
+        if (!empty($orderby_sort)){
+            $orderby = "{$orderby_sort}, {$orderby}";
         }
 
         $target_wheres = $datas['where_detail']['target'] ?? array();
