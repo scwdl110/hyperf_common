@@ -29,7 +29,23 @@ class Unique {
 
     public static function getArray($items)
     {
-        return empty($items) ? array() : $items->toArray();
+        if (empty($items)) {
+            return array();
+        } else {
+            $data_arr = $items->toArray();
+            $arr = array();
+            foreach ($data_arr as &$value) {
+                if (is_object($value)) {
+                    $_arr = get_object_vars($value);
+                    foreach ($_arr as $key => $val) {
+                        $val = (is_array($val)) || is_object($val) ? object_to_array($val) : $val;
+                        $arr[$key] = $val;
+                    }
+                    $value = $arr;
+                }
+            }
+            return $data_arr;
+        }
     }
 
 
