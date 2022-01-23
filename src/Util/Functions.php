@@ -462,14 +462,16 @@ class Functions {
             $where = [
                 ['id', '=', $id],
             ];
-            $seapigeonUser = Db::table("redo_seapigeon_author_user")->where($where)->select('access_token', 'account_name')->first();
+            $seapigeonUser = Db::table("redo_seapigeon_author_user")->where($where)->select('access_token', 'account_name', 'user_id')->first();
 
             $token = self::decryOpen(data_get($seapigeonUser, 'access_token', ''), $aesKey);
             $account_name = data_get($seapigeonUser, 'account_name', '');
+            $user_id = data_get($seapigeonUser, 'user_id', '');
 
             $arr = [
                 'access_token' => $token?:'',
                 'account_name' => $account_name,
+                'user_id' => $user_id,
             ];
 
             $redis->set($key, json_encode($arr), 3600);
