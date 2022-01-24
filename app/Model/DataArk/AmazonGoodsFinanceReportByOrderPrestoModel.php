@@ -13582,10 +13582,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $channel_where = " WHERE c_tmp.user_id = " . intval($datas['user_id']);
         if (!empty($channel_arr)){
             if (count($channel_arr)==1){
-                $where .= " AND rel.channel_id = ".intval(implode(",",$channel_arr));
+                $where .= " AND g.channel_id = ".intval(implode(",",$channel_arr));
                 $channel_where .= " AND c_tmp.id = ".intval(implode(",",$channel_arr));
             }else{
-                $where .= " AND rel.channel_id IN (".implode(",",$channel_arr).")";
+                $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
                 $channel_where .= " AND c_tmp.id IN (".implode(",",$channel_arr).")";
             }
         }
@@ -13593,9 +13593,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $rate_table = $rel_table =  $origin_field = "";
         if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz', 'fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'],$this->lastTargets))){
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = rel.site_id AND rates.user_id = 0 ";
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
             } else {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = rel.site_id AND rates.user_id = rel.user_id  ";
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
             }
         }
         $fbaArr = config('common.goods_fba_fields_arr');
@@ -13611,7 +13611,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'table_name' => 'channel_table',
             'table_sql' => "select c_tmp.id,c_tmp.user_id,c_tmp.site_id,c_tmp.merchant_id,area.area_id from {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id {$channel_where}"
         ];
-        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,rel.channel_id,rel.site_id",$datas,$exchangeCode);
+        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,g.channel_id,g.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
             'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id and v.db_num = '{$this->dbhost}') as g {$rel_table} {$rate_table} {$where}",
