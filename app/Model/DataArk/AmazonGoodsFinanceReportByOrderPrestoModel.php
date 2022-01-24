@@ -13579,14 +13579,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'fba_fields' => "",
         ];
         $where = " WHERE g.user_id = " . intval($datas['user_id']) ." AND g.is_parent=0 AND g.db_num = '{$this->dbhost}'";
-        $channel_where = " WHERE c_tmp.user_id = " . intval($datas['user_id']);
+//        $channel_where = " WHERE c_tmp.user_id = " . intval($datas['user_id']);
         if (!empty($channel_arr)){
             if (count($channel_arr)==1){
-                $where .= " AND g.channel_id = ".intval(implode(",",$channel_arr));
-                $channel_where .= " AND c_tmp.id = ".intval(implode(",",$channel_arr));
+                $where .= " AND rel.channel_id = ".intval(implode(",",$channel_arr));
+//                $channel_where .= " AND c_tmp.id = ".intval(implode(",",$channel_arr));
             }else{
-                $where .= " AND g.channel_id IN (".implode(",",$channel_arr).")";
-                $channel_where .= " AND c_tmp.id IN (".implode(",",$channel_arr).")";
+                $where .= " AND rel.channel_id IN (".implode(",",$channel_arr).")";
+//                $channel_where .= " AND c_tmp.id IN (".implode(",",$channel_arr).")";
             }
         }
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
@@ -13598,23 +13598,24 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
             }
         }
-        $fbaArr = config('common.goods_fba_fields_arr');
-        if(!empty($this->lastTargets)){
-            foreach ($this->lastTargets as $target_key){
-                if(!empty($fbaArr[$target_key]['rel_field_status'])){
-                    $rel_table .= "LEFT JOIN {$this->table_amazon_fba_inventory_v3_rel} as rel ON g.id = rel.inventory_id AND g.channel_id = rel.channel_id AND rel.db_num = '{$this->dbhost}'";
-                    break;
-                }
-            }
-        }
-        $child_table[] = [
-            'table_name' => 'channel_table',
-            'table_sql' => "select c_tmp.id,c_tmp.user_id,c_tmp.site_id,c_tmp.merchant_id,area.area_id from {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id {$channel_where}"
-        ];
-        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,g.channel_id,g.site_id",$datas,$exchangeCode);
+//        $fbaArr = config('common.goods_fba_fields_arr');
+//        if(!empty($this->lastTargets)){
+//            foreach ($this->lastTargets as $target_key){
+//                if(!empty($fbaArr[$target_key]['rel_field_status'])){
+//                    $rel_table .= "LEFT JOIN {$this->table_amazon_fba_inventory_v3_rel} as rel ON g.id = rel.inventory_id AND g.channel_id = rel.channel_id AND rel.db_num = '{$this->dbhost}'";
+//                    break;
+//                }
+//            }
+//        }
+//        $child_table[] = [
+//            'table_name' => 'channel_table',
+//            'table_sql' => "select c_tmp.id,c_tmp.user_id,c_tmp.site_id,c_tmp.merchant_id,area.area_id from {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id {$channel_where}"
+//        ];
+        $origin_field = $this->getGoodsFbaField(3,"g.user_id,g.area_id,g.merchant_id,g.seller_sku as sku,g.asin,g.parent_asin,rel.channel_id,rel.site_id",$datas,$exchangeCode);
         $child_table[] = [
             'table_name' => 'fba_table1',
-            'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id and v.db_num = '{$this->dbhost}') as g {$rel_table} {$rate_table} {$where}",
+//            'table_sql' => "SELECT {$origin_field} FROM (select v.*,channel.id as channel_id,channel.site_id from {$this->table_amazon_fba_inventory_v3} as v LEFT JOIN channel_table as channel ON v.user_id = channel.user_id and v.merchant_id = channel.merchant_id and v.area_id = channel.area_id and v.db_num = '{$this->dbhost}') as g {$rel_table} {$rate_table} {$where}",
+            'table_sql' => "SELECT {$origin_field} FROM {$this->table_amazon_fba_inventory_v3} as g LEFT JOIN {$this->table_amazon_fba_inventory_v3_rel} as rel ON g.id = rel.inventory_id AND rel.db_num = '{$this->dbhost}' {$rate_table} {$where}",
         ];
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
