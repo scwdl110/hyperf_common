@@ -16,6 +16,7 @@ use App\Lib\Common;
 
 use App\Model\DataArk\FinanceIndexAssociatedSqlKeyModel;
 use App\Model\DataArk\FinanceIndexModel;
+use App\Model\user\UserAdminRolePrivModel;
 use Captainbi\Hyperf\Util\Result;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\Logger\LoggerFactory;
@@ -66,6 +67,9 @@ class FinanceService extends BaseService
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'dataark');
             $logger->info('request body', [$req, $userInfo]);
         }
+
+
+
 
 //        $req['is_new_index'] = 1;
         $req['is_new_index'] = $req['is_new_index'] ?? 0;
@@ -156,6 +160,30 @@ class FinanceService extends BaseService
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id={$channelIds[0]}";
             }
         }
+
+        //商品和运营人员 添加商品权限控制
+        if ($type > 0 && isset($req['priv_key'])){
+
+            $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
+            switch ($goods_priv['priv_value'])
+            {
+                case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
+                    $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
+                    if(!empty($related_user_admin_ids_str))
+                    {
+                        $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                    }else{
+                        return $result;
+                    }
+                    break;
+                case UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE:  //不可见
+                    return $result;
+                    break;
+                default:   //全部可见
+                    break;
+            }
+        }
+
         $params['origin_where'] = $where;
         $params['origin_report_where'] = $params['user_sessions_where'];
 
