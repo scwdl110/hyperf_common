@@ -14427,7 +14427,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                 if($target == 'fba_goods_value'){  //在库总成本在数据库存储的为人民币
                                     $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} ) END )) ";
                                 }else{
-                                    $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.rate ,1) ) END )) ";
+                                    $fields[$target] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE ({$fbaArr[$target]['mysql_field']} * {:RATE} / COALESCE(rates.fba_rate ,1) ) END )) ";
                                 }
                             }else{
                                 if($target == 'fba_goods_value'){
@@ -14561,7 +14561,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                         if(in_array($child_key,['fba_yjzhz','fba_glhz'])){
                                             $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * {$exchangeCode} as {$fbaArr[$child_key]['mysql_field']}";
                                         }else{
-                                            $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
+                                            $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * ({$exchangeCode} / COALESCE(rates.fba_rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
                                         }
                                     }
                                 } else {
@@ -14584,7 +14584,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                 if(in_array($target,['fba_yjzhz','fba_glhz'])){
                                     $fields[] = "{$alias}.{$fbaArr[$target]['mysql_field']} * {$exchangeCode} as {$fbaArr[$target]['mysql_field']}";
                                 }else{
-                                    $fields[] = "{$field_prefix} * ({$exchangeCode} / COALESCE(rates.rate ,1))" . $field_suffix;
+                                    $fields[] = "{$field_prefix} * ({$exchangeCode} / COALESCE(rates.fba_rate ,1))" . $field_suffix;
                                 }
                             }
                         } else {
