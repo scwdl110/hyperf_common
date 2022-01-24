@@ -13625,7 +13625,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_field = "max(sku) as sku";
             $fba_table_field1 = "max(g.sku) as sku";
             $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
-            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.sku=g.sku and g.channel_id = c.channel_id JOIN dim.dim_dataark_f_dw_goods_dim_report_001 AS amazon_goods on c.goods_id=amazon_goods.es_id";
+            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.sku=g.sku and g.channel_id = c.channel_id JOIN {$this->table_goods_dim_report} AS amazon_goods on c.goods_id=amazon_goods.es_id";
             $fba_data['is_count'] = 1 ;
             $fba_data['dimension'] = 'sku' ; //统计商品有关的维度
         }elseif($datas['count_dimension'] == 'sku'){
