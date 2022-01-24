@@ -13593,9 +13593,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $rate_table = $rel_table =  $origin_field = "";
         if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz'],$this->lastTargets))){
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = rel.site_id AND rates.user_id = 0 ";
             } else {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = rel.site_id AND rates.user_id = rel.user_id  ";
             }
         }
 //        $fbaArr = config('common.goods_fba_fields_arr');
