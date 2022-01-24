@@ -13591,7 +13591,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
         $rate_table = $rel_table =  $origin_field = "";
-        if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz'],$this->lastTargets))){
+        if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz', 'fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'],$this->lastTargets))){
             if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
                 $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = rel.site_id AND rates.user_id = 0 ";
             } else {
@@ -14555,6 +14555,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                     if ($datas['currency_code'] == 'ORIGIN') {
                                         if(in_array($child_key,['fba_yjzhz','fba_glhz'])){
                                             $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$child_key]['mysql_field']}";
+                                        }elseif(in_array($child_key,['fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'])){
+                                            $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']} * (COALESCE(rates.rate ,1) / COALESCE(rates.fba_rate ,1)) as {$fbaArr[$child_key]['mysql_field']}";
                                         }else{
                                             $fields[] = "{$alias}.{$fbaArr[$child_key]['mysql_field']}";
                                         }
@@ -14578,6 +14580,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             if ($datas['currency_code'] == 'ORIGIN') {
                                 if(in_array($target,['fba_yjzhz','fba_glhz'])){
                                     $fields[] = "{$alias}.{$fbaArr[$target]['mysql_field']} * COALESCE(rates.rate ,1) as {$fbaArr[$target]['mysql_field']}";
+                                }elseif(in_array($target,['fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'])){
+                                    $fields[] = "{$alias}.{$fbaArr[$target]['mysql_field']} * (COALESCE(rates.rate ,1) / COALESCE(rates.fba_rate ,1)) as {$fbaArr[$target]['mysql_field']}";
                                 }else{
                                     $fields[] = $field_prefix . $field_suffix;
                                 }
