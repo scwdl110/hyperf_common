@@ -58,12 +58,12 @@ class UserAdminRolePrivModel extends Model
 
         //不存在的批量查询
         if (!empty($not_in_redis)){
-            $db_role_priv = Unique::getArray(self::whereIn("role_id",$not_in_redis)->select("goods_priv,role_id"));
+            $db_role_priv = Unique::getArray(self::whereIn("role_id",$not_in_redis)->get(["goods_priv","role_id"]));
             if (!empty($db_role_priv)){
                 foreach ($db_role_priv as $value){
                     $redis_key       = self::ROLE_GOODS_PRIV_REDIS_KEY . $value['role_id'];
                     $goods_priv_list = !empty($value['goods_priv']) ? @json_decode($value['goods_priv'], true) : [];
-                    $this->redis->set($redis_key, $goods_priv_list);
+                    $this->redis->set($redis_key, $goods_priv_list,4*3600);
                     $return_priv[$value['role_id']] = array_column($goods_priv_list, null, 'priv_key');
                 }
             }
@@ -72,12 +72,13 @@ class UserAdminRolePrivModel extends Model
         //遍历最大权限
         if (!empty($return_priv)){
             $priv_value = self::GOODS_PRIV_VALUE_NONE;
-            foreach ($return_priv as $item){
+            foreach  ($return_priv as $item){
                 if (isset($item[$priv_key]['priv_value'])){
                     if ($item[$priv_key]['priv_value'] < $priv_value){
                         $priv_value = $item[$priv_key]['priv_value'];
                     }
                 }else{
+                    //未存在该权限则全部权限
                     $priv_value = self::GOODS_PRIV_VALUE_ALL;
                 }
 

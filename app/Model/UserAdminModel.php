@@ -45,8 +45,9 @@ class UserAdminModel extends Model
     {
         if (empty($user_id) || empty($admin_id) || empty($user_admin_info))
             return;
+
         $redis_key = self::USER_ADMIN_INFO_REDIS_KEY . "{$user_id}_{$admin_id}";
-        $this->redis->set($redis_key, $user_admin_info);
+        $this->redis->set($redis_key, $user_admin_info,4*3600);
     }
 
     /**
@@ -59,7 +60,7 @@ class UserAdminModel extends Model
     {
         if (empty($user_id) || empty($admin_ids))
             return 0;
-        $admin_ids=!is_array($admin_ids) ? explode(",",$admin_ids):$admin_ids;
+        $admin_ids=!is_array($admin_ids) ? explode(",",(string)$admin_ids):$admin_ids;
         $un_cached_ids = array();
         $user_admin_redis_data = array();
         foreach ($admin_ids as $admin_id){
@@ -68,7 +69,7 @@ class UserAdminModel extends Model
             if ($user_admin_info === false){
                 $un_cached_ids[] = $admin_id;
             }else{
-                $user_admin_redis_data = $user_admin_info;
+                $user_admin_redis_data[] = $user_admin_info;
             }
         }
         if (!empty($un_cached_ids)){
@@ -76,7 +77,7 @@ class UserAdminModel extends Model
                 ['user_id', '=', $user_id],
             );
             $columns = "id,user_id,role_id,is_responsible,user_department_id,is_master";
-            $user_admin_info_list = Unique::getArray(self::where($where)->whereIn("id",$un_cached_ids)->select(Db::raw($columns))->select());
+            $user_admin_info_list = Unique::getArray(self::where($where)->whereIn("id",$un_cached_ids)->select(Db::raw($columns))->get());
             foreach ($user_admin_info_list as $item) {
                 $this->save_user_admin_cache($user_id, $item['id'], $item);
                 $user_admin_redis_data[]=$item;

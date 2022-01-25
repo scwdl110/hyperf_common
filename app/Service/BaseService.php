@@ -73,16 +73,15 @@ class BaseService extends Service {
         //获取子账号权限
         $user_id = $userInfo['user_id'];
         $admin_id = $userInfo['admin_id'];
-        $user_admin_info=UserAdminModel::query()->get_user_admin_info($user_id,$admin_id);
 
+        $user_admin_info   = UserAdminModel::getModel()->get_user_admin_info($user_id,[$admin_id]);
+        $user_admin_info   = $user_admin_info[0];
         //2.用户数据不存在或角色为空时，menu_id为空时返回无权限,正常情况所有用户应该都有一个角色
         if (empty($user_admin_info) || empty($user_admin_info['role_id'])) {
             $goods_privilege['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE;
             return $goods_privilege;
         }
-        $user_admin_info = $user_admin_info[0];
-
-        $role_privilege = UserAdminRolePrivModel::query()->getUserRolePrivByArray([$user_admin_info['role_id']], $priv_key);
+        $role_privilege = UserAdminRolePrivModel::getModel()->getUserRolePrivByArray([$user_admin_info['role_id']], $priv_key);
         if ($role_privilege['priv_value'] == UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL) //角色未配置权限或当前模块未配置权限时返回所有可见权限
         {
             $goods_privilege['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;
@@ -94,14 +93,14 @@ class BaseService extends Service {
             //获取关联人信息
             $user_related_ids=[$admin_id];
             if($user_admin_info['is_responsible']==1) {
-                $user_related_ids = UserDepartmentModel::query()->getUsersByDepartmentId($user_admin_info['user_department_id']);
+                $user_related_ids = UserDepartmentModel::getModel()->getUsersByDepartmentId($user_admin_info['user_department_id'],$user_id);
                 $user_related_ids = array_unique(array_merge($user_related_ids, [$admin_id]));
 
                 //部门负责人下面有人是全部可见或者是主账号时，部门负责人直接返回全部可见
                 $tmp_related_ids=array_diff($user_related_ids,[$admin_id]);
                 if(!empty($tmp_related_ids))
                 {
-                    $user_related_list=UserAdminModel::query()->get_user_admin_info($user_id,$tmp_related_ids);
+                    $user_related_list=UserAdminModel::getModel()->get_user_admin_info($user_id,$tmp_related_ids);
                     if(!empty($user_related_list))
                     {
                         $master_related= array_filter($user_related_list,function ($item){
@@ -113,7 +112,7 @@ class BaseService extends Service {
                             return $goods_privilege;
                         }
                         $user_related_role_ids  =array_column($user_related_list,'role_id');
-                        $user_related_role_priv_list = UserAdminRolePrivModel::query()->getUserRolePrivByArray($user_related_role_ids, $priv_key);
+                        $user_related_role_priv_list = UserAdminRolePrivModel::getModel()->getUserRolePrivByArray($user_related_role_ids, $priv_key);
                         if ($user_related_role_priv_list['priv_value'] == UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL) //角色未配置权限或当前模块未配置权限时返回所有可见权限
                         {
                             $goods_privilege['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;

@@ -33,21 +33,25 @@ class UserDepartmentModel extends Model
     }
 
 
-    private function getUsersByDepartmentId($department_id,$user_id)
+    public function getUsersByDepartmentId($department_id,$user_id)
     {
         if(empty($department_id))
         {
             return [];
         }
-        $all_department_ids = $this->getAllChildAndSelfDeparmentId($user_id, $department_id);
-        $where = array(
-            ['user_id', '=', $user_id],
-            ['status',  '<>', 2]
-        );
-        $data = Unique::getArray(UserAdminModel::where($where)->whereIn("user_department_id",$all_department_ids)->select("id"));
-        $user_related_ids = empty($data)?[]:array_column($data,'id');
         $redis_key = self::DEPARTMENT_USER_ADMIN_IDS_REDIS_KEY . $department_id;
-        $this->redis->set($redis_key, $user_related_ids,4*3600);
+
+        $user_related_ids = $this->redis->get($redis_key);
+        if ($user_related_ids === false){
+            $all_department_ids = $this->getAllChildAndSelfDeparmentId($user_id, $department_id);
+            $where = array(
+                ['user_id', '=', $user_id],
+                ['status',  '<>', 2]
+            );
+            $data = Unique::getArray(UserAdminModel::where($where)->whereIn("user_department_id",$all_department_ids)->get("id"));
+            $user_related_ids = empty($data)?[]:array_column($data,'id');
+            $this->redis->set($redis_key, $user_related_ids,4*3600);
+        }
         return $user_related_ids;
     }
 
@@ -55,7 +59,7 @@ class UserDepartmentModel extends Model
 
     public function getAllChildAndSelfDeparmentId($user_id = 0  ,$department_id = 0 , $is_master = 0){
         if($is_master == 1 && $department_id == 0 ) {
-            $lists = Unique::getArray(self::where("user_id",'=',$user_id)->whereIn("status",[1,2])->select("id,level")) ;
+            $lists = Unique::getArray(self::where("user_id",'=',$user_id)->whereIn("status",[1,2])->get(["id","level"])) ;
             $result = array() ;
             if(!empty($lists)){
                 $result =array_column($lists , 'id') ;
@@ -65,7 +69,7 @@ class UserDepartmentModel extends Model
             return array() ;
         }else{
             $result[] = $department_id ;
-            $lists = Unique::getArray(self::where("user_id",'=',$user_id)->where("parent_id",'=',$department_id)->whereIn("status",[1,2])->select("id,level")) ;
+            $lists = Unique::getArray(self::where("user_id",'=',$user_id)->where("parent_id",'=',$department_id)->whereIn("status",[1,2])->get(["id","level"])) ;
             if(empty($lists)){
                 return $result ;
             }else{
@@ -74,7 +78,7 @@ class UserDepartmentModel extends Model
                 if($lists[0]['level'] == 3){
                     return $result ;
                 }else{
-                    $lists2 = Unique::getArray(self::where("user_id",'=',$user_id)->whereIn("parent_id",'=',$rt)->whereIn("status",[1,2])->select("id,level")) ;
+                    $lists2 = Unique::getArray(self::where("user_id",'=',$user_id)->whereIn("parent_id",$rt)->whereIn("status",[1,2])->get(["id","level"])) ;
                     if(empty($lists2)){
                         return $result ;
                     }else{
