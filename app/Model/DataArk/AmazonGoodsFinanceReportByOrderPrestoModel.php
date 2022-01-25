@@ -14006,9 +14006,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             'fba_fields'=>""
         ];
         $today = strtotime(date("Y-m-d", time()));
-        $today = 1642694400;  //todo 测试环境没数据，先写死过去时间
         $now_time = time();
-        $now_time = 1642780799;  //todo 测试环境没数据，先写死过去时间
         $where = " WHERE tend.user_id = ".intval($datas['user_id'])." AND tend.db_num = '".$this->dbhost."' AND tend.create_time >= {$today} AND tend.create_time <= {$now_time}";
         if (count($channel_arr)==1){
             $where .= " AND c.id = ".intval(implode(",",$channel_arr));
