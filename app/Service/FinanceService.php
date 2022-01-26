@@ -491,10 +491,10 @@ class FinanceService extends BaseService
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
         }
-        if (isset($params['user_id']) && $params['user_id'] == 266) {
-            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
-            $logger1->info('result', [$result]);
-        }
+//        if (isset($params['user_id']) && $params['user_id'] == 266) {
+//            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
+//            $logger1->info('result', [$result]);
+//        }
         return $result;
     }
 
