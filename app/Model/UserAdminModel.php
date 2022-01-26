@@ -41,7 +41,7 @@ class UserAdminModel extends Model
      * @param $admin_id
      * @param $user_admin_info
      */
-    public function save_user_admin_cache($user_id, $admin_id, $user_admin_info)
+    public function saveUserAdminCache($user_id, $admin_id, $user_admin_info)
     {
         if (empty($user_id) || empty($admin_id) || empty($user_admin_info))
             return;
@@ -56,7 +56,7 @@ class UserAdminModel extends Model
      * @param $admin_ids
      * @return int|mixed
      */
-    public function get_user_admin_info($user_id, $admin_ids)
+    public function getUserAdminInfo($user_id, $admin_ids)
     {
         if (empty($user_id) || empty($admin_ids))
             return 0;
@@ -79,7 +79,7 @@ class UserAdminModel extends Model
             $columns = "id,user_id,role_id,is_responsible,user_department_id,is_master";
             $user_admin_info_list = Unique::getArray(self::where($where)->whereIn("id",$un_cached_ids)->select(Db::raw($columns))->get());
             foreach ($user_admin_info_list as $item) {
-                $this->save_user_admin_cache($user_id, $item['id'], $item);
+                $this->saveUserAdminCache($user_id, $item['id'], $item);
                 $user_admin_redis_data[]=$item;
             }
         }

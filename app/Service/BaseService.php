@@ -53,9 +53,14 @@ class BaseService extends Service {
         return $userInfo;
     }
 
-
+    /**
+     * 获取商品权限信息
+     * @param $priv_key string 权限key
+     * @param $userInfo array 用户信息
+     * @return array
+     */
     public function getUserGoodsPriv($priv_key,$userInfo){
-        $goods_privilege = ['priv_key' => $priv_key, 'priv_value' => UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE, 'priv_user_admin_ids' => []];
+        $goods_privilege = ['priv_key' => $priv_key, 'priv_value' => UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE, 'priv_user_admin_ids' => [], "related_user_admin_ids_str"=> ""];
 
         //没传key直接返回全部权限
         if (empty($priv_key)) {
@@ -74,7 +79,7 @@ class BaseService extends Service {
         $user_id = $userInfo['user_id'];
         $admin_id = $userInfo['admin_id'];
 
-        $user_admin_info   = UserAdminModel::getModel()->get_user_admin_info($user_id,[$admin_id]);
+        $user_admin_info   = UserAdminModel::getModel()->getUserAdminInfo($user_id,[$admin_id]);
         $user_admin_info   = $user_admin_info[0];
         //2.用户数据不存在或角色为空时，menu_id为空时返回无权限,正常情况所有用户应该都有一个角色
         if (empty($user_admin_info) || empty($user_admin_info['role_id'])) {
@@ -100,7 +105,7 @@ class BaseService extends Service {
                 $tmp_related_ids=array_diff($user_related_ids,[$admin_id]);
                 if(!empty($tmp_related_ids))
                 {
-                    $user_related_list=UserAdminModel::getModel()->get_user_admin_info($user_id,$tmp_related_ids);
+                    $user_related_list=UserAdminModel::getModel()->getUserAdminInfo($user_id,$tmp_related_ids);
                     if(!empty($user_related_list))
                     {
                         $master_related= array_filter($user_related_list,function ($item){
