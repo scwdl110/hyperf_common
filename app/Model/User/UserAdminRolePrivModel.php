@@ -80,6 +80,7 @@ class UserAdminRolePrivModel extends Model
                 }else{
                     //未存在该权限则全部权限
                     $priv_value = self::GOODS_PRIV_VALUE_ALL;
+                    break ;//最大权限直接返回
                 }
 
             }
