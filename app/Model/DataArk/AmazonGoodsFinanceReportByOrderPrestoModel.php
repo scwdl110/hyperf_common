@@ -353,6 +353,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $newDatas = $datas ;
         $on_key = 1 ;
 
+        //有用到比较的指标
+        $compare_targets = !empty($datas['compare_data'][0]['custom_target_set']) ? array_column($datas['compare_data'][0]['custom_target_set'],'target') : [];
         foreach($datas['compare_data'] as $ck => $compare_data)   {
             if($compare_data['target'] == 'industry'){
                 if($compare_data['category_level'] == 1){
@@ -372,8 +374,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
                 $max_ym =  date('Ym',$compare_data['compare_end_time'])  ;
                 $ym_where = $this->getYnWhere($max_ym, $min_ym) ;
+                $newDatas['max_ym'] = $max_ym;
+                $newDatas['min_ym'] = $min_ym;
+                $newDatas['origin_time'] = '  AND create_time >= ' . $compare_data['compare_start_time'] . ' AND create_time <= ' . $compare_data['compare_end_time'];
 
                 $newDatas['target'] = $compare_data['target'] ; //替换需要查询的指标
+                $newDatas['compare_targets'] = $compare_targets ; //有涉及到比较的指标
                 if($type == '0'){ // 获取店铺维度字段
                     $compare_fields_arr = $this->getUnGoodsFields($newDatas) ;
                 }else if ($type == '1'){ // 获取商品维度字段
@@ -2367,7 +2373,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             $total_user_sessions_views = array();
-            if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && ($datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || $datas['is_median'] == 1){//按无且有排序才使用
+            $compare_targets = !empty($datas['compare_targets']) ? $datas['compare_targets'] : (!empty($datas['compare_data']) ? ['goods_views_rate','goods_buyer_visit_rate'] : []);
+            if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && (in_array('goods_views_rate', $compare_targets) || in_array('goods_buyer_visit_rate', $compare_targets) || $datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || $datas['is_median'] == 1){//按无且有排序才使用
                 $fields['goods_buyer_visit_rate'] = in_array('goods_buyer_visit_rate', $targets)?'1':'0';
                 $fields['goods_views_rate'] = in_array('goods_views_rate', $targets) ?'1':'0';
                 $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
