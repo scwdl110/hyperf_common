@@ -14,6 +14,8 @@ namespace App\Model\user;
 use App\Lib\Redis;
 use Captainbi\Hyperf\Base\Model;
 use Captainbi\Hyperf\Util\Unique;
+use Hyperf\Logger\LoggerFactory;
+use Hyperf\Utils\ApplicationContext;
 
 class UserAdminRolePrivModel extends Model
 {
@@ -68,6 +70,9 @@ class UserAdminRolePrivModel extends Model
                 }
             }
         }
+
+        $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
+        $logger->info('goods_priv', [$return_priv]);
 
         //遍历最大权限
         if (!empty($return_priv)){
