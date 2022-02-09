@@ -23,6 +23,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected static $tableMaps = [
         'table_channel' => 'ods.ods_dataark_b_channel',
+        'table_area' => 'ods.ods_dataark_b_site_area',
         'table_site_rate' => 'ods.ods_dataark_b_site_rate',
         'table_user_department' => 'ods.ods_dataark_b_user_department',
         'table_amazon_goods_isku' => 'ods.ods_dataark_f_amazon_goods_isku_001',
@@ -33,6 +34,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_amazon_goods_finance_report_by_order' => 'ods.ods_dataark_f_amazon_goods_finance_report_by_order_001',
         'table_channel_monthly_profit_report' => 'ods.ods_dataark_f_monthly_profit_report_001',
         'table_monthly_profit_report_by_sku' => 'ods.ods_dataark_f_monthly_profit_report_by_sku_001',
+
+        'table_amazon_fba_inventory_v3' => 'ods.ods_g_amazon_fba_inventory_v3_001',
+        'table_amazon_fba_inventory_v3_rel' => 'ods.ods_g_amazon_fba_inventory_v3_rel_001',
+        'table_amazon_fba_inventory_tend_v3' => 'ods.ods_g_amazon_fba_inventory_v3_tend_001',
 
         'table_user_channel' => 'dim.dim_dataark_b_user_channel',
         'table_department_channel' => 'dim.dim_dataark_b_department_channel',
@@ -59,6 +64,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_dws_arkdata_category01_month' => 'dwsslave.dws_arkdata_category01_month',
         'table_dws_arkdata_category02_month' => 'dwsslave.dws_arkdata_category02_month',
         'table_dws_arkdata_category03_month' => 'dwsslave.dws_arkdata_category03_month',
+
+        'table_erp_storage_warehouse_isku' => 'ods.ods_e_erp_storage_warehouse_isku_001',
+        'table_erp_storage_inventory_warehouse_report' => 'ods.ods_e_erp_storage_inventory_warehouse_report_001',
     ];
 
 
@@ -501,7 +509,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ?bool $isCache = null,
         int $cacheTTL = 300,
         bool $isMysql = false,
-        array $compare_data = []
+        array $compare_data = [],
+        array $fba_data = [],
+        array $erp_data = []
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -596,8 +606,67 @@ abstract class AbstractPrestoModel implements BIModelInterface
             if(!empty($rt_order)){
                 $sql.= " ORDER BY " .$rt_order ;
             }
+        }
+        elseif (!empty($erp_data))
+        {
+            $erp_origin_fields = $erp_data['origin_fields'];
+            $erp_query_fields = $erp_data['query_fields'];
+            $erp_query_group = $erp_data['query_group'];
+            $erp_query_order = $erp_data['query_order'];
+            $erp_report_table = $erp_data['report_table'];
+            $erp_origin_sql = "SELECT {$erp_origin_fields} FROM {$table} {$where} {$group}, report.myear, report.mmonth";
+            $sql = "SELECT {$erp_query_fields} FROM ({$erp_origin_sql}) AS report_inner {$erp_report_table} GROUP BY {$erp_query_group} ORDER BY {$erp_query_order}";
         }else{
             $sql =  "SELECT {$data} FROM {$table} {$where} {$group} {$order} ";
+        }
+
+        //有查询FBA指标
+        if(!empty($fba_data)){
+            $newTables = array() ;
+            $newTables[] = "new_origin_table AS ( {$sql} ) " ;
+            if(empty($fba_data['fba_fields'])){
+                $rt_field = 'new_origin_table.*,fba_table.*' ;
+            }else{
+                $rt_field = 'new_origin_table.*,'. $fba_data['fba_fields'];
+            }
+            if(!empty($fba_data['other_field'])){
+                $rt_field.=" , " . $fba_data['other_field'] ;
+            }
+
+            $rt_sql = "SELECT {$rt_field} FROM new_origin_table" ;
+            $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
+            $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
+            $rt_order = !empty($fba_data['order']) ? $fba_data['order'] : "" ;
+            $count_table_group = empty($fba_data['group']) ? '' : " GROUP BY {$fba_data['group']}";
+            if(!empty($fba_data['child_table'])){
+                foreach($fba_data['child_table'] as $c=>$cdata){
+                    if(!empty($fba_data['is_count']) && $c == '0'){
+                        if($fba_data['dimension'] == 'channel'){
+                            $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
+                        }elseif($fba_data['dimension'] == 'sku'){
+                            $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                            $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} {$where} {$count_table_group})";
+                        }else{
+                            $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                        }
+                    }else{
+                        $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                    }
+                }
+            }
+            if(!empty($rt_join)){
+                $rt_sql .= " LEFT JOIN fba_table ON " . $rt_join ;
+            }
+            if(!empty($rt_where)){
+                $rt_sql .= " WHERE " . $rt_where ;
+            }
+            $sql = 'WITH 
+            ' . implode(',
+            ' , $newTables) . "
+            " .$rt_sql ;
+            if(!empty($rt_order)){
+                $sql.= " ORDER BY " .$rt_order ;
+            }
         }
         //商品级
         //print_r($this->goodsCols);
@@ -873,12 +942,13 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ?bool $isCache = null,
         int $cacheTTL = 300,
         bool $isMysql = false ,
-        array $compare_data = []
+        array $compare_data = [],
+        array $fba_data = []
 
     ): int {
         $where = is_array($where) ? $this->sqls($where) : $where;
 
-        if(empty($compare_data)){
+        if(empty($compare_data) && empty($fba_data)){
             if ($group) {
                 $data = $data ?: '1';
                 if (stripos($group, 'having') === false && stripos($group, ',') === false && !$isMysql) {
@@ -913,7 +983,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $result = $this->getOne($where, "COUNT(*) AS num", $table, '', '' , $isJoin, $isCache, $cacheTTL,$isMysql);
             }
         }else{  //有环比数据获取总条数时
-            $result = $this->getCompareDataCount($where, $data, $table,  $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data);
+            $result = $this->getCompareDataCount($where, $data, $table,  $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data,$fba_data);
         }
         return intval($result['num'] ?? 0);
     }
@@ -924,7 +994,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
      * author: LWZ
      * editTime: 2021-09-26 15:21
      */
-    public function getCompareDataCount($where, $data, $table, $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data){
+    public function getCompareDataCount($where, $data, $table, $group , $isJoin, $isCache, $cacheTTL,$isMysql,$compare_data,$fba_data){
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
         $where = empty($where) ? '' : " WHERE {$where}";
@@ -932,7 +1002,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         $newTables = array() ;
         $newTables[] = "origin_table AS (  SELECT {$data} FROM {$table} {$where} {$group} ) " ;
-        $rt_sql = 'SELECT count(*) as num FROM origin_table ' ;
+        if(empty($fba_data)){
+            $rt_sql = 'SELECT count(*) as num FROM origin_table ' ;
+        }else{
+            $rt_sql = 'SELECT origin_table.* FROM origin_table ' ;
+        }
         $rt_where = '' ;
         //不需要having 之后的SQL
         $new_group =  preg_replace("/ having.*/i","",$group);
@@ -961,6 +1035,29 @@ abstract class AbstractPrestoModel implements BIModelInterface
         ' , $newTables) . "
         " .$rt_sql ;
 
+        //有查询FBA指标
+        if(!empty($fba_data)){
+            $newTables = array() ;
+            $newTables[] = "new_origin_table AS ( {$sql} ) " ;
+            $rt_sql = "SELECT count(*) as num FROM new_origin_table" ;
+            $rt_join = !empty($fba_data['join']) ? $fba_data['join'] : "" ;
+            $rt_where = !empty($fba_data['where']) ? $fba_data['where'] : "" ;
+            if(!empty($fba_data['child_table'])){
+                foreach($fba_data['child_table'] as $c=>$cdata){
+                    $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
+                }
+            }
+            if(!empty($rt_join)){
+                $rt_sql .= " LEFT JOIN fba_table ON " . $rt_join ;
+            }
+            if(!empty($rt_where)){
+                $rt_sql .= " WHERE " . $rt_where ;
+            }
+            $sql = 'WITH 
+            ' . implode(',
+            ' , $newTables) . "
+            " .$rt_sql ;
+        }
         if($isJoin){
             foreach ($this->goodsCols as $key => $value){
                 if (!is_array($value)) {
