@@ -11,8 +11,8 @@ declare(strict_types=1);
  */
 namespace App\Service;
 
-use App\Model\user\UserAdminRolePrivModel;
-use App\Model\user\UserDepartmentModel;
+use App\Model\User\UserAdminRolePrivModel;
+use App\Model\User\UserDepartmentModel;
 use Captainbi\Hyperf\Base\Service;
 use App\Model\UserAdminModel;
 use App\Model\UserModel;
