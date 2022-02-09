@@ -22,7 +22,7 @@ class UserDepartmentModel extends Model
     protected $table = 'user_department';
 
 
-    const DEPARTMENT_USER_ADMIN_IDS_REDIS_KEY='department_user_admin_ids_';
+    const DEPARTMENT_USER_ADMIN_IDS_REDIS_KEY='jdx_department_user_admin_ids_';
 
     private $redis;
 

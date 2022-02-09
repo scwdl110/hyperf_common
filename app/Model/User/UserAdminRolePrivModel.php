@@ -26,7 +26,7 @@ class UserAdminRolePrivModel extends Model
     const GOODS_PRIV_VALUE_RELATED_USER = 2;
     const GOODS_PRIV_VALUE_NONE         = 3;
 
-    const ROLE_GOODS_PRIV_REDIS_KEY='role_goods_priv_';
+    const ROLE_GOODS_PRIV_REDIS_KEY='jdx_role_goods_priv_';
 
     private $redis;
 

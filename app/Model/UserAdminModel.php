@@ -25,7 +25,7 @@ class UserAdminModel extends Model
 
     private $redis;
 
-    const USER_ADMIN_INFO_REDIS_KEY = 'user_admin_info_cache_';
+    const USER_ADMIN_INFO_REDIS_KEY = 'jdx_user_admin_info_cache_';
 
     public function __construct(array $attributes = [])
     {
