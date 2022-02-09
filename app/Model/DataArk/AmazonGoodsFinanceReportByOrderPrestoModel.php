@@ -14137,7 +14137,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         $orderby_sort = "";
         if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
-            if(!empty($fbaArr[$datas['sort_target']]) ) {
+            if(in_array($datas['sort_target'], ['fba_turnover_times'])){  //周转次数单独处理
+                $orderby_sort = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+            } else if(!empty($fbaArr[$datas['sort_target']]) ) {
                 $orderby_sort = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort_target'] , $custom_fba_target_key)) { //自定义指标
                 $orderby_sort = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
@@ -14147,7 +14149,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         if (!empty($datas['order']) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
-            if(!empty($fbaArr[$datas['sort']]) ){
+            if(in_array($datas['sort'], ['fba_turnover_times'])){  //周转次数单独处理
+                $orderby_sort = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+            } else if(!empty($fbaArr[$datas['sort']]) ){
                 $orderby_sort = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort'] , $custom_fba_target_key)) { //自定义指标
                 $orderby_sort = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
