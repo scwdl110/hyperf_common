@@ -5624,9 +5624,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [];
         }
 
-        $searchKey = $datas['searchKey'] ?? '';
-        $searchVal = $datas['searchVal'] ?? '';
-        $matchType = $datas['matchType'] ?? '';
+        $searchKey = $params['searchKey'] ?? '';
+        $searchVal = $params['searchVal'] ?? '';
+        $matchType = $params['matchType'] ?? '';
         $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
         $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
 
