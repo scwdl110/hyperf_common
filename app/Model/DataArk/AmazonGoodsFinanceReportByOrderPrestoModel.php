@@ -13903,7 +13903,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
                 $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
             }else{
-                $orderbyArr[] = '((fba_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (fba_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
+                if($fbaArr[$this->fbaSort['sort_target']]['count_type'] == '4'){
+                    $order_fields = "{$fbaArr[$this->fbaSort['sort_target']]['mysql_field']}";
+                }else{
+                    $order_fields = "fba_table." . $this->fbaSort['sort_target'];
+                }
+                $orderbyArr[] = '(('. $order_fields .') IS NULL) ,  (' . $order_fields . ' ) ' . $this->fbaSort['sort_order'];;
             }
         }
         //非按无周期的，指标展现排序
