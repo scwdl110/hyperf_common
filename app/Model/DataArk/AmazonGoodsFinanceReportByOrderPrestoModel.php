@@ -2988,6 +2988,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
+            if (in_array('sales_evaluation_quote', $targets)) {  //测试销售额
+                if ($datas['sale_datas_origin'] == '1') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['sales_evaluation_quote'] = "sum( report.byorderitem_reserved_field72 )";
+                    } else {
+                        $fields['sales_evaluation_quote'] = "sum( report.byorderitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                    }
+                } elseif ($datas['sale_datas_origin'] == '2') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['sales_evaluation_quote'] = "sum( report.reportitem_reserved_field72 )";
+                    } else {
+                        $fields['sales_evaluation_quote'] = "sum( report.reportitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                    }
+                }
+            }
+
             if (in_array('sale_return_goods_number', $targets) || in_array('sale_refund_rate', $targets)) {  //退款量
                 if ($datas['refund_datas_origin'] == '1') {
                     $fields['sale_return_goods_number'] = "sum(report.byorder_refund_num )";
@@ -3606,12 +3622,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             if (in_array('sales_evaluation_nums', $targets)) {  //测评销量
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorderitem_evaluation_nums' : 'reportitem_evaluation_nums';
+                $tmp_field = $datas['sale_datas_origin'] == '1' ? 'byorderitem_evaluation_nums' : 'reportitem_evaluation_nums';
                 $fields['sales_evaluation_nums'] = "sum( report.{$tmp_field} )";
             }
 
             if (in_array('sales_evaluation_order_nums', $targets)) {  //测评订单量
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
+                $tmp_field = $datas['sales_evaluation_nums'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
                 $fields['sales_evaluation_order_nums'] = "sum( report.{$tmp_field} )";
             }
 
@@ -4088,6 +4104,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     } else {
                         $fields['count_total'] = "sum( report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1)) )";
                         $time_fields = $this->getTimeFields($time_line, "report.report_sales_quota * ({:RATE} / COALESCE(rates.rate ,1))");
+                    }
+                }
+            }else if ($time_target == 'sales_evaluation_quote') {  //商品销售额
+                if ($datas['sale_datas_origin'] == '1') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['count_total'] = "sum( report.byorderitem_reserved_field72 )";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorderitem_reserved_field72");
+                    } else {
+                        $fields['count_total'] = "sum( report.byorderitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                        $time_fields = $this->getTimeFields($time_line, "report.byorderitem_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1))");
+                    }
+                } elseif ($datas['sale_datas_origin'] == '2') {
+                    if ($datas['currency_code'] == 'ORIGIN') {
+                        $fields['count_total'] = "sum( report.report_reserved_field72 )";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_reserved_field72");
+                    } else {
+                        $fields['count_total'] = "sum( report.report_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1)) )";
+                        $time_fields = $this->getTimeFields($time_line, "report.report_reserved_field72 * ({:RATE} / COALESCE(rates.rate ,1))");
                     }
                 }
             } else if ($time_target == 'sale_return_goods_number') {  //退款量
@@ -5006,11 +5040,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['count_total'] = "SUM( report.{$tmp_field} )";
                 $time_fields = $this->getTimeFields($time_line, $tmp_field);
             }else if ($time_target == 'sales_evaluation_nums') {  //测评销量
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorderitem_evaluation_nums' : 'reportitem_evaluation_nums';
+                $tmp_field = $datas['sale_datas_origin'] == '1' ? 'byorderitem_evaluation_nums' : 'reportitem_evaluation_nums';
                 $fields['count_total'] = "SUM( report.{$tmp_field} )";
                 $time_fields = $this->getTimeFields($time_line, $tmp_field);
             }else if ($time_target == 'sales_evaluation_order_nums') {  //测评订单量
-                $tmp_field = $datas['finance_datas_origin'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
+                $tmp_field = $datas['sales_evaluation_nums'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
                 $fields['count_total'] = "SUM( report.{$tmp_field} )";
                 $time_fields = $this->getTimeFields($time_line, $tmp_field);
             }else if ($time_target == 'fba_sales_refund') {  //FBA退款金额
@@ -5704,9 +5738,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [];
         }
 
-        $searchKey = $datas['searchKey'] ?? '';
-        $searchVal = $datas['searchVal'] ?? '';
-        $matchType = $datas['matchType'] ?? '';
+        $searchKey = $params['searchKey'] ?? '';
+        $searchVal = $params['searchVal'] ?? '';
+        $matchType = $params['matchType'] ?? '';
         $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
         $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
 
@@ -13698,7 +13732,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_field = "max(sku) as sku";
             $fba_table_field1 = "max(g.sku) as sku";
             $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id";
-            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.sku=g.sku and g.channel_id = c.channel_id JOIN dim.dim_dataark_f_dw_goods_dim_report_001 AS amazon_goods on c.goods_id=amazon_goods.es_id";
+            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.sku=g.sku and g.channel_id = c.channel_id JOIN {$this->table_goods_dim_report} AS amazon_goods on c.goods_id=amazon_goods.es_id";
             $fba_data['is_count'] = 1 ;
             $fba_data['dimension'] = 'sku' ; //统计商品有关的维度
         }elseif($datas['count_dimension'] == 'sku'){
@@ -13996,6 +14030,28 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         $orderbyArr = array();
+        if(!empty($this->fbaSort)){
+            if(!empty($this->fbaSort['is_origin'])){
+                //类似销量这样的排序
+                if(!empty($this->fbaSort['sort_target'])) {
+                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];
+                }
+            }elseif(!empty($this->fbaSort['is_custom'])){
+                //自定义公式
+                if(!empty($other_fields[$this->fbaSort['sort_target']])) {
+                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
+                }
+            }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
+                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
+            }else{
+                if($fbaArr[$this->fbaSort['sort_target']]['count_type'] == '4'){
+                    $order_fields = "{$fbaArr[$this->fbaSort['sort_target']]['mysql_field']}";
+                }else{
+                    $order_fields = "fba_table." . $this->fbaSort['sort_target'];
+                }
+                $orderbyArr[] = '(('. $order_fields .') IS NULL) ,  (' . $order_fields . ' ) ' . $this->fbaSort['sort_order'];;
+            }
+        }
         //非按无周期的，指标展现排序
         if($datas['count_periods'] > 0 && $datas['show_type'] == '2'){
             if($datas['count_periods'] == '4'){ //按季度
@@ -14029,23 +14085,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $orderbyArr[] = 'new_origin_table.head_id' . $time_group ;
             }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
                 $orderbyArr[] = 'new_origin_table.developer_id ' . $time_group;
-            }
-        }
-        if(!empty($this->fbaSort)){
-            if(!empty($this->fbaSort['is_origin'])){
-                //类似销量这样的排序
-                if(!empty($this->fbaSort['sort_target'])) {
-                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];
-                }
-            }elseif(!empty($this->fbaSort['is_custom'])){
-                //自定义公式
-                if(!empty($other_fields[$this->fbaSort['sort_target']])) {
-                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
-                }
-            }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
-                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
-            }else{
-                $orderbyArr[] = '((fba_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (fba_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
             }
         }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
@@ -14242,24 +14281,28 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields = array_merge($fields , $other_fields) ;
         }
 
-
+        $orderby_sort = "";
         if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
-            if(!empty($fbaArr[$datas['sort_target']]) ) {
-                $orderby = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
+            if(in_array($datas['sort_target'], ['fba_turnover_times'])){  //周转次数单独处理
+                $orderby_sort = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+            } else if(!empty($fbaArr[$datas['sort_target']]) ) {
+                $orderby_sort = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort_target'] , $custom_fba_target_key)) { //自定义指标
-                $orderby = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+                $orderby_sort = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
             }else{
-                $orderby = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
+                $orderby_sort = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }
         }
 
         if (!empty($datas['order']) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
-            if(!empty($fbaArr[$datas['sort']]) ){
-                $orderby = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
+            if(in_array($datas['sort'], ['fba_turnover_times'])){  //周转次数单独处理
+                $orderby_sort = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+            } else if(!empty($fbaArr[$datas['sort']]) ){
+                $orderby_sort = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort'] , $custom_fba_target_key)) { //自定义指标
-                $orderby = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+                $orderby_sort = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
             }else{
-                $orderby = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
+                $orderby_sort = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
             }
         }
 
@@ -14327,6 +14370,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             } else {
                 $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
             }
+        }
+        if (!empty($orderby_sort)){
+            $orderby = "{$orderby_sort}, {$orderby}";
         }
 
         $target_wheres = $datas['where_detail']['target'] ?? array();

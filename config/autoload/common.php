@@ -113,6 +113,12 @@ return [
         "fba_special_purpose"=>array("count_type"=>1, "mysql_field"=>"available_stock","data_type" => 1),
         //预留库存
         "fba_reserve_stock"=>array("count_type"=>1, "mysql_field"=>"reserved_quantity","data_type" => 1),
+        //买家订单预留
+        "fba_reserved_customerorders"=>array("count_type"=>1, "mysql_field"=>"reserved_customerorders","data_type" => 1),
+        //调拨预留
+        "fba_reserved_fc_transfers"=>array("count_type"=>1, "mysql_field"=>"reserved_fc_transfers","data_type" => 1),
+        //处理预留
+        "fba_reserved_fc_processing"=>array("count_type"=>1, "mysql_field"=>"reserved_fc_processing","data_type" => 1),
         //不可售
         "fba_not_sales_stock"=>array("count_type"=>1, "mysql_field"=>"unsellable_quantity","data_type" => 1),
         //处理中
