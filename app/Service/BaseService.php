@@ -102,29 +102,29 @@ class BaseService extends Service {
                 $user_related_ids = array_unique(array_merge($user_related_ids, [$admin_id]));
 
                 //部门负责人下面有人是全部可见或者是主账号时，部门负责人直接返回全部可见
-                $tmp_related_ids=array_diff($user_related_ids,[$admin_id]);
-                if(!empty($tmp_related_ids))
-                {
-                    $user_related_list=UserAdminModel::getModel()->getUserAdminInfo($user_id,$tmp_related_ids);
-                    if(!empty($user_related_list))
-                    {
-                        $master_related= array_filter($user_related_list,function ($item){
-                            return $item['is_master']==1;
-                        });
-                        if(count($master_related)>0)
-                        {
-                            $goods_privilege['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;
-                            return $goods_privilege;
-                        }
-                        $user_related_role_ids  =array_column($user_related_list,'role_id');
-                        $user_related_role_priv_list = UserAdminRolePrivModel::getModel()->getUserRolePrivByArray($user_related_role_ids, $priv_key);
-                        if ($user_related_role_priv_list['priv_value'] == UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL) //角色未配置权限或当前模块未配置权限时返回所有可见权限
-                        {
-                            $goods_privilege['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;
-                            return $goods_privilege;
-                        }
-                    }
-                }
+//                $tmp_related_ids=array_diff($user_related_ids,[$admin_id]);
+//                if(!empty($tmp_related_ids))
+//                {
+//                    $user_related_list=UserAdminModel::getModel()->getUserAdminInfo($user_id,$tmp_related_ids);
+//                    if(!empty($user_related_list))
+//                    {
+//                        $master_related= array_filter($user_related_list,function ($item){
+//                            return $item['is_master']==1;
+//                        });
+//                        if(count($master_related)>0)
+//                        {
+//                            $goods_privilege['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;
+//                            return $goods_privilege;
+//                        }
+//                        $user_related_role_ids  =array_column($user_related_list,'role_id');
+//                        $user_related_role_priv_list = UserAdminRolePrivModel::getModel()->getUserRolePrivByArray($user_related_role_ids, $priv_key);
+//                        if ($user_related_role_priv_list['priv_value'] == UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL) //角色未配置权限或当前模块未配置权限时返回所有可见权限
+//                        {
+//                            $goods_privilege['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;
+//                            return $goods_privilege;
+//                        }
+//                    }
+//                }
             }
             $goods_privilege['related_user_admin_ids_str'] = !empty($user_related_ids) ? implode(",", $user_related_ids) : "{$admin_id}";
 

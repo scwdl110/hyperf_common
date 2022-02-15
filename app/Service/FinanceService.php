@@ -167,25 +167,33 @@ class FinanceService extends BaseService
         //商品和运营人员 添加商品权限控制
         if ($type > 0 && isset($req['priv_key'])){
 
-            $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
-            switch ($goods_priv['priv_value'])
-            {
-                case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
-                    $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
-                    if(!empty($related_user_admin_ids_str))
-                    {
-                        $params['priv_goods_operation_user_admin_id'] = $related_user_admin_ids_str;
-                        $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
-                    }else{
+            if (isset($req['count_dimension']) && in_array($req['count_dimension'],['isku','head_id','developer_id'])){//isku和负责人
+
+
+
+            }else{
+                $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
+                switch ($goods_priv['priv_value'])
+                {
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
+                        $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
+                        if(!empty($related_user_admin_ids_str))
+                        {
+                            $params['priv_goods_operation_user_admin_id'] = $related_user_admin_ids_str;
+                            $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                        }else{
+                            return $result;
+                        }
+                        break;
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE:  //不可见
                         return $result;
-                    }
-                    break;
-                case UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE:  //不可见
-                    return $result;
-                    break;
-                default:   //全部可见
-                    break;
+                        break;
+                    default:   //全部可见
+                        break;
+                }
             }
+
+
         }
 
         $params['origin_where'] = $where;
