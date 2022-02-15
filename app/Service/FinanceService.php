@@ -163,7 +163,7 @@ class FinanceService extends BaseService
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id={$channelIds[0]}";
             }
         }
-
+        $params['priv_goods_operation_user_admin_id'] = "";
         //商品和运营人员 添加商品权限控制
         if ($type > 0 && isset($req['priv_key'])){
 
@@ -174,6 +174,7 @@ class FinanceService extends BaseService
                     $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
                     if(!empty($related_user_admin_ids_str))
                     {
+                        $params['priv_goods_operation_user_admin_id'] = $related_user_admin_ids_str;
                         $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
                     }else{
                         return $result;

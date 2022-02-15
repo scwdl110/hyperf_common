@@ -13714,7 +13714,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_group = " GROUP BY developer_id";
         }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
-        $fba_table_where1 = "WHERE 1=1";
+        if (isset($datas['priv_goods_operation_user_admin_id']) && !empty($datas['priv_goods_operation_user_admin_id'])){
+            $fba_table_where1 = "  WHERE amazon_goods.goods_operation_user_admin_id IN (" . $datas['priv_goods_operation_user_admin_id'] . ")";
+
+
+        }else{
+            $fba_table_where1 = "WHERE 1=1";
+
+        }
         if (!empty($where_detail)) {
             if (!empty($where_detail['transport_mode'])) {
                 if (!is_array($where_detail['transport_mode'])) {
