@@ -314,14 +314,32 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $tag_str = $where_detail['tag_id'] ;
                 }
-                if (!empty($tag_str)) {
-                    if (in_array(0,explode(",",$tag_str))){
-                        $notime_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
-                    }else{
-                        $notime_where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+                if($datas['count_dimension'] == 'tags'){
+                    if (!empty($tag_str)) {
+                        if (in_array(0,explode(",",$tag_str))){
+                            $notime_where .= " AND (tags_rel.tags_id  IN ( " . $tag_str . " )  OR  tags_rel.tags_id IS NULL )  ";
+
+                        }else{
+                            $notime_where .= " AND tags_rel.tags_id  IN ( " . $tag_str . " ) ";
+
+                        }
+                    }elseif ($tag_str == 0){
+                        $notime_where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
                     }
-                }elseif ($tag_str == 0){
-                    $notime_where .= " AND (tags_rel.tags_id = 0 OR tags_rel.tags_id IS NULL) ";
+                }else{
+                    if (!empty($tag_str)) {
+                        $tag_arr = explode(",",$tag_str);
+                        $where_or_temp = [];
+                        foreach ($tag_arr as $val){
+                            $where_or_temp[] = "tags.tags_id like '%,{$val},%'";
+                        }
+                        if (in_array(0,$tag_arr)){
+                            $where_or_temp[] = " tags.tags_id IS NULL ";
+                        }
+                        $notime_where .= " AND (". implode(' OR ',$where_or_temp)." )";
+                    }elseif ($tag_str == 0){
+                        $notime_where .= " AND (tags.tags_id like '%,0,%' OR tags.tags_id IS NULL) ";
+                    }
                 }
             }
             if(!empty($where_detail['sku'])){
@@ -364,11 +382,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else{
                     $compare_on = ['site_id','goods_product_category_name_1','goods_product_category_name_2','goods_product_category_name_3'] ;
                 }
-                $day_type = $compare_data['time_type'] == 3 ? 1 : ($compare_data['time_type'] == 4 ? 2 : 3);
-                $datas['compare_data'][$ck]['industry_table'] = $this->compareDataSql($compare_data['category_level'] , $day_type ,1 ,$compare_data['topn'] ,3 ,$compare_data['type'] ,$exchangeCode);
+                switch ($compare_data['time_type']){
+                    //昨天
+                    case 3:
+                        $day_type = 1;
+                        break;
+                    //近7天
+                    case 4:
+                        $day_type = 2;
+                        break;
+                    //近15天
+                    case 5:
+                        $day_type = 4;
+                        break;
+                    //近30天
+                    case 6:
+                        $day_type = 3;
+                        break;
+                }
+                $compare_data_target_type = !empty($compare_data['target_type']) ? $compare_data['target_type'] : 1;
+                $datas['compare_data'][$ck]['industry_table' . '_' .$compare_data_target_type] = $this->compareDataSql($compare_data['category_level'] , $day_type ,$compare_data_target_type ,$compare_data['topn'] ,3 ,$compare_data['type'] ,$exchangeCode);
                 $compare_on_arr = [] ;
                 foreach($compare_on as $con){
-                    $compare_on_arr[] = 'origin_table.'.$con . ' = industry_table.'.$con ;
+                    $compare_on_arr[] = 'origin_table.'.$con . " = industry_table_{$compare_data_target_type}.".$con ;
                 }
             }else{
                 $min_ym =  date('Ym',$compare_data['compare_start_time'])  ;
@@ -475,7 +511,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //where
                     if(!empty($custom_target_item['formula']) && !empty($custom_target_item['value'])){
                         if($custom_target_item['value'] == 'category_result_data'){
-                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . 'industry_table.' .$custom_target_item['value'];
+                            $compare_data_target_type = !empty($custom_target_item['target_type']) ? $custom_target_item['target_type'] : 1;
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . "industry_table_{$compare_data_target_type}." .$custom_target_item['value'];
                         }else{
                             if (strpos($custom_target_item['value'], '%') !== false) {
                                 $custom_target_item['value'] = round((float)$custom_target_item['value'] / 100, 4);
@@ -490,7 +527,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }
-            $datas['compare_data'][0]['where'] = !empty($custom_set_where) ? implode(' AND ',$custom_set_where) : [];
+            $condition_relation = !empty($datas['compare_data'][0]['condition_relation']) ? ' ' . $datas['compare_data'][0]['condition_relation'] . ' ' : ' AND ';
+            $datas['compare_data'][0]['where'] = !empty($custom_set_where) ? implode($condition_relation,$custom_set_where) : [];
             $datas['compare_data'][0]['order'] = !empty($custom_set_order) ? implode(',',$custom_set_order) : [];
         }
 
@@ -12916,7 +12954,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     /**
      * function compareDataSql 获取行业增长值/率sql
      * @param int $category_level 类目层级 1-一级类目 2-二级类目 3-三级类目
-     * @param int $day_type 时间类型 1-昨天 2-近7天 3-近30天
+     * @param int $day_type 时间类型 1-昨天 2-近7天 3-近30天 4-近15天
      * @param int $top_num
      * @param int $target_type 查询指标类型 1-销量 2-销售额
      * @param int $data_type 取值类型 1-取平均值 2-取临界节点值 3-取总量
@@ -12929,18 +12967,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $category_name_target = "";
         if($category_level == '1'){
             $table = $this->table_dws_idm_category01_topn_kpi ;
-            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1' ;
-            $result_field = 'category_table1.site_id, category_table1.product_category_name_1 as goods_product_category_name_1' ;
+            $on = "category_table_{$target_type}_1.site_id = category_table_{$target_type}_2.site_id AND category_table_{$target_type}_1.product_category_name_1 = category_table_{$target_type}_2.product_category_name_1" ;
+            $result_field = "category_table_{$target_type}_1.site_id, category_table_{$target_type}_1.product_category_name_1 as goods_product_category_name_1" ;
             $category_name_target = ",product_category_name_1";
         }else if($category_level == '2'){
             $table = $this->table_dws_idm_category02_topn_kpi ;
-            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2' ;
-            $result_field = 'category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2' ;
+            $on = "category_table_{$target_type}_1.site_id = category_table_{$target_type}_2.site_id AND category_table_{$target_type}_1.product_category_name_1 = category_table_{$target_type}_2.product_category_name_1 AND category_table_{$target_type}_1.product_category_name_2 = category_table_{$target_type}_2.product_category_name_2" ;
+            $result_field = "category_table_{$target_type}_1.site_id , category_table_{$target_type}_1.product_category_name_1 as goods_product_category_name_1, category_table_{$target_type}_1.product_category_name_2 as goods_product_category_name_2" ;
             $category_name_target = ",product_category_name_1,product_category_name_2";
         }else if($category_level == '3'){
             $table = $this->table_dws_idm_category03_topn_kpi ;
-            $on = 'category_table1.site_id = category_table2.site_id AND category_table1.product_category_name_1 = category_table2.product_category_name_1 AND category_table1.product_category_name_2 = category_table2.product_category_name_2 AND category_table1.product_category_name_3 = category_table2.product_category_name_3' ;
-            $result_field = "category_table1.site_id , category_table1.product_category_name_1 as goods_product_category_name_1, category_table1.product_category_name_2 as goods_product_category_name_2, category_table1.product_category_name_3 as goods_product_category_name_3" ;
+            $on = "category_table_{$target_type}_1.site_id = category_table_{$target_type}_2.site_id AND category_table_{$target_type}_1.product_category_name_1 = category_table_{$target_type}_2.product_category_name_1 AND category_table_{$target_type}_1.product_category_name_2 = category_table_{$target_type}_2.product_category_name_2 AND category_table_{$target_type}_1.product_category_name_3 = category_table_{$target_type}_2.product_category_name_3" ;
+            $result_field = "category_table_{$target_type}_1.site_id , category_table_{$target_type}_1.product_category_name_1 as goods_product_category_name_1, category_table_{$target_type}_1.product_category_name_2 as goods_product_category_name_2, category_table_{$target_type}_1.product_category_name_3 as goods_product_category_name_3" ;
             $category_name_target = ",product_category_name_1,product_category_name_2,product_category_name_3";
         }
 
@@ -12972,6 +13010,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }else{  //取总值
                 $target = '30day_top'.$top_num ;
             }
+        }else if($day_type == '4'){
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 30 * 24* 3600 ) ."'" ;
+            if($data_type == '1'){//取平均值
+                $target = '15day_top'.$top_num."_avg" ;
+            }elseif($data_type == '2'){  //取临界节点点值
+                $target = '15day_critical_top'.$top_num ;
+            }else{  //取总值
+                $target = '15day_top'.$top_num ;
+            }
         }
         //目前只提供美国站服装、3C、家居三大类目
         $limit_category_where = " AND product_category_name_1 IN ('Clothing, Shoes & Jewelry','Electronics','Home & Kitchen')";
@@ -12979,22 +13026,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if($target_type == '1'){
             $target = 'sales_volume_' . $target . ' AS sales_volume';
             if($result_type == '1'){
-                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = COALESCE ( category_table2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = 0 THEN -category_table2.sales_volume ELSE ( CASE WHEN COALESCE ( category_table2.sales_volume, 0 ) = 0 THEN category_table1.sales_volume ELSE ( category_table1.sales_volume - category_table2.sales_volume ) END ) END ) END ) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_volume, 0 ) = COALESCE ( category_table_{$target_type}_2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_volume, 0 ) = 0 THEN -category_table_{$target_type}_2.sales_volume ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_2.sales_volume, 0 ) = 0 THEN category_table_{$target_type}_1.sales_volume ELSE ( category_table_{$target_type}_1.sales_volume - category_table_{$target_type}_2.sales_volume ) END ) END ) END ) AS category_result_data " ;
             }else{
-                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = COALESCE ( category_table2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_volume, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table2.sales_volume, 0 ) = 0 THEN 1 ELSE ( category_table1.sales_volume - category_table2.sales_volume ) * 1.0000 / nullif(category_table2.sales_volume,0) END ) END ) END ) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_volume, 0 ) = COALESCE ( category_table_{$target_type}_2.sales_volume, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_volume, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_2.sales_volume, 0 ) = 0 THEN 1 ELSE ( category_table_{$target_type}_1.sales_volume - category_table_{$target_type}_2.sales_volume ) * 1.0000 / nullif(category_table_{$target_type}_2.sales_volume,0) END ) END ) END ) AS category_result_data " ;
             }
         }else if($target_type == '2'){
             $target = 'sales_quota_'.$target.' * {:RATE} * 1.0000 AS sales_quota' ;
             if($result_type == '1'){
-                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = COALESCE ( category_table2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = 0 THEN -category_table2.sales_quota ELSE ( CASE WHEN COALESCE ( category_table2.sales_quota, 0 ) = 0 THEN category_table1.sales_quota ELSE ( category_table1.sales_quota - category_table2.sales_quota ) END ) END ) END ) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_quota, 0 ) = COALESCE ( category_table_{$target_type}_2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_quota, 0 ) = 0 THEN -category_table_{$target_type}_2.sales_quota ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_2.sales_quota, 0 ) = 0 THEN category_table_{$target_type}_1.sales_quota ELSE ( category_table_{$target_type}_1.sales_quota - category_table_{$target_type}_2.sales_quota ) END ) END ) END ) AS category_result_data " ;
             }else{
-                $result_field.= " , ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = COALESCE ( category_table2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table1.sales_quota, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table2.sales_quota, 0 ) = 0 THEN 1 ELSE ( category_table1.sales_quota - category_table2.sales_quota ) * 1.0000 / nullif(category_table2.sales_quota,0) END ) END ) END ) AS category_result_data " ;
+                $result_field.= " , ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_quota, 0 ) = COALESCE ( category_table_{$target_type}_2.sales_quota, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_1.sales_quota, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( category_table_{$target_type}_2.sales_quota, 0 ) = 0 THEN 1 ELSE ( category_table_{$target_type}_1.sales_quota - category_table_{$target_type}_2.sales_quota ) * 1.0000 / nullif(category_table_{$target_type}_2.sales_quota,0) END ) END ) END ) AS category_result_data " ;
             }
         }
         $target = str_replace("{:RATE}", $exchangeCode, $target);
-        $sql = " WITH category_table1 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$origin_where} {$limit_category_where} ) ,
-        category_table2 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$compare_where} {$limit_category_where} ) 
-        SELECT {$result_field} FROM category_table1 LEFT JOIN category_table2 ON {$on} 
+        $sql = " WITH category_table_{$target_type}_1 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$origin_where} {$limit_category_where} ) ,
+        category_table_{$target_type}_2 AS (SELECT {$target} , site_id {$category_name_target} FROM {$table} WHERE {$compare_where} {$limit_category_where} ) 
+        SELECT {$result_field} FROM category_table_{$target_type}_1 LEFT JOIN category_table_{$target_type}_2 ON {$on} 
         " ;
         return $sql ;
 
