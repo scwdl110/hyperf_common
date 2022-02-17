@@ -18,6 +18,7 @@ use App\Model\DataArk\FinanceIndexAssociatedSqlKeyModel;
 use App\Model\DataArk\FinanceIndexModel;
 use App\Model\user\UserAdminRolePrivModel;
 use Captainbi\Hyperf\Util\Result;
+use Hyperf\DbConnection\Db;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\Logger\LoggerFactory;
 
@@ -166,13 +167,39 @@ class FinanceService extends BaseService
         $params['priv_goods_operation_user_admin_id'] = "";
         //商品和运营人员 添加商品权限控制
         if ($type > 0 && isset($req['priv_key'])){
-
+            $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
             if (isset($req['count_dimension']) && in_array($req['count_dimension'],['isku','head_id','developer_id'])){//isku和负责人
 
-
+                switch ($goods_priv['priv_value'])
+                {
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
+                        $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
+                        if(!empty($related_user_admin_ids_str))
+                        {
+                            $sql = "select id from e_amazon_goods_isku_user_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and link_admin_ids regexp ',(".str_replace(",","|",$related_user_admin_ids_str)."),'";
+                            $isku_user = Db::connection("bigdata_goods_ads_{$userInfo['dbhost']}")->select($sql);
+                            if (!empty($isku_user)){
+                                foreach ($isku_user as $key => $value){
+                                    $isku_user[$key] = (array) $value;
+                                }
+                            }else{
+                                $isku_user = array();
+                            }
+                            $params['priv_goods_operation_user_admin_id'] = $related_user_admin_ids_str;
+                            $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                        }else{
+                            return $result;
+                        }
+                        break;
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE:  //不可见
+                        return $result;
+                        break;
+                    default:   //全部可见
+                        break;
+                }
 
             }else{
-                $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
+
                 switch ($goods_priv['priv_value'])
                 {
                     case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
