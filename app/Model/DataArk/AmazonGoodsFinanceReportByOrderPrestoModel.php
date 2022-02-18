@@ -1257,6 +1257,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fbaData['other_field'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['other_field']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
                     $fbaData['other_field'] = str_replace("{:DAY}", $day_param, $fbaData['other_field']);
                 }
+                if(!empty($fbaData['order'])){
+                    $fbaData['order'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['order']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+                    $fbaData['order'] = str_replace("{:DAY}", $day_param, $fbaData['order']);
+                }
             }
         }else{
             $fbaData = array();
@@ -6016,6 +6020,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if(!empty($fbaData['other_field'])){
                     $fbaData['other_field'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['other_field']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
                     $fbaData['other_field'] = str_replace("{:DAY}", $day_param, $fbaData['other_field']);
+                }
+                if(!empty($fbaData['order'])){
+                    $fbaData['order'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['order']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+                    $fbaData['order'] = str_replace("{:DAY}", $day_param, $fbaData['order']);
                 }
             }
         }else{
