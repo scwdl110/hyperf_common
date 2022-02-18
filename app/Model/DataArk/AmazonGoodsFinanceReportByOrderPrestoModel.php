@@ -6012,6 +6012,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($this->haveFbaFields && $params['stock_datas_origin'] == 1){
             $params['deparmentData'] = $deparmentData ;
             $fbaData = $this->joinUnGoodsFbaTable($params , $channel_arr ,$exchangeCode , $currencyInfo ,$fields , $fba_target_key) ;
+            if(!empty($fbaData)){
+                if(!empty($fbaData['other_field'])){
+                    $fbaData['other_field'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['other_field']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+                    $fbaData['other_field'] = str_replace("{:DAY}", $day_param, $fbaData['other_field']);
+                }
+            }
         }else{
             $fbaData = array() ;
         }
