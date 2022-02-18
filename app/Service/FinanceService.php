@@ -169,7 +169,7 @@ class FinanceService extends BaseService
         //商品和运营人员 添加商品权限控制
         if ($type > 0 && isset($req['priv_key'])){
             $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
-            if (isset($req['count_dimension']) && in_array($req['count_dimension'],['isku','head_id','developer_id'])){//isku和负责人
+            if (isset($req['count_dimension']) && in_array($req['count_dimension'],['head_id','developer_id'])){//isku和负责人
 
                 switch ($goods_priv['priv_value'])
                 {
