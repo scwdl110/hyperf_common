@@ -11023,7 +11023,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 }
                             }
                             if(!empty($fields[$field])){
-                                $str = str_replace('{'.$field.'}' , $fields[$field] , $str);
+                                $str = str_replace('{'.$field.'}' , "{$fields[$field]} * 1.0000" , $str);
                             }else{
                                 $str = 'NULL';
                             }
