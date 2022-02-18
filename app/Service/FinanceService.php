@@ -170,6 +170,12 @@ class FinanceService extends BaseService
         if ($type > 0 && isset($req['priv_key'])){
             $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
             if (isset($req['count_dimension']) && in_array($req['count_dimension'],['head_id','developer_id'])){//isku和负责人
+                $isku_user_type_arr = array(
+                    "head_id" => 1,
+                    "developer_id" => 2,
+                );
+                $isku_user_type = $isku_user_type_arr[$req['count_dimension']];
+                $isku_user_type_string = $req['count_dimension'];
 
                 switch ($goods_priv['priv_value'])
                 {
@@ -178,15 +184,18 @@ class FinanceService extends BaseService
                         if(!empty($related_user_admin_ids_str))
                         {
                             //查出关联的负责人和开发人员
-                            $sql = "select id from e_amazon_goods_isku_user_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and link_admin_ids regexp ',(".str_replace(",","|",$related_user_admin_ids_str)."),'";
+                            $sql = "select id from e_amazon_goods_isku_user_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and type = {$isku_user_type} and link_admin_ids regexp ',(".str_replace(",","|",$related_user_admin_ids_str)."),'";
                             $isku_user = Db::connection("erp_captain_{$userInfo['dbhost']}")->select($sql);
                             if (!empty($isku_user)){
                                 foreach ($isku_user as $key => $value){
                                     $isku_user[$key] = (array) $value;
                                 }
                                 $isku_user_str = implode(",",array_column($isku_user,'id'));
+
                                 //查出关联的isku
-                                $sql = "select id from e_amazon_goods_isku_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and (head_id in ({$isku_user_str}) or developer_id in({$isku_user_str}) or ispu_id in (select id from e_amazon_goods_ispu_{$userInfo['codeno']} where user_id ={$userInfo['user_id']} and (head_id in ({$isku_user_str}) or developer_id in ({$isku_user_str})) and is_delete=0)) and status >0";
+//                                $sql = "select id from e_amazon_goods_isku_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and (head_id in ({$isku_user_str}) or developer_id in({$isku_user_str}) or ispu_id in (select id from e_amazon_goods_ispu_{$userInfo['codeno']} where user_id ={$userInfo['user_id']} and (head_id in ({$isku_user_str}) or developer_id in ({$isku_user_str})) and is_delete=0)) and status >0";//添加ispu数据，不需要
+
+                                $sql = "select id from e_amazon_goods_isku_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and {$isku_user_type_string} in ({$isku_user_str}) and status >0";
                                 $isku_arr = Db::connection("erp_captain_{$userInfo['dbhost']}")->select($sql);
                                 if (!empty($isku_arr)) {
                                     foreach ($isku_arr as $key => $value) {
