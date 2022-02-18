@@ -14374,9 +14374,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     foreach ($formula_fields_arr as $field) {
                         if(!empty($fields[$field])){
                             if(in_array($field,array_keys($fbaCommonArr))){
-                                $str = str_replace('{' . $field . '}', $fields[$field], $str);
+                                $str = str_replace('{' . $field . '}', "{$fields[$field]} * 1.0000", $str);
                             }else{
-                                $str = str_replace('{' . $field . '}', "new_origin_table.{$field}", $str);
+                                $str = str_replace('{' . $field . '}', "new_origin_table.{$field} * 1.0000", $str);
                             }
                         }else {
                             $str = 'NULL';
@@ -14918,9 +14918,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             //含有可售天数、日均销量、FBA专用自定义公式，特殊处理
                             $str = str_replace('{' . $field . '}',"NULLIF(fba_table.{$field},-111111)",$str);
                         }elseif(in_array($field,array_keys($fbaCommonArr))){
-                            $str = str_replace('{' . $field . '}', "fba_table.{$field}", $str);
+                            $str = str_replace('{' . $field . '}', "fba_table.{$field} * 1.0000", $str);
                         }else{
-                            $str = str_replace('{' . $field . '}', "new_origin_table.{$field}", $str);
+                            $str = str_replace('{' . $field . '}', "new_origin_table.{$field} * 1.0000", $str);
                         }
                     }
                     $other_fields[$item['target_key']] =  "try(" . $str . ")";
