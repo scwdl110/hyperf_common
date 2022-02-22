@@ -11,9 +11,9 @@ declare(strict_types=1);
  */
 namespace App\Model\user;
 
-use App\Lib\Redis;
 use App\Model\UserAdminModel;
 use Captainbi\Hyperf\Base\Model;
+use Captainbi\Hyperf\Util\Redis;
 use Captainbi\Hyperf\Util\Unique;
 
 class UserDepartmentModel extends Model
@@ -28,7 +28,8 @@ class UserDepartmentModel extends Model
 
     public function __construct(array $attributes = [])
     {
-        $this->redis = new Redis();
+        $redis =new Redis();
+        $this->redis = $redis->getClient('bi');
         parent::__construct($attributes);
     }
 
@@ -41,7 +42,7 @@ class UserDepartmentModel extends Model
         }
         $redis_key = self::DEPARTMENT_USER_ADMIN_IDS_REDIS_KEY . $department_id;
 
-        $user_related_ids = $this->redis->get($redis_key);
+        $user_related_ids = ($this->redis->get($redis_key));
         if ($user_related_ids === false){
             $all_department_ids = $this->getAllChildAndSelfDeparmentId($user_id, $department_id);
             $where = array(
@@ -50,7 +51,9 @@ class UserDepartmentModel extends Model
             );
             $data = Unique::getArray(UserAdminModel::where($where)->whereIn("user_department_id",$all_department_ids)->get("id"));
             $user_related_ids = empty($data)?[]:array_column($data,'id');
-            $this->redis->set($redis_key, $user_related_ids,4*3600);
+            $this->redis->set($redis_key, serialize($user_related_ids),4*3600);
+        }else{
+            $user_related_ids = unserialize($user_related_ids);
         }
         return $user_related_ids;
     }

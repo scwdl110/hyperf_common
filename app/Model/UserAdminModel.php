@@ -11,7 +11,9 @@ declare(strict_types=1);
  */
 namespace App\Model;
 
-use App\Lib\Redis;
+//use App\Lib\Redis;
+use Captainbi\Hyperf\Util\Redis;
+
 use Captainbi\Hyperf\Base\Model;
 use Captainbi\Hyperf\Exception\BusinessException;
 use Captainbi\Hyperf\Util\Unique;
@@ -29,7 +31,8 @@ class UserAdminModel extends Model
 
     public function __construct(array $attributes = [])
     {
-        $this->redis = new Redis();
+        $redis =new Redis();
+        $this->redis = $redis->getClient('bi');
         parent::__construct($attributes);
     }
 
@@ -47,7 +50,7 @@ class UserAdminModel extends Model
             return;
 
         $redis_key = self::USER_ADMIN_INFO_REDIS_KEY . "{$user_id}_{$admin_id}";
-        $this->redis->set($redis_key, $user_admin_info,4*3600);
+        $this->redis->set($redis_key, serialize($user_admin_info),4*3600);
     }
 
     /**
@@ -65,11 +68,11 @@ class UserAdminModel extends Model
         $user_admin_redis_data = array();
         foreach ($admin_ids as $admin_id){
             $redis_key = self::USER_ADMIN_INFO_REDIS_KEY . "{$user_id}_{$admin_id}";
-            $user_admin_info = $this->redis->get($redis_key);
+            $user_admin_info = ($this->redis->get($redis_key));
             if ($user_admin_info === false){
                 $un_cached_ids[] = $admin_id;
             }else{
-                $user_admin_redis_data[] = $user_admin_info;
+                $user_admin_redis_data[] = unserialize($user_admin_info);
             }
         }
         if (!empty($un_cached_ids)){

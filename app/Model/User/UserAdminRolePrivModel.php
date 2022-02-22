@@ -11,8 +11,8 @@ declare(strict_types=1);
  */
 namespace App\Model\user;
 
-use App\Lib\Redis;
 use Captainbi\Hyperf\Base\Model;
+use Captainbi\Hyperf\Util\Redis;
 use Captainbi\Hyperf\Util\Unique;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
@@ -32,7 +32,8 @@ class UserAdminRolePrivModel extends Model
 
     public function __construct(array $attributes = [])
     {
-        $this->redis = new Redis();
+        $redis =new Redis();
+        $this->redis = $redis->getClient('bi');
         parent::__construct($attributes);
     }
 
@@ -48,12 +49,12 @@ class UserAdminRolePrivModel extends Model
         $not_in_redis = array();
         foreach ($role_id_arr as $role_id){
             $redis_key = self::ROLE_GOODS_PRIV_REDIS_KEY . $role_id;
-            $goods_priv_list = $this->redis->get($redis_key);
+            $goods_priv_list = ($this->redis->get($redis_key));
             if ($goods_priv_list === false) {//不存在redis需要查询
                 $not_in_redis[] = $role_id;
             }else{
                 //存在直接返回
-                $return_priv[$role_id] = array_column($goods_priv_list, null, 'priv_key');
+                $return_priv[$role_id] = array_column(unserialize($goods_priv_list), null, 'priv_key');
             }
 
         }
@@ -65,7 +66,7 @@ class UserAdminRolePrivModel extends Model
                 foreach ($db_role_priv as $value){
                     $redis_key       = self::ROLE_GOODS_PRIV_REDIS_KEY . $value['role_id'];
                     $goods_priv_list = !empty($value['goods_priv']) ? @json_decode($value['goods_priv'], true) : [];
-                    $this->redis->set($redis_key, $goods_priv_list,4*3600);
+                    $this->redis->set($redis_key, serialize($goods_priv_list),4*3600);
                     $return_priv[$value['role_id']] = array_column($goods_priv_list, null, 'priv_key');
                 }
             }
