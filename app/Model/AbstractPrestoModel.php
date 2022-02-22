@@ -2,7 +2,6 @@
 
 namespace App\Model;
 
-use function App\getRandExportTableName;
 use App\Lib\Athena;
 use RuntimeException;
 
@@ -300,6 +299,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $tmpTable = '';
 
+    protected $exportTmp = 'tmp.';//切库记得创建
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
@@ -398,6 +399,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $this->isUseTmpTable    = $isUseTmpTable;
         $this->isReadTmpTable   = $isReadTmpTable;
         $this->tmpTable         = $tmpTable;
+        $this->exportTmp        = config('misc.presto_export_tmp', 'tmp').".";
 
     }
 
@@ -476,10 +478,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         } else {
             if ($isUseTmpTable){
                 $isCache = false;//使用临时表不设置缓存
-                $sql = "create Table export_tmp.{$this->tmpTable} as ({$sql})";
+                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as ({$sql})";
             }else{
                 if ($isReadTmpTable){//取临时表需要判断limit
-                    $sql = "SELECT * from export_tmp.{$this->tmpTable} ";
+                    $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} ";
                     if (1 === preg_match('/\s*offset\s+(\d+)\s+/i', strtolower($sql), $offset_arr) && isset($offset_arr[1])) {
                         $sql .= " OFFSET {$offset_arr[1]}";
                     }
@@ -751,7 +753,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
         if ($isReadTmpTable){
-            $sql = "SELECT * from export_tmp.{$this->tmpTable} {$limit}";
+            $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} {$limit}";
         }
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
@@ -784,7 +786,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             if ($isUseTmpTable){
                 $isCache = false;//使用临时表不设置缓存
-                $sql = "create Table export_tmp.{$this->tmpTable} as ({$sql})";
+                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as ({$sql})";
             }
             $result = $this->presto->query($sql);
 

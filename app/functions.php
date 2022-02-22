@@ -567,7 +567,7 @@ function getUserIdMod($user_id){
 
 function getRandExportTableName($user_id = 0){
 
-    return "tmp_".date("Ymd_His",time())."_".$user_id."_".substr(microtime(), 2, 6) . sprintf('%03d', rand(0, 999));
+    return "exporttmp_".date("Ymd_His",time())."_".$user_id."_".substr(microtime(), 2, 6) . sprintf('%03d', rand(0, 999));
 
 }
 
