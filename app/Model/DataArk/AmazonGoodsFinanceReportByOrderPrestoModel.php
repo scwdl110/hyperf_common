@@ -7,7 +7,7 @@ use App\Lib\Redis;
 use App\Model\Ads\VipUserBigData;
 use App\Model\ChannelTargetsMySQLModel;
 use App\Model\SiteRateMySQLModel;
-use App\Model\user\UserAdminRolePrivModel;
+use App\Model\User\UserAdminRolePrivModel;
 use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
 use Captainbi\Hyperf\Util\Log;
