@@ -16,7 +16,7 @@ use App\Lib\Common;
 
 use App\Model\DataArk\FinanceIndexAssociatedSqlKeyModel;
 use App\Model\DataArk\FinanceIndexModel;
-use App\Model\user\UserAdminRolePrivModel;
+use App\Model\User\UserAdminRolePrivModel;
 use Captainbi\Hyperf\Util\Result;
 use Hyperf\DbConnection\Db;
 use Hyperf\HttpServer\Contract\RequestInterface;
