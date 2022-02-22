@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 namespace App\Service;
 
+use App\Model\ChannelModel;
 use App\Model\User\UserAdminRolePrivModel;
 use App\Model\User\UserDepartmentModel;
 use Captainbi\Hyperf\Base\Service;
@@ -60,7 +61,7 @@ class BaseService extends Service {
      * @return array
      */
     public function getUserGoodsPriv($priv_key,$userInfo){
-        $goods_privilege = ['priv_key' => $priv_key, 'priv_value' => UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE, 'priv_user_admin_ids' => [], "related_user_admin_ids_str"=> ""];
+        $goods_privilege = ['priv_key' => $priv_key, 'priv_value' => UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE, 'priv_user_admin_ids' => [], "related_user_admin_ids_str"=> "","operation_channel_ids_arr" => []];
 
         //没传key直接返回全部权限
         if (empty($priv_key)) {
@@ -127,6 +128,18 @@ class BaseService extends Service {
 //                }
             }
             $goods_privilege['related_user_admin_ids_str'] = !empty($user_related_ids) ? implode(",", $user_related_ids) : "{$admin_id}";
+
+            //获取按店铺运营的数据，筛选出店铺运营人员为当前用户关联人的店铺IDS
+
+            $channel_operation_arr=ChannelModel::getModel()->getChannelOperationPatternList($user_id);
+            if(!empty($channel_operation_arr))
+            {
+                $channel_operation_arr=array_filter($channel_operation_arr,function ($item) use($user_related_ids){
+                    return in_array($item['operation_user_admin_id'],$user_related_ids);
+                });
+                $channel_operation_arr= array_column($channel_operation_arr,'id');
+            }
+            $goods_privilege['operation_channel_ids_arr']= !empty($channel_operation_arr) ? $channel_operation_arr:[];
 
         }
         return $goods_privilege;

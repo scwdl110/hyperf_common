@@ -166,9 +166,12 @@ class FinanceService extends BaseService
         }
         $params['priv_goods_operation_user_admin_id'] = "";
         $params['priv_goods_isku_id'] = "";
+        $params['operation_channel_ids_arr'] = "";
+        $params['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;
         //商品和运营人员 添加商品权限控制
         if ($type > 0 && isset($req['priv_key'])){
             $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
+            $params['priv_value'] = $goods_priv['priv_value'];
             if (isset($req['count_dimension']) && in_array($req['count_dimension'],['head_id','developer_id'])){//isku和负责人
                 $isku_user_type_arr = array(
                     "head_id" => 1,
@@ -233,7 +236,8 @@ class FinanceService extends BaseService
                         if(!empty($related_user_admin_ids_str))
                         {
                             $params['priv_goods_operation_user_admin_id'] = $related_user_admin_ids_str;
-                            $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                            $params['operation_channel_ids_arr'] = implode(",",$goods_priv['operation_channel_ids_arr']);
+//                            $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
                         }else{
                             return $result;
                         }
