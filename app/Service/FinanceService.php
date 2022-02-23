@@ -245,7 +245,7 @@ class FinanceService extends BaseService
                         {
                             $params['priv_goods_operation_user_admin_id'] = $related_user_admin_ids_str;
                             $params['operation_channel_ids_arr'] = implode(",",$goods_priv['operation_channel_ids_arr']);
-                            $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                            $where .= "  AND amazon_goods.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
                         }else{
                             return $result;
                         }
