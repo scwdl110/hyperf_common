@@ -1313,7 +1313,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
                         }
                     }
-                    $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql,$compareData,$fbaData);
+                    $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql,$compareData,$fbaData,[]);
                 }
             }elseif($datas['is_median'] == 1){
                 $median_limit = !empty($datas['limit_num']) ? $limit : '';
@@ -1321,7 +1321,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,true,$isMysql);
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData,$erpData);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData,$erpData,$this->isUseTmpTable,$this->isReadTmpTable);
                 $total_user_sessions_views = array();
                 if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
                     $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
@@ -1394,7 +1394,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql,$compareData,$fbaData, $erpData){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData, $erpData);
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData, $erpData,$this->isUseTmpTable,$this->isReadTmpTable);
                     return $lists;
                 });
                 $parallel->add(function () use($where, $table, $group,$isMysql,$compareData,$field_data,$fbaData){
@@ -5562,6 +5562,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             //有erp库存指标
             return $isMysql;
         }
+        if ($this->isUseTmpTable or $this->isReadTmpTable){//使用临时表或者读取临时表只读presto
+            return $isMysql;
+        }
 //        return $isMysql;
 //        if ($params['user_id'] == 343459){
 //            return true;
@@ -6061,7 +6064,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,false,$isMysql);
                 $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData,$fbaData);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData,$fbaData,[],$this->isUseTmpTable,$this->isReadTmpTable);
                 if($params['show_type'] == 2 && $params['stock_datas_origin'] != 1 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
@@ -6095,7 +6098,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if(!empty($fbaData)){
                         $fbaData['join'] = 'new_origin_table.user_id = fba_table.user_id ' ;
                     }
-                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData,$fbaData);
+                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData,$fbaData,[],$this->isUseTmpTable,$this->isReadTmpTable);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
@@ -6108,7 +6111,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql,$compareData,$fbaData) {
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData,$fbaData);
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData,$fbaData,[],$this->isUseTmpTable,$this->isReadTmpTable);
 
                     return $lists;
                 });
@@ -8875,7 +8878,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group);
                 $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData,[],[],$this->isUseTmpTable,$this->isReadTmpTable);
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
@@ -8904,7 +8907,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$compareData){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData,[],[],$this->isUseTmpTable,$this->isReadTmpTable);
                     return $lists;
                 });
                 $parallel->add(function () use($where, $table, $group,$compareData,$field_data){
@@ -11440,7 +11443,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        $lists = $this->query($sql, [], null, 300, $isMysql);
+        $lists = $this->query($sql, [], null, 300, $isMysql,$this->isUseTmpTable,$this->isReadTmpTable);
         return $lists;
     }
 
@@ -12703,7 +12706,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields_tmp = rtrim($fields_tmp,",");
             $tables_tmp = rtrim($tables_tmp,",");
             $sql .= "select {$fields_tmp} from {$tables_tmp}";
-            $lists = $this->query($sql, [], $isCache, $cacheTTL, $isMysql);
+            $lists = $this->query($sql, [], $isCache, $cacheTTL, $isMysql,$this->isUseTmpTable,$this->isReadTmpTable);
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
             $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
         }
@@ -15223,7 +15226,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
 
-        $lists = $this->query($sql, [], null, 300, $isMysql);
+        $lists = $this->query($sql, [], null, 300, $isMysql,$this->isUseTmpTable,$this->isReadTmpTable);
         return $lists;
     }
 
