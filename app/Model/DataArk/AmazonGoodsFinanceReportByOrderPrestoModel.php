@@ -445,7 +445,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $datas['compare_data'][$ck]['compare_where'] = $compareWhere ;
                 $compare_on_arr = [] ;
                 foreach($compare_on as $con){
-                    $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.compare'.$on_key.'_'.$con ;
+                    if(!empty($compare_data['get_value_type'])){
+                        if($compare_data['get_value_type'] == 'avg_value'){
+                            $compare_on_arr[] = 'origin_table.user_id = avg_table_'.$compare_data['time_type'].'.user_id' ;
+                        }elseif($compare_data['get_value_type'] == 'median_value'){
+                            $compare_on_arr[] = 'origin_table.user_id = median_table_'.$compare_data['time_type'].'.user_id' ;
+                        }
+                    }else{
+                        $compare_on_arr[] = 'origin_table.'.$con . ' = compare_table'.$on_key.'.compare'.$on_key.'_'.$con ;
+                    }
                 }
             }
             $on_key++ ;
@@ -513,6 +521,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         if($custom_target_item['value'] == 'category_result_data'){
                             $compare_data_target_type = !empty($custom_target_item['target_type']) ? $custom_target_item['target_type'] : 1;
                             $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . "industry_table_{$compare_data_target_type}." .$custom_target_item['value'];
+                        }elseif($custom_target_item['value'] == 'avg_value'){
+                            $set_time_type = !empty($custom_target_item['time_type']) ? $custom_target_item['time_type'] : 3;
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . "avg_table_{$set_time_type}." .$custom_target_item['target'] . "_avg";
+                        }elseif($custom_target_item['value'] == 'median_value'){
+                            $set_time_type = !empty($custom_target_item['time_type']) ? $custom_target_item['time_type'] : 3;
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . "median_table_{$set_time_type}." .$custom_target_item['target'] . "_median";
                         }else{
                             if (strpos($custom_target_item['value'], '%') !== false) {
                                 $custom_target_item['value'] = round((float)$custom_target_item['value'] / 100, 4);
