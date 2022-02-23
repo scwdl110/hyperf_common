@@ -478,10 +478,11 @@ abstract class AbstractPrestoModel implements BIModelInterface
         } else {
             if ($isUseTmpTable){
                 $isCache = false;//使用临时表不设置缓存
-                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as ({$sql})";
+//                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as ({$sql})";
+                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as (select Row_Number() over () as auto_increment_id , * from ({$sql}) as t)";
             }else{
                 if ($isReadTmpTable){//取临时表需要判断limit
-                    $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} ";
+                    $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} order  by auto_increment_id asc ";
                     if (1 === preg_match('/\s*offset\s+(\d+)\s+/i', strtolower($sql), $offset_arr) && isset($offset_arr[1])) {
                         $sql .= " OFFSET {$offset_arr[1]}";
                     }
@@ -753,7 +754,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
         if ($isReadTmpTable){
-            $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} {$limit}";
+            $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} order  by auto_increment_id asc {$limit}";
         }
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
@@ -786,7 +787,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             if ($isUseTmpTable){
                 $isCache = false;//使用临时表不设置缓存
-                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as ({$sql})";
+                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as (select Row_Number() over () as auto_increment_id , * from ({$sql}) as t)";
             }
             $result = $this->presto->query($sql);
 
