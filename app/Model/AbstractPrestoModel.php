@@ -293,10 +293,21 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $isReadAthena = false;
 
+    protected $isUseTmpTable = false;
+
+    protected $isReadTmpTable = false;
+
+    protected $tmpTable = '';
+
+    protected $exportTmp = 'tmp.';//切库记得创建
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
         bool $isReadAthena = false,
+        bool $isUseTmpTable = false,
+        bool $isReadTmpTable = false,
+        string $tmpTable = '',
         ?LoggerInterface $logger = null,
         ?ClientInterface $httpClient = null
     ) {
@@ -384,6 +395,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $this->presto = Presto::getConnection($config, $this->logger, $httpClient);
 
         }
+
+        $this->isUseTmpTable    = $isUseTmpTable;
+        $this->isReadTmpTable   = $isReadTmpTable;
+        $this->tmpTable         = $tmpTable;
+        $this->exportTmp        = config('misc.presto_export_tmp', 'tmp').".";
+
     }
 
     protected function toMysqlTable($sql)
@@ -426,7 +443,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         return $this->cache;
     }
 
-    public function query(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300, $isMysql = false): array
+    public function query(string $sql, array $bindings = [], ?bool $isCache = null, int $cacheTTL = 300, $isMysql = false,$isUseTmpTable = false,$isReadTmpTable = false): array
     {
         if ($bindings) {
             $this->lastSql = $psql = "PREPARE {$sql}; EXECUTE " . @join(',', $bindings);
@@ -459,10 +476,29 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $result = array();
             }
         } else {
+            if ($isUseTmpTable){
+                $isCache = false;//使用临时表不设置缓存
+//                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as ({$sql})";
+                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as (select Row_Number() over () as auto_increment_id , * from ({$sql}) as t)";
+            }else{
+                if ($isReadTmpTable){//取临时表需要判断limit
+                    $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} order  by auto_increment_id asc ";
+                    if (1 === preg_match('/\s*offset\s+(\d+)\s+/i', strtolower($sql), $offset_arr) && isset($offset_arr[1])) {
+                        $sql .= " OFFSET {$offset_arr[1]}";
+                    }
+                    if (1 === preg_match('/\s*limit\s+(\d+)/i', strtolower($sql), $limit_arr) && isset($limit_arr[1])) {
+                        $sql .= " LIMIT {$limit_arr[1]}";
+                    }
+                }
+
+            }
             $result = $this->presto->query($sql,...$bindings);
         }
         if (false === $result) {
             $this->logger->error("sql: {$psql} error:执行sql异常");
+            return [];
+        }
+        if ($isUseTmpTable){//使用临时表直接返回空数组
             return [];
         }
 
@@ -511,7 +547,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
         bool $isMysql = false,
         array $compare_data = [],
         array $fba_data = [],
-        array $erp_data = []
+        array $erp_data = [],
+        bool $isUseTmpTable = false,
+        bool $isReadTmpTable = false
     ): array {
         $where = is_array($where) ? $this->sqls($where) : $where;
         $table = $table !== '' ? $table : $this->table;
@@ -715,6 +753,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 $sql = "SELECT * FROM ( SELECT row_number() over() AS rn, * FROM ($athena_sql) as t)  {$athena_limit}";//athena特有的分页写法
             }
         }
+        if ($isReadTmpTable){
+            $sql = "SELECT * from {$this->exportTmp}{$this->tmpTable} order  by auto_increment_id asc {$limit}";
+        }
         if ($isMysql) {
             $sql = $this->toMysqlTable($sql);
             $this->lastSql = $sql;
@@ -744,12 +785,21 @@ abstract class AbstractPrestoModel implements BIModelInterface
             if ($this->logDryRun()) {
                 return [];
             }
+            if ($isUseTmpTable){
+                $isCache = false;//使用临时表不设置缓存
+                $sql = "create Table {$this->exportTmp}{$this->tmpTable} as (select Row_Number() over () as auto_increment_id , * from ({$sql}) as t)";
+            }
             $result = $this->presto->query($sql);
+
         }
 
         if ($result === false) {
             $this->logger->error("sql: {$sql} error:执行sql异常");
             throw new RuntimeException('presto 查询失败');
+        }
+
+        if ($isUseTmpTable){//临时表直接返回空
+            return [];
         }
 
         if ($this->isCache($isCache)) {
@@ -799,6 +849,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 if (1 === preg_match('/\s*limit\s+(\d+)/i', $offset, $m)) {
                     $offset = $m[1];
                 }
+
 
                 // presto 语法必须 offset 在前，且不支持 limit 1,2 这种写法
                 $limit = " OFFSET {$offset} LIMIT {$limit}";
@@ -899,7 +950,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         int $cacheTTL = 300,
         bool $isMysql = false
     ): array {
-        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL, $isMysql);
+        $result = $this->select($where, $data, $table, 1, $order, $group ,$isJoin, $isCache, $cacheTTL, $isMysql,[],[],[]);
 
         return $result[0] ?? [];
     }

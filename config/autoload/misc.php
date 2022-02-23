@@ -13,6 +13,7 @@ return [
     'presto_schema_dws' => env('PRESTO_SCHEMA_DWS', 'dws'),
     'presto_schema_dim' => env('PRESTO_SCHEMA_DIM', 'dim'),
     'presto_schema_dwd' => env('PRESTO_SCHEMA_DWD', 'dwdslave'),
+    'presto_export_tmp' => env('PRESTO_EXPORT_TMP', 'tmp'),
     'presto_defautl_cache' => env('PRESTO_DEFAULT_CACHE', false),
     'elasticsearch_default_cache' => env('ES_DEFAULT_CACHE', false),
     // 记录方舟请求
