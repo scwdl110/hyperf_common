@@ -172,13 +172,13 @@ class FinanceService extends BaseService
         if ($type > 0 && isset($req['priv_key'])){
             $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
             $params['priv_value'] = $goods_priv['priv_value'];
-            if (isset($req['count_dimension']) && in_array($req['count_dimension'],['head_id','developer_id'])){//isku和负责人
+            if (isset($params['count_dimension']) && in_array($params['count_dimension'],['head_id','developer_id'])){//isku和负责人
                 $isku_user_type_arr = array(
                     "head_id" => 1,
                     "developer_id" => 2,
                 );
-                $isku_user_type = $isku_user_type_arr[$req['count_dimension']];
-                $isku_user_type_string = $req['count_dimension'];
+                $isku_user_type = $isku_user_type_arr[$params['count_dimension']];
+                $isku_user_type_string = $params['count_dimension'];
 
                 switch ($goods_priv['priv_value'])
                 {
