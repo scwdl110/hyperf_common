@@ -176,7 +176,7 @@ class FinanceService extends BaseService
                 $isku_user_type_arr = array(
                     "head_id" => 1,
                     "developer_id" => 2,
-                    "isku_head_id" => 2,
+                    "isku_head_id" => 1,
                     "isku_developer_id" => 2,
                 );
 
