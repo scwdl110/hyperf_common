@@ -520,7 +520,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if(!empty($custom_target_item['formula']) && isset($custom_target_item['value'])){
                         if($custom_target_item['value'] == 'category_result_data'){
                             $compare_data_target_type = !empty($custom_target_item['target_type']) ? $custom_target_item['target_type'] : 1;
-                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . "industry_table_{$compare_data_target_type}." .$custom_target_item['value'];
+                            $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . "COALESCE(industry_table_{$compare_data_target_type}." .$custom_target_item['value'] .',0)';
                         }elseif($custom_target_item['value'] == 'avg_value'){
                             $set_time_type = !empty($custom_target_item['time_type']) ? $custom_target_item['time_type'] : 3;
                             $custom_set_where[] = '(' .  $field_str . ') ' . $custom_target_item['formula'] . "avg_table_{$set_time_type}." .$custom_target_item['target'] . "_avg";
