@@ -183,10 +183,6 @@ class FinanceService extends BaseService
                 $isku_user_type = $isku_user_type_arr[$params['count_dimension']];
                 $isku_user_type_string = str_replace("isku_","",$params['count_dimension']);
 
-                //负责人或开发人员的isku只是条件不一样，因此重置为isku维度
-                if (in_array($params['count_dimension'],['isku_head_id','isku_developer_id'])){
-                    $params['count_dimension'] = 'isku';
-                }
 
                 switch ($goods_priv['priv_value'])
                 {
@@ -259,6 +255,11 @@ class FinanceService extends BaseService
             }
 
 
+        }
+
+        //负责人或开发人员的isku只是条件不一样，因此重置为isku维度
+        if (in_array($params['count_dimension'],['isku_head_id','isku_developer_id'])){
+            $params['count_dimension'] = 'isku';
         }
 
         $params['origin_where'] = $where;
