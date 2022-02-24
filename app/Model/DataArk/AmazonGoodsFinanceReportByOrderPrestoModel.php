@@ -209,7 +209,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $notime_where = empty($datas['notime_where']) ? '' :  $datas['notime_where'];
         if($type == '1'){
-            $mod_where = "report.user_id={$datas['user_id']} AND amazon_goods.goods_user_id={$datas['user_id']} AND report.user_id_mod = " . $this->dws_user_id_mod . " and amazon_goods.goods_user_id_mod=" . $this->dws_user_id_mod;
+            $mod_where = "report.user_id={$datas['user_id']} AND amazon_goods.goods_user_id={$datas['user_id']} AND report.user_id_mod = " . $this->dws_user_id_mod . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
             $notime_where =  $mod_where . " AND report.available = 1 " .  (empty($notime_where) ? "" : " AND " . $notime_where) ;
         }else if($type == '0'){
             $mod_where = "report.user_id={$datas['user_id']} AND amazon_goods.goods_user_id={$datas['user_id']} AND report.user_id_mod = " . $this->dws_user_id_mod ;
