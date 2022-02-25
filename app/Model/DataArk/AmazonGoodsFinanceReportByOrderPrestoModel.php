@@ -506,7 +506,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $field_arr[$table_key] = '(' . $table_str . $target_prefix . $custom_target_item['target'] . $avg . ')';
                     }
                     if (!empty($custom_target_item['type']) && $custom_target_item['type'] == 2) {
-                        $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN 1 ELSE ( {$field_arr[0]} - {$field_arr[1]} ) * 1.0000 / nullif({$field_arr[1]},0) END ) END ) END )";
+                        //占比公式分两种 1.（当前值 - 上一周期）/|上一周期|  这种是正常指标 2.（上一周期 - 当前值）/|上一周期|  这种是那种负数的
+                        if(in_array($custom_target_item['target'],['sales_refund','cpc_cost','cpc_cost_rate','cpc_avg_click_cost','cpc_acos','cost_profit_total_pay'])){
+                            $tmp_code = "({$field_arr[1]} - {$field_arr[0]} ) * 1.0000 / nullif(abs({$field_arr[1]}),0)";
+                        }else{
+                            $tmp_code = "({$field_arr[0]} - {$field_arr[1]} ) * 1.0000 / nullif(abs({$field_arr[1]}),0)";
+                        }
+                        $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -1 ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN 1 ELSE {$tmp_code} END ) END ) END )";
                     } else {
                         if (!empty($field_arr[1])) {
                             $field_str = "( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = COALESCE ( {$field_arr[1]}, 0 ) THEN 0 ELSE ( CASE WHEN COALESCE ( {$field_arr[0]}, 0 ) = 0 THEN -{$field_arr[1]} ELSE ( CASE WHEN COALESCE ( {$field_arr[1]}, 0 ) = 0 THEN {$field_arr[0]} ELSE ( {$field_arr[0]} - {$field_arr[1]} ) END ) END ) END )";
