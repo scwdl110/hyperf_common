@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use function App\getRandExportTableName;
 use App\Lib\Common;
 
 use App\Model\DataArk\FinanceIndexAssociatedSqlKeyModel;
@@ -69,21 +70,24 @@ class FinanceService extends BaseService
 
 //        $req['is_new_index'] = 1;
         $req['is_new_index'] = $req['is_new_index'] ?? 0;
+        $is_use_tmp_table = intval($req['is_use_tmp_table'] ?? 0);//是否创建临时表
 //        $is_new_index = $req['is_new_index'] == 1 ? true:false;
         $searchKey = trim(strval($req['searchKey'] ?? ''));
         $searchVal = trim(strval($req['searchVal'] ?? ''));
+        $read_tmp_table_name = trim(strval($req['read_tmp_table_name'] ?? ''));
         $searchType = intval($req['searchType'] ?? 0);
         $params = $req['params'] ?? [];
         if (isset($params['is_count']) && $params['is_count'] == 1) {//总计的页数只能为1
             $page = 1;
+            $req['is_use_tmp_table'] = 0;//总计不使用临时表
         } else {
             $params['is_count'] = 0;
             $page = intval($req['page'] ?? 1);
         }
-        if (isset($params['user_id']) && $params['user_id'] == 266) {
-            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
-            $logger1->info('request body', [$req, $userInfo]);
-        }
+//        if (isset($params['user_id']) && $params['user_id'] == 266) {
+//            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
+//            $logger1->info('request body', [$req, $userInfo]);
+//        }
         $params['is_new_index'] = $req['is_new_index'];
         $params['is_median'] = $params['is_median'] ?? 0;
         $params['total_status'] = $params['total_status'] ?? 0;
@@ -105,6 +109,8 @@ class FinanceService extends BaseService
         $params['searchKey'] = $searchKey;
         $params['searchVal'] = $searchVal;
         $params['matchType'] = trim(strval($req['matchType'] ?? ''));
+
+        if ($countTip)
 
         //对比数据信息
         /*说明：
@@ -446,7 +452,20 @@ class FinanceService extends BaseService
         }
 
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrder{$dataChannel}Model";
-        $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno'], $isReadAthena);
+
+        $isReadTmpTable = false;
+        $is_use_tmp_table = $is_use_tmp_table == 1? true:false;
+
+        if (!$is_use_tmp_table && !empty($read_tmp_table_name)){
+            $isReadTmpTable = true;
+        }
+        if ($is_use_tmp_table || $isReadTmpTable){//创建表或读取临时表不使用athena
+            $isReadAthena = false;
+        }
+        if ($is_use_tmp_table){
+            $read_tmp_table_name = getRandExportTableName($userInfo['user_id']);
+        }
+        $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno'], $isReadAthena,$is_use_tmp_table,$isReadTmpTable,$read_tmp_table_name);
         $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
         $params['min_ym'] = $min_ym;
         $params['max_ym'] = $max_ym;
@@ -470,9 +489,8 @@ class FinanceService extends BaseService
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
         }
-        if (isset($params['user_id']) && $params['user_id'] == 266) {
-            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
-            $logger1->info('result', [$result]);
+        if ($is_use_tmp_table){
+            $result = ['read_tmp_table_name' => $read_tmp_table_name];
         }
         return $result;
     }
