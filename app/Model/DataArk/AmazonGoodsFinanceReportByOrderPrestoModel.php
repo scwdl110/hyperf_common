@@ -13842,6 +13842,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_developer_id";
             $fba_table_group = " GROUP BY developer_id";
+        }else if($datas['count_dimension'] == 'goods_channel'){
+            $join_field = ["user_id","channel_id"];
+            $fba_table_group = " GROUP BY channel_id";
+        }elseif($datas['count_dimension'] == 'goods_site_id'){
+            $join_field = ["user_id","site_id"];
+            $fba_table_group = " GROUP BY site_id";
+            $fba_table_field = "max(site_id) as site_id";
+            $fba_table_field1 = "max(g.site_id) as site_id";
+            $fba_table_group1 = " GROUP BY g.site_id";
         }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
         $fba_table_where1 = "WHERE 1=1";
@@ -14108,6 +14117,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $orderbyArr[] = 'new_origin_table.head_id' . $time_group ;
             }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
                 $orderbyArr[] = 'new_origin_table.developer_id ' . $time_group;
+            }else if($datas['count_dimension'] == 'goods_channel'){
+                $orderbyArr[] = 'new_origin_table.channel_id ' . $time_group;
+            }else if($datas['count_dimension'] == 'goods_site_id'){
+                $orderbyArr[] = 'new_origin_table.site_id ' . $time_group;
             }
         }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
