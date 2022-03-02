@@ -1252,6 +1252,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 //sku区分店铺总计
                 $fbaData['group'] = $fbaDataGroup;//给count_table用的
             }
+            if(!empty($fbaData)){
+                if(!empty($fbaData['other_field'])){
+                    $fbaData['other_field'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['other_field']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+                    $fbaData['other_field'] = str_replace("{:DAY}", $day_param, $fbaData['other_field']);
+                }
+                if(!empty($fbaData['order'])){
+                    $fbaData['order'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['order']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+                    $fbaData['order'] = str_replace("{:DAY}", $day_param, $fbaData['order']);
+                }
+            }
         }else{
             $fbaData = array();
         }
@@ -1303,7 +1313,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $compareData[$k3]['on'] = 'origin_table.user_id = compare_table'.($k3+1).'.user_id' ;
                         }
                     }
-                    $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql,$compareData,$fbaData);
+                    $lists = $this->select($where, $field_data, $table, "", "", "", true,null,300,$isMysql,$compareData,$fbaData,[]);
                 }
             }elseif($datas['is_median'] == 1){
                 $median_limit = !empty($datas['limit_num']) ? $limit : '';
@@ -1311,7 +1321,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,true,$isMysql);
                 $lists = $this->getMedianValue($datas,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData,$erpData);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData,$erpData,$this->isUseTmpTable,$this->isReadTmpTable);
                 $total_user_sessions_views = array();
                 if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
                     $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
@@ -1384,7 +1394,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$isMysql,$compareData,$fbaData, $erpData){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData, $erpData);
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData, $erpData,$this->isUseTmpTable,$this->isReadTmpTable);
                     return $lists;
                 });
                 $parallel->add(function () use($where, $table, $group,$isMysql,$compareData,$field_data,$fbaData){
@@ -5552,6 +5562,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             //有erp库存指标
             return $isMysql;
         }
+        if ($this->isUseTmpTable or $this->isReadTmpTable){//使用临时表或者读取临时表只读presto
+            return $isMysql;
+        }
 //        return $isMysql;
 //        if ($params['user_id'] == 343459){
 //            return true;
@@ -5658,9 +5671,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [];
         }
 
-        $searchKey = $datas['searchKey'] ?? '';
-        $searchVal = $datas['searchVal'] ?? '';
-        $matchType = $datas['matchType'] ?? '';
+        $searchKey = $params['searchKey'] ?? '';
+        $searchVal = $params['searchVal'] ?? '';
+        $matchType = $params['matchType'] ?? '';
         $searchVal = $isMysql ? $searchVal : self::escape(stripslashes($searchVal));
         $where = $this->getSearchValWhere($where,$searchKey,$searchVal,$matchType);
 
@@ -6006,6 +6019,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($this->haveFbaFields && $params['stock_datas_origin'] == 1){
             $params['deparmentData'] = $deparmentData ;
             $fbaData = $this->joinUnGoodsFbaTable($params , $channel_arr ,$exchangeCode , $currencyInfo ,$fields , $fba_target_key) ;
+            if(!empty($fbaData)){
+                if(!empty($fbaData['other_field'])){
+                    $fbaData['other_field'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['other_field']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+                    $fbaData['other_field'] = str_replace("{:DAY}", $day_param, $fbaData['other_field']);
+                }
+                if(!empty($fbaData['order'])){
+                    $fbaData['order'] = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $fbaData['order']));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+                    $fbaData['order'] = str_replace("{:DAY}", $day_param, $fbaData['order']);
+                }
+            }
         }else{
             $fbaData = array() ;
         }
@@ -6041,7 +6064,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group,false,$isMysql);
                 $lists = $this->getMedianValue($params,$origin_sql,null,300,$isMysql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData,$fbaData);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,$isMysql,$compareData,$fbaData,[],$this->isUseTmpTable,$this->isReadTmpTable);
                 if($params['show_type'] == 2 && $params['stock_datas_origin'] != 1 && ( !empty($fields['fba_goods_value']) || !empty($fields['fba_stock']) || !empty($fields['fba_need_replenish']) || !empty($fields['fba_predundancy_number']) )){
                     $lists = $this->getUnGoodsFbaData($lists , $fields , $params,$channel_arr, $currencyInfo, $exchangeCode,$isMysql) ;
                 }
@@ -6075,7 +6098,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     if(!empty($fbaData)){
                         $fbaData['join'] = 'new_origin_table.user_id = fba_table.user_id ' ;
                     }
-                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData,$fbaData);
+                    $lists = $this->select($where, $field_data, $table, "", '', '', false, null, 300, $isMysql,$compareData,$fbaData,[],$this->isUseTmpTable,$this->isReadTmpTable);
                 }
                 $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
                 $logger->info('getListByUnGoods Total Request', [$this->getLastSql()]);
@@ -6088,7 +6111,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group, $isMysql,$compareData,$fbaData) {
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData,$fbaData);
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group, false, null, 300, $isMysql,$compareData,$fbaData,[],$this->isUseTmpTable,$this->isReadTmpTable);
 
                     return $lists;
                 });
@@ -8855,7 +8878,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $origin_sql = $this->getSelectSql($where, $field_data, $table, $median_limit, $median_order, $group);
                 $lists = $this->getMedianValue($datas,$origin_sql);
             }else{
-                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
+                $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData,[],[],$this->isUseTmpTable,$this->isReadTmpTable);
             }
         } else {  //统计列表和总条数
             if ($datas['is_count'] == 1){
@@ -8884,7 +8907,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $parallel = new Parallel();
                 $parallel->add(function () use($where, $field_data, $table, $limit, $orderby, $group,$compareData){
-                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData);
+                    $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,false,null,300,false,$compareData,[],[],$this->isUseTmpTable,$this->isReadTmpTable);
                     return $lists;
                 });
                 $parallel->add(function () use($where, $table, $group,$compareData,$field_data){
@@ -11003,7 +11026,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 }
                             }
                             if(!empty($fields[$field])){
-                                $str = str_replace('{'.$field.'}' , $fields[$field] , $str);
+                                $str = str_replace('{'.$field.'}' , "{$fields[$field]} * 1.0000" , $str);
                             }else{
                                 $str = 'NULL';
                             }
@@ -11420,7 +11443,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        $lists = $this->query($sql, [], null, 300, $isMysql);
+        $lists = $this->query($sql, [], null, 300, $isMysql,$this->isUseTmpTable,$this->isReadTmpTable);
         return $lists;
     }
 
@@ -12683,7 +12706,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields_tmp = rtrim($fields_tmp,",");
             $tables_tmp = rtrim($tables_tmp,",");
             $sql .= "select {$fields_tmp} from {$tables_tmp}";
-            $lists = $this->query($sql, [], $isCache, $cacheTTL, $isMysql);
+            $lists = $this->query($sql, [], $isCache, $cacheTTL, $isMysql,$this->isUseTmpTable,$this->isReadTmpTable);
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'debug');
             $logger->info('getListByGoods Total Request', [$this->getLastSql()]);
         }
@@ -13923,6 +13946,28 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         $orderbyArr = array();
+        if(!empty($this->fbaSort)){
+            if(!empty($this->fbaSort['is_origin'])){
+                //类似销量这样的排序
+                if(!empty($this->fbaSort['sort_target'])) {
+                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];
+                }
+            }elseif(!empty($this->fbaSort['is_custom'])){
+                //自定义公式
+                if(!empty($other_fields[$this->fbaSort['sort_target']])) {
+                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
+                }
+            }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
+                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
+            }else{
+                if($fbaArr[$this->fbaSort['sort_target']]['count_type'] == '4'){
+                    $order_fields = "{$fbaArr[$this->fbaSort['sort_target']]['mysql_field']}";
+                }else{
+                    $order_fields = "fba_table." . $this->fbaSort['sort_target'];
+                }
+                $orderbyArr[] = '(('. $order_fields .') IS NULL) ,  (' . $order_fields . ' ) ' . $this->fbaSort['sort_order'];;
+            }
+        }
         //非按无周期的，指标展现排序
         if($datas['count_periods'] > 0 && $datas['show_type'] == '2'){
             if($datas['count_periods'] == '4'){ //按季度
@@ -13956,23 +14001,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $orderbyArr[] = 'new_origin_table.head_id' . $time_group ;
             }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
                 $orderbyArr[] = 'new_origin_table.developer_id ' . $time_group;
-            }
-        }
-        if(!empty($this->fbaSort)){
-            if(!empty($this->fbaSort['is_origin'])){
-                //类似销量这样的排序
-                if(!empty($this->fbaSort['sort_target'])) {
-                    $orderbyArr[] = '((new_origin_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (new_origin_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];
-                }
-            }elseif(!empty($this->fbaSort['is_custom'])){
-                //自定义公式
-                if(!empty($other_fields[$this->fbaSort['sort_target']])) {
-                    $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
-                }
-            }elseif(!empty($other_fields[$this->fbaSort['sort_target']])){
-                $orderbyArr[] = '((' . $other_fields[$this->fbaSort['sort_target']] . ') IS NULL) ,  (' . $other_fields[$this->fbaSort['sort_target']] . ' ) ' . $this->fbaSort['sort_order'];
-            }else{
-                $orderbyArr[] = '((fba_table.' . $this->fbaSort['sort_target'] . ') IS NULL) ,  (fba_table.' . $this->fbaSort['sort_target'] . ' ) ' . $this->fbaSort['sort_order'];;
             }
         }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
@@ -14168,24 +14196,28 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields = array_merge($fields , $other_fields) ;
         }
 
-
+        $orderby_sort = "";
         if( !empty($datas['sort_target'])  && !empty($datas['sort_order']) ){
-            if(!empty($fbaArr[$datas['sort_target']]) ) {
-                $orderby = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
+            if(in_array($datas['sort_target'], ['fba_turnover_times'])){  //周转次数单独处理
+                $orderby_sort = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+            } else if(!empty($fbaArr[$datas['sort_target']]) ) {
+                $orderby_sort = "(fba_table.{$datas['sort_target']}) IS NULL, (fba_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort_target'] , $custom_fba_target_key)) { //自定义指标
-                $orderby = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
+                $orderby_sort = "({$datas['sort_target']}) IS NULL, ({$datas['sort_target']}) {$datas['sort_order']}";
             }else{
-                $orderby = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
+                $orderby_sort = "(new_origin_table.{$datas['sort_target']}) IS NULL, (new_origin_table.{$datas['sort_target']}) {$datas['sort_order']}";
             }
         }
 
         if (!empty($datas['order']) && !empty($datas['sort']) && $datas['limit_num'] == 0) {
-            if(!empty($fbaArr[$datas['sort']]) ){
-                $orderby = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
+            if(in_array($datas['sort'], ['fba_turnover_times'])){  //周转次数单独处理
+                $orderby_sort = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+            } else if(!empty($fbaArr[$datas['sort']]) ){
+                $orderby_sort = "(fba_table.{$datas['sort']}) IS NULL, (fba_table.{$datas['sort']}) {$datas['order']}";
             }else if(!empty($custom_fba_target_key) && in_array($datas['sort'] , $custom_fba_target_key)) { //自定义指标
-                $orderby = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
+                $orderby_sort = "({$datas['sort']}) IS NULL, ({$datas['sort']}) {$datas['order']}";
             }else{
-                $orderby = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
+                $orderby_sort = "(new_origin_table.{$datas['sort']}) IS NULL, (new_origin_table.{$datas['sort']}) {$datas['order']}";
             }
         }
 
@@ -14253,6 +14285,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             } else {
                 $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
             }
+        }
+        if (!empty($orderby_sort)){
+            $orderby = "{$orderby_sort}, {$orderby}";
         }
 
         $target_wheres = $datas['where_detail']['target'] ?? array();
@@ -14341,9 +14376,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     foreach ($formula_fields_arr as $field) {
                         if(!empty($fields[$field])){
                             if(in_array($field,array_keys($fbaCommonArr))){
-                                $str = str_replace('{' . $field . '}', $fields[$field], $str);
+                                $str = str_replace('{' . $field . '}', "{$fields[$field]} * 1.0000", $str);
                             }else{
-                                $str = str_replace('{' . $field . '}', "new_origin_table.{$field}", $str);
+                                $str = str_replace('{' . $field . '}', "new_origin_table.{$field} * 1.0000", $str);
                             }
                         }else {
                             $str = 'NULL';
@@ -14891,9 +14926,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             //含有可售天数、日均销量、FBA专用自定义公式，特殊处理
                             $str = str_replace('{' . $field . '}',"NULLIF(fba_table.{$field},-111111)",$str);
                         }elseif(in_array($field,array_keys($fbaCommonArr))){
-                            $str = str_replace('{' . $field . '}', "fba_table.{$field}", $str);
+                            $str = str_replace('{' . $field . '}', "fba_table.{$field} * 1.0000", $str);
                         }else{
-                            $str = str_replace('{' . $field . '}', "new_origin_table.{$field}", $str);
+                            $str = str_replace('{' . $field . '}', "new_origin_table.{$field} * 1.0000", $str);
                         }
                     }
                     $other_fields[$item['target_key']] =  "try(" . $str . ")";
@@ -15196,7 +15231,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
 
-        $lists = $this->query($sql, [], null, 300, $isMysql);
+        $lists = $this->query($sql, [], null, 300, $isMysql,$this->isUseTmpTable,$this->isReadTmpTable);
         return $lists;
     }
 
