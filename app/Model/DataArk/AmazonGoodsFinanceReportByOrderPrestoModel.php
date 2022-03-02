@@ -12860,12 +12860,13 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //FBA库存指标
         $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
 
+        //把占比指标转为原指标
         $array_intersect = array_intersect($targets,$this->finance_index_percentage_arr);
         if (!empty($array_intersect)){
-            $add_targets = explode(',',str_replace("_rate","",implode(",",$array_intersect)));
-            $this->add_percentage_arr = $array_intersect;
-            $targets = array_diff($targets,$array_intersect);
-            $targets = array_merge($targets,$add_targets);
+            $add_targets                = explode(',',str_replace("_rate","",implode(",",$array_intersect)));
+            $this->add_percentage_arr   = $array_intersect;
+            $targets                    = array_diff($targets,$array_intersect);
+            $targets                    = array_merge($targets,$add_targets);
         }
 
 
