@@ -1053,50 +1053,25 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }else if($datas['count_dimension'] == 'goods_operators'){
             //统计商品数据里的运营人员维度
-            if($datas['is_distinct_channel'] == 1) {
-                //有区分店铺
-                $fbaDataGroup = 'amazon_goods.goods_operation_user_admin_id, report.channel_id';
-                $group = 'amazon_goods.goods_operation_user_admin_id, report.channel_id';
-                $orderby = "amazon_goods.goods_operation_user_admin_id, report.channel_id";
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                    if ($datas['count_periods'] == '1' ) { //按天
-                        $group .= ', report.myear , report.mmonth  , report.mday';
-                        $orderby .= ', report.myear , report.mmonth  , report.mday';
-                    } else if ($datas['count_periods'] == '2' ) { //按周
-                        $group .= ', report.mweekyear , report.mweek';
-                        $orderby .= ', report.mweekyear , report.mweek';
-                    } else if ($datas['count_periods'] == '3' ) { //按月
-                        $group .= ', report.myear , report.mmonth';
-                        $orderby .= ', report.myear , report.mmonth';
-                    } else if ($datas['count_periods'] == '4' ) {  //按季
-                        $group .= ', report.myear , report.mquarter';
-                        $orderby .= ', report.myear , report.mquarter';
-                    } else if ($datas['count_periods'] == '5' ) { //按年
-                        $group .= ', report.myear';
-                        $orderby .= ', report.myear';
-                    }
-                }
-            }else{
-                $fbaDataGroup = 'amazon_goods.goods_operation_user_admin_id';
-                $group = 'amazon_goods.goods_operation_user_admin_id';
-                $orderby = "amazon_goods.goods_operation_user_admin_id";
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-                    if ($datas['count_periods'] == '1' ) { //按天
-                        $group .= ',report.myear , report.mmonth  , report.mday';
-                        $orderby .= ',report.myear , report.mmonth  , report.mday';
-                    } else if ($datas['count_periods'] == '2' ) { //按周
-                        $group .= ',report.mweekyear , report.mweek';
-                        $orderby .= ',report.mweekyear , report.mweek';
-                    } else if ($datas['count_periods'] == '3' ) { //按月
-                        $group .= ',report.myear , report.mmonth';
-                        $orderby .= ',report.myear , report.mmonth';
-                    } else if ($datas['count_periods'] == '4' ) {  //按季
-                        $group .= ',report.myear , report.mquarter';
-                        $orderby .= ',report.myear , report.mquarter';
-                    } else if ($datas['count_periods'] == '5' ) { //按年
-                        $group .= ',report.myear';
-                        $orderby .= ',report.myear';
-                    }
+            $fbaDataGroup = 'amazon_goods.goods_operation_user_admin_id';
+            $group = 'amazon_goods.goods_operation_user_admin_id';
+            $orderby = "amazon_goods.goods_operation_user_admin_id";
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group .= ',report.myear , report.mmonth  , report.mday';
+                    $orderby .= ',report.myear , report.mmonth  , report.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group .= ',report.mweekyear , report.mweek';
+                    $orderby .= ',report.mweekyear , report.mweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group .= ',report.myear , report.mmonth';
+                    $orderby .= ',report.myear , report.mmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group .= ',report.myear , report.mquarter';
+                    $orderby .= ',report.myear , report.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group .= ',report.myear';
+                    $orderby .= ',report.myear';
                 }
             }
             $where .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern = 1";
