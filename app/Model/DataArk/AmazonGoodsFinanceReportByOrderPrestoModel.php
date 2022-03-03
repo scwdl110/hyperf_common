@@ -13724,6 +13724,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
         $fba_table_field = $fba_table_field1 = $fba_table_where1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
+        $fba_table_where1 = "WHERE 1=1";
         if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
             $join_field = ["user_id"];
             $fba_table_group = " GROUP BY user_id";
@@ -13829,9 +13830,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_field1 = "max(g.site_id) as site_id";
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,g.site_id";
+        }elseif($datas['count_dimension'] == 'goods_operators'){
+            $join_field = ["user_id","goods_operation_user_admin_id"];
+            $fba_table_group = " GROUP BY goods_operation_user_admin_id";
+            $fba_table_field = "max(goods_operation_user_admin_id) as goods_operation_user_admin_id";
+            $fba_table_field1 = "max(amazon_goods.goods_operation_user_admin_id) as goods_operation_user_admin_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.goods_operation_user_admin_id";
+            $fba_table_where1 .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern = 1";
         }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
-        $fba_table_where1 = "WHERE 1=1";
         if (!empty($where_detail)) {
             if (!empty($where_detail['transport_mode'])) {
                 if (!is_array($where_detail['transport_mode'])) {
@@ -14268,6 +14276,38 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by admin_id",
             ] ;
             $json_on = "new_origin_table.admin_id = fba_table.admin_id AND new_origin_table.user_id = fba_table.user_id " ;
+        }
+        else if($datas['count_dimension'] == 'channel_operators' && $datas['is_count'] != 1)
+        {
+            //店铺 运营人员
+            $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id,max(c.site_id) as site_id  ,max(c.operation_user_admin_id) as operation_user_admin_id",'mysql_key' ,$is_currency_exchange) ;
+            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
+            if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
+                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,c.operation_user_admin_id" ;
+
+                }else{
+                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,c.operation_user_admin_id" ;
+                }
+            }else{
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  ".$where." group by c.site_id,c.operation_user_admin_id" ;
+            }
+            $child_table[] = [
+                'table_name' => 'fba_table1',
+                'table_sql' => $table_sql
+            ] ;
+            $fba_rt2 = $this->getUnGoodsFbaField(1,"operation_user_admin_id,merchant_id") ;
+            $child_table[] = [
+                'table_name' => 'fba_table2',
+                'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by operation_user_admin_id ,merchant_id,area_id",
+            ] ;
+            $fba_rt = $this->getUnGoodsFbaField(2," operation_user_admin_id ",'target_key') ;
+            $child_table[] = [
+                'table_name' => 'fba_table',
+                'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by operation_user_admin_id",
+            ] ;
+            $json_on = "new_origin_table.operation_user_admin_id = fba_table.operation_user_admin_id AND new_origin_table.user_id = fba_table.user_id ";
+
         }else if($datas['count_dimension'] == 'all_channels' || $datas['is_count'] == 1){  //按所有店铺 或汇总
             $fba_data['is_count'] = 1 ;
             $fba_data['dimension'] = 'channel' ; //统计店铺有关的维度
@@ -14398,6 +14438,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
             } else {
                 $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
+            }
+        }elseif($datas['count_dimension'] == 'channel_operators'){
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if ($datas['count_periods'] == '1') { //按天
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear , new_origin_table.mmonth , new_origin_table.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.mweekyear , new_origin_table.mweek ';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear , new_origin_table.mmonth';
+                } else if ($datas['count_periods'] == '4') {  //按季
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear , new_origin_table.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear';
+                }
+            } else {
+                $orderby = empty($orderby) ? 'new_origin_table.operation_user_admin_id  ' : ($orderby . ' , new_origin_table.operation_user_admin_id ');
             }
         }
         if (!empty($orderby_sort)){
