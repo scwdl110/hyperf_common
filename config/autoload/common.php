@@ -15,7 +15,9 @@ return [
         "mxn_exchang_rate" => array("id" => 12, "site_id" => 3, "name" => "比索币", "code" => "MXN", "symbol" => "Mex$"),
         "nl_exchang_rate" => array("id" => 13, "site_id" => 16, "name" => "荷兰盾", "code" => "NLG", "symbol" => "fl"),
         "sa_exchang_rate" => array("id" => 14, "site_id" => 17, "name" => "里亚尔", "code" => "SAR", "symbol" => "SAR"),
-        "sg_exchang_rate" => array("id" => 15, "site_id" => 18, "name" => "新加坡元", "code" => "SGD", "symbol" => "S$")
+        "sg_exchang_rate" => array("id" => 15, "site_id" => 18, "name" => "新加坡元", "code" => "SGD", "symbol" => "S$"),
+        "pl_exchang_rate" => array("id" => 16, "site_id" => 19, "name" => "兹罗提", "code" => "PLN", "symbol" => "zł"),
+        "se_exchang_rate" => array("id" => 17, "site_id" => 20, "name" => "瑞典克朗", "code" => "SEK", "symbol" => "kr")
     ),
     /*五大站点对应的国家：1：北美，2：：欧洲，3：印度，4：日本，5：澳洲 6:新加坡*/
     "amzon_site_country1" => array(
@@ -35,7 +37,9 @@ return [
         array('id' => 15, "name" => '阿联酋迪拉姆', "country_key" => "g_arabic", "currency_code" => "AED", "currency_symbol" => "AED", "code" => "AE", "site_group_id" => 2),
         array('id' => 16, "name" => '荷兰盾', "country_key" => "g_netherlands", "currency_code" => "EUR", "currency_symbol" => "€", "code" => "NL", "site_group_id" => 2),
         array('id' => 17, "name" => '沙特阿拉伯', "country_key" => "g_arabia", "currency_code" => "SAR", "currency_symbol" => "SAR", "code" => "SA", "site_group_id" => 2),
-        array('id' => 18, "name" => '沙特阿拉伯', "country_key" => "g_singapore", "currency_code" => "SGD", "currency_symbol" => "S$", "code" => "SG", "site_group_id" => 6)
+        array('id' => 18, "name" => '沙特阿拉伯', "country_key" => "g_singapore", "currency_code" => "SGD", "currency_symbol" => "S$", "code" => "SG", "site_group_id" => 6),
+        array('id' => 19, "name" => '波兰', "country_key"=>"g_poland", "currency_code" => "PLN", "currency_symbol" => "zł", "code" => "PL", "site_group_id" => 2 ) ,
+        array('id' => 20, "name" => '瑞典', "country_key"=>"g_sweden", "currency_code" => "SEK", "currency_symbol" => "kr", "code" => "SE", "site_group_id" => 2) ,
     ),
     "big_selling_users" => env("BIG_SELLING_USERS","20567,323435,21,221336,281463,342133,98271,210568,313691,94952") ,
     /*店铺维度 FBA 指标
