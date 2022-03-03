@@ -283,6 +283,9 @@ class FinanceService extends BaseService
                 if (!empty($params['where_parent']['developer_id'])) {
                     $where .= " AND amazon_goods.isku_developer_id IN (" . $params['where_parent']['developer_id'] . ")";
                 }
+                if (!empty($params['where_parent']['operators_id'])){
+                    $where .= "AND amazon_goods.goods_operation_user_admin_id IN (". $params['where_parent']['operators_id'] .") AND amazon_goods.channel_goods_operation_pattern = 1";
+                }
             }
 
             if ($type == 0) {
@@ -303,7 +306,7 @@ class FinanceService extends BaseService
                 }
 
                 if (!empty($params['where_parent']['operators_id'])){
-                    $where .= " AND channel.operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ")";
+                    $where .= " AND channel.operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ") AND channel.goods_operation_pattern = 2";
                 }
             }
 
