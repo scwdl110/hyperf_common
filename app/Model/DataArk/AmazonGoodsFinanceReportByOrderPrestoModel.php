@@ -1099,7 +1099,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }
-            $where .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern != 1";
+            $where .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern = 1";
         }
 
         if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
@@ -6067,7 +6067,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
 
-            $where .= " AND channel.operation_user_admin_id > 0";
+            $where .= " AND channel.operation_user_admin_id > 0 AND channel.goods_operation_pattern = 2";
         }
 
         if (isset($params['is_time_sort']) && $params['is_time_sort'] == 1 && !empty($orderbyTmp) && $params['count_periods'] > 0 && $params['show_type'] == '2'){//按周期排序添加
