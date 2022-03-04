@@ -8614,6 +8614,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }elseif($datas['count_dimension'] == 'all_channels'){
                     $fba_fields = 'max(c.channel_id) as channel_id' ;
                     $group = 'c.area_id';
+                }elseif($datas['count_dimension'] == 'channel_operators'){
+                    $fba_fields = $group = 'channel.operation_user_admin_id';
+                    $table .= " LEFT JOIN {$this->table_channel} as channel ON channel.id = c.channel_id and channel.user_id = c.user_id";
                 }
                 $where_arr = array() ;
                 foreach($lists as $list1){
@@ -8625,6 +8628,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
                     }else if($datas['count_dimension'] == 'admin_id'){
                         $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
+                    }else if($datas['count_dimension'] == 'channel_operators'){
+                        $where_arr[] = array('operation_user_admin_id'=>$list1['operation_user_admin_id']);
                     }
                 }
 
@@ -8643,6 +8648,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($datas['count_dimension'] == 'admin_id'){
                     $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
                     $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
+                    $isMysql = false;
+                }else if($datas['count_dimension'] == 'channel_operators'){
+                    $where_strs = array_unique(array_column($where_arr , 'operation_user_admin_id')) ;
+                    $where_str = 'channel.operation_user_admin_id IN (' . implode(',' , $where_strs) . ")" ;
                     $isMysql = false;
                 }else{
                     $where_str = '1=1' ;
@@ -8713,6 +8722,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fbaDatas[0]['fba_need_replenish'] += $fba['fba_need_replenish'];
                         $fbaDatas[0]['fba_predundancy_number'] += $fba['fba_predundancy_number'];
                     }
+                }elseif($datas['count_dimension'] == 'channel_operators'){
+                    if (empty($fbaDatas[$fba['operation_user_admin_id']])){
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_goods_value']= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_stock']= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_need_replenish']= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_predundancy_number']= $fba['fba_predundancy_number'] ;
+                    }else{
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_stock']+= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                    }
                 }else{
                     $fbaDatas[] = $fba ;
                 }
@@ -8727,6 +8748,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_data = empty($fbaDatas[$list2['user_department_id']]) ? array() :  $fbaDatas[$list2['user_department_id']];
             }else if($datas['count_dimension'] == 'admin_id'){
                 $fba_data = empty($fbaDatas[$list2['admin_id']]) ? array() :  $fbaDatas[$list2['admin_id']];
+            }elseif($datas['count_dimension'] == 'channel_operators'){
+                $fba_data = empty($fbaDatas[$list2['operation_user_admin_id']]) ? array() :  $fbaDatas[$list2['operation_user_admin_id']];
             }else{
                 $fba_data = empty($fbaDatas[0]) ? array() :  $fbaDatas[0];
             }
