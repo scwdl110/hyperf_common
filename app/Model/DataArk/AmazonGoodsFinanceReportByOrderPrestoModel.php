@@ -8952,11 +8952,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     public function handleReturnData($params,$lists){
         if ($params['show_type'] == 2 && !empty($lists)){//目前只有按指标展示的需要处理
-            var_dump($this->finance_index_percentage_arr);
             if (!empty($this->add_percentage_arr)){//百分比指标需要处理
                 foreach ($lists as $key => $value){
 
-
+                    foreach ($this->add_percentage_arr as $item){
+                        $denominator_field = $this->finance_index_percentage_arr[$item]['denominator_field'];
+                        $molecule_field    = str_replace("_rate","",$item);
+                        if (isset($value[$denominator_field]) && $value[$denominator_field] != 0 && isset($value[$molecule_field])){
+                            $lists[$key][$item] = round($value[$molecule_field]/$value[$denominator_field],4);
+                        }else{
+                            $lists[$key][$item] = '-';
+                        }
+                    }
 
                 }
             }
@@ -13550,7 +13557,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     public function getFieldFromCache(){
         $redis = new Redis();
         $mysql_fields = $redis->get("mysql_finance_fields");
-        if (!is_array($mysql_fields) or empty($mysql_fields)){
+        if (!is_array($mysql_fields) or empty($mysql_fields) or 1){
             $finance_index = FinanceIndexModel::get()->toArray();
             $finance_index = array_column($finance_index,null,'id');
             $finance_index_arr              = array();
