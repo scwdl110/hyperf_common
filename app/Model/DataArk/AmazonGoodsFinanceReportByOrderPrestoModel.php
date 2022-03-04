@@ -7,6 +7,7 @@ use App\Lib\Redis;
 use App\Model\Ads\VipUserBigData;
 use App\Model\ChannelTargetsMySQLModel;
 use App\Model\SiteRateMySQLModel;
+use App\Model\User\UserAdminRolePrivModel;
 use App\Model\UserAdminModel;
 use App\Model\AbstractPrestoModel;
 use Captainbi\Hyperf\Util\Log;
@@ -1838,6 +1839,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         $where_str = !empty($where_str) ? $where_str . " AND " : "";
         $where.= ' AND ' . $where_str." g.id > 0 AND g.is_delete = 0" ;
+
+        if ($datas['priv_value'] == UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER && !empty($datas['priv_goods_operation_user_admin_id'])){
+
+            $where_priv = "(rel.operation_user_admin_id IN ({$datas['priv_goods_operation_user_admin_id']}))";
+            if (!empty($datas['operation_channel_ids_arr'])){
+                $where_priv .= " OR (rel.channel_id in ({$datas['operation_channel_ids_arr']}))";
+            }
+            $where .= " AND ($where_priv)";
+        }
         if(isset($datas['where_detail']) && $datas['where_detail']){
             $is_rel_status = false;
             if (!is_array($datas['where_detail'])){
@@ -13737,7 +13747,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_group = " GROUP BY developer_id";
         }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
-        $fba_table_where1 = "WHERE 1=1";
+        if (isset($datas['priv_goods_operation_user_admin_id']) && !empty($datas['priv_goods_operation_user_admin_id'])){
+            $fba_table_where1 = "  WHERE amazon_goods.goods_operation_user_admin_id IN (" . $datas['priv_goods_operation_user_admin_id'] . ")";
+
+
+        }else{
+            $fba_table_where1 = "WHERE 1=1";
+
+        }
         if (!empty($where_detail)) {
             if (!empty($where_detail['transport_mode'])) {
                 if (!is_array($where_detail['transport_mode'])) {

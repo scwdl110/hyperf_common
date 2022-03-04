@@ -17,7 +17,9 @@ use App\Lib\Common;
 
 use App\Model\DataArk\FinanceIndexAssociatedSqlKeyModel;
 use App\Model\DataArk\FinanceIndexModel;
+use App\Model\User\UserAdminRolePrivModel;
 use Captainbi\Hyperf\Util\Result;
+use Hyperf\DbConnection\Db;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\Logger\LoggerFactory;
 
@@ -67,6 +69,9 @@ class FinanceService extends BaseService
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('dataark', 'dataark');
             $logger->info('request body', [$req, $userInfo]);
         }
+
+
+
 
 //        $req['is_new_index'] = 1;
         $req['is_new_index'] = $req['is_new_index'] ?? 0;
@@ -165,6 +170,108 @@ class FinanceService extends BaseService
                 $where .= " and amazon_goods.goods_user_id={$userInfo['user_id']} AND amazon_goods.goods_channel_id={$channelIds[0]}";
             }
         }
+        $params['priv_goods_operation_user_admin_id'] = "";
+        $params['priv_goods_isku_id'] = "";
+        $params['operation_channel_ids_arr'] = "";
+        $params['priv_value'] = UserAdminRolePrivModel::GOODS_PRIV_VALUE_ALL;
+        //商品和运营人员 添加商品权限控制
+        if ($type > 0 && isset($req['priv_key'])){
+            $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
+            $params['priv_value'] = $goods_priv['priv_value'];
+            if (isset($params['count_dimension']) && in_array($params['count_dimension'],['head_id','developer_id','isku_head_id','isku_developer_id'])){//isku和负责人
+                $isku_user_type_arr = array(
+                    "head_id" => 1,
+                    "developer_id" => 2,
+                    "isku_head_id" => 1,
+                    "isku_developer_id" => 2,
+                );
+
+                $isku_user_type = $isku_user_type_arr[$params['count_dimension']];
+                $isku_user_type_string = str_replace("isku_","",$params['count_dimension']);
+
+
+                switch ($goods_priv['priv_value'])
+                {
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
+                        $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
+                        if(!empty($related_user_admin_ids_str))
+                        {
+                            //查出关联的负责人和开发人员
+                            $sql = "select id from e_amazon_goods_isku_user_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and type = {$isku_user_type} and link_admin_ids regexp ',(".str_replace(",","|",$related_user_admin_ids_str)."),'";
+                            $isku_user = Db::connection("erp_captain_{$userInfo['dbhost']}")->select($sql);
+                            if (!empty($isku_user)){
+                                foreach ($isku_user as $key => $value){
+                                    $isku_user[$key] = (array) $value;
+                                }
+                                $isku_user_str = implode(",",array_column($isku_user,'id'));
+
+                                //查出关联的isku
+//                                $sql = "select id from e_amazon_goods_isku_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and (head_id in ({$isku_user_str}) or developer_id in({$isku_user_str}) or ispu_id in (select id from e_amazon_goods_ispu_{$userInfo['codeno']} where user_id ={$userInfo['user_id']} and (head_id in ({$isku_user_str}) or developer_id in ({$isku_user_str})) and is_delete=0)) and status >0";//添加ispu数据，不需要
+
+                                $sql = "select id from e_amazon_goods_isku_{$userInfo['codeno']} where user_id = {$userInfo['user_id']} and {$isku_user_type_string} in ({$isku_user_str}) and status >0";
+                                $isku_arr = Db::connection("erp_captain_{$userInfo['dbhost']}")->select($sql);
+                                if (!empty($isku_arr)) {
+                                    foreach ($isku_arr as $key => $value) {
+                                        $isku_arr[$key] = (array)$value;
+                                    }
+                                    $params['priv_goods_isku_id'] = $isku_arr;
+                                    $where .= "  AND report.goods_isku_id IN (" . implode(",",array_column($isku_arr,'id')) . ")";
+                                }else{
+                                    return $result;
+                                }
+
+                            }else{
+                                return $result;
+                            }
+
+
+
+                        }else{
+                            return $result;
+                        }
+                        break;
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE:  //不可见
+                        return $result;
+                        break;
+                    default:   //全部可见
+                        break;
+                }
+
+            }else{
+
+                switch ($goods_priv['priv_value'])
+                {
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
+                        $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
+                        if(!empty($related_user_admin_ids_str))
+                        {
+                            $params['priv_goods_operation_user_admin_id'] = $related_user_admin_ids_str;
+                            $params['operation_channel_ids_arr'] = implode(",",$goods_priv['operation_channel_ids_arr']);
+                            if ($type == 2){
+                                $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                            }else{
+                                $where .= "  AND amazon_goods.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                            }
+                        }else{
+                            return $result;
+                        }
+                        break;
+                    case UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE:  //不可见
+                        return $result;
+                        break;
+                    default:   //全部可见
+                        break;
+                }
+            }
+
+
+        }
+
+        //负责人或开发人员的isku只是条件不一样，因此重置为isku维度
+        if (in_array($params['count_dimension'],['isku_head_id','isku_developer_id'])){
+            $params['count_dimension'] = 'isku';
+        }
+
         $params['origin_where'] = $where;
         $params['origin_report_where'] = $params['user_sessions_where'];
 
