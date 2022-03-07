@@ -6165,6 +6165,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             array_multisort($sort_names,$order2,$lists);
         }
         $rt['lists'] = empty($lists) ? [] : $lists;
+        $rt['lists'] = $this->handleReturnData($params,$rt['lists']);;
         $rt['count'] = (int)$count;
         return $rt;
     }
