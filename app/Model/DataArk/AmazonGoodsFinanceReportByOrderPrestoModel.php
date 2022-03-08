@@ -13532,9 +13532,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $category_name_target = ",product_category_name_1,product_category_name_2,product_category_name_3";
         }
 
-        $origin_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day")) ."'" ;
+        $origin_where =  "dt = '" . date('Y-m-d' , strtotime("-2 day")) ."'" ;
         if($day_type == '1'){
-            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 1 * 24* 3600 ) ."'" ;
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-2 day") - 1 * 24* 3600 ) ."'" ;
             if($data_type == '1'){//取平均值
                 $target = '01day_top'.$top_num."_avg" ;
             }elseif($data_type == '2'){  //取临界节点点值
@@ -13543,7 +13543,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $target = '01day_top'.$top_num ;
             }
         }else if($day_type == '2' ){
-            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 7 * 24* 3600 ) ."'" ;
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-2 day") - 7 * 24* 3600 ) ."'" ;
             if($data_type == '1'){//取平均值
                 $target = '07day_top'.$top_num."_avg" ;
             }elseif($data_type == '2'){  //取临界节点点值
@@ -13552,7 +13552,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $target = '07day_top'.$top_num ;
             }
         }else if($day_type == '3'){
-            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 30 * 24* 3600 ) ."'" ;
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-2 day") - 30 * 24* 3600 ) ."'" ;
             if($data_type == '1'){//取平均值
                 $target = '30day_top'.$top_num."_avg" ;
             }elseif($data_type == '2'){  //取临界节点点值
@@ -13561,7 +13561,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $target = '30day_top'.$top_num ;
             }
         }else if($day_type == '4'){
-            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-1 day") - 30 * 24* 3600 ) ."'" ;
+            $compare_where =  "dt = '" . date('Y-m-d' , strtotime("-2 day") - 30 * 24* 3600 ) ."'" ;
             if($data_type == '1'){//取平均值
                 $target = '15day_top'.$top_num."_avg" ;
             }elseif($data_type == '2'){  //取临界节点点值
