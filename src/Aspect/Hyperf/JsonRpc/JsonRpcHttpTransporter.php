@@ -50,15 +50,23 @@ class JsonRpcHttpTransporter extends AbstractAspect
      */
     public function aop_send(ProceedingJoinPoint $proceedingJoinPoint)//,$data
     {
-        $userInfo = Context::get(ServerRequestInterface::class)->getAttribute("userInfo");
+        $data = data_get($proceedingJoinPoint->arguments, 'keys.data', []);
+
+        $server_request = Context::get(ServerRequestInterface::class);
+
+        if (method_exists($server_request, 'getAttribute')) {
+            $userInfo = $server_request->getAttribute("userInfo");
+        } else {
+            $info = json_decode($data,true);
+            $userInfo = $info['params'][2];
+        }
 
         $admin_id = data_get($userInfo, 'admin_id', 0);
         $user_id = data_get($userInfo, 'user_id', 0);
         $is_master = data_get($userInfo, 'is_master', 0);
         $dbhost = data_get($userInfo, 'dbhost', 001);
         $codeno = data_get($userInfo, 'codeno', 001);
-
-        $data = data_get($proceedingJoinPoint->arguments, 'keys.data', []);
+        
 //        //$proceedingJoinPoint->getAnnotationMetadata(),
 //        //$proceedingJoinPoint->processOriginalMethod(),
 //        $model = $proceedingJoinPoint->getInstance();

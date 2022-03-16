@@ -32,22 +32,29 @@ class Unique {
         if (empty($items)) {
             return array();
         } else {
-            $data_arr = $items->toArray();
-            $arr = array();
-            foreach ($data_arr as &$value) {
-                if (is_object($value)) {
-                    $_arr = get_object_vars($value);
-                    foreach ($_arr as $key => $val) {
-                        $val = (is_array($val)) || is_object($val) ? object_to_array($val) : $val;
-                        $arr[$key] = $val;
+            if (method_exists($items, "toArray")) {
+                $data_arr = $items->toArray();
+                $arr = array();
+                foreach ($data_arr as &$value) {
+                    if (is_object($value)) {
+                        $_arr = get_object_vars($value);
+                        foreach ($_arr as $key => $val) {
+                            $val = (is_array($val)) || is_object($val) ? object_to_array($val) : $val;
+                            $arr[$key] = $val;
+                        }
+                        $value = $arr;
                     }
-                    $value = $arr;
                 }
+            } else {
+                $_arr = get_object_vars($items);
+                foreach ($_arr as $key => &$val) {
+                    $val = (is_array($val)) || is_object($val) ? object_to_array($val) : $val;
+                }
+                $data_arr = $_arr;
             }
             return $data_arr;
         }
     }
-
 
     /**
      * 获取当前时间（可设置）
