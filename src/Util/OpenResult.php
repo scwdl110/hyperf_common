@@ -62,14 +62,14 @@ class OpenResult
                 'msg' => $msg,
                 'next_token' => $next_token ?: '',
             //    'max_result' => $max_result ?: 0,
-                'data' => (object)$data,
+                'data' => $data,
             ), JSON_UNESCAPED_UNICODE);
         } else {
             return json_encode(array(
                 'code' => $code,
                 'msg' => $msg,
             //    'max_result' => $max_result ?: 0,
-                'data' => (object)$data,
+                'data' => $data,
             ), JSON_UNESCAPED_UNICODE);
         }
     }
