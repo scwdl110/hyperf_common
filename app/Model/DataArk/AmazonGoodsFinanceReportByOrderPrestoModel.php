@@ -1097,6 +1097,53 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.channel_id ';
                 $orderby = empty($orderby) ? ('report.channel_id ') : ($orderby . ' ,report.channel_id ');
             }
+        }else if($datas['count_dimension'] == 'goods_site_id'){
+            //统计商品数据里的国家维度
+            $fbaDataGroup = 'report.site_id';
+            $group = 'report.site_id ';
+            $orderby = 'report.site_id ';
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group = 'report.site_id ,report.myear , report.mmonth  , report.mday';
+                    $orderby = 'report.site_id ,report.myear , report.mmonth  , report.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group = 'report.site_id ,report.mweekyear , report.mweek';
+                    $orderby = 'report.site_id ,report.mweekyear , report.mweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group = 'report.site_id ,report.myear , report.mmonth';
+                    $orderby = 'report.site_id ,report.myear , report.mmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group = 'report.site_id ,report.myear , report.mquarter';
+                    $orderby = 'report.site_id ,report.myear , report.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group = 'report.site_id ,report.myear';
+                    $orderby = 'report.site_id ,report.myear';
+                }
+            }
+        }else if($datas['count_dimension'] == 'goods_operators'){
+            //统计商品数据里的运营人员维度
+            $fbaDataGroup = 'amazon_goods.goods_operation_user_admin_id';
+            $group = 'amazon_goods.goods_operation_user_admin_id';
+            $orderby = "amazon_goods.goods_operation_user_admin_id";
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if ($datas['count_periods'] == '1' ) { //按天
+                    $group .= ',report.myear , report.mmonth  , report.mday';
+                    $orderby .= ',report.myear , report.mmonth  , report.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $group .= ',report.mweekyear , report.mweek';
+                    $orderby .= ',report.mweekyear , report.mweek';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $group .= ',report.myear , report.mmonth';
+                    $orderby .= ',report.myear , report.mmonth';
+                } else if ($datas['count_periods'] == '4' ) {  //按季
+                    $group .= ',report.myear , report.mquarter';
+                    $orderby .= ',report.myear , report.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $group .= ',report.myear';
+                    $orderby .= ',report.myear';
+                }
+            }
+            $where .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern = 1";
         }
 
         if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
@@ -3908,8 +3955,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if($datas['count_dimension'] == 'goods_channel'){
             $fields['channel_id'] = 'max(report.channel_id)';
+            $fields['site_id'] = 'max(report.site_id)';
+        }elseif($datas['count_dimension'] == 'goods_site_id'){
+            $fields['site_id'] = 'max(report.site_id)';
+        }elseif($datas['count_dimension'] == 'goods_operators'){
+            $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
+            if ($datas['is_distinct_channel'] == 1) {
+                $fields['channel_id'] = 'max(report.channel_id)';
+                $fields['site_id'] = 'max(report.site_id)';
+            }
         }
-
         return $fields;
     }
 
@@ -6044,6 +6099,29 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $group = 'report.user_id  ';
             }
 
+        }else if($params['count_dimension'] == 'channel_operators'){
+            $group = "channel.operation_user_admin_id";
+            $orderby = "channel.operation_user_admin_id";
+            if ($params['count_periods'] > 0 && $params['show_type'] == '2') {
+                if ($params['count_periods'] == '1') { //按天
+                    $group .= ',report.myear , report.mmonth  , report.mday';
+                    $orderby .= ',report.myear , report.mmonth  , report.mday';
+                } else if ($params['count_periods'] == '2') { //按周
+                    $group .= ',report.mweekyear , report.mweek';
+                    $orderby .= ',report.mweekyear , report.mweek';
+                } else if ($params['count_periods'] == '3') { //按月
+                    $group .= ',report.myear , report.mmonth';
+                    $orderby .= ',report.myear , report.mmonth';
+                } else if ($params['count_periods'] == '4') {  //按季
+                    $group .= ',report.myear , report.mquarter';
+                    $orderby .= ',report.myear , report.mquarter';
+                } else if ($params['count_periods'] == '5') { //按年
+                    $group .= ',report.myear';
+                    $orderby .= ',report.myear';
+                }
+            }
+
+            $where .= " AND channel.operation_user_admin_id > 0 AND channel.goods_operation_pattern = 2";
         }
 
         if (isset($params['is_time_sort']) && $params['is_time_sort'] == 1 && !empty($orderbyTmp) && $params['count_periods'] > 0 && $params['show_type'] == '2'){//按周期排序添加
@@ -6276,6 +6354,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } elseif ($datas['count_dimension'] === 'admin_id') {
             $fields['admin_id'] = 'max(uc.admin_id)';
             $fields['user_admin_id'] = 'max(uc.admin_id)';
+        }elseif ($datas['count_dimension'] == 'channel_operators'){
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
@@ -7231,6 +7311,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }else if($datas['count_dimension'] == 'admin_id'){
             $fields['admin_id'] = 'max(uc.admin_id)';
             $fields['user_admin_id'] = 'max(uc.admin_id)';
+        }elseif ($datas['count_dimension'] == 'channel_operators'){
+            $fields['operation_user_admin_id'] = 'max(channel.operation_user_admin_id)';
         }
 
         $target_key = $datas['time_target'];
@@ -8611,6 +8693,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }elseif($datas['count_dimension'] == 'all_channels'){
                     $fba_fields = 'max(c.channel_id) as channel_id' ;
                     $group = 'c.area_id';
+                }elseif($datas['count_dimension'] == 'channel_operators'){
+                    $fba_fields = $group = 'channel.operation_user_admin_id';
+                    $table .= " LEFT JOIN {$this->table_channel} as channel ON channel.id = c.channel_id and channel.user_id = c.user_id";
                 }
                 $where_arr = array() ;
                 foreach($lists as $list1){
@@ -8622,6 +8707,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $where_arr[] = array('user_department_id'=>$list1['user_department_id']) ;
                     }else if($datas['count_dimension'] == 'admin_id'){
                         $where_arr[] = array('admin_id'=>$list1['admin_id']) ;
+                    }else if($datas['count_dimension'] == 'channel_operators'){
+                        $where_arr[] = array('operation_user_admin_id'=>$list1['operation_user_admin_id']);
                     }
                 }
 
@@ -8640,6 +8727,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($datas['count_dimension'] == 'admin_id'){
                     $where_strs = array_unique(array_column($where_arr , 'admin_id')) ;
                     $where_str = 'uc.admin_id IN (' . implode(',' , $where_strs) . ")" ;
+                    $isMysql = false;
+                }else if($datas['count_dimension'] == 'channel_operators'){
+                    $where_strs = array_unique(array_column($where_arr , 'operation_user_admin_id')) ;
+                    $where_str = 'channel.operation_user_admin_id IN (' . implode(',' , $where_strs) . ")" ;
                     $isMysql = false;
                 }else{
                     $where_str = '1=1' ;
@@ -8710,6 +8801,18 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $fbaDatas[0]['fba_need_replenish'] += $fba['fba_need_replenish'];
                         $fbaDatas[0]['fba_predundancy_number'] += $fba['fba_predundancy_number'];
                     }
+                }elseif($datas['count_dimension'] == 'channel_operators'){
+                    if (empty($fbaDatas[$fba['operation_user_admin_id']])){
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_goods_value']= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_stock']= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_need_replenish']= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_predundancy_number']= $fba['fba_predundancy_number'] ;
+                    }else{
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_goods_value']+= $fba['fba_goods_value'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_stock']+= $fba['fba_stock'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_need_replenish']+= $fba['fba_need_replenish'] ;
+                        $fbaDatas[$fba['operation_user_admin_id']]['fba_predundancy_number']+= $fba['fba_predundancy_number'] ;
+                    }
                 }else{
                     $fbaDatas[] = $fba ;
                 }
@@ -8724,6 +8827,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fba_data = empty($fbaDatas[$list2['user_department_id']]) ? array() :  $fbaDatas[$list2['user_department_id']];
             }else if($datas['count_dimension'] == 'admin_id'){
                 $fba_data = empty($fbaDatas[$list2['admin_id']]) ? array() :  $fbaDatas[$list2['admin_id']];
+            }elseif($datas['count_dimension'] == 'channel_operators'){
+                $fba_data = empty($fbaDatas[$list2['operation_user_admin_id']]) ? array() :  $fbaDatas[$list2['operation_user_admin_id']];
             }else{
                 $fba_data = empty($fbaDatas[0]) ? array() :  $fbaDatas[0];
             }
@@ -13730,6 +13835,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $join_field = ["user_id"];
         $need_review_fba = true;//需要去重
         $fba_table_field = $fba_table_field1 = $fba_table_where1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
+        $fba_table_where1 = "WHERE 1=1";
         if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
             $join_field = ["user_id"];
             $fba_table_group = " GROUP BY user_id";
@@ -13823,16 +13929,28 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
             $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.isku_developer_id";
             $fba_table_group = " GROUP BY developer_id";
+        }else if($datas['count_dimension'] == 'goods_channel'){
+            $join_field = ["user_id","channel_id"];
+            $fba_table_group = " GROUP BY channel_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,g.channel_id";
+        }elseif($datas['count_dimension'] == 'goods_site_id'){
+            $join_field = ["user_id","site_id"];
+            $fba_table_group = " GROUP BY site_id";
+            $fba_table_field = "max(site_id) as site_id";
+            $fba_table_field1 = "max(g.site_id) as site_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,g.site_id";
+        }elseif($datas['count_dimension'] == 'goods_operators'){
+            $join_field = ["user_id","goods_operation_user_admin_id"];
+            $fba_table_group = " GROUP BY goods_operation_user_admin_id";
+            $fba_table_field = "max(goods_operation_user_admin_id) as goods_operation_user_admin_id";
+            $fba_table_field1 = "max(amazon_goods.goods_operation_user_admin_id) as goods_operation_user_admin_id";
+            $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku";
+            $fba_table_group1 = " GROUP BY g.sku,g.merchant_id,g.area_id,amazon_goods.goods_operation_user_admin_id";
+            $fba_table_where1 .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern = 1";
         }
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
-        if (isset($datas['priv_goods_operation_user_admin_id']) && !empty($datas['priv_goods_operation_user_admin_id'])){
-            $fba_table_where1 = "  WHERE amazon_goods.goods_operation_user_admin_id IN (" . $datas['priv_goods_operation_user_admin_id'] . ")";
-
-
-        }else{
-            $fba_table_where1 = "WHERE 1=1";
-
-        }
         if (!empty($where_detail)) {
             if (!empty($where_detail['transport_mode'])) {
                 if (!is_array($where_detail['transport_mode'])) {
@@ -13984,6 +14102,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
             }
         }
+        if (!empty($datas['where_parent'])){
+            if (!empty($datas['where_parent']['isku_id'])) {
+                $fba_table_where1 .= " AND amazon_goods.goods_isku_id IN (" . $datas['where_parent']['isku_id'] . ")";
+            }
+            if (!empty($datas['where_parent']['class1_name']) && !empty($datas['where_parent']['site_id'])) {
+                if (is_array($datas['where_parent']['class1_name'])) {
+                    $class1_name = implode("','", $datas['where_parent']['class1_name']);
+                } else {
+                    $class1_name = trim($datas['where_parent']['class1_name']);
+                }
+                $fba_table_where1 .= " AND amazon_goods.goods_product_category_name_1 IN('{$class1_name}') AND g.site_id = {$datas['where_parent']['site_id']}";
+            }
+            if (!empty($datas['where_parent']['group_id'])) {
+                $fba_table_where1 .= " AND amazon_goods.goods_group_id  IN (" . $datas['where_parent']['group_id'] . ")";
+            }
+        }
 
         $datas['need_review_fba'] = $need_review_fba;
         if($datas['is_count'] == 1 && $datas['is_distinct_channel'] == 1){
@@ -14096,6 +14230,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $orderbyArr[] = 'new_origin_table.head_id' . $time_group ;
             }else if($datas['count_dimension'] == 'developer_id'){ //按开发人维度统计
                 $orderbyArr[] = 'new_origin_table.developer_id ' . $time_group;
+            }else if($datas['count_dimension'] == 'goods_channel'){
+                $orderbyArr[] = 'new_origin_table.channel_id ' . $time_group;
+            }else if($datas['count_dimension'] == 'goods_site_id'){
+                $orderbyArr[] = 'new_origin_table.site_id ' . $time_group;
             }
         }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
@@ -14249,6 +14387,49 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by admin_id",
             ] ;
             $json_on = "new_origin_table.admin_id = fba_table.admin_id AND new_origin_table.user_id = fba_table.user_id " ;
+        }
+        else if($datas['count_dimension'] == 'channel_operators' && $datas['is_count'] != 1)
+        {
+            //店铺 运营人员
+            $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id,max(c.site_id) as site_id  ,max(c.operation_user_admin_id) as operation_user_admin_id",'mysql_key' ,$is_currency_exchange) ;
+            $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
+            $child_dimension_sql = " ";
+            if (!empty($datas['where_parent']['child_dimension_admin_id'])){
+                $where .= " AND uc.admin_id IN({$datas['where_parent']['child_dimension_admin_id']})";
+                $child_dimension_sql = " LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ";
+            }
+            if (!empty($datas['where_parent']['child_dimension_department_id'])){
+                $where .= " AND dc.user_department_id IN({$datas['where_parent']['child_dimension_department_id']}) AND dc.status = 1";
+                $child_dimension_sql = " LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id ";
+            }
+            if (!empty($datas['where_parent']['child_dimension_site_id'])){
+                $where .= " AND c.site_id IN({$datas['where_parent']['child_dimension_site_id']})";
+            }
+            if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
+                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,c.operation_user_admin_id" ;
+                }else{
+                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,c.operation_user_admin_id" ;
+                }
+            }else{
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} ".$where." group by c.site_id,c.operation_user_admin_id" ;
+            }
+            $child_table[] = [
+                'table_name' => 'fba_table1',
+                'table_sql' => $table_sql
+            ] ;
+            $fba_rt2 = $this->getUnGoodsFbaField(1,"operation_user_admin_id,merchant_id") ;
+            $child_table[] = [
+                'table_name' => 'fba_table2',
+                'table_sql' => "select {$fba_rt2['field_str']} from fba_table1 group by operation_user_admin_id ,merchant_id,area_id",
+            ] ;
+            $fba_rt = $this->getUnGoodsFbaField(2," operation_user_admin_id ",'target_key') ;
+            $child_table[] = [
+                'table_name' => 'fba_table',
+                'table_sql' => "select {$fba_rt['field_str']} from fba_table2 group by operation_user_admin_id",
+            ] ;
+            $json_on = "new_origin_table.operation_user_admin_id = fba_table.operation_user_admin_id AND new_origin_table.user_id = fba_table.user_id ";
+
         }else if($datas['count_dimension'] == 'all_channels' || $datas['is_count'] == 1){  //按所有店铺 或汇总
             $fba_data['is_count'] = 1 ;
             $fba_data['dimension'] = 'channel' ; //统计店铺有关的维度
@@ -14379,6 +14560,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 }
             } else {
                 $orderby = empty($orderby) ? 'new_origin_table.admin_id  ' : ($orderby . ' , new_origin_table.admin_id ');
+            }
+        }elseif($datas['count_dimension'] == 'channel_operators'){
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if ($datas['count_periods'] == '1') { //按天
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear , new_origin_table.mmonth , new_origin_table.mday';
+                } else if ($datas['count_periods'] == '2' ) { //按周
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.mweekyear , new_origin_table.mweek ';
+                } else if ($datas['count_periods'] == '3' ) { //按月
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear , new_origin_table.mmonth';
+                } else if ($datas['count_periods'] == '4') {  //按季
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear , new_origin_table.mquarter';
+                } else if ($datas['count_periods'] == '5' ) { //按年
+                    $orderby = 'new_origin_table.operation_user_admin_id , new_origin_table.myear';
+                }
+            } else {
+                $orderby = empty($orderby) ? 'new_origin_table.operation_user_admin_id  ' : ($orderby . ' , new_origin_table.operation_user_admin_id ');
             }
         }
         if (!empty($orderby_sort)){
