@@ -3565,7 +3565,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
             if (in_array('sales_evaluation_order_nums', $targets)) {  //测评订单量
-                $tmp_field = $datas['sales_evaluation_nums'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
+                $tmp_field = $datas['sale_datas_origin'] == '1' ? 'byorderitem_evaluation_order_nums' : 'reportitem_evaluation_order_nums';
                 $fields['sales_evaluation_order_nums'] = "sum( report.{$tmp_field} )";
             }
 
