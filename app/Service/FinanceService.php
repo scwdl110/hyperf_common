@@ -368,7 +368,7 @@ class FinanceService extends BaseService
                     $class1 = $params['where_parent']['class1'] ? json_decode(base64_decode($params['where_parent']['class1']), true) : "";
                     $where_strs = array();
                     foreach ($class1 as $item) {
-                        $where_strs[] = '( report.goods_product_category_name_1 = ' . trim($item['product_category_name_1']) . " AND report.site_id = '" . addslashes($item['site_id']) . "')";
+                        $where_strs[] = "( report.goods_product_category_name_1 = '" . trim($item['product_category_name_1']) . "' AND report.site_id = {$item['site_id']})";
                     }
                     $where_str = !empty($where_strs) ? " AND (" . implode(' OR ', $where_strs) . ")" : "";
                     $where .= $where_str;
