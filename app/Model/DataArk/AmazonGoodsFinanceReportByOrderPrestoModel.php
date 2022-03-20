@@ -5683,7 +5683,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function getIsMysql($params){
 //        if ($params['is_new_index']){//新指标先不读取热数据
-//            return false;
+            return false;
 //        }
         $isMysql = false;
         if(!empty($params['compare_data'])){  //当有对比数据时 ， 不从mysql查
