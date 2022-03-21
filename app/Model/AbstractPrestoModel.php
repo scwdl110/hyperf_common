@@ -1255,4 +1255,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         return strpos($name, 'table_') === 0 ? '' : null;
     }
+
+    public function randPrestoIp(){
+
+
+
+
+    }
+
 }
