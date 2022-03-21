@@ -368,6 +368,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
             throw new RuntimeException('Missing Presto connection config.');
         }
 
+        $randPrestoIp = $this->randPrestoIp();
+        if (empty($randPrestoIp)) {
+            $this->logger->error('presto mysql数据库配置不存在', [$randPrestoIp]);
+            throw new RuntimeException('Missing Presto mysql connection config.');
+        }
+        $randPrestoIp = array_rand($randPrestoIp);
+        $config['server'] = trim($randPrestoIp['presto_ip']).":".trim($randPrestoIp['presto_port']);
+
         $this->logSql = $config['logSql'] ?? false;
 
         if ($this->table) {
@@ -1263,8 +1271,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $redis = $redis->getClient('bi');
         $rand_presto_ip = $redis->get('jdx_rand_presto_ip');
         if (empty($rand_presto_ip)){
-            $rand_presto_ip = Db::connection('erp_report')->table("rand_presto_server")->where("is_available","=",1)->get(['presto_ip','presto_port'])->toArray();
-            $redis->set("jdx_rand_presto_ip",$rand_presto_ip);
+            $rand_presto_ip = Db::connection('erp_base')->table("rand_presto_server")->where("is_available","=",1)->get(['presto_ip','presto_port'])->toArray();
+            $redis->set("jdx_rand_presto_ip",serialize($rand_presto_ip));
+        }else{
+            $rand_presto_ip = unserialize($rand_presto_ip);
         }
         return $rand_presto_ip;
 
