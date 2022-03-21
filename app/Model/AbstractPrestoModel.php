@@ -3,6 +3,7 @@
 namespace App\Model;
 
 use App\Lib\Athena;
+use Captainbi\Hyperf\Util\Redis;
 use RuntimeException;
 
 use App\Lib\Presto;
@@ -1258,8 +1259,14 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     public function randPrestoIp(){
 
-
-
+        $redis =new Redis();
+        $redis = $redis->getClient('bi');
+        $rand_presto_ip = $redis->get('jdx_rand_presto_ip');
+        if (empty($rand_presto_ip)){
+            $rand_presto_ip = Db::connection('erp_report')->table("rand_presto_server")->where("is_available","=",1)->get(['presto_ip','presto_port'])->toArray();
+            $redis->set("jdx_rand_presto_ip",$rand_presto_ip);
+        }
+        return $rand_presto_ip;
 
     }
 
