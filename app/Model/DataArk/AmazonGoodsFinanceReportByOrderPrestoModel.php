@@ -5551,6 +5551,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        if ($params['is_new_index']){//新指标先不读取热数据
 //            return false;
 //        }
+        $redis = new Redis();
+        $not_center_mysql = $redis->get("not_center_mysql");
+        if ($not_center_mysql === false){
+            return false;
+        }
         $isMysql = false;
         if(!empty($params['compare_data'])){  //当有对比数据时 ， 不从mysql查
             return $isMysql ;
@@ -5589,7 +5594,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $goods_day = $params['origin_create_start_time']>= ($start_time - 47*86400) && $params['origin_create_end_time'] < ($today+86400) && (isset($params['method']) && $params['method'] == "getListByGoods") && abs($params['origin_create_end_time'] - $params['origin_create_start_time']) <= 15*86400 && !($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5) && $params['cost_count_type'] != 2;
         $goods_month = $is_month_table && $params['origin_create_start_time'] >= ($start_time - 168 * 86400) && (isset($params['method']) && $params['method'] == "getListByGoods");
         if ($goods_day or $goods_month){
-            $redis = new Redis();
             $goods_mysql_user = $redis->get("goods_mysql_user");
 
             if (empty($goods_mysql_user)){

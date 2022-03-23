@@ -368,13 +368,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
             throw new RuntimeException('Missing Presto connection config.');
         }
 
-        $randPrestoIp = $this->randPrestoIp();
-        if (empty($randPrestoIp)) {
-            $this->logger->error('presto mysql数据库配置不存在', [$randPrestoIp]);
-            throw new RuntimeException('Missing Presto mysql connection config.');
-        }
-        $randPrestoIp = array_rand($randPrestoIp);
-        $config['server'] = trim($randPrestoIp['presto_ip']).":".trim($randPrestoIp['presto_port']);
+        //读取数据库presto对应得ip
+        $rand_presto_ip = $this->randPrestoIp();
+        $config['server'] = $rand_presto_ip;
 
         $this->logSql = $config['logSql'] ?? false;
 
@@ -1266,17 +1262,24 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
     public function randPrestoIp(){
-
         $redis =new Redis();
         $redis = $redis->getClient('bi');
         $rand_presto_ip = $redis->get('jdx_rand_presto_ip');
-        if (empty($rand_presto_ip)){
-            $rand_presto_ip = Db::connection('erp_base')->table("rand_presto_server")->where("is_available","=",1)->get(['presto_ip','presto_port'])->toArray();
-            $redis->set("jdx_rand_presto_ip",serialize($rand_presto_ip));
-        }else{
+        if ($rand_presto_ip !== false){
             $rand_presto_ip = unserialize($rand_presto_ip);
         }
-        return $rand_presto_ip;
+        if (empty($rand_presto_ip)){
+            $rand_presto_ip = RandPrestoServerModel::where("is_available","=",1)->get(['presto_ip','presto_port'])->toArray();
+                if (empty($rand_presto_ip)) {
+                $this->logger->error('presto mysql数据库查询无数据', [$rand_presto_ip]);
+                throw new RuntimeException('Missing select presto mysql connection config.');
+            }
+            $redis->set("jdx_rand_presto_ip",serialize($rand_presto_ip));
+        }
+        $rand_presto_ip_key = array_rand($rand_presto_ip);
+        $rand_presto_ip = $rand_presto_ip[$rand_presto_ip_key];
+        $server = trim($rand_presto_ip['presto_ip']).":".trim($rand_presto_ip['presto_port']);
+        return $server;
 
     }
 
