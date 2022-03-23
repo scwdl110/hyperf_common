@@ -606,7 +606,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
                     }
                 }
                 if($cdata1['target'] == 'industry'){
-                    $rt_field.=",industry_table.category_result_data";
+                    $compare_data_target_type = !empty($cdata1['target_type']) ? $cdata1['target_type'] : 1;
+                    $rt_field.=",industry_table_{$compare_data_target_type}.category_result_data";
                 }
             }
             $rt_sql = "SELECT {$rt_field} FROM origin_table " ;
@@ -616,9 +617,36 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $new_group =  preg_replace("/ having.*/i","",$group);
             foreach($compare_data as $c=>$cdata){
                 $k = $c+1 ;
-                if(!empty($cdata['industry_table'])){
-                    $newTables[] = " industry_table AS ( {$cdata['industry_table']} ) "  ;
-                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table ON {$cdata['on']} " ;
+                if(!empty($cdata['industry_table_1'])){
+                    $newTables[] = " industry_table_1 AS ( {$cdata['industry_table_1']} ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table_1 ON {$cdata['on']} " ;
+                }elseif(!empty($cdata['industry_table_2'])){
+                    $newTables[] = " industry_table_2 AS ( {$cdata['industry_table_2']} ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table_2 ON {$cdata['on']} " ;
+                }elseif (!empty($cdata['get_value_type'])){
+                    $temp_target = explode(',',$cdata['target']);
+                    $temp_field_arr = [];
+                    $temp_field_char = "MAX(compare{$k}_user_id) AS user_id";
+                    if($cdata['get_value_type'] == 'avg_value'){
+                        //均值
+                        foreach ($temp_target as $item){
+                            $temp_field_arr[] = "AVG(compare{$k}_{$item}) AS {$item}_avg ";
+                        }
+                        $temp_char = implode(',',$temp_field_arr);
+                        $temp_field_char = !empty($temp_char) ? $temp_field_char . ',' . $temp_char : $temp_field_char;
+                        $newTables[] = " avg_table_{$cdata['time_type']} AS ( SELECT {$temp_field_char} FROM (SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group}) ) "  ;
+                        $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " avg_table_{$cdata['time_type']} ON {$cdata['on']} " ;
+                    }elseif($cdata['get_value_type'] == 'median_value'){
+
+                        //中位数
+                        foreach ($temp_target as $item){
+                            $temp_field_arr[] = "approx_percentile(compare{$k}_{$item}, 0.5) AS {$item}_median ";
+                        }
+                        $temp_char = implode(',',$temp_field_arr);
+                        $temp_field_char = !empty($temp_char) ? $temp_field_char . ',' . $temp_char : $temp_field_char;
+                        $newTables[] = " median_table_{$cdata['time_type']} AS ( SELECT {$temp_field_char} FROM (SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group}) ) "  ;
+                        $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " median_table_{$cdata['time_type']} ON {$cdata['on']} " ;
+                    }
                 }elseif(!empty($cdata['new_table'])){
                     $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
                     $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
@@ -1063,9 +1091,38 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $new_group =  preg_replace("/ having.*/i","",$group);
         foreach($compare_data as $c=>$cdata){
             $k = $c+1 ;
-            if(!empty($cdata['industry_table'])){
-                $newTables[] = " industry_table AS ( {$cdata['industry_table']} ) "  ;
-                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table ON {$cdata['on']} " ;
+            if(!empty($cdata['industry_table_1'])){
+                //销量
+                $newTables[] = " industry_table_1 AS ( {$cdata['industry_table_1']} ) "  ;
+                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table_1 ON {$cdata['on']} " ;
+            }elseif(!empty($cdata['industry_table_2'])){
+                //销售额
+                $newTables[] = " industry_table_2 AS ( {$cdata['industry_table_2']} ) "  ;
+                $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " industry_table_2 ON {$cdata['on']} " ;
+            }elseif (!empty($cdata['get_value_type'])){
+                $temp_target = explode(',',$cdata['target']);
+                $temp_field_arr = [];
+                $temp_field_char = "MAX(compare{$k}_user_id) AS user_id";
+                if($cdata['get_value_type'] == 'avg_value'){
+                    //均值
+                    foreach ($temp_target as $item){
+                        $temp_field_arr[] = "AVG(compare{$k}_{$item}) AS {$item}_avg ";
+                    }
+                    $temp_char = implode(',',$temp_field_arr);
+                    $temp_field_char = !empty($temp_char) ? $temp_field_char . ',' . $temp_char : $temp_field_char;
+                    $newTables[] = " avg_table_{$cdata['time_type']} AS ( SELECT {$temp_field_char} FROM (SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group}) ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " avg_table_{$cdata['time_type']} ON {$cdata['on']} " ;
+                }elseif($cdata['get_value_type'] == 'median_value'){
+
+                    //中位数
+                    foreach ($temp_target as $item){
+                        $temp_field_arr[] = "approx_percentile(compare{$k}_{$item}, 0.5) AS {$item}_median ";
+                    }
+                    $temp_char = implode(',',$temp_field_arr);
+                    $temp_field_char = !empty($temp_char) ? $temp_field_char . ',' . $temp_char : $temp_field_char;
+                    $newTables[] = " median_table_{$cdata['time_type']} AS ( SELECT {$temp_field_char} FROM (SELECT {$cdata['field_data']}   FROM  {$table} WHERE {$cdata['compare_where']} {$new_group}) ) "  ;
+                    $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " median_table_{$cdata['time_type']} ON {$cdata['on']} " ;
+                }
             }elseif(!empty($cdata['new_table'])){
                 $newTables[] = " compare_table{$k} AS ( SELECT {$cdata['field_data']}   FROM  {$cdata['new_table']} WHERE {$cdata['compare_where']} {$new_group} ) "  ;
                 $rt_sql.=  ( empty($cdata['join_type']) ? 'LEFT JOIN ' : $cdata['join_type']  ) . " compare_table{$k} ON {$cdata['on']} " ;
