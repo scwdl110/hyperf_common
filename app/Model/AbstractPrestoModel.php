@@ -1326,7 +1326,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $rand_presto_ip = unserialize($rand_presto_ip);
         }
         if (empty($rand_presto_ip)){
-            $rand_presto_ip = RandPrestoServerModel::where("is_available","=",1)->get(['presto_ip','presto_port'])->toArray();
+            $rand_presto_ip = RandPrestoServerModel::where("is_available","=",1)->get(['presto_ip','presto_port','is_available'])->toArray();
                 if (empty($rand_presto_ip)) {
                 $this->logger->error('presto mysql数据库查询无数据', [$rand_presto_ip]);
                 throw new RuntimeException('Missing select presto mysql connection config.');
