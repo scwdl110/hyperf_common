@@ -24,4 +24,18 @@ return [
             'max_idle_time' => (float) env('REDIS_MAX_IDLE_TIME', 60),
         ],
     ],
+    'bi' => [
+        'host' => env('BI_REDIS_HOST', 'localhost'),
+        'auth' => env('BI_REDIS_AUTH', null),
+        'port' => (int) env('BI_REDIS_PORT', 6379),
+        'db' => (int) env('BI_REDIS_DB', 0),
+        'pool' => [
+            'min_connections' => 10,
+            'max_connections' => 50,
+            'connect_timeout' => 50.0,
+            'wait_timeout' => 3.0,
+            'heartbeat' => -1,
+            'max_idle_time' => (float) env('BI_REDIS_MAX_IDLE_TIME', 60),
+        ],
+    ],
 ];
