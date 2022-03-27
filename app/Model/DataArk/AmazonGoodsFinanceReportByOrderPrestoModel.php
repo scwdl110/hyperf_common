@@ -5687,7 +5687,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        }
         $redis = new Redis();
         $not_center_mysql = $redis->get("not_center_mysql");
-        if ($not_center_mysql === false){
+        if ($not_center_mysql !== false){
             return false;
         }
         $isMysql = false;
