@@ -3,6 +3,7 @@
 namespace App\Model;
 
 use App\Lib\Athena;
+use Captainbi\Hyperf\Util\Redis;
 use RuntimeException;
 
 use App\Lib\Presto;
@@ -366,6 +367,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $this->logger->error('presto 数据库配置不存在', [$config]);
             throw new RuntimeException('Missing Presto connection config.');
         }
+
+        //读取数据库presto对应得ip
+        $rand_presto_ip = $this->randPrestoIp();
+        $config['server'] = $rand_presto_ip;
 
         $this->logSql = $config['logSql'] ?? false;
 
@@ -1312,4 +1317,27 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         return strpos($name, 'table_') === 0 ? '' : null;
     }
+
+    public function randPrestoIp(){
+        $redis =new Redis();
+        $redis = $redis->getClient('bi');
+        $rand_presto_ip = $redis->get('jdx_rand_presto_ip');
+        if ($rand_presto_ip !== false){
+            $rand_presto_ip = unserialize($rand_presto_ip);
+        }
+        if (empty($rand_presto_ip)){
+            $rand_presto_ip = RandPrestoServerModel::where("is_available","=",1)->get(['presto_ip','presto_port','is_available'])->toArray();
+                if (empty($rand_presto_ip)) {
+                $this->logger->error('presto mysql数据库查询无数据', [$rand_presto_ip]);
+                throw new RuntimeException('Missing select presto mysql connection config.');
+            }
+            $redis->set("jdx_rand_presto_ip",serialize($rand_presto_ip));
+        }
+        $rand_presto_ip_key = array_rand($rand_presto_ip);
+        $rand_presto_ip = $rand_presto_ip[$rand_presto_ip_key];
+        $server = trim($rand_presto_ip['presto_ip']).":".trim($rand_presto_ip['presto_port']);
+        return $server;
+
+    }
+
 }
