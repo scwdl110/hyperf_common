@@ -15532,5 +15532,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     }
 
 
+    public function getFinanceGoodsIds($where,$max_ym,$min_ym){
+
+        $ym_where = $this->getYnWhere($max_ym , $min_ym ) ;
+        $where .= " {$ym_where}";
+        $table = "{$this->table_goods_day_report}" ;
+    }
 
 }

@@ -640,4 +640,44 @@ class FinanceService extends BaseService
 
         return $result;
     }
+
+    public function getAmazonGoodsIds($req){
+
+        $userInfo = $this->getUserInfo();
+
+//        $req = $this->request->all();
+        $result = ['data' => [],'code' => 200];
+        if (empty($req)) {
+            return $result;
+        }
+        $page   = intval($req['page'] ?? 1);
+        $limit  = intval($req['rows'] ?? 100);
+        if ($limit > 5000){
+
+        }
+        $offset = ($page - 1) * $limit;
+        $channel_ids = $req['channel_id_arr'] ?? [];
+        if (!is_array($channel_ids) or empty($channel_ids)){
+            return $result;
+        }
+
+        if (count($channel_ids) > 1) {
+            $where = "report.user_id={$userInfo['user_id']} AND report.channel_id IN (" . implode(',', $channel_ids) . ')';
+        } else {
+            $where = "report.user_id={$userInfo['user_id']} AND report.channel_id={$channel_ids[0]}";
+        }
+
+        $where .= sprintf(
+            '%s report.create_time>=%d and report.create_time<=%d',
+            $where ? ' AND' : '',
+            (int)$req['search_start_time'],
+            (int)$req['search_end_time']
+        );
+
+        $min_ym = date('Ym', (int)$req['search_start_time']);
+        $max_ym = date('Ym', (int)$req['search_end_time']);
+        $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrderPrestoModel";
+        $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
+        $amazonGoodsFinanceReportByOrderMD->getFinanceGoodsIds($where,$max_ym,$min_ym);
+    }
 }
