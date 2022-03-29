@@ -19,6 +19,7 @@ Router::post('/dataark/unGoodsDatas', "App\Controller\DataArkController@getUnGoo
 Router::post('/dataark/goodsDatas', "App\Controller\DataArkController@getGoodsDatas");
 Router::post('/dataark/operatorsDatas', "App\Controller\DataArkController@getOperatorsDatas");
 Router::post('/dataark/getIndustryKpi', "App\Controller\DataArkController@getIndustryKpi");
+Router::post('/dataark/getAmazonGoodsIds', "App\Controller\DataArkController@getAmazonGoodsIds");
 
 Router::post('/test/awsskd', "App\Controller\TestAwsController@testAws");
 

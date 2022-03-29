@@ -646,19 +646,19 @@ class FinanceService extends BaseService
         $userInfo = $this->getUserInfo();
 
 //        $req = $this->request->all();
-        $result = ['data' => [],'code' => 200];
+        $result = ['goods_g_amazon_goods_id' => ''];
         if (empty($req)) {
             return $result;
         }
         $page   = intval($req['page'] ?? 1);
         $limit  = intval($req['rows'] ?? 100);
         if ($limit > 5000){
-
+            return Result::fail($result,'超过5000条限制');
         }
         $offset = ($page - 1) * $limit;
         $channel_ids = $req['channel_id_arr'] ?? [];
         if (!is_array($channel_ids) or empty($channel_ids)){
-            return $result;
+            return Result::success($result);
         }
 
         if (count($channel_ids) > 1) {
@@ -674,10 +674,39 @@ class FinanceService extends BaseService
             (int)$req['search_end_time']
         );
 
+        //商品和运营人员 添加商品权限控制
+        if (isset($req['priv_key'])){
+            $goods_priv=$this->getUserGoodsPriv($req['priv_key'],$userInfo);
+            switch ($goods_priv['priv_value'])
+            {
+                case UserAdminRolePrivModel::GOODS_PRIV_VALUE_RELATED_USER:  //仅关联人可见
+                    $related_user_admin_ids_str = $goods_priv['related_user_admin_ids_str'];
+                    if(!empty($related_user_admin_ids_str))
+                    {
+                        $where .= "  AND report.goods_operation_user_admin_id IN (" . $related_user_admin_ids_str . ")";
+                    }else{
+                        return Result::success($result);
+                    }
+                    break;
+                case UserAdminRolePrivModel::GOODS_PRIV_VALUE_NONE:  //不可见
+                    return Result::success($result);
+                    break;
+                default:   //全部可见
+                    break;
+            }
+        }
+
         $min_ym = date('Ym', (int)$req['search_start_time']);
         $max_ym = date('Ym', (int)$req['search_end_time']);
         $className = "\\App\\Model\\DataArk\\AmazonGoodsFinanceReportByOrderPrestoModel";
         $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
-        $amazonGoodsFinanceReportByOrderMD->getFinanceGoodsIds($where,$max_ym,$min_ym);
+        $limit = ($offset > 0 ? " OFFSET {$offset}" : '') . " LIMIT {$limit}";
+        $data = $amazonGoodsFinanceReportByOrderMD->getFinanceGoodsIds($userInfo['user_id'],$where,$limit,$max_ym,$min_ym);
+        if (empty($data)){
+            return Result::success($result);
+        }
+        $goods_g_amazon_goods_id = implode(",",array_column($data,'goods_g_amazon_goods_id'));
+        $result['goods_g_amazon_goods_id'] = $goods_g_amazon_goods_id;
+        return Result::success($result);
     }
 }
