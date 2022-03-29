@@ -1868,21 +1868,21 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             foreach($lists as $list1){
                 if($datas['count_dimension'] == 'sku'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('sku' => self::escape($list1['sku']), 'channel_id' => $list1['channel_id']);
+                        $where_arr[] = array('sku' => addslashes($list1['sku']), 'channel_id' => $list1['channel_id']);
                     }else{
-                        $where_arr[] = array('sku' => self::escape($list1['sku']));
+                        $where_arr[] = array('sku' => addslashes($list1['sku']));
                     }
                 }else if($datas['count_dimension'] == 'asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('asin' => self::escape($list1['asin']), 'channel_id' => $list1['channel_id']);
+                        $where_arr[] = array('asin' => addslashes($list1['asin']), 'channel_id' => $list1['channel_id']);
                     }else{
-                        $where_arr[] = array('asin' => self::escape($list1['asin']));
+                        $where_arr[] = array('asin' => addslashes($list1['asin']));
                     }
                 }else if($datas['count_dimension'] == 'parent_asin'){
                     if($datas['is_distinct_channel'] == 1) {
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']), 'channel_id' => $list1['channel_id']);
+                        $where_arr[] = array('parent_asin' => addslashes($list1['parent_asin']), 'channel_id' => $list1['channel_id']);
                     }else{
-                        $where_arr[] = array('parent_asin' => self::escape($list1['parent_asin']));
+                        $where_arr[] = array('parent_asin' => addslashes($list1['parent_asin']));
                     }
                 }else if($datas['count_dimension'] == 'class1'){
                     //分类暂时没有 ，因为需要跨库查询

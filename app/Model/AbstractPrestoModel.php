@@ -1240,12 +1240,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     public static function escape(string $val): string
     {
-        if (false !== strpos($val, "\'\'")){
-            return $val;
-        }else{
-            return Presto::escape((string)$val);
-        }
-
+        return Presto::escape((string)$val);
     }
 
     public function dryRun(?bool $dryRun): bool
