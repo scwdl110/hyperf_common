@@ -7,6 +7,7 @@ use Captainbi\Hyperf\Util\Functions;
 use Captainbi\Hyperf\Util\Redis;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\DbConnection\Db;
+use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Router\Dispatched;
 use Hyperf\HttpServer\Router\DispatcherFactory;
@@ -21,6 +22,14 @@ class OpenMiddleware implements MiddlewareInterface
 {
     public $freeLimit = 20;
 
+    private function getBody($code, $message)
+    {
+        return new SwooleStream(json_encode([
+            'code' => $code,
+            'message' => $message,
+        ], JSON_UNESCAPED_UNICODE));
+    }
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $path = $request->getUri()->getPath();
@@ -33,12 +42,12 @@ class OpenMiddleware implements MiddlewareInterface
         //获取token
         $authorization = $request->getHeader('authorization');
         if (!isset($authorization[0])) {
-            return Context::get(ResponseInterface::class)->withStatus(401, 'authorization Unauthorized');
+            return Context::get(ResponseInterface::class)->withStatus(401, 'authorization Unauthorized')->withBody($this->getBody(100901, "用户协议未授权"));
         }
 
         $accessToken = trim(str_ireplace('bearer', '', $authorization[0]));
         if (!$accessToken) {
-            return Context::get(ResponseInterface::class)->withStatus(401, 'Unauthorized');
+            return Context::get(ResponseInterface::class)->withStatus(401, 'Unauthorized')->withBody($this->getBody(100902, "未授权"));
         }
 
         $configInterface = ApplicationContext::getContainer()->get(ConfigInterface::class);
@@ -53,11 +62,11 @@ class OpenMiddleware implements MiddlewareInterface
         } else {
             $openChannelId = $request->getHeader('OpenChannelId');
             if (!$aesKey || !isset($openChannelId[0])) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;
             }
             $channelId = Functions::decryOpen($openChannelId[0], $aesKey);
             if (!$channelId) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;
             }
         }
 
@@ -68,7 +77,7 @@ class OpenMiddleware implements MiddlewareInterface
         $redisKey = 'center_open_lock_' . $channelId . "_" . $path;
         $res = $this->lock($redis, $redisKey);
         if (!$res) {
-            return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request');
+            return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request')->withBody($this->getBody(100904, "请等待上一个请求"));;
         }
         defer(function () use ($redis, $redisKey) {
             $this->unlock($redis, $redisKey);
@@ -82,7 +91,7 @@ class OpenMiddleware implements MiddlewareInterface
             //获取client
             $wsId = Functions::getOpenWsId();
             if (!$wsId) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'ws_id Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'ws_id Unauthorized')->withBody($this->getBody(100905, "ws_id 未授权"));;
             }
             $where = [
                 ['a.ws_id', '=', $wsId],
@@ -95,7 +104,7 @@ class OpenMiddleware implements MiddlewareInterface
 
             $clientId = data_get($tokenArr, 'client_id', '');
             if (!$tokenArr || !$clientId) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'access_token Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'access_token Unauthorized')->withBody($this->getBody(100906, "access_token未授权"));;
             }
 
             $redis->set($key, $clientId, 86400);
@@ -112,7 +121,7 @@ class OpenMiddleware implements MiddlewareInterface
             $client = Db::table('open_client')->where($where)->select('client_type')->first();
 
             if (!$client) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'client_id Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'client_id Unauthorized')->withBody($this->getBody(100907, "client_id未授权"));;
             }
             $clientType = data_get($client, 'client_type', '');
 
@@ -126,7 +135,7 @@ class OpenMiddleware implements MiddlewareInterface
                 //自用
                 $userId = $this->self($redis, $clientId);
                 if (!$userId) {
-                    return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized');
+                    return Context::get(ResponseInterface::class)->withStatus(401, 'client_user Unauthorized')->withBody($this->getBody(100908, "client_user未授权"));;
                 }
                 break;
 //            case 1:
@@ -134,14 +143,14 @@ class OpenMiddleware implements MiddlewareInterface
 //                $this->middle();
 //                break;
             default:
-                return Context::get(ResponseInterface::class)->withStatus(401, 'client_type Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'client_type Unauthorized')->withBody($this->getBody(100909, "client_type未授权"));;
                 break;
         }
 
         //验证次数
         $res = $this->checkCount($redis, $userId);
         if (!$res['code']) {
-            return Context::get(ResponseInterface::class)->withStatus(401, $res['msg']);
+            return Context::get(ResponseInterface::class)->withStatus(401, $res['msg'])->withBody($this->getBody(100910, "请求频率过快，请稍等"));;
         }
 
         //admin
@@ -154,9 +163,9 @@ class OpenMiddleware implements MiddlewareInterface
                 ['user_id', '=', $userId],
             ];
             $admin = Db::connection('erp_base')->table('user_admin')->where($where)->select(array('id', 'is_master'))->first();
-            $user = Db::connection('erp_base')->table('user')->where([['id','=',$userId]])->select(array('redis_id'))->first();
+            $user = Db::connection('erp_base')->table('user')->where([['id', '=', $userId]])->select(array('redis_id'))->first();
             if (!$admin) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'admin Unauthorized')->withBody($this->getBody(100911, "admin未授权"));;
             }
             $adminId = data_get($admin, 'id', 0);
             $isMaster = data_get($admin, 'is_master', 0);
@@ -177,12 +186,12 @@ class OpenMiddleware implements MiddlewareInterface
         if ($channelId) {
             $channelIds = Functions::getOpenClientUserChannel($clientId, $userId);
             if (!$channelIds || !in_array($channelId, $channelIds)) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized')->withBody($this->getBody(100912, "open_channel未授权"));;
             }
 
             $channel = Functions::getChannel(intval($channelId));
             if (!$channel) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized')->withBody($this->getBody(100913, "店铺未授权"));;
             }
 
             $siteId = data_get($channel, 'site_id', 0);
@@ -208,7 +217,7 @@ class OpenMiddleware implements MiddlewareInterface
             ];
             $user = Db::connection('erp_base')->table('user')->where($where)->select('dbhost', 'codeno')->first();
             if (!$user) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'user Unauthorized');
+                return Context::get(ResponseInterface::class)->withStatus(401, 'user Unauthorized')->withBody($this->getBody(100914, "用户未授权"));;
             }
 
             $dbhost = data_get($user, 'dbhost', '');
@@ -236,12 +245,12 @@ class OpenMiddleware implements MiddlewareInterface
             $version = min($pathVersion, $maxVersion + 1);
             //版本号
             if ($version <= 1) {
-                return Context::get(ResponseInterface::class)->withStatus(404, 'version not found');
+                return Context::get(ResponseInterface::class)->withStatus(404, 'version not found')->withBody($this->getBody(100915, "版本号未找到"));;
             }
 
             $flag = 0;
             if (!isset(ApplicationContext::getContainer()->get(DispatcherFactory::class)->getRouter($serverName)->getData()[0][$request->getMethod()])) {
-                return Context::get(ResponseInterface::class)->withStatus(404, 'route and method not found');
+                return Context::get(ResponseInterface::class)->withStatus(404, 'route and method not found')->withBody($this->getBody(100916, "路由及方法未找到"));;
             }
             $allHandler = ApplicationContext::getContainer()->get(DispatcherFactory::class)->getRouter($serverName)->getData()[0][$request->getMethod()];
             for ($i = $version - 1; $i > 0; $i--) {
@@ -254,7 +263,7 @@ class OpenMiddleware implements MiddlewareInterface
             }
 
             if ($flag == 0) {
-                return Context::get(ResponseInterface::class)->withStatus(404, 'all version not found');
+                return Context::get(ResponseInterface::class)->withStatus(404, 'all version not found')->withBody($this->getBody(100917, "所有版本未找到"));
             }
 
             $dispatched->status = 1;
