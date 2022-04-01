@@ -345,6 +345,7 @@ class Pgsql
             return true;
         }
 
+        $this->logger->error("pgsql 未知的错误类型：{$error}");
         return false;
     }
 }
