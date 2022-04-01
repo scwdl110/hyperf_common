@@ -28,6 +28,8 @@ class Solr
     // @var int 默认请求超时时间
     const DEFAULT_TIMEOUT = 60;
 
+    const DEFAULT_MAX_CONNECTIONS = 20;
+
     // @var string http get 方法
     const HTTP_METHOD_GET = 'GET';
 
@@ -71,11 +73,15 @@ class Solr
      * ]
      * ```
      * @param ?\Psr\Log\LoggerInterface $logger
+     * @param int $maxConnections http 请求连接池数量
      * @return self
      * @throws \RuntimeException 参数错误或参数类型不正确时抛出此异常
      */
-    public function __construct(array $config, ?LoggerInterface $logger = null)
-    {
+    public function __construct(
+        array $config,
+        ?LoggerInterface $logger = null,
+        int $maxConnections = self::DEFAULT_MAX_CONNECTIONS
+    ) {
         if (null === $logger) {
             $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('solr', 'default');
         }
@@ -125,7 +131,7 @@ class Solr
             static::$httpClientPool[$poolKey] = $factory->get($poolKey, function() use ($host, $port, $ssl) {
                 return new Client($host, $port, $ssl);
             }, [
-                'max_connections' => 20,
+                'max_connections' => min(max($maxConnections, self::DEFAULT_MAX_CONNECTIONS), 256),
             ])->get();
         }
 
