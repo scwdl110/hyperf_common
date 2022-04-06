@@ -10,6 +10,7 @@ use UnexpectedValueException;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Utils\ApplicationContext;
 use Hyperf\Pool\SimplePool\PoolFactory;
+use Hyperf\Contract\ConnectionInterface;
 
 use Psr\Log\LoggerInterface;
 use Swoole\Coroutine\Http\Client;
@@ -44,9 +45,6 @@ class Solr
 
     // @var \Psr\Log\LoggerInterface 日志实例
     protected $logger = null;
-
-    // @var \Swoole\Coroutine\Http\Client http 请求实例
-    protected $httpClient = null;
 
     // @var int 请求重试次数
     protected $retry = self::DEFAULT_RETRY;
@@ -132,38 +130,10 @@ class Solr
                 return new Client($host, $port, $ssl);
             }, [
                 'max_connections' => min(max($maxConnections, self::DEFAULT_MAX_CONNECTIONS), 256),
-            ])->get();
+            ]);
         }
 
         $this->pool = static::$httpClientPool[$poolKey];
-    }
-
-    /**
-     * 从连接池中获取 http 请求连接
-     *
-     * @return \Swoole\Coroutine\Http\Client
-     */
-    protected function getClient(): Client
-    {
-        if (!($this->httpClient instanceof Client)) {
-            $this->httpClient = $this->pool->getConnection();
-        }
-
-        return $this->httpClient;
-    }
-
-    /**
-     * 将 http 请求连接释放回连接池
-     *
-     * @return void
-     */
-    protected function releaseClient()
-    {
-        if ($this->httpClient instanceof Client) {
-            $this->pool->release();
-        }
-
-        $this->httpClient = null;
     }
 
     /**
@@ -185,12 +155,22 @@ class Solr
         string $method = self::HTTP_METHOD_POST,
         ?int $retry = null
     ) {
+        $connection = null;
         $retry = $retry ?? $this->retry;
         $endpoint = $endpoint ?? $this->endpoint;
 
         try {
             $path = $endpoint;
-            $client = $this->getClient();
+            $connection = $this->pool->get();
+            $client = $connection->getConnection();
+            if (!($client instanceof Client)) {
+                throw new RuntimeException(sprintf(
+                    '从连接池获取 http 连接异常，期望获取 %s 实例，实际获取 %s',
+                    Client::class,
+                    is_object($client) ? get_class($client) : gettype($client)
+                ));
+            }
+
             if (self::HTTP_METHOD_GET === $method) {
                 $client->setHeaders([]);
                 $client->setMethod(self::HTTP_METHOD_GET);
@@ -243,7 +223,9 @@ class Solr
         } catch (Throwable $t) {
             $this->logger->error("solr 请求异常：[{$t->getCode()}]{$t->getMessage()}", [$t]);
         } finally {
-            $this->releaseClient();
+            if ($connection instanceof ConnectionInterface) {
+                $connection->release();
+            }
         }
 
         return false;
