@@ -406,4 +406,30 @@ class DataArkController extends AbstractController
 
         return Result::success($result);
     }
+
+    public function getCateGoryByUserId(){
+        $userInfo = $this->request->getAttribute('userInfo');
+        if(!empty($userInfo)){
+            $user_id = intval($userInfo['user_id']) ;
+            $where = "goods_user_id = {$user_id} AND goods_user_id_mod = " . ($user_id % 20) . " AND goods_product_category_name_1 != '' " ;
+            $field = 'goods_product_category_name_1' ;
+            $group = 'goods_product_category_name_1' ;
+            $className = "\\App\\Model\\DataArk\\GoodsDimReportPrestoModel";
+            $amazonCategoryTopnKpiPrestoMD = new $className($userInfo['dbhost'], $userInfo['codeno']);
+            $amazonCategoryTopnKpiPrestoMD->dryRun(env('APP_TEST_RUNNING', false));
+            $lists = $amazonCategoryTopnKpiPrestoMD->getCateGory($where, $field , $group);
+            if(empty($lists)){
+                $category_list = array() ;
+            }else{
+                foreach ($lists as $item){
+                    $category_list[] = htmlspecialchars_decode($item['goods_product_category_name_1']);
+                }
+                $category_list = array_unique($category_list);
+                sort($category_list);
+            }
+            return Result::success($category_list);
+        }else{
+            return Result::success([]);
+        }
+    }
 }
