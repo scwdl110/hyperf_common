@@ -13558,7 +13558,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     public function getFieldFromCache(){
         $redis = new Redis();
         $mysql_fields = $redis->get("mysql_finance_fields");
-        if (!is_array($mysql_fields) or empty($mysql_fields) or 1){
+        if (!is_array($mysql_fields) or empty($mysql_fields)){
             $finance_index = FinanceIndexModel::get()->toArray();
             $finance_index = array_column($finance_index,null,'id');
             $finance_index_arr              = array();
