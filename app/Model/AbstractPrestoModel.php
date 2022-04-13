@@ -1273,6 +1273,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
     {
         if (array_key_exists($name, self::$tableMaps)) {
             $tableName = self::$tableMaps[$name];
+            $tableName = $this->dwsTransition($tableName);
             if (false !== strpos($tableName, '{DBHOST}')) {
                 $tableName = strtr($tableName, ['{DBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
 
@@ -1316,6 +1317,18 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         return strpos($name, 'table_') === 0 ? '' : null;
+    }
+
+    private function dwsTransition($tableName){
+        $dbhost_arr = array(
+            "001","020"
+        );
+        $dbhost = \app\getUserInfo()['dbhost'] ?? '';
+        if (in_array($dbhost,$dbhost_arr) && false !== strpos($tableName, 'dws.dws_dataark_f_dw_goods_day_report_')){
+            $tableName = str_replace("dws.dws_dataark_f_dw_goods_day_report_","dwsslave.dws_dataark_f_dw_goods_day_report_",$tableName);
+        }
+
+        return $tableName;
     }
 
     public function randPrestoIp(){
