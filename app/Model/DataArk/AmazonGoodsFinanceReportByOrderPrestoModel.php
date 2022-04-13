@@ -78,6 +78,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     ];
 
     protected $lastTargets = [];
+    protected $finance_index_percentage_arr = [];
+    protected $add_percentage_arr = [];
 
     /**
      * 是否有e_erp_storage_warehouse_isku 指标
@@ -1589,6 +1591,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             array_multisort($sort_names,$order2,$lists);
         }
         $rt['lists'] = empty($lists) ? array() : $lists;
+        $rt['lists'] = $this->handleReturnData($datas,$rt['lists']);;
         $rt['count'] = intval($count);
         return $rt;
     }
@@ -6323,6 +6326,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             array_multisort($sort_names,$order2,$lists);
         }
         $rt['lists'] = empty($lists) ? [] : $lists;
+        $rt['lists'] = $this->handleReturnData($params,$rt['lists']);;
         $rt['count'] = (int)$count;
         return $rt;
     }
@@ -9128,8 +9132,34 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             array_multisort($sort_names,$order2,$lists);
         }
         $rt['lists'] = empty($lists) ? array() : $lists;
+        $rt['lists'] = $this->handleReturnData($datas,$rt['lists']);
         $rt['count'] = intval($count);
         return $rt;
+    }
+
+
+
+    public function handleReturnData($params,$lists){
+        if ($params['show_type'] == 2 && !empty($lists)){//目前只有按指标展示的需要处理
+            if (!empty($this->add_percentage_arr)){//百分比指标需要处理
+                foreach ($lists as $key => $value){
+
+                    foreach ($this->add_percentage_arr as $item){
+                        $denominator_field = $this->finance_index_percentage_arr[$item]['denominator_field'];
+                        $molecule_field    = str_replace("_rate","",$item);
+                        if (isset($value[$denominator_field]) && $value[$denominator_field] != 0 && isset($value[$molecule_field])){
+                            $lists[$key][$item] = round($value[$molecule_field]/$value[$denominator_field],4);
+                        }else{
+                            $lists[$key][$item] = '-';
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        return $lists;
     }
 
     //获取运营人员维度指标字段
@@ -13046,6 +13076,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         //FBA库存指标
         $fba_fields_common_arr = $field_type == 1 ? array_keys(config('common.goods_fba_fields_arr')) : array_keys(config('common.channel_fba_fields_arr'));
 
+        //把占比指标转为原指标
+        $array_intersect = array_intersect($targets,array_column($this->finance_index_percentage_arr,'return_field_key'));
+        if (!empty($array_intersect)){
+            $add_targets                = explode(',',str_replace("_rate","",implode(",",$array_intersect)));
+            $add_targets[]              = "sale_sales_quota";//由于要分母是销量和销售额，因此查询这两个字段
+            $add_targets[]              = "sale_sales_volume";
+            $this->add_percentage_arr   = $array_intersect;
+            $targets                    = array_diff($targets,$array_intersect);
+            $targets                    = array_merge($targets,$add_targets);
+        }
+
+
         $targets = array_unique($targets);
         foreach ($field as $key => $value){
             if (!isset($value[$field_type_key])){
@@ -13712,19 +13754,31 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     public function getFieldFromCache(){
         $redis = new Redis();
-        $mysql_fields = $redis->get("mysql_finance_fields");
+        $mysql_fields = $redis->get("mysql_finance_fields_new");
         if (!is_array($mysql_fields) or empty($mysql_fields)){
             $finance_index = FinanceIndexModel::get()->toArray();
             $finance_index = array_column($finance_index,null,'id');
+            $finance_index_arr              = array();
+            $finance_index_percentage_arr   = array();
+            foreach ($finance_index as $key => $index){
+                if ($index['is_percentage_field'] == 1){
+                    $finance_index_percentage_arr[$key] = $index;
+                }else{
+                    $finance_index_arr[$key] = $index;
+                }
+            }
             $sql_key_arr = FinanceIndexAssociatedSqlKeyModel::get()->toArray();
-            $mysql_fields['finance_index'] = $finance_index;
+            $mysql_fields['finance_index'] = $finance_index_arr;
+            $mysql_fields['finance_index_percentage_arr'] = $finance_index_percentage_arr;
             $mysql_fields['sql_key_arr'] = $sql_key_arr;
-            $redis->set("mysql_finance_fields",$mysql_fields);
+            $redis->set("mysql_finance_fields_new",$mysql_fields);
         }
         $finance_index = $mysql_fields['finance_index'];
         $sql_key_arr = $mysql_fields['sql_key_arr'];
+        $finance_index_percentage_arr = $mysql_fields['finance_index_percentage_arr'];
+        $this->finance_index_percentage_arr = array_column($finance_index_percentage_arr,null,'return_field_key');
 
-        return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr];
+        return ["finance_index" => $finance_index,"sql_key_arr"=>$sql_key_arr,"finance_index_percentage_arr" => $finance_index_percentage_arr];
     }
 
     public function getOriginOrderBy($sort_target,$order_field = '',$datas = array()){
