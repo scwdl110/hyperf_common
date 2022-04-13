@@ -496,7 +496,7 @@ class FinanceService extends BaseService
             $max_ym = date('Ym', (int)$params['search_end_time']);
             $day_param_start_time = (int)$params['search_start_time'];
             $day_param_end_time = (int)$params['search_end_time'] > time() ? (int)strtotime(date('Y-m-d 23:59:59')) : (int)$params['search_end_time'];
-            $day_param = ($day_param_end_time + 1 - $day_param_start_time) / 86400;
+            $day_param = floor(($day_param_end_time + 1 - $day_param_start_time) / 86400);
         } else {
             $ors = [];
             $origin_time = [];
@@ -518,7 +518,7 @@ class FinanceService extends BaseService
                     (int)$times['end']
                 );
             }
-            $day_param = ($time_arr[0]['end'] + 1 - $time_arr[0]['start']) / 86400;
+            $day_param = floor(($time_arr[0]['end'] + 1 - $time_arr[0]['start']) / 86400);
             if (empty($ors)) {
                 return Result::success($result);
             }
