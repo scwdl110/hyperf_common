@@ -13557,7 +13557,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     public function getFieldFromCache(){
         $redis = new Redis();
-        $mysql_fields = $redis->get("mysql_finance_fields");
+        $mysql_fields = $redis->get("mysql_finance_fields_new");
         if (!is_array($mysql_fields) or empty($mysql_fields)){
             $finance_index = FinanceIndexModel::get()->toArray();
             $finance_index = array_column($finance_index,null,'id');
@@ -13574,7 +13574,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $mysql_fields['finance_index'] = $finance_index_arr;
             $mysql_fields['finance_index_percentage_arr'] = $finance_index_percentage_arr;
             $mysql_fields['sql_key_arr'] = $sql_key_arr;
-            $redis->set("mysql_finance_fields",$mysql_fields);
+            $redis->set("mysql_finance_fields_new",$mysql_fields);
         }
         $finance_index = $mysql_fields['finance_index'];
         $sql_key_arr = $mysql_fields['sql_key_arr'];

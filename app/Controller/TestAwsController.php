@@ -22,12 +22,12 @@ class TestAwsController extends AbstractController
 
         $redis = new Redis();
 
-        $mysql_finance_fields1 = $redis->get("mysql_finance_fields");
+        $mysql_finance_fields1 = $redis->get("mysql_finance_fields_new");
         if (!empty($mysql_finance_fields1)){
-            $redis->set("mysql_finance_fields",$mysql_finance_fields1,1);
+            $redis->set("mysql_finance_fields_new",$mysql_finance_fields1,1);
 
         }
-        $mysql_finance_fields = $redis->get("mysql_finance_fields");
+        $mysql_finance_fields = $redis->get("mysql_finance_fields_new");
         return [$mysql_finance_fields1,$mysql_finance_fields];
         $credentials = new Credentials('', '');
 //        $credentials = array(
