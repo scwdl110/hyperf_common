@@ -297,6 +297,86 @@ class Functions {
         return $channel;
     }
 
+
+    /**
+     * @param int $id
+     * @param int $force
+     * @param array $field
+     * @return array|bool|\Hyperf\Database\Model\Model|\Hyperf\Database\Query\Builder|object|null
+     */
+    public static function getChannelCpc(int $id, int $force = 0, array $field = []){
+        if(!$id){
+            return false;
+        }
+
+        $defaultField = [
+            "site_id",
+            "Merchant_ID",
+            "site_name",
+            "user_id",
+            "channel_id",
+            "cpc_profiles_id"
+        ];
+        if(!$field){
+            $field = $defaultField;
+        }else{
+            $field = array_merge($field, $defaultField);
+        }
+
+        $key = 'center_open_channel_cpc_'.$id;
+        $poolName = 'default';
+        $redis = ApplicationContext::getContainer()->get(RedisFactory::class)->get($poolName);
+        $channel = $redis->get($key);
+        $flag = 1;
+        //无缓存或者键值不在缓存里面
+        if($channel===false || $force){
+            $flag = 0;
+        }else{
+            $channel = json_decode($channel, true);
+            if(!is_array($channel)){
+                $flag = 0;
+            }else{
+                foreach ($field as $v){
+                    if(!array_key_exists($v, $channel)){
+                        $flag = 0;
+                        break;
+                    }
+                }
+            }
+        }
+
+
+        if(!$flag){
+            $where = [
+                ['id', '=', $id],
+                ['status', '=', 1]
+            ];
+            $channel = Db::connection("erp_base")->table('channel_and_cpc')->where($where)->select($field)->first();
+            if(!$channel){
+                $redis->set($key, json_encode([]), 3600);
+                return false;
+            }
+            $siteId = data_get($channel, 'site_id', 0);
+            if($siteId){
+                $where = [
+                    'site_id' => $siteId
+                ];
+                $area = Db::connection("erp_base")->table("site_area")->where($where)->select("area_id")->first();
+                $areaId = data_get($area, 'area_id', 0);
+            }else{
+                $areaId = 0;
+            }
+
+            $channel = get_object_vars($channel);
+            $channel['area_id'] = $areaId;
+
+            $redis->set($key, json_encode($channel), 3600);
+        }
+
+        return $channel;
+    }
+
+
     /**
      * @param $clientId
      * @param int $force
