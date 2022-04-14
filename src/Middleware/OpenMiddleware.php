@@ -56,34 +56,6 @@ class OpenMiddleware implements MiddlewareInterface
         $aesKey = $configInterface->get("open.channel_id_aes_key", '');
         $noMerchantUrlPath = $configInterface->get("open.no_merchant_url_path", []);
 
-
-        if (in_array('/' . $pat_array[2][0], $noMerchantUrlPath)) {
-            $channelId = 0;
-        } else {
-            $openChannelId = $request->getHeader('OpenChannelId');
-            if (!$aesKey || !isset($openChannelId[0])) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;
-            }
-            $channelId = Functions::decryOpen($openChannelId[0], $aesKey);
-            if (!$channelId) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;
-            }
-        }
-
-
-        //锁住同个api调用
-        $redis = new Redis();
-        $redis = $redis->getClient();
-        $redisKey = 'center_open_lock_' . $channelId . "_" . $path;
-        $res = $this->lock($redis, $redisKey);
-        if (!$res) {
-            return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request')->withBody($this->getBody(100904, "请等待上一个请求"));;
-        }
-        defer(function () use ($redis, $redisKey) {
-            $this->unlock($redis, $redisKey);
-        });
-
-
         //center_open_client_id
         $key = 'center_open_client_id_' . $accessToken;
         $clientId = $redis->get($key);
@@ -146,6 +118,65 @@ class OpenMiddleware implements MiddlewareInterface
                 return Context::get(ResponseInterface::class)->withStatus(401, 'client_type Unauthorized')->withBody($this->getBody(100909, "client_type未授权"));;
                 break;
         }
+
+
+        if (in_array('/' . $pat_array[2][0], $noMerchantUrlPath)) {
+            $channelId = 0;
+        } else {
+            //channel_id
+            $openChannelId = $request->getHeader('OpenChannelId');
+            if (!$aesKey || !isset($openChannelId[0])) {
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;
+            }
+
+            //center_open_client_channel_id_cpc_profiles_id
+            $key = 'center_open_client_channel_id_cpc_profiles_id_'.$clientId."_".$userId."_".$openChannelId[0];
+            $channelIdCpcProfilesId = $redis->get($key);
+            if ($channelIdCpcProfilesId === false) {
+                $where = [
+                    ['client_id', '=', $clientId],
+                    ['user_id', '=', $clientId],
+                    ['encry_channel_id', '=', $openChannelId[0]],
+                ];
+                $channelAndCpc = Db::table('open_client_user_channel')->where($where)->select('channel_and_cpc_id')->first();
+                $channelAndCpcId = data_get($channelAndCpc, 'channel_and_cpc_id', '0');
+
+                if($channelAndCpcId){
+                    $where = [
+                        ['id', '=', $channelAndCpcId],
+                    ];
+                    $channelAndCpc = Db::connection('erp_base')->table('channel_and_cpc')->where($where)->select('channel_id', 'cpc_profiles_id')->first();
+                    $channelId = data_get($channelAndCpc, 'channel_id', 0);
+                    $cpcProfilesId = data_get($channelAndCpc, 'cpc_profiles_id', 0);
+
+                    $channelIdCpcProfilesId = $channelId.'_'.$cpcProfilesId;
+                }else{
+                    return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));
+                }
+
+                $redis->set($key, $channelIdCpcProfilesId, 86400);
+            }else{
+                $channelCpcArr = explode("_", $channelIdCpcProfilesId)
+                $channelId = $channelCpcArr[0]??0;
+                $cpcProfilesId = $channelCpcArr[1]??0;
+            }
+
+
+        }
+
+
+        //锁住同个api调用
+        $redis = new Redis();
+        $redis = $redis->getClient();
+        $redisKey = 'center_open_lock_' . $channelId . "_" . $path;
+        $res = $this->lock($redis, $redisKey);
+        if (!$res) {
+            return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request')->withBody($this->getBody(100904, "请等待上一个请求"));;
+        }
+        defer(function () use ($redis, $redisKey) {
+            $this->unlock($redis, $redisKey);
+        });
+
 
         //验证次数
         $res = $this->checkCount($redis, $userId);
@@ -276,6 +307,7 @@ class OpenMiddleware implements MiddlewareInterface
             'is_master' => $isMaster,
             'client_id' => $clientId,
             'channel_id' => $channelId,
+            'cpc_profiles_id' => $cpcProfilesId
             'dbhost' => $dbhost,
             'codeno' => $codeno,
             'site_id' => $siteId,
