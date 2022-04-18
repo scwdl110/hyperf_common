@@ -1323,9 +1323,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $dbhost_arr = array(
             "001","020"
         );
+        $dws = config('misc.presto_schema_dws', 'dws');
         $dbhost = \app\getUserInfo()['dbhost'] ?? '';
-        if (in_array($dbhost,$dbhost_arr) && false !== strpos($tableName, 'dws.dws_dataark_f_dw_goods_day_report_')){
-            $tableName = str_replace("dws.dws_dataark_f_dw_goods_day_report_","dwsslave.dws_dataark_f_dw_goods_day_report_",$tableName);
+        if (in_array($dbhost,$dbhost_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
+            $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","dws_finance.dws_dataark_f_dw_goods_day_report_",$tableName);
         }
 
         return $tableName;
