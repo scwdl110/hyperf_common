@@ -1325,8 +1325,23 @@ abstract class AbstractPrestoModel implements BIModelInterface
         );
         $dws = config('misc.presto_schema_dws', 'dws');
         $dbhost = \app\getUserInfo()['dbhost'] ?? '';
-        if (in_array($dbhost,$dbhost_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
+        $big_selling_users = config("common.big_selling_users");
+
+        //大用户数组
+        $user_id_arr = array();
+        if (!empty($big_selling_users)){
+            $user_id_arr = explode(',',$big_selling_users);
+        }
+        $user_id = \app\getUserInfo()['user_id']??0;
+
+        //小卖商品日报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
             $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","dws_finance.dws_dataark_f_dw_goods_day_report_",$tableName);
+        }
+
+        //小卖店铺日报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_channel_day_report_')){
+            $tableName = str_replace("$dws.dws_dataark_f_dw_channel_day_report_","dws_finance.dws_dataark_f_dw_channel_day_report_",$tableName);
         }
 
         return $tableName;
