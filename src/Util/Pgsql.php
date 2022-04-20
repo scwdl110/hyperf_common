@@ -330,11 +330,11 @@ class Pgsql
         // postgresql 还包含其他网络相关的错误，但 swoole-ext-postgresql 涉及到的网络错误应该就这些了
         // 整理于 2021-12-08
         if ('ontimeout' === $error
-            || 'connection not open' === $error
-            || 'connection in wrong state' === $error
-            || 'connection pointer is NULL' === $error
-            || 'no connection to the server' === $error
-            || 'server closed the connection unexpectedly' === $error
+            || 0 === strpos($error, 'connection not open')
+            || 0 === strpos($error, 'connection in wrong state')
+            || 0 === strpos($error, 'connection pointer is NULL')
+            || 0 === strpos($error, 'no connection to the server')
+            || 0 === strpos($error, 'server closed the connection unexpectedly')
             || 0 === strpos($error, 'SSL SYSCALL error: ')
             || 0 === strpos($error, 'unexpected asyncStatus: ')
             || 0 === strpos($error, 'invalid connection state,')
