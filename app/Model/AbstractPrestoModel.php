@@ -419,6 +419,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $ods => 'ads',
             $dws => 'ads',
             $dim => 'ads',
+            "dws_finance" => 'ads',
             $dwd => 'ads'
         );
         foreach ($schema as $key => $v) {
