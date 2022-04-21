@@ -329,23 +329,23 @@ class Pgsql
         // 其余的错误均来至 postgresql 10.16
         // postgresql 还包含其他网络相关的错误，但 swoole-ext-postgresql 涉及到的网络错误应该就这些了
         // 整理于 2021-12-08
-        if ('ontimeout' === $error
-            || 0 === strpos($error, 'connection not open')
-            || 0 === strpos($error, 'connection in wrong state')
-            || 0 === strpos($error, 'connection pointer is NULL')
-            || 0 === strpos($error, 'no connection to the server')
-            || 0 === strpos($error, 'server closed the connection unexpectedly')
-            || 0 === strpos($error, 'SSL SYSCALL error: ')
-            || 0 === strpos($error, 'unexpected asyncStatus: ')
-            || 0 === strpos($error, 'invalid connection state,')
-            || 0 === strpos($error, 'could not send data to server: ')
-            || 0 === strpos($error, 'could not get socket error status: ')
-            || 0 === strpos($error, 'could not receive data from server: ')
-        ) {
-            return true;
-        }
+        // if ('ontimeout' === $error
+        //     || 0 === strpos($error, 'connection not open')
+        //     || 0 === strpos($error, 'connection in wrong state')
+        //     || 0 === strpos($error, 'connection pointer is NULL')
+        //     || 0 === strpos($error, 'no connection to the server')
+        //     || 0 === strpos($error, 'server closed the connection unexpectedly')
+        //     || 0 === strpos($error, 'SSL SYSCALL error: ')
+        //     || 0 === strpos($error, 'unexpected asyncStatus: ')
+        //     || 0 === strpos($error, 'invalid connection state,')
+        //     || 0 === strpos($error, 'could not send data to server: ')
+        //     || 0 === strpos($error, 'could not get socket error status: ')
+        //     || 0 === strpos($error, 'could not receive data from server: ')
+        // ) {
+        //     return true;
+        // }
 
         $this->logger->error("pgsql 未知的错误类型：{$error}");
-        return false;
+        return true;
     }
 }
