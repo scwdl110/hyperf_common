@@ -302,6 +302,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $exportTmp = 'tmp.';//切库记得创建
 
+    protected $compatible_dws = "dws_finance_slave";
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
@@ -419,8 +421,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $ods => 'ads',
             $dws => 'ads',
             $dim => 'ads',
-            "dws_finance" => 'ads',
-            $dwd => 'ads'
+            $dwd => 'ads',
+            $this->compatible_dws => 'ads'
         );
         foreach ($schema as $key => $v) {
             if ($key == 'ods'){
@@ -1338,12 +1340,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         //小卖商品日报
         if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
-            $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","dws_finance.dws_dataark_f_dw_goods_day_report_",$tableName);
+            $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_goods_day_report_",$tableName);
         }
 
         //小卖店铺日报
         if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_channel_day_report_')){
-            $tableName = str_replace("$dws.dws_dataark_f_dw_channel_day_report_","dws_finance.dws_dataark_f_dw_channel_day_report_",$tableName);
+            $tableName = str_replace("$dws.dws_dataark_f_dw_channel_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_channel_day_report_",$tableName);
         }
 
         return $tableName;
