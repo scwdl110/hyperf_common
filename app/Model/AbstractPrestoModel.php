@@ -1273,6 +1273,16 @@ abstract class AbstractPrestoModel implements BIModelInterface
     {
         if (array_key_exists($name, self::$tableMaps)) {
             $tableName = self::$tableMaps[$name];
+            $fba_arr = array(
+                "ods.ods_g_amazon_fba_inventory_v3_tend_001",
+                "ods.ods_g_amazon_fba_inventory_v3_001",
+                "ods.ods_g_amazon_fba_inventory_v3_rel_001",
+                "ods.ods_e_erp_storage_inventory_warehouse_report_001",
+                "ods.ods_e_erp_storage_warehouse_isku_001",
+            );
+            if (in_array($tableName,$fba_arr)){
+                $tableName = str_replace("ods.","odsslave.",$tableName);
+            }
             if (false !== strpos($tableName, '{DBHOST}')) {
                 $tableName = strtr($tableName, ['{DBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
 
