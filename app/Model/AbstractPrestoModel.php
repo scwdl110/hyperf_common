@@ -304,6 +304,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $compatible_dws = "dws_finance_slave";
 
+    protected $user_id = 0;
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
@@ -348,6 +350,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $dbhost = $userInfo['dbhost'] ?? '';
             $codeno = $userInfo['codeno'] ?? '';
         }
+        $this->user_id = \app\getUserInfo()['user_id']??0;
 
         if (!is_numeric($dbhost) || !is_numeric($codeno)) {
             $this->logger->error('错误的 presto dbhost 或 codeno', [$dbhost, $codeno]);
@@ -1336,8 +1339,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if (!empty($big_selling_users)){
             $user_id_arr = explode(',',$big_selling_users);
         }
-        $user_id = \app\getUserInfo()['user_id']??0;
-        $dbhost = \app\getUserInfo()['dbhost'] ?? '';
+        $user_id = $this->user_id;
+        $dbhost = $this->dbhost;
 
 //        //小卖商品月报
 //        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_goods_month_report_')){
@@ -1350,9 +1353,9 @@ abstract class AbstractPrestoModel implements BIModelInterface
 //        }
 
         //小卖店铺日报
-//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_channel_day_report_')){
-//            $sql = str_replace("dws_dataark_f_dw_channel_day_report_","dws_dataark_f_dw_channel_day_report_ads_",$sql);
-//        }
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_channel_day_report_')){
+            $sql = str_replace("dws_dataark_f_dw_channel_day_report_","dws_dataark_f_dw_channel_day_report_ads_",$sql);
+        }
         $this->logger->info('111111Presto Sql: ' . $sql);
         return $sql;
     }
