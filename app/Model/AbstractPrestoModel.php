@@ -438,7 +438,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = str_replace( 'as varchar )', 'as char)', $sql);
         $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
         $sql = $this->ToMysqlTableChange($sql);
-        $this->logger->info("read_mysql:toMysqlTable,$sql");
+        $this->logger->info("read_mysql:$sql");
         return $sql;
 
     }
@@ -1325,6 +1325,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
     protected function ToMysqlTableChange($sql){
+        return $sql;
         $dbhost_arr = array(
             "001","020"
         );
@@ -1358,6 +1359,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
     private function dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost){
+        return $tableName;
         $dbhost_arr = array(
             "001","020"
         );
@@ -1376,6 +1378,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
     private function dwsTransition($tableName){
+        return $tableName;
         $dbhost_arr = array(
             "001","020"
         );
