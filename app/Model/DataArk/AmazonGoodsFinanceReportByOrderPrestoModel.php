@@ -5703,7 +5703,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function getIsMysql($params){
 //        if ($params['is_new_index']){//新指标先不读取热数据
-//            return false;
+            return false;
 //        }
         $redis = new Redis();
         $not_center_mysql = $redis->get("not_center_mysql");
@@ -13914,18 +13914,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if($datas['is_count'] == 1){
             $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.sku=g.sku and g.channel_id = c.channel_id JOIN {$this->table_goods_dim_report} AS amazon_goods on c.goods_id=amazon_goods.es_id";
             if($datas['count_dimension'] == 'asin'){
-                $fba_table_where1 = " AND amazon_goods.goods_asin != '' ";
+                $fba_table_where1.= " AND amazon_goods.goods_asin != '' ";
             }else if($datas['count_dimension'] == 'parent_asin'){
-                $fba_table_where1 = " AND amazon_goods.goods_parent_asin != '' ";
+                $fba_table_where1.= " AND amazon_goods.goods_parent_asin != '' ";
             }else if($datas['count_dimension'] == 'isku'){
-                $fba_table_where1 = " AND amazon_goods.goods_isku_id > 0  ";
+                $fba_table_where1.= " AND amazon_goods.goods_isku_id > 0  ";
             }else if($datas['count_dimension'] == 'class1'){
-                $fba_table_where1 = " AND amazon_goods.goods_product_category_name_1 != '' ";
+                $fba_table_where1.= " AND amazon_goods.goods_product_category_name_1 != '' ";
             }else if($datas['count_dimension'] == 'group'){
-                $fba_table_where1 = " AND amazon_goods.goods_group_id > 0 ";
+                $fba_table_where1.= " AND amazon_goods.goods_group_id > 0 ";
             }else if($datas['count_dimension'] == 'tags'){
-                $fba_table_where1 = " AND tags_rel.tags_id > 0 ";
-                $fba_table_join1 = " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku LEFT JOIN (select goods_id , max(tags_id) as tags_id FROM {$this->table_amazon_goods_tags_rel} where db_num = '{$this->dbhost}' and  status = 1 group by goods_id ) AS tags_rel ON tags_rel.goods_id = amazon_goods.goods_g_amazon_goods_id ";
+                $fba_table_where1.= " AND tags_rel.tags_id > 0 ";
+                $fba_table_join1 .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku LEFT JOIN (select goods_id , max(tags_id) as tags_id FROM {$this->table_amazon_goods_tags_rel} where db_num = '{$this->dbhost}' and  status = 1 group by goods_id ) AS tags_rel ON tags_rel.goods_id = amazon_goods.goods_g_amazon_goods_id ";
             }
 
             $join_field = ["user_id"];
@@ -14328,6 +14328,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $orderbyArr[] = 'new_origin_table.site_id ' . $time_group;
             }
         }
+        if($datas['is_count'] == 1){ //汇总不需要排序
+            $orderbyArr = array() ;
+        }
         $fba_data['order'] = !empty($orderbyArr) ? implode(',',$orderbyArr) : "";
         return $fba_data;
     }
@@ -14672,6 +14675,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         if (!empty($orderby_sort)){
             $orderby = "{$orderby_sort}, {$orderby}";
+        }
+
+        if($datas['is_count'] == 1){
+            $orderby = '' ;
         }
 
         $target_wheres = $datas['where_detail']['target'] ?? array();
