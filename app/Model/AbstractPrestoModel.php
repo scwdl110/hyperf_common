@@ -1340,15 +1340,15 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $user_id = \app\getUserInfo()['user_id']??0;
         $dbhost = \app\getUserInfo()['dbhost'] ?? '';
 
-        //小卖商品月报
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_goods_month_report_')){
-            $sql = str_replace("dws_dataark_f_dw_goods_month_report_","dws_dataark_f_dw_goods_month_report_ads_",$sql);
-        }
-
-        //小卖店铺月报
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, '.dws_dataark_f_dw_channel_month_report_slave_bigusers_')){
-            $sql = str_replace("dws_dataark_f_dw_channel_month_report_slave_bigusers_","dws_dataark_f_dw_channel_month_report_ads_",$sql);
-        }
+//        //小卖商品月报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_goods_month_report_')){
+//            $sql = str_replace("dws_dataark_f_dw_goods_month_report_","dws_dataark_f_dw_goods_month_report_ads_",$sql);
+//        }
+//
+//        //小卖店铺月报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, '.dws_dataark_f_dw_channel_month_report_slave_bigusers_')){
+//            $sql = str_replace("dws_dataark_f_dw_channel_month_report_slave_bigusers_","dws_dataark_f_dw_channel_month_report_ads_",$sql);
+//        }
 
         //小卖店铺日报
         if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, '.dws_dataark_f_dw_channel_day_report_')){
