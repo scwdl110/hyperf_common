@@ -302,6 +302,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $exportTmp = 'tmp.';//切库记得创建
 
+    protected $compatible_dws = "dws_finance_slave";
+
+    protected $user_id = 0;
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
@@ -346,6 +350,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $dbhost = $userInfo['dbhost'] ?? '';
             $codeno = $userInfo['codeno'] ?? '';
         }
+        $this->user_id = \app\getUserInfo()['user_id']??0;
 
         if (!is_numeric($dbhost) || !is_numeric($codeno)) {
             $this->logger->error('错误的 presto dbhost 或 codeno', [$dbhost, $codeno]);
@@ -419,7 +424,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $ods => 'ads',
             $dws => 'ads',
             $dim => 'ads',
-            $dwd => 'ads'
+            $dwd => 'ads',
+            $this->compatible_dws => 'ads'
         );
         foreach ($schema as $key => $v) {
             if ($key == 'ods'){
@@ -434,7 +440,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
         $sql = str_replace( 'as varchar )', 'as char)', $sql);
         $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
-        $this->logger->error("read_mysql:toMysqlTable,$sql");
+        $sql = $this->ToMysqlTableChange($sql);
+        $this->logger->error("read_mysql:$sql");
         return $sql;
 
     }
@@ -1283,6 +1290,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             if (in_array($tableName,$fba_arr)){
                 $tableName = str_replace("ods.","odsslave.",$tableName);
             }
+            $tableName = $this->dwsTransition($tableName);
             if (false !== strpos($tableName, '{DBHOST}')) {
                 $tableName = strtr($tableName, ['{DBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
 
@@ -1321,11 +1329,96 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 }
 
             }
-
+            $dbhost = \app\getUserInfo()['dbhost'] ?? '';
+            $tableName = $this->dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost);
             return $tableName;
         }
 
         return strpos($name, 'table_') === 0 ? '' : null;
+    }
+
+    protected function ToMysqlTableChange($sql){
+        $dbhost_arr = array(
+            "001","020"
+        );
+
+        $big_selling_users = config("common.big_selling_users");
+
+        //大用户数组
+        $user_id_arr = array();
+        if (!empty($big_selling_users)){
+            $user_id_arr = explode(',',$big_selling_users);
+        }
+        $user_id = $this->user_id;
+        $dbhost = $this->dbhost;
+
+//        //小卖商品月报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_goods_month_report_')){
+//            $sql = str_replace("dws_dataark_f_dw_goods_month_report_","dws_dataark_f_dw_goods_month_report_ads_",$sql);
+//        }
+//
+//        //小卖店铺月报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, '.dws_dataark_f_dw_channel_month_report_slave_bigusers_')){
+//            $sql = str_replace("dws_dataark_f_dw_channel_month_report_slave_bigusers_","dws_dataark_f_dw_channel_month_report_ads_",$sql);
+//        }
+
+        //小卖店铺日报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_channel_day_report_')){
+            $sql = str_replace("dws_dataark_f_dw_channel_day_report_","dws_dataark_f_dw_channel_day_report_ads_",$sql);
+        }
+        $this->logger->info('111111Presto Sql: ' . $sql);
+        return $sql;
+    }
+
+    private function dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost){
+        $dbhost_arr = array(
+            "001","020"
+        );
+
+        //小卖商品月报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, 'dws_dataark_f_dw_goods_month_report_slave_bigusers_')){
+            $tableName = str_replace("dws_dataark_f_dw_goods_month_report_slave_bigusers_","dws_dataark_f_dw_goods_month_report_",$tableName);
+        }
+
+        //小卖店铺月报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, '.dws_dataark_f_dw_channel_month_report_slave_bigusers_')){
+            $tableName = str_replace("dws_dataark_f_dw_channel_month_report_slave_bigusers_","dws_dataark_f_dw_channel_month_report_",$tableName);
+        }
+
+        return $tableName;
+    }
+
+    private function dwsTransition($tableName){
+        $dbhost_arr = array(
+            "001","020"
+        );
+        $dws = config('misc.presto_schema_dws', 'dws');
+        $dbhost = \app\getUserInfo()['dbhost'] ?? '';
+        $big_selling_users = config("common.big_selling_users");
+
+        //大用户数组
+        $user_id_arr = array();
+        if (!empty($big_selling_users)){
+            $user_id_arr = explode(',',$big_selling_users);
+        }
+        $user_id = \app\getUserInfo()['user_id']??0;
+
+        //小卖用户全部使用dws_finance_slave.
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.')){
+            $tableName = str_replace("$dws.","{$this->compatible_dws}.",$tableName);
+        }
+
+//        //小卖商品日报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
+//            $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_goods_day_report_",$tableName);
+//        }
+//
+//        //小卖店铺日报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_channel_day_report_')){
+//            $tableName = str_replace("$dws.dws_dataark_f_dw_channel_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_channel_day_report_",$tableName);
+//        }
+
+        return $tableName;
     }
 
     public function randPrestoIp(){
