@@ -1326,7 +1326,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected function ToMysqlTableChange($sql){
         $dbhost_arr = array(
-            "001","020"
+            "020"
         );
 
         $big_selling_users = config("common.big_selling_users");
