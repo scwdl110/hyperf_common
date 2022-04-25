@@ -1325,6 +1325,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
     protected function ToMysqlTableChange($sql){
+        return $sql;
         $dbhost_arr = array(
             "020"
         );
