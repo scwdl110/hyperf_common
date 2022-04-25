@@ -438,7 +438,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = str_replace( 'as varchar )', 'as char)', $sql);
         $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
         $sql = $this->ToMysqlTableChange($sql);
-        $this->logger->info("read_mysql:$sql");
+        $this->logger->error("read_mysql:$sql");
         return $sql;
 
     }
@@ -1353,7 +1353,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_channel_day_report_')){
             $sql = str_replace("dws_dataark_f_dw_channel_day_report_","dws_dataark_f_dw_channel_day_report_ads_",$sql);
         }
-
+        $this->logger->info('111111Presto Sql: ' . $sql);
         return $sql;
     }
 
