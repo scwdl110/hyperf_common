@@ -1350,7 +1350,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 //        }
 
         //小卖店铺日报
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, '.dws_dataark_f_dw_channel_day_report_')){
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_channel_day_report_')){
             $sql = str_replace("dws_dataark_f_dw_channel_day_report_","dws_dataark_f_dw_channel_day_report_ads_",$sql);
         }
 
