@@ -437,7 +437,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
         $sql = str_replace( 'as varchar )', 'as char)', $sql);
         $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
-        $this->logger->error("read_mysql:toMysqlTable,$sql");
+        $sql = $this->ToMysqlTableChange($sql);
+        $this->logger->info("read_mysql:toMysqlTable,$sql");
         return $sql;
 
     }
@@ -1321,6 +1322,39 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         return strpos($name, 'table_') === 0 ? '' : null;
+    }
+
+    protected function ToMysqlTableChange($sql){
+        $dbhost_arr = array(
+            "001","020"
+        );
+
+        $big_selling_users = config("common.big_selling_users");
+
+        //大用户数组
+        $user_id_arr = array();
+        if (!empty($big_selling_users)){
+            $user_id_arr = explode(',',$big_selling_users);
+        }
+        $user_id = \app\getUserInfo()['user_id']??0;
+        $dbhost = \app\getUserInfo()['dbhost'] ?? '';
+
+        //小卖商品月报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_goods_month_report_')){
+            $sql = str_replace("dws_dataark_f_dw_goods_month_report_","dws_dataark_f_dw_goods_month_report_ads_",$sql);
+        }
+
+        //小卖店铺月报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, '.dws_dataark_f_dw_channel_month_report_slave_bigusers_')){
+            $sql = str_replace("dws_dataark_f_dw_channel_month_report_slave_bigusers_","dws_dataark_f_dw_channel_month_report_ads_",$sql);
+        }
+
+        //小卖店铺日报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($sql, '.dws_dataark_f_dw_channel_day_report_')){
+            $sql = str_replace("dws_dataark_f_dw_channel_day_report_","dws_dataark_f_dw_channel_day_report_ads_",$sql);
+        }
+
+        return $sql;
     }
 
     private function dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost){
