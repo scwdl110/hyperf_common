@@ -1315,11 +1315,30 @@ abstract class AbstractPrestoModel implements BIModelInterface
                 }
 
             }
-
+            $dbhost = \app\getUserInfo()['dbhost'] ?? '';
+            $tableName = $this->dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost);
             return $tableName;
         }
 
         return strpos($name, 'table_') === 0 ? '' : null;
+    }
+
+    private function dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost){
+        $dbhost_arr = array(
+            "001","020"
+        );
+
+        //小卖商品月报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, 'dws_dataark_f_dw_goods_month_report_slave_bigusers_')){
+            $tableName = str_replace("dws_dataark_f_dw_goods_month_report_slave_bigusers_","dws_dataark_f_dw_goods_month_report_",$tableName);
+        }
+
+        //小卖店铺月报
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, '.dws_dataark_f_dw_channel_month_report_slave_bigusers_')){
+            $tableName = str_replace("dws_dataark_f_dw_channel_month_report_slave_bigusers_","dws_dataark_f_dw_channel_month_report_",$tableName);
+        }
+
+        return $tableName;
     }
 
     private function dwsTransition($tableName){
@@ -1337,15 +1356,20 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
         $user_id = \app\getUserInfo()['user_id']??0;
 
-        //小卖商品日报
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
-            $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_goods_day_report_",$tableName);
+        //小卖用户全部使用dws_finance_slave.
+        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.')){
+            $tableName = str_replace("$dws.","{$this->compatible_dws}.",$tableName);
         }
 
-        //小卖店铺日报
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_channel_day_report_')){
-            $tableName = str_replace("$dws.dws_dataark_f_dw_channel_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_channel_day_report_",$tableName);
-        }
+//        //小卖商品日报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
+//            $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_goods_day_report_",$tableName);
+//        }
+//
+//        //小卖店铺日报
+//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_channel_day_report_')){
+//            $tableName = str_replace("$dws.dws_dataark_f_dw_channel_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_channel_day_report_",$tableName);
+//        }
 
         return $tableName;
     }
