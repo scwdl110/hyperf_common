@@ -1361,7 +1361,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
     private function dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost){
-        return $tableName;
         $dbhost_arr = array(
             "001","020"
         );
@@ -1380,7 +1379,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
     private function dwsTransition($tableName){
-        return $tableName;
         $dbhost_arr = array(
             "001","020"
         );
