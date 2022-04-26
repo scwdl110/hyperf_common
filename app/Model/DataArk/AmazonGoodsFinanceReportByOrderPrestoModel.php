@@ -5703,7 +5703,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private function getIsMysql($params){
 //        if ($params['is_new_index']){//新指标先不读取热数据
-            return false;
+//            return false;
 //        }
         $redis = new Redis();
         $not_center_mysql = $redis->get("not_center_mysql");
