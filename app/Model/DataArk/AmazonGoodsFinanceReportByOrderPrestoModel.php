@@ -13925,7 +13925,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fba_table_where1.= " AND amazon_goods.goods_group_id > 0 ";
             }else if($datas['count_dimension'] == 'tags'){
                 $fba_table_where1.= " AND CAST(tags_rel.tags_id as bigint) > 0 ";
-                $fba_table_join1 .= " LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods ON amazon_goods.goods_channel_id = g.channel_id and amazon_goods.goods_sku = g.sku LEFT JOIN (select goods_id , max(tags_id) as tags_id FROM {$this->table_amazon_goods_tags_rel} where db_num = '{$this->dbhost}' and  status = 1 group by goods_id ) AS tags_rel ON tags_rel.goods_id = amazon_goods.goods_g_amazon_goods_id ";
+                $fba_table_join1 .= "  LEFT JOIN (select goods_id , max(tags_id) as tags_id FROM {$this->table_amazon_goods_tags_rel} where db_num = '{$this->dbhost}' and  status = 1 group by goods_id ) AS tags_rel ON tags_rel.goods_id = amazon_goods.goods_g_amazon_goods_id ";
             }
 
             $join_field = ["user_id"];
