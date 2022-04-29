@@ -1339,7 +1339,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected function ToMysqlTableChange($sql){
         $dbhost_arr = array(
-            "001","020"
+            "001","020","011","014","015"
         );
 
         $big_selling_users = config("common.big_selling_users");
@@ -1372,7 +1372,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     private function dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost){
         $dbhost_arr = array(
-            "001","020"
+            "001","020","011","014","015"
         );
 
         //小卖商品月报
@@ -1390,7 +1390,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     private function dwsTransition($tableName){
         $dbhost_arr = array(
-            "001","020"
+            "001","020","011","014","015"
         );
         $dws = config('misc.presto_schema_dws', 'dws');
         $dbhost = \app\getUserInfo()['dbhost'] ?? '';
