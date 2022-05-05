@@ -831,23 +831,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
 //        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
-        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+//        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
 
-        $field_data = str_replace("{:DAY}", $day_param, $field_data);
+//        $field_data = str_replace("{:DAY}", $day_param, $field_data);
 
         $mod_where = "report.user_id_mod = " . $this->dws_user_id_mod . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
 
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
+        $rate_table = $this->joinRateTable($datas,$fields_arr,$table,$exchangeCode,$day_param);
+        $field_data = $rate_table['field_data'];
+        $table      = $rate_table['table'];
 
-        if ($datas['currency_code'] != 'ORIGIN') {
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-            } else {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
-            }
-        }else{
-            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-        }
 
         $having = '';
 
@@ -5688,6 +5682,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        if ($params['is_new_index']){//新指标先不读取热数据
 //            return false;
 //        }
+        $app_env = config("app_env");
+        if ($app_env == 'dev'){//测试环境不读取热数据
+            return false;
+        }
         $redis = new Redis();
         $not_center_mysql = $redis->get("not_center_mysql");
         if ($not_center_mysql !== false){
@@ -5945,19 +5943,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
+        $rate_table = $this->joinRateTable($params,$fields_arr,$table,$exchangeCode,$day_param);
+        $field_data = $rate_table['field_data'];
+        $table      = $rate_table['table'];
 
-        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
-        $field_data = str_replace("{:DAY}", $day_param, $field_data);
-
-        if ($params['currency_code'] != 'ORIGIN') {
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-            } else {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id ";
-            }
-        }else{
-            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-        }
 
         if ($this->countDimensionChannel){
             //新增指标是店铺维度时  f_monthly_profit_report_001表year month为text，需转成int连表
@@ -8947,7 +8936,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $mod_where = "report.user_id_mod = " . $this->dws_user_id_mod;
 
-
         //$where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 //        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 //        if ($datas['is_new_index'] == 0){
@@ -8955,11 +8943,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        }else{
 //            $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 //        }
-        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
-
-        $field_data = str_replace("{:DAY}", $day_param, $field_data);
-
-
+        $rate_table = $this->joinRateTable($datas,$fields_arr,$table,$exchangeCode,$day_param);
+        $field_data = $rate_table['field_data'];
+        $table      = $rate_table['table'];
 
 
         if (!empty($where_detail['operators_id'])) {
@@ -8971,13 +8957,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where .= " AND report.goods_operation_user_admin_id  IN ( " . $operators_str . " ) ";
         }
 
-        if ($datas['currency_code'] != 'ORIGIN') {
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-            } else {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
-            }
-        }
         $orderbyTmp = $orderby;
         if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
             if($datas['count_periods'] == '4'){ //按季度
@@ -13755,6 +13734,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     public function getFieldFromCache(){
         $redis = new Redis();
         $mysql_fields = $redis->get("mysql_finance_fields_new");
+        $index_cache = config("misc.index_cache",true);
+        if (!$index_cache){
+            $mysql_fields = array();
+        }
         if (!is_array($mysql_fields) or empty($mysql_fields)){
             $finance_index = FinanceIndexModel::get()->toArray();
             $finance_index = array_column($finance_index,null,'id');
@@ -13771,7 +13754,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $mysql_fields['finance_index'] = $finance_index_arr;
             $mysql_fields['finance_index_percentage_arr'] = $finance_index_percentage_arr;
             $mysql_fields['sql_key_arr'] = $sql_key_arr;
-            $redis->set("mysql_finance_fields_new",$mysql_fields);
+            if ($index_cache){
+                $redis->set("mysql_finance_fields_new",$mysql_fields);
+            }
         }
         $finance_index = $mysql_fields['finance_index'];
         $sql_key_arr = $mysql_fields['sql_key_arr'];
@@ -15585,6 +15570,46 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $lists;
     }
 
+    /**
+     * 汇率表数据
+     * @param $params
+     * @param $fields_arr
+     * @param $table
+     * @param $exchangeCode
+     * @param $day_param
+     * @return array
+     */
+    private function joinRateTable($params,$fields_arr,$table,$exchangeCode,$day_param){
+        if (isset($params['is_month_rate']) && $params['is_month_rate'] == 1){
 
+            $rate_type = $params['rate_type']??3;
+            if ($params['currency_code'] != 'ORIGIN') {
+                $rate_type = 3;
+                $rate_user_id = "report.user_id";
+            }else{
+                $rate_user_id = 0;
+            }
+            $trans_rate = strtolower($params['currency_code'])."_rate";
+            $field_data = str_replace("{:RATE}", "(COALESCE(rates.$trans_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+            $table .= " LEFT JOIN {$this->table_month_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = {$rate_user_id}  and report.myear = rates.myear and report.mmonth = rates.mmonth and rates.rate_type = {$rate_type}";
+        }else{
+            $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+            if ($params['currency_code'] != 'ORIGIN') {
+                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                } else {
+                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+                }
+            }else{
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+            }
+        }
+        $field_data = str_replace("{:DAY}", $day_param, $field_data);
+
+        return array(
+            "field_data" => $field_data,
+            "table"      => $table,
+        );
+    }
 
 }
