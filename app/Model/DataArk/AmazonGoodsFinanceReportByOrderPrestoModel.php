@@ -12606,7 +12606,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return bool
      */
     public function is_month_table($datas){
-        if (isset($datas['is_force_day_table']) && $datas['is_force_day_table'] == 1){
+        if (isset($datas['is_force_day_table']) && $datas['is_force_day_table'] == 1 && $datas['cost_count_type'] != 2){
             return false;
         }
         if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
