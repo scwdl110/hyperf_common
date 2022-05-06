@@ -663,7 +663,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $this->tax_field = $this->getRemoveTaxField($datas);
         $datas['is_month_table'] = 0;
-        if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1) && $datas['cost_count_type'] != 2){ //按天或无统计周期
+        if(($datas['count_periods'] == 0 || $datas['count_periods'] == 1 || (isset($datas['is_force_day_table']) && $datas['is_force_day_table'] == 1)) && $datas['cost_count_type'] != 2){ //按天或无统计周期
             $table = "{$this->table_goods_day_report}" ;
             $dws_table = $this->table_dws_goods_day_report;
         }else if($datas['count_periods'] == 2 && $datas['cost_count_type'] != 2){  //按周
@@ -12606,6 +12606,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return bool
      */
     public function is_month_table($datas){
+        if (isset($datas['is_force_day_table']) && $datas['is_force_day_table'] == 1 && $datas['cost_count_type'] != 2){
+            return false;
+        }
         if($datas['count_periods'] == 3 || $datas['count_periods'] == 4 || $datas['count_periods'] == 5 ){
             return true;
         }else if($datas['cost_count_type'] == 2){//先进先出只能读取月报
