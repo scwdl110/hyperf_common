@@ -13851,8 +13851,13 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     protected function joinGoodsFbaTable($datas = array() , $channel_arr = array() , $currencyInfo = array(),$exchangeCode = '1', $custom_fba_target_key = array())
     {
+
         if($this->haveFbaFields == false || $datas['is_median'] == 1){
             //没有选择fba指标
+            return [];
+        }
+        //有指标筛选 ， FBA 无法汇总
+        if($datas['is_count'] == 1 && !empty($datas['where_detail']['target'])){
             return [];
         }
         if($datas['count_dimension'] == 'all_goods' ){
@@ -14347,6 +14352,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     {
         if($this->haveFbaFields == false){
             //没有选择fba指标
+            return [];
+        }
+        //有指标筛选 ， FBA 无法汇总
+        if($datas['is_count'] == 1 && !empty($datas['where_detail']['target'])){
             return [];
         }
         $child_table = $result_fba_fields = $fba_data_join = $other_fields = array();
