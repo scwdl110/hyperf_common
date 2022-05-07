@@ -2696,6 +2696,24 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fields['avg_sales_quota'] = "sum( (report_sales_quota+reportitem_reserved_field20) {$rate_tmp})/ nullif(sum( report.report_sales_volume +  report.report_group_id ),0) ";
                 }
             }
+            if ($datas['currency_code'] == 'ORIGIN') {
+                $rate_tmp = "";
+            } else {
+                $rate_tmp = " * ({:RATE} / COALESCE(rates.rate ,1))";
+            }
+            $item_tmp = "byorderitem_";
+            if ($datas['finance_datas_origin'] == '2') {
+                $item_tmp = "reportitem_";
+            }
+
+            if (in_array('purchasing_cost_only', $targets)) { //采购成本
+
+            }
+
+            if (in_array('logistics_cost_only', $targets)) { //物流成本
+
+            }
+
 
             $total_user_sessions_views = array();
             $compare_targets = !empty($datas['compare_targets']) ? $datas['compare_targets'] : (!empty($datas['compare_data']) ? ['goods_views_rate','goods_buyer_visit_rate'] : []);
@@ -15612,4 +15630,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         );
     }
 
+    private function handleNexIndexCostLogisticsField(){
+
+
+
+
+    }
 }
