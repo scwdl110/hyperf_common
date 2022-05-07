@@ -1148,7 +1148,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where .= " AND amazon_goods.goods_operation_user_admin_id > 0 AND amazon_goods.channel_goods_operation_pattern = 1";
         }
 
-        if($datas['is_count'] == '1' && $datas['is_median'] != 1){ //做汇总时 ， 不管任何维度的汇总，本质都是sku 的汇总
+        if($datas['is_count'] == '1' && $datas['is_median'] != 1 && $this->haveFbaFields == true && empty($datas['where_detail']['target'])){ //做汇总时 ， 不管任何维度的汇总，本质都是sku 的汇总
             $group = "report.goods_sku ,report.channel_id" ;
             $fbaDataGroup = 'amazon_goods.goods_sku,amazon_goods.goods_channel_id';
             if ($datas['count_periods'] == '1' ) { //按天
