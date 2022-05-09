@@ -2696,23 +2696,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fields['avg_sales_quota'] = "sum( (report_sales_quota+reportitem_reserved_field20) {$rate_tmp})/ nullif(sum( report.report_sales_volume +  report.report_group_id ),0) ";
                 }
             }
-            if ($datas['currency_code'] == 'ORIGIN') {
-                $rate_tmp = "";
-            } else {
-                $rate_tmp = " * ({:RATE} / COALESCE(rates.rate ,1))";
-            }
-            $item_tmp = "byorderitem_";
-            if ($datas['finance_datas_origin'] == '2') {
-                $item_tmp = "reportitem_";
-            }
 
-            if (in_array('purchasing_cost_only', $targets)) { //采购成本
-
-            }
-
-            if (in_array('logistics_cost_only', $targets)) { //物流成本
-
-            }
 
 
             $total_user_sessions_views = array();
@@ -15634,9 +15618,119 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         );
     }
 
-    private function handleNexIndexCostLogisticsField(){
+    private function handleNexIndexCostLogisticsField($datas,$targets,$fields){
 
+        if ($datas['currency_code'] == 'ORIGIN') {
+            $rate_tmp = "";
+        } else {
+            $rate_tmp = " * ({:RATE} / COALESCE(rates.rate ,1))";
+        }
+        $rmb_rate = " * ({:RMBRATE}) ";
+        $item_tmp = "byorderitem_";
+        $origin_tmp = "byorder_";
+        if ($datas['finance_datas_origin'] == '2') {
+            $item_tmp = "reportitem_";//()
+            $origin_tmp = "report_";
+        }
 
+        if (in_array('purchase_logistics_purchase_cost', $targets)) { //总的采购成本
+            //SUM((byorder_purchasing_cost + byorderitem_reserved_field31)) AS 'purchase_logistics_purchase_cost',
+            $fields['purchase_logistics_purchase_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field83+{$item_tmp}reserved_field27+{$item_tmp}reserved_field28+{$item_tmp}reserved_field29+{$item_tmp}reserved_field30+{$item_tmp}reserved_field31)$rmb_rate) ELSE (({$item_tmp}reserved_field31 + {$origin_tmp}purchasing_cost){$rate_tmp}) END) ";
+        }
+
+        if (in_array('purchasing_cost_only', $targets)) { //采购成本
+            $fields['purchasing_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field83+{$item_tmp}reserved_field27)$rmb_rate) ELSE (({$item_tmp}reserved_field28-{$item_tmp}reserved_field29-{$item_tmp}reserved_field30 + {$origin_tmp}purchasing_cost){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fba_purchasing_cost_only', $targets)) { //fba采购成本
+            //SUM(((0-byorderitem_reserved_field27)+ byorderitem_reserved_field28-byorderitem_reserved_field29-byorderitem_reserved_field30-byorderitem_reserved_field31 + byorder_purchasing_cost + byorderitem_reserved_field31)) AS 'fba_purchasing_cost_only',
+            $fields['fba_purchasing_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field83)$rmb_rate) ELSE (({$item_tmp}reserved_field28-{$item_tmp}reserved_field27-{$item_tmp}reserved_field29-{$item_tmp}reserved_field30 + {$origin_tmp}purchasing_cost){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fbm_purchasing_cost_only', $targets)) { //fbm采购成本
+            //SUM((byorderitem_reserved_field27)) AS 'fbm_purchasing_cost_only',
+            $fields['fbm_purchasing_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field27)$rmb_rate) ELSE (({$item_tmp}reserved_field27){$rate_tmp}) END) ";
+        }
+
+        if (in_array('refund_purchasing_cost', $targets)) { //退货采购成本
+            //	SUM(((0-byorderitem_reserved_field28)+ byorderitem_reserved_field29)) AS 'refund_purchasing_cost',
+            $fields['refund_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field28+{$item_tmp}reserved_field29)$rmb_rate) ELSE (({$item_tmp}reserved_field29-{$item_tmp}reserved_field28){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fba_refund_purchasing_cost', $targets)) { //fba退货采购成本
+            //	SUM(((0-byorderitem_reserved_field28))) AS 'fba_refund_purchasing_cost',
+            $fields['fba_refund_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field28)$rmb_rate) ELSE ((0-{$item_tmp}reserved_field28){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fbm_refund_purchasing_cost', $targets)) { //fbm退货采购成本
+            //SUM((byorderitem_reserved_field29)) AS 'fbm_refund_purchasing_cost',
+            $fields['fbm_refund_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field29)$rmb_rate) ELSE ((0-{$item_tmp}reserved_field29){$rate_tmp}) END) ";
+        }
+
+        if (in_array('other_inventory_purchasing_cost', $targets)) { //其他库存采购成本
+            //	SUM((byorderitem_reserved_field30 + byorderitem_reserved_field31)) AS 'other_inventory_purchasing_cost',
+            $fields['other_inventory_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field30+{$item_tmp}reserved_field31)$rmb_rate) ELSE (({$item_tmp}reserved_field30+{$item_tmp}reserved_field31){$rate_tmp}) END) ";
+        }
+
+        if (in_array('inventory_adjustment_purchasing_cost', $targets)) { //库存调整成本
+            //SUM((byorderitem_reserved_field30)) AS 'inventory_adjustment_purchasing_cost',
+            $fields['inventory_adjustment_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field30)$rmb_rate) ELSE (({$item_tmp}reserved_field30){$rate_tmp}) END) ";
+        }
+
+        if (in_array('remove_purchasing_cost', $targets)) { //移除成本
+            //SUM((byorderitem_reserved_field31)) AS 'remove_purchasing_cost',
+            $fields['remove_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field31)$rmb_rate) ELSE (({$item_tmp}reserved_field31){$rate_tmp}) END) ";
+        }
+
+        if (in_array('purchase_logistics_logistics_cost', $targets)) { //总的物流成本
+            //SUM((byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7)) AS 'purchase_logistics_logistics_cost',
+            $fields['purchase_logistics_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field84+{$item_tmp}reserved_field1+{$item_tmp}reserved_field2+{$item_tmp}reserved_field3+{$item_tmp}reserved_field6+{$item_tmp}reserved_field7)$rmb_rate) ELSE (({$item_tmp}reserved_field6+{$item_tmp}reserved_field7 + {$origin_tmp}logistics_head_course){$rate_tmp}) END) ";
+        }
+
+        if (in_array('logistics_cost_only', $targets)) { //物流成本
+            //SUM(((0-byorderitem_reserved_field3) + byorderitem_reserved_field2 + byorder_logistics_head_course  )) AS 'logistics_cost_only'
+            $fields['logistics_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field84+{$item_tmp}reserved_field1)$rmb_rate) ELSE (({$item_tmp}reserved_field2-{$item_tmp}reserved_field3 + {$origin_tmp}logistics_head_course){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fba_logistics_cost', $targets)) { //fba物流成本
+            //	SUM(((0-byorderitem_reserved_field1)+ byorderitem_reserved_field2-byorderitem_reserved_field3 + byorder_logistics_head_course  )) AS 'fba_logistics_cost',
+            $fields['fba_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field84)$rmb_rate) ELSE (({$item_tmp}reserved_field2-{$item_tmp}reserved_field3-{$item_tmp}reserved_field1 + {$origin_tmp}logistics_head_course){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fbm_logistics_cost', $targets)) { //fbm物流成本
+            //SUM((byorderitem_reserved_field1)) AS 'fbm_logistics_cost',
+            $fields['fbm_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field1)$rmb_rate) ELSE (({$item_tmp}reserved_field1){$rate_tmp}) END) ";
+        }
+
+        if (in_array('refund_logistics_cost', $targets)) { //退货物流成本
+            //SUM(((0-byorderitem_reserved_field2)+ byorderitem_reserved_field3)) AS 'refund_logistics_cost',
+            $fields['refund_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field3 - {$item_tmp}reserved_field2)$rmb_rate) ELSE (({$item_tmp}reserved_field3 - {$item_tmp}reserved_field2){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fba_refund_logistics_cost', $targets)) { //fba退货物流成本
+            //SUM(((0-byorderitem_reserved_field2))) AS 'fba_refund_logistics_cost',
+            $fields['fbm_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN ((0-{$item_tmp}reserved_field2)$rmb_rate) ELSE ((0-{$item_tmp}reserved_field2){$rate_tmp}) END) ";
+        }
+
+        if (in_array('fbm_refund_logistics_cost', $targets)) { //fbm退货物流成本
+            //SUM((byorderitem_reserved_field3)) AS 'fbm_refund_logistics_cost',
+            $fields['fbm_refund_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field3)$rmb_rate) ELSE (({$item_tmp}reserved_field3){$rate_tmp}) END) ";
+        }
+
+        if (in_array('other_inventory_logistics_cost', $targets)) { //其他库存物流成本
+            //SUM((byorderitem_reserved_field7 + byorderitem_reserved_field6)) AS 'other_inventory_logistics_cost',
+            $fields['refund_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field6 + {$item_tmp}reserved_field7)$rmb_rate) ELSE (({$item_tmp}reserved_field6 + {$item_tmp}reserved_field7){$rate_tmp}) END) ";
+        }
+
+        if (in_array('remove_purchasing_logistics_cost', $targets)) { //移除物流成本
+            //SUM((byorderitem_reserved_field7)) AS 'remove_purchasing_logistics_cost',
+            $fields['remove_purchasing_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field7)$rmb_rate) ELSE (({$item_tmp}reserved_field7){$rate_tmp}) END) ";
+        }
+
+        if (in_array('inventory_adjustment_logistics_cost', $targets)) { //调整物流成本
+            //SUM((byorderitem_reserved_field6)) AS 'inventory_adjustment_logistics_cost',
+            $fields['inventory_adjustment_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field6)$rmb_rate) ELSE (({$item_tmp}reserved_field6){$rate_tmp}) END) ";
+        }
 
 
     }
