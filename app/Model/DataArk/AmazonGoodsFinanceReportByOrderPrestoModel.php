@@ -13068,7 +13068,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $targets                    = array_merge($targets,$add_targets);
         }
 
-
+        $cost_logistics = $this->testField($params);
         $targets = array_unique($targets);
         foreach ($field as $key => $value){
             if (!isset($value[$field_type_key])){
@@ -13108,7 +13108,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if ($field_type == 3){//运营人员需要兼容case when
                             $fields[$key] = $this->getOperateNewKey($value,$field_type_key,$field_rate,$field_rate);
                         }else{
-                            $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
+                            if (isset($cost_logistics[$key])){
+                                $fields[$key] = $cost_logistics[$key];
+                            }else{
+                                $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
+                            }
+
                             if (!empty($value[$field_type_key]['denominator'])){
                                 $fields[$key] .= "*1.0000/nullif(SUM((".implode("",$value[$field_type_key]['denominator'])."){$field_rate}),0)";
                             }
@@ -15585,18 +15590,22 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if (isset($params['is_month_rate']) && $params['is_month_rate'] == 1){
 
             $rate_type = $params['rate_type']??3;
-            if ($params['currency_code'] != 'ORIGIN') {
-                $rate_type = 3;
-                $rate_user_id = "report.user_id";
-            }else{
-                $rate_user_id = 0;
-            }
             if ($params['currency_code'] == "CNY"){
                 $trans_rate = "rmb_rate";
             }else{
                 $trans_rate = strtolower($params['currency_code'])."_rate";
             }
+            if ($params['currency_code'] != 'ORIGIN') {
+                $rate_type = 3;
+                $rate_user_id = "report.user_id";
+                $cost_logistics_rate = "rate";
+            }else{
+                $rate_user_id = 0;
+                $cost_logistics_rate = $trans_rate;
+            }
+
             $field_data = str_replace("{:RATE}", "(COALESCE(rates.$trans_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+            $field_data = str_replace("{:RMBRATE}", "(COALESCE(rates.$cost_logistics_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $field_data));//去除presto除法把数据只保留4位导致精度
             $table .= " LEFT JOIN {$this->table_month_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = {$rate_user_id}  and report.myear = rates.myear and report.mmonth = rates.mmonth and rates.rate_type = {$rate_type}  ";
         }else{
             $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
@@ -15616,6 +15625,67 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             "field_data" => $field_data,
             "table"      => $table,
         );
+    }
+
+    private function testField($datas){
+
+        $fields = array();
+        if ($datas['currency_code'] == 'ORIGIN') {
+            $rate_tmp = "";
+        } else {
+            $rate_tmp = " * ({:RATE} / COALESCE(rates.rate ,1))";
+        }
+        $rmb_rate = " * ({:RMBRATE}) ";
+        $item_tmp = "byorderitem_";
+        $origin_tmp = "byorder_";
+        if ($datas['finance_datas_origin'] == '2') {
+            $item_tmp = "reportitem_";//()
+            $origin_tmp = "report_";
+        }
+
+        $fields['purchase_logistics_purchase_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field83+{$item_tmp}reserved_field27+{$item_tmp}reserved_field28+{$item_tmp}reserved_field29+{$item_tmp}reserved_field30+{$item_tmp}reserved_field31)$rmb_rate) ELSE (({$item_tmp}reserved_field31 + {$origin_tmp}purchasing_cost){$rate_tmp}) END) ";
+
+        $fields['purchasing_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field83+{$item_tmp}reserved_field27)$rmb_rate) ELSE (({$item_tmp}reserved_field28-{$item_tmp}reserved_field29-{$item_tmp}reserved_field30 + {$origin_tmp}purchasing_cost){$rate_tmp}) END) ";
+
+        $fields['fba_purchasing_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field83)$rmb_rate) ELSE (({$item_tmp}reserved_field28-{$item_tmp}reserved_field27-{$item_tmp}reserved_field29-{$item_tmp}reserved_field30 + {$origin_tmp}purchasing_cost){$rate_tmp}) END) ";
+
+        $fields['fbm_purchasing_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field27)$rmb_rate) ELSE (({$item_tmp}reserved_field27){$rate_tmp}) END) ";
+
+        $fields['refund_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field28+{$item_tmp}reserved_field29)$rmb_rate) ELSE (({$item_tmp}reserved_field29-{$item_tmp}reserved_field28){$rate_tmp}) END) ";
+
+        $fields['fba_refund_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field28)$rmb_rate) ELSE ((0-{$item_tmp}reserved_field28){$rate_tmp}) END) ";
+
+        $fields['fbm_refund_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field29)$rmb_rate) ELSE ((0-{$item_tmp}reserved_field29){$rate_tmp}) END) ";
+
+        $fields['other_inventory_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field30+{$item_tmp}reserved_field31)$rmb_rate) ELSE (({$item_tmp}reserved_field30+{$item_tmp}reserved_field31){$rate_tmp}) END) ";
+
+        $fields['inventory_adjustment_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field30)$rmb_rate) ELSE (({$item_tmp}reserved_field30){$rate_tmp}) END) ";
+
+        $fields['remove_purchasing_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field31)$rmb_rate) ELSE (({$item_tmp}reserved_field31){$rate_tmp}) END) ";
+
+        $fields['purchase_logistics_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field84+{$item_tmp}reserved_field1+{$item_tmp}reserved_field2+{$item_tmp}reserved_field3+{$item_tmp}reserved_field6+{$item_tmp}reserved_field7)$rmb_rate) ELSE (({$item_tmp}reserved_field6+{$item_tmp}reserved_field7 + {$origin_tmp}logistics_head_course){$rate_tmp}) END) ";
+
+        $fields['logistics_cost_only'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field84+{$item_tmp}reserved_field1)$rmb_rate) ELSE (({$item_tmp}reserved_field2-{$item_tmp}reserved_field3 + {$origin_tmp}logistics_head_course){$rate_tmp}) END) ";
+
+        $fields['fba_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field84)$rmb_rate) ELSE (({$item_tmp}reserved_field2-{$item_tmp}reserved_field3-{$item_tmp}reserved_field1 + {$origin_tmp}logistics_head_course){$rate_tmp}) END) ";
+
+        $fields['fbm_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field1)$rmb_rate) ELSE (({$item_tmp}reserved_field1){$rate_tmp}) END) ";
+
+        $fields['refund_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field3 - {$item_tmp}reserved_field2)$rmb_rate) ELSE (({$item_tmp}reserved_field3 - {$item_tmp}reserved_field2){$rate_tmp}) END) ";
+
+        $fields['fbm_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN ((0-{$item_tmp}reserved_field2)$rmb_rate) ELSE ((0-{$item_tmp}reserved_field2){$rate_tmp}) END) ";
+
+        $fields['fbm_refund_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field3)$rmb_rate) ELSE (({$item_tmp}reserved_field3){$rate_tmp}) END) ";
+
+        $fields['refund_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field6 + {$item_tmp}reserved_field7)$rmb_rate) ELSE (({$item_tmp}reserved_field6 + {$item_tmp}reserved_field7){$rate_tmp}) END) ";
+
+        $fields['remove_purchasing_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field7)$rmb_rate) ELSE (({$item_tmp}reserved_field7){$rate_tmp}) END) ";
+
+        $fields['inventory_adjustment_logistics_cost'] = "sum(case when {$item_tmp}reserved_field4 = 201 THEN (({$item_tmp}reserved_field6)$rmb_rate) ELSE (({$item_tmp}reserved_field6){$rate_tmp}) END) ";
+
+        return $fields;
+
+
     }
 
     private function handleNexIndexCostLogisticsField($datas,$targets,$fields){
