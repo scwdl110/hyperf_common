@@ -15592,9 +15592,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $rate_type = $params['rate_type']??3;
             if ($params['currency_code'] == "CNY"){
                 $trans_rate = "rmb_rate";
+            }else if($params['currency_code'] == "HKD"){
+                $trans_rate = "hk_rate";
             }else{
                 $trans_rate = strtolower($params['currency_code'])."_rate";
             }
+
             if ($params['currency_code'] != 'ORIGIN') {
                 $rate_type = 3;
                 $rate_user_id = "report.user_id";
