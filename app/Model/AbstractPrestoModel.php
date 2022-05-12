@@ -27,6 +27,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_area' => 'ods.ods_dataark_b_site_area',
         'table_site_rate' => 'ods.ods_dataark_b_site_rate',
         'table_month_site_rate' => 'mysql.erp_base.b_month_rate',
+        'table_amazon_finance_setting' => 'mysql.erp_finance_001.f_amazon_finance_setting_001',
         'table_user_department' => 'ods.ods_dataark_b_user_department',
         'table_amazon_goods_isku' => 'ods.ods_dataark_f_amazon_goods_isku_001',
         'table_amazon_goods_finance' => 'ods.ods_dataark_f_amazon_goods_finance_001',
