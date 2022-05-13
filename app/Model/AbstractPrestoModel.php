@@ -1335,56 +1335,6 @@ abstract class AbstractPrestoModel implements BIModelInterface
         return $sql;
     }
 
-    private function dwsTransitionEnd($tableName,$user_id,$user_id_arr,$dbhost){
-        $dbhost_arr = array(
-            "001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023"
-        );
-
-        //小卖商品月报
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, 'dws_dataark_f_dw_goods_month_report_slave_bigusers_')){
-            $tableName = str_replace("dws_dataark_f_dw_goods_month_report_slave_bigusers_","dws_dataark_f_dw_goods_month_report_",$tableName);
-        }
-
-        //小卖店铺月报
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, '.dws_dataark_f_dw_channel_month_report_slave_bigusers_')){
-            $tableName = str_replace("dws_dataark_f_dw_channel_month_report_slave_bigusers_","dws_dataark_f_dw_channel_month_report_",$tableName);
-        }
-
-        return $tableName;
-    }
-
-    private function dwsTransition($tableName){
-        $dbhost_arr = array(
-            "001","002","003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022","023"
-        );
-        $dws = config('misc.presto_schema_dws', 'dws');
-        $dbhost = \app\getUserInfo()['dbhost'] ?? '';
-        $big_selling_users = config("common.big_selling_users");
-
-        //大用户数组
-        $user_id_arr = array();
-        if (!empty($big_selling_users)){
-            $user_id_arr = explode(',',$big_selling_users);
-        }
-        $user_id = \app\getUserInfo()['user_id']??0;
-
-        //小卖用户全部使用dws_finance_slave.
-        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.')){
-            $tableName = str_replace("$dws.","{$this->compatible_dws}.",$tableName);
-        }
-
-//        //小卖商品日报
-//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_goods_day_report_')){
-//            $tableName = str_replace("$dws.dws_dataark_f_dw_goods_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_goods_day_report_",$tableName);
-//        }
-//
-//        //小卖店铺日报
-//        if (in_array($dbhost,$dbhost_arr) && !in_array($user_id,$user_id_arr) && false !== strpos($tableName, $dws.'.dws_dataark_f_dw_channel_day_report_')){
-//            $tableName = str_replace("$dws.dws_dataark_f_dw_channel_day_report_","{$this->compatible_dws}.dws_dataark_f_dw_channel_day_report_",$tableName);
-//        }
-
-        return $tableName;
-    }
 
     public function randPrestoIp(){
         $redis =new Redis();
