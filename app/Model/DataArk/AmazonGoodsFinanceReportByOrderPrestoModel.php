@@ -251,6 +251,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         "denominator"   => '',
     ];
 
+    private $cost_logistics_rate = 1;
+
     /**
      * function getCompareDatas
      * desc: 获取比较数据字段 的 字段名， 条件 ， 连表条件
@@ -841,7 +843,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $rate_table = $this->joinRateTable($datas,$fields_arr,$table,$exchangeCode,$day_param);
         $field_data = $rate_table['field_data'];
         $table      = $rate_table['table'];
-
+        var_dump($field_data);
 
         $having = '';
 
@@ -1360,6 +1362,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $group = str_replace("{:RATE}", $exchangeCode, $group ?? '');
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby ?? '');
+        $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
+        $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
+        $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
         $group = str_replace("{:DAY}", $day_param, $group);
         $where = str_replace("{:DAY}", $day_param, $where);
         $orderby = str_replace("{:DAY}", $day_param, $orderby);
@@ -6174,6 +6179,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
+        $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
+        $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
         $group = str_replace("{:DAY}", $day_param, $group);
         $orderby = str_replace("{:DAY}", $day_param, $orderby);
         $limit_num = 0 ;
@@ -9028,6 +9036,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
+        $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
+        $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
         $group = str_replace("{:DAY}", $day_param, $group);
         $orderby = str_replace("{:DAY}", $day_param, $orderby);
         $limit_num = 0 ;
@@ -15659,9 +15670,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             if ($params['currency_code'] == 'ORIGIN') {
                 $cost_logistics_rate = "rate";
             }
-
+            if ($cost_logistics_rate == "rmb_rate"){
+                $cost_logistics_rate = 1;
+            }else{
+                $cost_logistics_rate = "(COALESCE(rates.$cost_logistics_rate ,1))";
+            }
+            $this->cost_logistics_rate = $cost_logistics_rate;
             $field_data = str_replace("{:RATE}", "(COALESCE(rates.$trans_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
-            $field_data = str_replace("{:RMBRATE}", "(COALESCE(rates.$cost_logistics_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", $field_data));//去除presto除法把数据只保留4位导致精度
+            $field_data = str_replace("{:RMBRATE}",$cost_logistics_rate , $field_data);//去除presto除法把数据只保留4位导致精度
             $table .= " LEFT JOIN {$this->table_month_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = {$rate_user_id}  and report.myear = rates.myear and report.mmonth = rates.mmonth and rates.rate_type = {$rate_type}  LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = report.channel_id AND finance_setting.user_id = report.user_id  and report.myear = finance_setting.myear and report.mmonth = finance_setting.mmonth ";
         }else{
             $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
