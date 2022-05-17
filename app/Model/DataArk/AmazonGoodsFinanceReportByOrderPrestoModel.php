@@ -15650,14 +15650,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }else{
                 $trans_rate = strtolower($params['currency_code'])."_rate";
             }
-
+            $cost_logistics_rate = $trans_rate;
             if ($params['currency_code'] != 'ORIGIN') {
                 $rate_type = 3;
                 $rate_user_id = "report.user_id";
-                $cost_logistics_rate = "rate";
             }else{
                 $rate_user_id = 0;
-                $cost_logistics_rate = $trans_rate;
+                $cost_logistics_rate = "rate";
+
             }
 
             $field_data = str_replace("{:RATE}", "(COALESCE(rates.$trans_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
