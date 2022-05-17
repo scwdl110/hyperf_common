@@ -13892,13 +13892,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
         $rate_table = $rel_table =  $origin_field = "";
-        if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz', 'fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'],$this->lastTargets))){
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
-            } else {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
-            }
-        }
+        $rate_table = $this->leftJoinCurrentMonthRate($rate_table,$datas,$currencyInfo);
+
         $fbaArr = config('common.goods_fba_fields_arr');
         if(!empty($this->lastTargets)){
             foreach ($this->lastTargets as $target_key){
@@ -15641,7 +15636,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     }
 
     /**
-     * 汇率表数据
+     * 按月汇率表数据
      * @param $params
      * @param $fields_arr
      * @param $table
@@ -15698,6 +15693,44 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         );
     }
 
+    /**
+     * @param $rate_table
+     * @param $params
+     * @param $currencyInfo
+     * @return string
+     */
+    private function leftJoinCurrentMonthRate($rate_table,$params,$currencyInfo){
+
+        if (isset($params['is_month_rate']) && $params['is_month_rate'] == 1){
+            $year   = date("Y");
+            $month  = (int)date("m");
+            $rate_type = $params['rate_type']??3;
+            if ($rate_type == 3){
+                $rate_user_id = "g.user_id";
+            }else{
+                $rate_user_id = 0;
+            }
+
+            $rate_table .= " LEFT JOIN {$this->table_month_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = {$rate_user_id}  and  rates.myear = {$year} and rates.mmonth = {$month} and rates.rate_type = {$rate_type}  ";
+
+        }else{
+            if($params['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz', 'fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'],$this->lastTargets))){
+                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                    $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
+                } else {
+                    $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
+                }
+            }
+        }
+
+        return $rate_table;
+    }
+
+    /**
+     * 处理按月成本和物流数据
+     * @param $datas
+     * @return array
+     */
     private function handleNexIndexCostLogisticsField($datas){
 
         $fields = array();
