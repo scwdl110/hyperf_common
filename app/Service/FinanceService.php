@@ -73,6 +73,7 @@ class FinanceService extends BaseService
         $req['is_new_index'] = $req['is_new_index'] ?? 0;
         $is_use_tmp_table = intval($req['is_use_tmp_table'] ?? 0);//是否创建临时表
         $req['is_month_rate'] = $req['is_month_rate'] ?? 0;
+        $req['rate_type']   = $req['rate_type'] ?? 3;
         $req['is_month_rate'] = $req['is_new_index'] == 1 ? 1:$req['is_month_rate'];//新版指标只用月汇率
 
         $searchKey = trim(strval($req['searchKey'] ?? ''));
@@ -89,6 +90,7 @@ class FinanceService extends BaseService
         }
 
         $params['is_month_rate'] = $req['is_month_rate'];
+        $params['rate_type'] = $req['rate_type'];
         $params['is_new_index'] = $req['is_new_index'];
         $params['is_median'] = $params['is_median'] ?? 0;
         $params['total_status'] = $params['total_status'] ?? 0;
