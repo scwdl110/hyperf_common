@@ -485,11 +485,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
                     $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
                     if ($datas['currency_code'] != 'ORIGIN') {
-                        if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-                        } else {
-                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
-                        }
+//                        if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+//                        } else {
+//                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+//                        }
+                        $new_table = $this->leftJoinCurrentMonthRate($new_table,$datas,$currencyInfo);
                         $datas['compare_data'][$ck]['new_table'] = $new_table ;
                     }
                 }
@@ -8684,11 +8685,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = "{$this->table_amazon_fba_inventory_by_channel} as c";
             $where = 'c.user_id = ' . $lists[0]['user_id'] ." AND c.db_num = '".$this->dbhost."'";
             if ($datas['currency_code'] != 'ORIGIN') {
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
-                } else {
-                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  ";
-                }
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
+//                } else {
+//                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  ";
+//                }
+                $table = $this->leftJoinCurrentMonthRate($table,$datas,$currencyInfo);
             }
 
             if (!empty($channel_arr)){
@@ -13892,7 +13894,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
         $rate_table = $rel_table =  $origin_field = "";
-        $rate_table = $this->leftJoinCurrentMonthRate($rate_table,$datas,$currencyInfo);
+        if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz', 'fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'],$this->lastTargets))){
+            $rate_table = $this->leftJoinCurrentMonthRate($rate_table,$datas,$currencyInfo);
+
+        }
 
         $fbaArr = config('common.goods_fba_fields_arr');
         if(!empty($this->lastTargets)){
@@ -14403,11 +14408,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
 
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets )) ) {
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id   LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 " . $where . " group by c.id" ;
-                }else{
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  " . $where . " group by c.id" ;
-                }
+                $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo);
+                $table_sql .= " ". $where . " group by c.id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id   LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 " . $where . " group by c.id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  " . $where . " group by c.id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id ".$where." group by c.id" ;
             }
@@ -14420,11 +14428,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt = $this->getUnGoodsFbaField(2," c.site_id as site_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
-                }else{
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id" ;
-                }
+                $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo);
+                $table_sql .= " ". $where ." group by c.site_id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id  ".$where." group by c.site_id" ;
             }
@@ -14438,11 +14449,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id ,max(c.site_id) as site_id ,max(dc.user_department_id) as user_department_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,dc.user_department_id" ;
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id and tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id   LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,dc.user_department_id" ;
-                }
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo);
+                $table_sql .= " ".$where." group by c.site_id,dc.user_department_id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,dc.user_department_id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id and tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,dc.user_department_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id and tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id    ".$where." group by c.site_id,dc.user_department_id" ;
             }
@@ -14467,12 +14481,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id,max(c.site_id) as site_id  ,max(uc.admin_id) as admin_id",'mysql_key' ,$is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,uc.admin_id" ;
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo);
+                $table_sql .= " ".$where." group by c.site_id,uc.admin_id" ;
 
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,uc.admin_id" ;
-                }
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,uc.admin_id" ;
+//
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,uc.admin_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  ".$where." group by c.site_id,uc.admin_id" ;
             }
@@ -14510,11 +14528,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $where .= " AND c.site_id IN({$datas['where_parent']['child_dimension_site_id']})";
             }
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,c.operation_user_admin_id" ;
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,c.operation_user_admin_id" ;
-                }
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} " ;
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo);
+                $table_sql .= " ".$where." group by c.site_id,c.operation_user_admin_id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,c.operation_user_admin_id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,c.operation_user_admin_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} ".$where." group by c.site_id,c.operation_user_admin_id" ;
             }
@@ -14541,11 +14562,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
 
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0  ".$where."  group by c.id" ; ;
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id   ".$where." group by c.id" ; ;
-                }
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id " ;
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo);
+                $table_sql .= " ".$where."  group by c.id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0  ".$where."  group by c.id" ; ;
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id   ".$where." group by c.id" ; ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id  ".$where."  group by c.id" ;
             }
@@ -15714,12 +15738,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $rate_table .= " LEFT JOIN {$this->table_month_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = {$rate_user_id}  and  rates.myear = {$year} and rates.mmonth = {$month} and rates.rate_type = {$rate_type}  ";
 
         }else{
-            if($params['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz', 'fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'],$this->lastTargets))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
-                } else {
-                    $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
-                }
+            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
+            } else {
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
             }
         }
 
