@@ -287,7 +287,7 @@ class OpenMiddleware implements MiddlewareInterface
             'is_master' => $isMaster,
             'client_id' => $clientId,
             'channel_id' => $channelId,
-            'cpc_profiles_id' => $cpcProfilesId
+            'cpc_profiles_id' => $cpcProfilesId,
             'dbhost' => $dbhost,
             'codeno' => $codeno,
             'site_id' => $siteId,
