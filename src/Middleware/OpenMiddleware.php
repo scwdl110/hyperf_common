@@ -121,7 +121,7 @@ class OpenMiddleware implements MiddlewareInterface
 
 
         if (in_array('/' . $pat_array[2][0], $noMerchantUrlPath)) {
-            $channelId = 0;
+            $channelAndCpcId = 0;
         } else {
             //channel_id
             $openChannelId = $request->getHeader('OpenChannelId');
@@ -129,10 +129,10 @@ class OpenMiddleware implements MiddlewareInterface
                 return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;
             }
 
-            //center_open_client_channel_id_cpc_profiles_id
-            $key = 'center_open_client_channel_id_cpc_profiles_id_'.$clientId."_".$userId."_".$openChannelId[0];
-            $channelIdCpcProfilesId = $redis->get($key);
-            if ($channelIdCpcProfilesId === false) {
+            //center_open_client_channel_and_cpc_id
+            $key = 'center_open_client_channel_and_cpc_id_'.$clientId."_".$userId."_".$openChannelId[0];
+            $channelAndCpcId = $redis->get($key);
+            if ($channelAndCpcId === false) {
                 $where = [
                     ['client_id', '=', $clientId],
                     ['user_id', '=', $clientId],
@@ -141,26 +141,8 @@ class OpenMiddleware implements MiddlewareInterface
                 $channelAndCpc = Db::table('open_client_user_channel')->where($where)->select('channel_and_cpc_id')->first();
                 $channelAndCpcId = data_get($channelAndCpc, 'channel_and_cpc_id', '0');
 
-                if($channelAndCpcId){
-                    $where = [
-                        ['id', '=', $channelAndCpcId],
-                    ];
-                    $channelAndCpc = Db::connection('erp_base')->table('channel_and_cpc')->where($where)->select('channel_id', 'cpc_profiles_id')->first();
-                    $channelId = data_get($channelAndCpc, 'channel_id', 0);
-                    $cpcProfilesId = data_get($channelAndCpc, 'cpc_profiles_id', 0);
-
-                    $channelIdCpcProfilesId = $channelId.'_'.$cpcProfilesId;
-                }else{
-                    return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));
-                }
-
-                $redis->set($key, $channelIdCpcProfilesId, 86400);
-            }else{
-                $channelCpcArr = explode("_", $channelIdCpcProfilesId)
-                $channelId = $channelCpcArr[0]??0;
-                $cpcProfilesId = $channelCpcArr[1]??0;
+                $redis->set($key, $channelAndCpcId, 86400);
             }
-
 
         }
 
@@ -214,13 +196,8 @@ class OpenMiddleware implements MiddlewareInterface
 
 
         //channel需授权
-        if ($channelId) {
-            $channelIds = Functions::getOpenClientUserChannel($clientId, $userId);
-            if (!$channelIds || !in_array($channelId, $channelIds)) {
-                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel Unauthorized')->withBody($this->getBody(100912, "open_channel未授权"));;
-            }
-
-            $channel = Functions::getChannel(intval($channelId));
+        if ($channelAndCpcId) {
+            $channel = Functions::getChannelCpc(intval($channelAndCpcId));
             if (!$channel) {
                 return Context::get(ResponseInterface::class)->withStatus(401, 'channel Unauthorized')->withBody($this->getBody(100913, "店铺未授权"));;
             }
@@ -228,13 +205,16 @@ class OpenMiddleware implements MiddlewareInterface
             $siteId = data_get($channel, 'site_id', 0);
             $MerchantID = data_get($channel, 'Merchant_ID', '');
             $areaId = data_get($channel, 'area_id', 0);
-            $title = data_get($channel, 'title', 0);
-
+            $title = data_get($channel, 'site_name', 0);
+            $channelId = data_get($channel, 'channel_id', 0);
+            $cpcProfilesId = data_get($channel, 'cpc_profiles_id', 0);
         } else {
             $siteId = 0;
             $MerchantID = '';
             $areaId = 0;
             $title = '';
+            $channelId = 0;
+            $cpcProfilesId = 0;
         }
 
 
