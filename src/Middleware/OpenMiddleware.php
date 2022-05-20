@@ -58,6 +58,8 @@ class OpenMiddleware implements MiddlewareInterface
 
         //center_open_client_id
         $key = 'center_open_client_id_' . $accessToken;
+        $redis = new Redis();
+        $redis = $redis->getClient();
         $clientId = $redis->get($key);
         if ($clientId === false) {
             //获取client
@@ -135,7 +137,7 @@ class OpenMiddleware implements MiddlewareInterface
             if ($channelAndCpcId === false) {
                 $where = [
                     ['client_id', '=', $clientId],
-                    ['user_id', '=', $clientId],
+                    ['user_id', '=', $userId],
                     ['encry_channel_id', '=', $openChannelId[0]],
                 ];
                 $channelAndCpc = Db::table('open_client_user_channel')->where($where)->select('channel_and_cpc_id')->first();
@@ -148,9 +150,7 @@ class OpenMiddleware implements MiddlewareInterface
 
 
         //锁住同个api调用
-        $redis = new Redis();
-        $redis = $redis->getClient();
-        $redisKey = 'center_open_lock_' . $channelId . "_" . $path;
+        $redisKey = 'center_open_lock_' . $channelAndCpcId . "_" . $path;
         $res = $this->lock($redis, $redisKey);
         if (!$res) {
             return Context::get(ResponseInterface::class)->withStatus(401, 'please wait previous request')->withBody($this->getBody(100904, "请等待上一个请求"));;
@@ -193,7 +193,6 @@ class OpenMiddleware implements MiddlewareInterface
             $isMaster = $userInfo['is_master'];
             $redisId = $userInfo['redis_id'];
         }
-
 
         //channel需授权
         if ($channelAndCpcId) {
@@ -296,6 +295,7 @@ class OpenMiddleware implements MiddlewareInterface
             'title' => $title,
             'redis_id' => $redisId
         ]);
+
         Context::set(ServerRequestInterface::class, $request);
 
         $response = $handler->handle($request);
