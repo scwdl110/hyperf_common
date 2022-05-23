@@ -146,6 +146,10 @@ class OpenMiddleware implements MiddlewareInterface
                 $redis->set($key, $channelAndCpcId, 86400);
             }
 
+            if (!$channelAndCpcId) {
+                return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;
+            }
+
         }
 
 
