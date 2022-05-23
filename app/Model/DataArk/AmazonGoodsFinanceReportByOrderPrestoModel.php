@@ -850,11 +850,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $having = '';
-
+        $datas['not_use_time_group'] = $datas['not_use_time_group']??0;
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
             if($datas['is_distinct_channel'] == 1){ //有区分店铺
                 $fbaDataGroup = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id';
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' && $datas['not_use_time_group'] != 1) {
                     if($datas['count_periods'] == '4'){ //按季度
                         $group = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
                         $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
@@ -871,7 +871,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
                 }
             }else{  //不区分店铺
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' && $datas['not_use_time_group'] != 1) {
                     if($datas['count_periods'] == '4'){ //按季度
                         $group = 'report.goods_' . $datas['count_dimension'] . '  ,report.myear , report.mquarter ';
                         $orderby = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear , report.mquarter ';
