@@ -47,16 +47,16 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DWSDBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_day_report' => 'dws.dws_dataark_f_dw_channel_day_report_{DWSDBHOST}',
         'table_goods_week_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DWSDBHOST} AS week_report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
-        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_slave_bigusers_{DWSDBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
+        'table_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DWSDBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,
         'table_channel_week_report' => 'dws.dws_dataark_f_dw_channel_week_report_{DWSDBHOST}' ,
-        'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_slave_bigusers_{DWSDBHOST}' ,
+        'table_channel_month_report' => 'dws.dws_dataark_f_dw_channel_month_report_{DWSDBHOST}' ,
         'table_operation_day_report' => 'dws.dws_dataark_f_dw_operation_day_report_{DWSDBHOST}' ,
         'table_operation_week_report' => 'dws.dws_dataark_f_dw_operation_week_report_{DWSDBHOST}',
-        'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_slave_{DWSDBHOST}',
+        'table_operation_month_report' => 'dws.dws_dataark_f_dw_operation_month_report_{DWSDBHOST}',
 
         'table_dwd_goods_report' => 'dwd.dwd_dataark_f_dw_goods_report_{DBHOST}',
         'table_dws_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DWSDBHOST}',
-        'table_dws_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_slave_bigusers_{DWSDBHOST}',
+        'table_dws_goods_month_report' => 'dws.dws_dataark_f_dw_goods_month_report_{DWSDBHOST}',
 
         'table_dws_idm_category01_topn_kpi' => 'dwsslave.dws_dataark_idm_category01_topn_kpi',
         'table_dws_idm_category02_topn_kpi' => 'dwsslave.dws_dataark_idm_category02_topn_kpi',
@@ -302,6 +302,10 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
     protected $exportTmp = 'tmp.';//切库记得创建
 
+    protected $compatible_dws = "dws_finance_slave";
+
+    protected $user_id = 0;
+
     public function __construct(
         string $dbhost = '',
         string $codeno = '',
@@ -346,6 +350,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $dbhost = $userInfo['dbhost'] ?? '';
             $codeno = $userInfo['codeno'] ?? '';
         }
+        $this->user_id = \app\getUserInfo()['user_id']??0;
 
         if (!is_numeric($dbhost) || !is_numeric($codeno)) {
             $this->logger->error('错误的 presto dbhost 或 codeno', [$dbhost, $codeno]);
@@ -419,7 +424,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             $ods => 'ads',
             $dws => 'ads',
             $dim => 'ads',
-            $dwd => 'ads'
+            $dwd => 'ads',
         );
         foreach ($schema as $key => $v) {
             if ($key == 'ods'){
@@ -434,7 +439,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
         $sql = str_replace( 'as varchar )', 'as char)', $sql);
         $sql = str_replace( 'as VARCHAR )', 'as char)', $sql);
-        $this->logger->error("read_mysql:toMysqlTable,$sql");
+        $sql = $this->ToMysqlTableChange($sql);
+        $this->logger->info("read_mysql:$sql");
         return $sql;
 
     }
@@ -1273,13 +1279,21 @@ abstract class AbstractPrestoModel implements BIModelInterface
     {
         if (array_key_exists($name, self::$tableMaps)) {
             $tableName = self::$tableMaps[$name];
+            $fba_arr = array(
+                "ods.ods_g_amazon_fba_inventory_v3_tend_001",
+                "ods.ods_g_amazon_fba_inventory_v3_001",
+                "ods.ods_g_amazon_fba_inventory_v3_rel_001",
+                "ods.ods_e_erp_storage_inventory_warehouse_report_001",
+                "ods.ods_e_erp_storage_warehouse_isku_001",
+            );
+            if (in_array($tableName,$fba_arr)){
+                $tableName = str_replace("ods.","odsslave.",$tableName);
+            }
+
+
             if (false !== strpos($tableName, '{DBHOST}')) {
                 $tableName = strtr($tableName, ['{DBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
 
-            }
-            //月报未拆表
-            if (false !== strpos($tableName, 'bigusers_')) {
-                $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
             }
 
             $big_selling_users = config("common.big_selling_users");
@@ -1292,31 +1306,35 @@ abstract class AbstractPrestoModel implements BIModelInterface
             if (false !== strpos($tableName, '{DWSDBHOST}')) {
 
                 if (in_array($user_id,$user_id_arr)){
-                    if (false !== strpos($tableName,'dw_channel_day')){
-                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
-                    }else{
-//                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  'bigusers']);
-                        $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
-                        $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
-                    }
+                    $dbhost_tmp = 'bigusers_'.(\app\getUserInfo()['dbhost'] ?? '');
+                    $tableName = strtr($tableName, ['{DWSDBHOST}' =>  $dbhost_tmp]);
                 }else{
                     $tableName = strtr($tableName, ['{DWSDBHOST}' => \app\getUserInfo()['dbhost'] ?? '']);
                 }
-            }else{
-
-                if (in_array($user_id,$user_id_arr)){
-                    if (false !== strpos($tableName, 'dw_goods_month_report_slave_bigusers_')) {
-                        $tableName = str_replace("_bigusers","",$tableName);
-                    }
-                }
-
             }
-
             return $tableName;
         }
 
         return strpos($name, 'table_') === 0 ? '' : null;
     }
+
+    protected function ToMysqlTableChange($sql){
+        $big_selling_users = config("common.big_selling_users");
+
+        //大用户数组
+        $user_id_arr = array();
+        if (!empty($big_selling_users)){
+            $user_id_arr = explode(',',$big_selling_users);
+        }
+        $user_id = $this->user_id;
+
+        //小卖店铺日报
+        if (!in_array($user_id,$user_id_arr) && false !== strpos($sql, 'dws_dataark_f_dw_channel_day_report_')){
+            $sql = str_replace("dws_dataark_f_dw_channel_day_report_","dws_dataark_f_dw_channel_day_report_ads_",$sql);
+        }
+        return $sql;
+    }
+
 
     public function randPrestoIp(){
         $redis =new Redis();
