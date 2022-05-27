@@ -15776,13 +15776,13 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $remove_purchase_refund_rate    = "COALESCE(finance_setting.removel_purchase_cost_rate ,0)";
         $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,0)";
 
-
         $cost_logistics = array(
+            //SUM( ( byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'purchase_logistics_purchase_cost',
             "purchase_logistics_purchase_cost" =>array(//采购成本
                 "case" => array(
                     "{$item_tmp}reserved_field83",
                     "+{$item_tmp}reserved_field27",
-                    "+{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
+                    "-{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
                     "+{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
                     "+{$item_tmp}reserved_field30",
                     "+{$item_tmp}reserved_field31*{$remove_purchase_refund_rate}",
@@ -15792,6 +15792,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$origin_tmp}purchasing_cost",
                 ),
             ),
+            //	SUM( ( byorderitem_reserved_field28 - byorderitem_reserved_field29 - byorderitem_reserved_field30 - byorderitem_reserved_field31 + byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'purchasing_cost_only',
             "purchasing_cost_only" =>array(//采购成本
                 "case" => array(
                     "{$item_tmp}reserved_field83",
@@ -15804,6 +15805,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field30",
                 ),
             ),
+            //	SUM( ( ( 0-byorderitem_reserved_field27 ) + byorderitem_reserved_field28 - byorderitem_reserved_field29 - byorderitem_reserved_field30 - byorderitem_reserved_field31 + byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'fba_purchasing_cost_only',
             "fba_purchasing_cost_only" =>array(//fba采购成本
                 "case" => array(
                     "{$item_tmp}reserved_field83",
@@ -15816,6 +15818,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field30",
                 ),
             ),
+            //	SUM( ( byorderitem_reserved_field27 ) ) AS 'fbm_purchasing_cost_only',
             "fbm_purchasing_cost_only" =>array(//fbm采购成本
                 "case" => array(
                     "{$item_tmp}reserved_field27",
@@ -15824,6 +15827,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field27",
                 ),
             ),
+            //SUM( ( ( 0-byorderitem_reserved_field28 ) + byorderitem_reserved_field29 ) ) AS 'refund_purchasing_cost',
             "refund_purchasing_cost" =>array(//退款
                 "case" => array(
                     "{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
@@ -15834,6 +15838,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field28",
                 ),
             ),
+            // SUM( ( ( 0-byorderitem_reserved_field28 ) ) ) AS 'fba_refund_purchasing_cost',
             "fba_refund_purchasing_cost" =>array(//fba退款
                 "case" => array(
                     "0-{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
@@ -15842,6 +15847,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "0-{$item_tmp}reserved_field28",
                 ),
             ),
+            //SUM( ( byorderitem_reserved_field29 ) ) AS 'fbm_refund_purchasing_cost',
             "fbm_refund_purchasing_cost" =>array(//fbm退款
                 "case" => array(
                     "{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
@@ -15850,6 +15856,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field29",
                 ),
             ),
+            //SUM( ( byorderitem_reserved_field30 + byorderitem_reserved_field31 ) ) AS 'other_inventory_purchasing_cost',
             "other_inventory_purchasing_cost" =>array(//其他库存产品成本
                 "case" => array(
                     "{$item_tmp}reserved_field30",
@@ -15860,6 +15867,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$item_tmp}reserved_field31",
                 ),
             ),
+            //SUM( ( byorderitem_reserved_field30 ) ) AS 'inventory_adjustment_purchasing_cost',
             "inventory_adjustment_purchasing_cost" =>array(//库存产品成本
                 "case" => array(
                     "{$item_tmp}reserved_field30",
@@ -15868,6 +15876,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field30",
                 ),
             ),
+            //SUM( ( byorderitem_reserved_field31 ) ) AS 'remove_purchasing_cost',
             "remove_purchasing_cost" =>array(//移除库存产品成本
                 "case" => array(
                     "{$item_tmp}reserved_field31*{$remove_purchase_refund_rate}",
@@ -15877,11 +15886,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 ),
             ),
             //物流
+            //	SUM( ( byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'purchase_logistics_logistics_cost',
             "purchase_logistics_logistics_cost" =>array(//物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field84",
                     "+{$item_tmp}reserved_field1",
-                    "+{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                    "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
                     "+{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
                     "+{$item_tmp}reserved_field6",
                     "+{$item_tmp}reserved_field7*{$remove_logistics_refund_rate}",
@@ -15892,6 +15902,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$origin_tmp}logistics_head_course",
                 ),
             ),
+            //SUM( ( ( 0-byorderitem_reserved_field3 ) - byorderitem_reserved_field7 + byorderitem_reserved_field2 - byorderitem_reserved_field6 + byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'logistics_cost_only',
             "logistics_cost_only" =>array(//物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field84",
@@ -15903,6 +15914,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$origin_tmp}logistics_head_course",
                 ),
             ),
+            // 	SUM( ( ( 0-byorderitem_reserved_field1 ) + byorderitem_reserved_field2 - byorderitem_reserved_field6 - byorderitem_reserved_field3 - byorderitem_reserved_field7 + byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'fba_logistics_cost',
             "fba_logistics_cost" =>array(//fba物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field84",
@@ -15914,6 +15926,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$origin_tmp}logistics_head_course",
                 ),
             ),
+            // SUM( ( byorderitem_reserved_field1 ) ) AS 'fbm_logistics_cost',
             "fbm_logistics_cost" =>array(//fbm物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field1",
@@ -15922,6 +15935,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field1",
                 ),
             ),
+            //SUM( ( ( 0-byorderitem_reserved_field2 ) + byorderitem_reserved_field3 ) ) AS 'refund_logistics_cost',
             "refund_logistics_cost" =>array(//退货物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
@@ -15932,7 +15946,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field2",
                 ),
             ),
-            "fba_refund_logistics_cost" =>array(//退货物流成本
+            //SUM( ( ( 0-byorderitem_reserved_field2 ) ) ) AS 'fba_refund_logistics_cost',
+            "fba_refund_logistics_cost" =>array(//fba退货物流成本
                 "case" => array(
                     "0-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
                 ),
@@ -15940,6 +15955,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "0-{$item_tmp}reserved_field2",
                 ),
             ),
+            //	SUM( ( byorderitem_reserved_field3 ) ) AS 'fbm_refund_logistics_cost',
             "fbm_refund_logistics_cost" =>array(//退货物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
@@ -15948,6 +15964,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field3",
                 ),
             ),
+            //SUM( ( byorderitem_reserved_field7 + byorderitem_reserved_field6 ) ) AS 'other_inventory_logistics_cost',
             "other_inventory_logistics_cost" =>array(//其他库存物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field6",
@@ -15958,6 +15975,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$item_tmp}reserved_field7",
                 ),
             ),
+            //SUM( ( byorderitem_reserved_field7 ) ) AS 'remove_purchasing_logistics_cost',
             "remove_purchasing_logistics_cost" =>array(//移除物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field7*{$remove_logistics_refund_rate}",
@@ -15966,6 +15984,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field7",
                 ),
             ),
+            //SUM( ( byorderitem_reserved_field6 ) ) AS 'inventory_adjustment_logistics_cost',
             "inventory_adjustment_logistics_cost" =>array(//库存物流成本
                 "case" => array(
                     "{$item_tmp}reserved_field6",
@@ -15977,10 +15996,234 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ),
 
         );
+        $field_flag = "{$item_tmp}reserved_field4";
+
+
+        if ($datas['cost_count_type'] == 2){
+            $field_flag = "monthly_sku_reserved_field51";
+            //	SUM( ( first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'purchase_logistics_purchase_cost',
+            $cost_logistics = array(
+                "purchase_logistics_purchase_cost" =>array(//采购成本
+                    "case" => array(
+                        "monthly_sku_reserved_field26",
+                        "-monthly_sku_reserved_field27",
+                        "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
+                        "+monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                        "+monthly_sku_reserved_field30",
+                        "+monthly_sku_reserved_field31*{$remove_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "first_purchasing_cost",
+                        "+monthly_sku_reserved_field31",
+                        "+monthly_sku_reserved_field30",
+                    ),
+                ),
+                // SUM( ( ( 0-monthly_sku_reserved_field28 ) - monthly_sku_reserved_field29 - monthly_sku_reserved_field30 - monthly_sku_reserved_field31 + first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'purchasing_cost_only',
+                "purchasing_cost_only" =>array(//采购成本
+                    "case" => array(
+                        "monthly_sku_reserved_field26",
+                        "-monthly_sku_reserved_field27",
+                    ),
+                    "else" => array(
+                        "first_purchasing_cost",
+                        "-monthly_sku_reserved_field28",
+                        "-monthly_sku_reserved_field29",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field27 - monthly_sku_reserved_field28 - monthly_sku_reserved_field29 - monthly_sku_reserved_field30 - monthly_sku_reserved_field31 + first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'fba_purchasing_cost_only',
+                "fba_purchasing_cost_only" =>array(//fba采购成本
+                    "case" => array(
+                        "monthly_sku_reserved_field26",
+                    ),
+                    "else" => array(
+                        "first_purchasing_cost",
+                        "+monthly_sku_reserved_field27",
+                        "-monthly_sku_reserved_field28",
+                        "-monthly_sku_reserved_field29",
+                    ),
+                ),
+                //SUM( ( ( 0-monthly_sku_reserved_field27 ) ) ) AS 'fbm_purchasing_cost_only',
+                "fbm_purchasing_cost_only" =>array(//fbm采购成本
+                    "case" => array(
+                        "0-monthly_sku_reserved_field27",
+                    ),
+                    "else" => array(
+                        "0-monthly_sku_reserved_field27",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field28 + monthly_sku_reserved_field29 ) ) AS 'refund_purchasing_cost',
+                "refund_purchasing_cost" =>array(//退款
+                    "case" => array(
+                        "monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                        "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field28",
+                        "+monthly_sku_reserved_field29",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field28 ) ) AS 'fba_refund_purchasing_cost',
+                "fba_refund_purchasing_cost" =>array(//fba退款
+                    "case" => array(
+                        "monthly_sku_reserved_field28",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field28",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field29 ) ) AS 'fbm_refund_purchasing_cost',
+                "fbm_refund_purchasing_cost" =>array(//fbm退款
+                    "case" => array(
+                        "monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field29",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field30 + monthly_sku_reserved_field31 ) ) AS 'other_inventory_purchasing_cost',
+                "other_inventory_purchasing_cost" =>array(//其他库存产品成本
+                    "case" => array(
+                        "monthly_sku_reserved_field30",
+                        "+monthly_sku_reserved_field31*{$remove_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field30",
+                        "+monthly_sku_reserved_field31",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field30 ) ) AS 'inventory_adjustment_purchasing_cost',
+                "inventory_adjustment_purchasing_cost" =>array(//库存产品成本
+                    "case" => array(
+                        "monthly_sku_reserved_field30",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field30",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field31 ) ) AS 'remove_purchasing_cost',
+                "remove_purchasing_cost" =>array(//移除库存产品成本
+                    "case" => array(
+                        "monthly_sku_reserved_field31*{$remove_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field31",
+                    ),
+                ),
+                //物流
+                //	SUM( ( first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'purchase_logistics_logistics_cost',
+                "purchase_logistics_logistics_cost" =>array(//物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field32",
+                        "-monthly_sku_reserved_field33",
+                        "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                        "+monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                        "+monthly_sku_reserved_field36",
+                        "+monthly_sku_reserved_field50*{$remove_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field50",
+                        "+monthly_sku_reserved_field36",
+                        "+first_logistics_head_course",
+                    ),
+                ),
+                //SUM( ( ( 0-monthly_sku_reserved_field35 ) - monthly_sku_reserved_field36 - monthly_sku_reserved_field34 - monthly_sku_reserved_field50 + first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'logistics_cost_only',
+                "logistics_cost_only" =>array(//物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field32",
+                        "-monthly_sku_reserved_field33",
+                    ),
+                    "else" => array(
+                        "first_logistics_head_course",
+                        "-monthly_sku_reserved_field35",
+                        "-monthly_sku_reserved_field34",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field33 - monthly_sku_reserved_field34 - monthly_sku_reserved_field50 - monthly_sku_reserved_field35 - monthly_sku_reserved_field36 + first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'fba_logistics_cost',
+                "fba_logistics_cost" =>array(//fba物流成本
+                    "case" => array(
+                        "{$item_tmp}reserved_field84",
+                    ),
+                    "else" => array(
+                        "first_logistics_head_course",
+                        "+monthly_sku_reserved_field33",
+                        "-monthly_sku_reserved_field35",
+                        "-monthly_sku_reserved_field34",
+                    ),
+                ),
+                //SUM( ( ( 0-monthly_sku_reserved_field33 ) ) ) AS 'fbm_logistics_cost',
+                "fbm_logistics_cost" =>array(//fbm物流成本
+                    "case" => array(
+                        "0-monthly_sku_reserved_field33",
+                    ),
+                    "else" => array(
+                        "0-monthly_sku_reserved_field33",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field34 + monthly_sku_reserved_field35 ) ) AS 'refund_logistics_cost',
+                "refund_logistics_cost" =>array(//退货物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                        "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field35",
+                        "+monthly_sku_reserved_field34",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field34 ) ) AS 'fba_refund_logistics_cost',
+                "fba_refund_logistics_cost" =>array(//fba退货物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field34",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field35 ) ) AS 'fbm_refund_logistics_cost',
+                "fbm_refund_logistics_cost" =>array(//退货物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field35",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'other_inventory_logistics_cost',
+                "other_inventory_logistics_cost" =>array(//其他库存物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field36",
+                        "+monthly_sku_reserved_field50*{$remove_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field36",
+                        "+monthly_sku_reserved_field50",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field50 ) ) AS 'remove_purchasing_logistics_cost',
+                "remove_purchasing_logistics_cost" =>array(//移除物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field50*{$remove_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field50",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field36 ) ) AS 'inventory_adjustment_logistics_cost',
+                "inventory_adjustment_logistics_cost" =>array(//库存物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field36",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field36",
+                    ),
+                ),
+
+            );
+        }
 
 
         foreach ($cost_logistics as $key => $cost_logistic_v){
-            $fields[$key] = "SUM(case when {$item_tmp}reserved_field4 = 201 THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END)";
+            $fields[$key] = "SUM(case when {$field_flag} = 201 THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END)";
         }
 
 
