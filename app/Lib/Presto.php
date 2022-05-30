@@ -169,7 +169,7 @@ class Presto
         if (Co::getCid() > 0) {
             $handler = make(PoolHandler::class, [
                 'option' => [
-                    'max_connections' => 25,
+                    'max_connections' => 20,
                 ],
             ]);
         }
