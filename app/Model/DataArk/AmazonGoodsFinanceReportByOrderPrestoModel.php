@@ -1362,6 +1362,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $group = str_replace("{:RATE}", $exchangeCode, $group ?? '');
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby ?? '');
+        $group = str_replace("{:ERP_RATE}", $exchangeCode, $group ?? '');
+        $where = str_replace("{:ERP_RATE}", $exchangeCode, $where ?? '');
+        $orderby = str_replace("{:ERP_RATE}", $exchangeCode, $orderby ?? '');
         $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
         $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
         $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
@@ -13142,7 +13145,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }else{
                             if (isset($cost_logistics[$key])){
                                 $fields[$key] = $cost_logistics[$key];
-                            }else{
+                            }elseif (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+                                $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."{$cost_logistics['compensate']}){$field_rate})";
+                            } else{
                                 $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
                             }
 
@@ -13168,7 +13173,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
 
                         if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                            $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key} * {:RATE})";
+                            $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key} * {:ERP_RATE})";
                         }else{
                             $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key})";
                         }
@@ -15710,6 +15715,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         $field_data = str_replace("{:DAY}", $day_param, $field_data);
+        $field_data = str_replace("{:ERP_RATE}", $exchangeCode, $field_data);
 
         return array(
             "field_data" => $field_data,
@@ -16223,9 +16229,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
 
         foreach ($cost_logistics as $key => $cost_logistic_v){
-            $fields[$key] = "SUM(case when {$field_flag} = 201 THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END)";
+            $fields_tmp = "case when {$field_flag} = 201 THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END";
+            $fields[$key] = "SUM({$fields_tmp})";
+            if ($key == 'purchase_logistics_purchase_cost' or $key == "purchase_logistics_logistics_cost"){
+                $fields[$key."_origin"]     = "+({$fields_tmp})";
+                $fields[$key."_compensate"] = "-(".implode("",$cost_logistic_v['else']).")";
+            }
         }
-
+        $fields["compensate"] = $fields["purchase_logistics_purchase_cost_compensate"].$fields["purchase_logistics_logistics_cost_compensate"].$fields["purchase_logistics_purchase_cost_origin"].$fields["purchase_logistics_logistics_cost_origin"];
 
         return $fields;
 
