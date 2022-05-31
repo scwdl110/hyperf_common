@@ -1351,8 +1351,19 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $redis->set("jdx_rand_presto_ip",serialize($rand_presto_ip));
         }
-        $rand_presto_ip_key = array_rand($rand_presto_ip);
-        $rand_presto_ip = $rand_presto_ip[$rand_presto_ip_key];
+        $presto_inc = (int)$redis->get("presto_inc");
+        $redis->incr("presto_inc");
+        if ($presto_inc > 1000000){
+            $redis->del("presto_inc");
+        }
+        $poll_key   = (int)($presto_inc%count($rand_presto_ip));
+        if (isset($rand_presto_ip[$poll_key])){
+            $rand_presto_ip = $rand_presto_ip[$poll_key];
+        }else{
+            $rand_presto_ip_key = array_rand($rand_presto_ip);
+            $rand_presto_ip = $rand_presto_ip[$rand_presto_ip_key];
+        }
+
         $server = trim($rand_presto_ip['presto_ip']).":".trim($rand_presto_ip['presto_port']);
         return $server;
 
