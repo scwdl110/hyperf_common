@@ -13145,8 +13145,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         }else{
                             if (isset($cost_logistics[$key])){
                                 $fields[$key] = $cost_logistics[$key];
-                            }elseif (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
-                                $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."{$cost_logistics['compensate']}){$field_rate})";
                             } else{
                                 $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
                             }
