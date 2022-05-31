@@ -132,19 +132,7 @@ class OpenMiddleware implements MiddlewareInterface
             }
 
             //center_open_client_channel_and_cpc_id
-            $key = 'center_open_client_channel_and_cpc_id_'.$clientId."_".$userId."_".$openChannelId[0];
-            $channelAndCpcId = $redis->get($key);
-            if ($channelAndCpcId === false) {
-                $where = [
-                    ['client_id', '=', $clientId],
-                    ['user_id', '=', $userId],
-                    ['encry_channel_id', '=', $openChannelId[0]],
-                ];
-                $channelAndCpc = Db::table('open_client_user_channel')->where($where)->select('channel_and_cpc_id')->first();
-                $channelAndCpcId = data_get($channelAndCpc, 'channel_and_cpc_id', '0');
-
-                $redis->set($key, $channelAndCpcId, 86400);
-            }
+            $channelAndCpcId = Functions::getOpenChannelAndCpcId($clientId, $userId, $openChannelId[0]);
 
             if (!$channelAndCpcId) {
                 return Context::get(ResponseInterface::class)->withStatus(401, 'open_channel_id not found')->withBody($this->getBody(100903, "open_channel_id 未找到"));;

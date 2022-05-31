@@ -456,7 +456,7 @@ class Functions {
                 ['client_id', '=', $clientId],
                 ['user_id', '=', $userId],
             ];
-            $arr = Db::table('open_client_user_channel')->where($where)->select("channel_id")->get();
+            $arr = Db::table('open_client_user_channel')->where($where)->select("channel_and_cpc_id")->get();
             if(!$arr){
                 $redis->set($key, json_encode([]), 3600);
                 return false;
@@ -464,11 +464,11 @@ class Functions {
 
             $openClientUserChannel = [];
             foreach ($arr as $k=>$v){
-                $channelId = data_get($v, 'channel_id', '');
-                if($channelId){
-                    $channel = Functions::getChannel(intval($channelId));
+                $channeCpclId = data_get($v, 'channel_and_cpc_id', '');
+                if($channeCpclId){
+                    $channel = Functions::getChannelCpc(intval($channeCpclId));
                     if($channel){
-                        $openClientUserChannel[] = $channelId;
+                        $openClientUserChannel[] = $channeCpclId;
                     }
                 }
 
@@ -479,6 +479,42 @@ class Functions {
         }
 
         return $openClientUserChannel;
+    }
+
+    /**
+     * @param $clientId
+     * @param $userId
+     * @param $openChannelId
+     * @param int $force
+     * @return array|bool|mixed|string
+     */
+    public static function getOpenChannelAndCpcId($clientId, $userId, $openChannelId, int $force = 0){
+        $redis = new Redis();
+        $redis = $redis->getClient();
+
+        if(!$openChannelId && $force){
+            $key = 'center_open_client_channel_and_cpc_id_'.$clientId."_".$userId."_*";
+            $data = $redis->keys($key);
+            $redis->del($data);
+            return true;
+        }
+
+        //center_open_client_channel_and_cpc_id
+        $key = 'center_open_client_channel_and_cpc_id_'.$clientId."_".$userId."_".$openChannelId;
+        $channelAndCpcId = $redis->get($key);
+        if ($channelAndCpcId === false || $force) {
+            $where = [
+                ['client_id', '=', $clientId],
+                ['user_id', '=', $userId],
+                ['encry_channel_id', '=', $openChannelId],
+            ];
+            $channelAndCpc = Db::table('open_client_user_channel')->where($where)->select('channel_and_cpc_id')->first();
+            $channelAndCpcId = data_get($channelAndCpc, 'channel_and_cpc_id', '0');
+
+            $redis->set($key, $channelAndCpcId, 86400);
+        }
+
+        return $channelAndCpcId;
     }
 
 
