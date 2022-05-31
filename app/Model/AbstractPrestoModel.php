@@ -1351,8 +1351,8 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $redis->set("jdx_rand_presto_ip",serialize($rand_presto_ip));
         }
-        $presto_inc = (int)$redis->get("presto_inc");
-        $redis->incr("presto_inc");
+//        $presto_inc = (int)$redis->get("presto_inc");
+        $presto_inc = (int)$redis->incr("presto_inc");
         if ($presto_inc > 1000000){
             $redis->del("presto_inc");
         }
