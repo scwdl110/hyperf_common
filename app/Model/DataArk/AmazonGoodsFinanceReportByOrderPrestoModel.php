@@ -13132,8 +13132,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         if ($field_type == 3){//运营人员需要兼容case when
                             $fields[$key] = $this->getOperateNewKey($value,$field_type_key,$field_molecule_rate,$field_denominator_rate);
                         }else{
-                            $molecule = implode("",$value[$field_type_key]['molecule']);
-                            $fields[$key] = "SUM(({$molecule}){$field_molecule_rate})";
+                            if (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+                                $molecule = implode("",$value[$field_type_key]['molecule']).$cost_logistics['purchase_logistics_compensate'];
+                                $fields[$key] = "(SUM(({$molecule}){$field_molecule_rate}){$cost_logistics['purchase_logistics_origin']})";
+
+                            }else{
+                                $molecule = implode("",$value[$field_type_key]['molecule']);
+                                $fields[$key] = "SUM(({$molecule}){$field_molecule_rate})";
+
+                            }
                             if (!empty($value[$field_type_key]['denominator'])){
                                 $fields[$key] .= "*1.0000/nullif(SUM((".implode("",$value[$field_type_key]['denominator'])."){$field_denominator_rate}),0)";
                             }
@@ -13146,7 +13153,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             if (isset($cost_logistics[$key])){
                                 $fields[$key] = $cost_logistics[$key];
                             }elseif (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
-                                $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."{$cost_logistics['purchase_logistics_compensate']}){$field_rate})";
+                                $fields[$key] = "(SUM((".implode("",$value[$field_type_key]['molecule'])."{$cost_logistics['purchase_logistics_compensate']}){$field_rate}){$cost_logistics['purchase_logistics_origin']})";
                             } else{
                                 $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
                             }
@@ -16236,7 +16243,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $fields[$key."_compensate"] = "-(".implode("",$cost_logistic_v['else']).")";
             }
         }
-        $fields["purchase_logistics_compensate"] = $fields["purchase_logistics_purchase_cost_compensate"].$fields["purchase_logistics_logistics_cost_compensate"].$fields["purchase_logistics_purchase_cost_origin"].$fields["purchase_logistics_logistics_cost_origin"];
+        $fields["purchase_logistics_compensate"] = $fields["purchase_logistics_purchase_cost_compensate"].$fields["purchase_logistics_logistics_cost_compensate"];
+        $fields["purchase_logistics_origin"] = "+".$fields['purchase_logistics_purchase_cost']."+".$fields["purchase_logistics_logistics_cost"];
 
         return $fields;
 
