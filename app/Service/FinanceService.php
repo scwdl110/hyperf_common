@@ -599,6 +599,42 @@ class FinanceService extends BaseService
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
         }
+        if ($is_use_tmp_table or ($isReadTmpTable && empty($result['lists']))){//导出数据或者建表时有问题则重新执行
+            $isExistExportTmpTable = $amazonGoodsFinanceReportByOrderMD->isExistExportTmpTable();
+            if (empty($isExistExportTmpTable)){
+                for ($presto_inc=1;$presto_inc<5;$presto_inc++){
+                    $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno'], $isReadAthena,$is_use_tmp_table,$isReadTmpTable,$read_tmp_table_name,$presto_inc);
+                    $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
+                    $params['min_ym'] = $min_ym;
+                    $params['max_ym'] = $max_ym;
+                    $result = $amazonGoodsFinanceReportByOrderMD->{$method}(
+                        $where,
+                        $params,
+                        $limit,
+                        $sort,
+                        $order,
+                        $countTip,
+                        $channelIds,
+                        $currencyInfo,
+                        $exchangeCode,
+                        $timeLine,
+                        $deparmentData,
+                        $userInfo['user_id'],
+                        $userInfo['admin_id'],
+                        $rateInfo,
+                        $day_param
+                    );
+                    //已经成功直接返回
+                    $isExistExportTmpTable = $amazonGoodsFinanceReportByOrderMD->isExistExportTmpTable();
+                    if (!empty($isExistExportTmpTable)){
+                        break;
+                    }
+                }
+                if (empty($isExistExportTmpTable)){//还是失败直接返回500
+                    throw new \RuntimeException('临时表有误.');
+                }
+            }
+        }
         if ($is_use_tmp_table){
             $result = ['read_tmp_table_name' => $read_tmp_table_name];
         }
