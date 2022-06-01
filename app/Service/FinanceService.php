@@ -599,18 +599,45 @@ class FinanceService extends BaseService
         if (!isset($result['lists'])) {
             $result = ['lists' => [], 'count' => 0];
         }
+        if ($is_use_tmp_table or ($isReadTmpTable && empty($result['lists']))){//导出数据或者建表时有问题则重新执行
+            $isExistExportTmpTable = $amazonGoodsFinanceReportByOrderMD->isExistExportTmpTable();
+            if (empty($isExistExportTmpTable)){
+                for ($presto_inc=1;$presto_inc<5;$presto_inc++){
+                    $amazonGoodsFinanceReportByOrderMD = new $className($userInfo['dbhost'], $userInfo['codeno'], $isReadAthena,$is_use_tmp_table,$isReadTmpTable,$read_tmp_table_name,$presto_inc);
+                    $amazonGoodsFinanceReportByOrderMD->dryRun(env('APP_TEST_RUNNING', false));
+                    $params['min_ym'] = $min_ym;
+                    $params['max_ym'] = $max_ym;
+                    $result = $amazonGoodsFinanceReportByOrderMD->{$method}(
+                        $where,
+                        $params,
+                        $limit,
+                        $sort,
+                        $order,
+                        $countTip,
+                        $channelIds,
+                        $currencyInfo,
+                        $exchangeCode,
+                        $timeLine,
+                        $deparmentData,
+                        $userInfo['user_id'],
+                        $userInfo['admin_id'],
+                        $rateInfo,
+                        $day_param
+                    );
+                    //已经成功直接返回
+                    $isExistExportTmpTable = $amazonGoodsFinanceReportByOrderMD->isExistExportTmpTable();
+                    if (!empty($isExistExportTmpTable)){
+                        break;
+                    }
+                }
+                if (empty($isExistExportTmpTable)){//还是失败直接返回500
+                    throw new \RuntimeException('临时表有误.');
+                }
+            }
+        }
         if ($is_use_tmp_table){
             $result = ['read_tmp_table_name' => $read_tmp_table_name];
         }
-//        $str = 'platform_income_rate,sales_refund_rate,promotion_rebate_all_rate,compensate_rate,buyer_freight_rate,gift_packaging_rate,fba_liquidation_income_rate,other_income_rate,fba_sales_quota_rate,fbm_sales_quota_rate,fba_sales_refund_rate,fbm_sales_refund_rate,promotion_rebate_rate,promotion_rebate_refund_rate,inventory_credit_rate,atoz_claim_rate,amazon_shipping_reimbursement_rate,channel_fbm_safe_t_claim_demage_rate,shipping_credits_rate,shipping_credits_refund_rate,gift_wrap_credits_rate,gift_wrap_credits_refund_rate,fba_liquidation_proceeds_rate,fba_liquidation_proceeds_adjustments_rate,chargebacks_rate,other_income_other_rate,platform_expenses_rate,sales_commission_rate,total_shippingfee_rate,cpc_ad_settlement_rate,all_transaction_other_fee_rate,storagecharges_rate,total_service_fee_rate,fba_sales_commission_rate,fbm_sales_commission_rate,sales_commission_refund_rate,fba_shippingfee_rate,fba_shippingfee_refund_rate,amazon_multi_channel_delivery_fee_rate,product_ads_payment_eventlist_charge_rate,product_ads_payment_eventlist_refund_rate,transaction_other_fee_rate,transaction_other_fee_refund_rate,label_purchase_rate,label_purchase_refund_rate,carrier_label_purchase_refund_rate,service_fee_rate,refund_managementfees_rate,adjust_fee_rate,clear_fee_rate,platform_expenses_other_rate,platform_tax_rate,product_transportation_and_gift_packaging_tax_rate,product_transportation_and_gift_packaging_refund_tax_rate,amazon_obligatory_tax_withholding_rate,sale_return_goods_number_rate,sale_many_channel_sales_volume_all_rate,fba_sales_volume_rate,fbm_sales_volume_rate,fba_refund_num_rate,fbm_refund_num_rate,other_vat_fee_rate,reversal_reimbursement_rate,free_replacement_refund_items_rate,ware_house_damage_rate,fbainventoryreimbursement_lostwarehouse_rate,missing_from_inbound_rate,other_inventory_credit_rate,fba_shippingfee_order_rate,other_storagecharges_rate,fbainventoryfee_rate,fba_refund_treatment_fee_rate,other_servicefee_rate,subscription_rate,run_lightning_deal_fee_rate,amazon_fba_monthly_storage_fee_rate,amazon_long_term_storage_fee_rate,fba_disposal_fee_rate,summary_rate,other_review_enrollment_fee_rate,cost_profit_total_income_rate,cost_profit_total_pay_rate,tax_withheld_rate,fba_refund_purchasing_cost_rate,fbm_refund_purchasing_cost_rate,refund_purchasing_cost_rate,inventory_adjustment_purchasing_cost_rate,remove_purchasing_cost_rate,other_inventory_purchasing_cost_rate,fba_logistics_cost_rate,fbm_logistics_cost_rate,fba_refund_logistics_cost_rate,fbm_refund_logistics_cost_rate,refund_logistics_cost_rate,other_inventory_logistics_cost_rate,inventory_adjustment_logistics_cost_rate,remove_purchasing_logistics_cost_rate,tcs_cgst_rate,tcs_igst_rate,tcs_sgst_rate,fba_purchasing_cost_only_rate,fbm_purchasing_cost_only_rate,purchasing_cost_only_rate,logistics_cost_only_rate,channel_promote_coupon_rate,vine_fee_rate,costofpointsgranted_rate,costofpointsgranted_refund_rate,pointsadjusted_rate,manual_treatment_fee_rate,inventory_cost_correction_rate';
-//        $field_arr = explode(",",$str);
-//        if (!empty($result['lists'])){
-//            foreach ($result['lists'] as $k => $list){
-//                foreach ($field_arr as $value){
-//                    $result['lists'][$k][$value] = round(1/rand(1,100),4);
-//                }
-//            }
-//        }
         return $result;
     }
 
