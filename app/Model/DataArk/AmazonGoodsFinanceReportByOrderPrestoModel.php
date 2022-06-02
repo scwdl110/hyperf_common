@@ -15485,12 +15485,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
+        $field_data_tmp = str_replace("{:ERP_RATE}", $exchangeCode, $field_data_tmp);
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
         $query_origin_fields[] = "max(report.myear) AS myear";
         $query_origin_fields[] = "max(report.mmonth) AS mmonth";
         $query_origin_fields[] = "max(report.mquarter) AS mquarter";
         $query_origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_origin_fields));
         $query_inner_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_inner_fields));
+        $query_origin_fields_tmp = str_replace("{:ERP_RATE}", $exchangeCode, $query_origin_fields_tmp);
+        $query_inner_fields_tmp = str_replace("{:ERP_RATE}", $exchangeCode, $query_inner_fields_tmp);
 
         //组装子查询
         if ($datas['count_dimension'] == 'head_id'){
