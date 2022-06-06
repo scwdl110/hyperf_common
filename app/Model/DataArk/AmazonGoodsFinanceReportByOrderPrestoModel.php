@@ -6182,6 +6182,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $group = str_replace("{:ERP_RATE}", $exchangeCode, $group ?? '');
+        $where = str_replace("{:ERP_RATE}", $exchangeCode, $where ?? '');
+        $orderby = str_replace("{:ERP_RATE}", $exchangeCode, $orderby ?? '');
         $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
         $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
         $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
@@ -9040,6 +9043,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $group = str_replace("{:ERP_RATE}", $exchangeCode, $group ?? '');
+        $where = str_replace("{:ERP_RATE}", $exchangeCode, $where ?? '');
+        $orderby = str_replace("{:ERP_RATE}", $exchangeCode, $orderby ?? '');
         $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
         $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
         $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
