@@ -15739,6 +15739,194 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         );
     }
 
+    private function getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay,$type = 1){
+
+        if ($datas['currency_code'] == 'ORIGIN') {
+            $rate = "";
+        } else {
+            $rate = " * ({:RATE} / COALESCE(rates.rate ,1))";
+        }
+        $rmb_rate = " * ({:RMBRATE}) ";
+        $item_tmp = "byorderitem_";
+        $origin_tmp = "byorder_";
+        if ($datas['finance_datas_origin'] == '2') {
+            $item_tmp = "reportitem_";//()
+            $origin_tmp = "report_";
+        }
+
+        $fba_purchase_refund_rate       = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
+        $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
+        $fbm_purchase_refund_rate       = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
+        $fbm_logistics_refund_rate      = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
+        $remove_purchase_refund_rate    = "COALESCE(finance_setting.removel_purchase_cost_rate ,0)";
+        $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,0)";
+        $field_flag = "{$item_tmp}reserved_field4";
+
+
+        if ($datas['cost_count_type'] == 2) {
+            $field_flag = "monthly_sku_reserved_field51";
+        }
+        $cost_logistic_field = array(
+            "purchase_logistics_purchase_cost" =>array(//采购成本
+                "case" => array(
+                    "{$item_tmp}reserved_field83",
+                    "+{$item_tmp}reserved_field27",
+                    "-{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
+                    "+{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
+                    "+{$item_tmp}reserved_field30",
+
+                ),
+                "else" => array(
+                    "{$origin_tmp}purchasing_cost",
+                ),
+            ),
+            "first_purchase_logistics_purchase_cost" =>array(//采购成本
+                "case" => array(
+                    "monthly_sku_reserved_field26",
+                    "-monthly_sku_reserved_field27",
+                    "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
+                    "+monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "first_purchasing_cost",
+                ),
+            ),
+            "purchase_logistics_logistics_cost" =>array(//物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field84",
+                    "+{$item_tmp}reserved_field1",
+                    "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                    "+{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$origin_tmp}logistics_head_course",
+                ),
+            ),
+            "first_purchase_logistics_logistics_cost" =>array(//物流成本
+                "case" => array(
+                    "monthly_sku_reserved_field32",
+                    "-monthly_sku_reserved_field33",
+                    "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                    "+monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "first_logistics_head_course",
+                ),
+            ),
+            "fba_logistics_head_course" =>array(//fba物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field84",
+                    "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}fba_logistics_head_course",
+                ),
+            ),
+            "first_fba_logistics_head_course" =>array(//fba物流成本
+                "case" => array(
+                    "monthly_sku_reserved_field32",
+                    "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "fba_first_logistics_head_course",
+                ),
+            ),
+            "fbm_logistics_head_course" =>array(//fbm物流成本
+                "case" => array(
+                    "+{$item_tmp}reserved_field1",
+                    "+{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}fbm_logistics_head_course",
+                ),
+            ),
+            "first_fbm_logistics_head_course" =>array(//fbm物流成本
+                "case" => array(
+                    "monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                    "-monthly_sku_reserved_field33",
+                ),
+                "else" => array(
+                    "first_logistics_head_course",
+                    "-fba_first_logistics_head_course",
+                ),
+            ),
+        );
+
+        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+            || $isCalTotalPay) {  //采购成本
+
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = explode("", $cost_logistic_field['purchase_logistics_purchase_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['purchase_logistics_purchase_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = explode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+
+            }
+
+            $fields['purchase_logistics_purchase_cost'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+
+        }
+
+        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+            || $isCalTotalPay) {  // 物流/头程
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = explode("", $cost_logistic_field['purchase_logistics_logistics_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['purchase_logistics_logistics_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = explode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+
+            }
+
+            $fields['purchase_logistics_logistics_cost'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+        }
+
+
+        if (in_array('fba_logistics_head_course', $targets)) { //FBA头程物流
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = explode("", $cost_logistic_field['fba_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['fba_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = explode("", $cost_logistic_field['first_fba_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['first_fba_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }
+            $fields['fba_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+        }
+
+        if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
+
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = explode("", $cost_logistic_field['fbm_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['fbm_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = explode("", $cost_logistic_field['first_fbm_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = explode("", $cost_logistic_field['first_fbm_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }
+            $fields['fbm_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+        }
+
+
+        return $fields;
+
+    }
+
     /**
      * @param $rate_table
      * @param $params
