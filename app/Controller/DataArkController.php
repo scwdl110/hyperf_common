@@ -432,4 +432,13 @@ class DataArkController extends AbstractController
             return Result::success([]);
         }
     }
+
+    public function getAmazonGoodsIds(){
+
+        $financeService = new FinanceService();
+        $req            = $this->request->all();
+        $result         =  $financeService->getAmazonGoodsIds($req);
+        return $result;
+
+    }
 }

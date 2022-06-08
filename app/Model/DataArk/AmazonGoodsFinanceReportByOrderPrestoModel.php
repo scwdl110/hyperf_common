@@ -15639,5 +15639,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     }
 
 
+    public function getFinanceGoodsIds($user_id,$where,$limit,$max_ym,$min_ym){
+        $dws_user_id_mod = getUserIdMod($user_id);
+        $ym_where = $this->getYnWhere($max_ym , $min_ym ) ;
+        $where .= " AND {$ym_where} AND report.user_id_mod = {$dws_user_id_mod} AND amazon_goods.goods_g_amazon_goods_id > 0";
+        $table = "{$this->table_goods_day_report}" ;
+        $field_data = "amazon_goods.goods_g_amazon_goods_id";
+        $order = "amazon_goods.goods_g_amazon_goods_id asc";
+        $group = "amazon_goods.goods_g_amazon_goods_id";
+        $lists = $this->select($where, $field_data, $table, $limit, $order, $group);
+        return $lists;
+    }
 
 }
