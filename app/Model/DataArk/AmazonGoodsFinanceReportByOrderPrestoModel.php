@@ -14930,7 +14930,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     if(!empty($fbaArr[$target]['rel_field_status'])){
                         //rel不需要去重
                         if(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5') {
-                            $fields[] = "AVG(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
+                            $fields[] = "SUM(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
                         }elseif($fbaArr[$target]['count_type'] == '4'){
                             if(!empty($fbaArr[$target]['child_key'])){
                                 foreach ($fbaArr[$target]['child_key'] as $child_key){
@@ -14967,7 +14967,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             }
                         }
                     }elseif(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5'){
-                        $fields[] = "AVG((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
+                        $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
                     }elseif($fbaArr[$target]['count_type'] == '3' && !empty($fbaArr[$target]['only_sku'])){
                         //仅区分店铺sku
                         $fields[] = "MAX({$fbaArr[$target]['mysql_field']}) as {$target}";
