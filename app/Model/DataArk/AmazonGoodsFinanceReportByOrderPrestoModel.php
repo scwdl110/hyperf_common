@@ -846,11 +846,11 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $table      = $rate_table['table'];
 
         $having = '';
-
+        $datas['not_use_time_group'] = $datas['not_use_time_group'] ??0;
         if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])) {
             if($datas['is_distinct_channel'] == 1){ //有区分店铺
                 $fbaDataGroup = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id';
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' && $datas['not_use_time_group']!=1) {
                     if($datas['count_periods'] == '4'){ //按季度
                         $group = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
                         $orderby = 'report.goods_' . $datas['count_dimension'] . ' , report.channel_id ,report.myear , report.mquarter ';
@@ -867,7 +867,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $orderby = empty($orderby) ? ('report.goods_' . $datas['count_dimension'] . ' ,report.channel_id ') : ($orderby . ' , report.goods_'. $datas['count_dimension'] . ' ,report.channel_id ');
                 }
             }else{  //不区分店铺
-                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' ) {
+                if ($datas['count_periods'] > 0 && $datas['show_type'] == '2' && $datas['not_use_time_group']!=1) {
                     if($datas['count_periods'] == '4'){ //按季度
                         $group = 'report.goods_' . $datas['count_dimension'] . '  ,report.myear , report.mquarter ';
                         $orderby = 'report.goods_' . $datas['count_dimension'] . ' ,report.myear , report.mquarter ';
@@ -14969,7 +14969,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     if(!empty($fbaArr[$target]['rel_field_status'])){
                         //rel不需要去重
                         if(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5') {
-                            $fields[] = "AVG(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
+                            $fields[] = "SUM(g.{$fbaArr[$target]['mysql_field']}) as {$fbaArr[$target]['mysql_field']}";
                         }elseif($fbaArr[$target]['count_type'] == '4'){
                             if(!empty($fbaArr[$target]['child_key'])){
                                 foreach ($fbaArr[$target]['child_key'] as $child_key){
@@ -15006,7 +15006,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                             }
                         }
                     }elseif(!$datas['need_review_fba'] && $fbaArr[$target]['count_type'] == '5'){
-                        $fields[] = "AVG((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
+                        $fields[] = "SUM((CASE WHEN {$fbaArr[$target]['mysql_field']} < 0 THEN 0 ELSE {$fbaArr[$target]['mysql_field']} END )) as {$target}";
                     }elseif($fbaArr[$target]['count_type'] == '3' && !empty($fbaArr[$target]['only_sku'])){
                         //仅区分店铺sku
                         $fields[] = "MAX({$fbaArr[$target]['mysql_field']}) as {$target}";
@@ -16461,6 +16461,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $fields;
 
 
+    }
+    public function getFinanceGoodsIds($user_id,$where,$limit,$max_ym,$min_ym){
+        $dws_user_id_mod = getUserIdMod($user_id);
+        $ym_where = $this->getYnWhere($max_ym , $min_ym ) ;
+        $where .= " AND {$ym_where} AND report.user_id_mod = {$dws_user_id_mod} AND amazon_goods.goods_g_amazon_goods_id > 0";
+        $table = "{$this->table_goods_day_report}" ;
+        $field_data = "amazon_goods.goods_g_amazon_goods_id";
+        $order = "amazon_goods.goods_g_amazon_goods_id asc";
+        $group = "amazon_goods.goods_g_amazon_goods_id";
+        $lists = $this->select($where, $field_data, $table, $limit, $order, $group);
+        return $lists;
     }
 
 }

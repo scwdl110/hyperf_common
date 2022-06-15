@@ -169,7 +169,7 @@ class Presto
         if (Co::getCid() > 0) {
             $handler = make(PoolHandler::class, [
                 'option' => [
-                    'max_connections' => 25,
+                    'max_connections' => 20,
                 ],
             ]);
         }
@@ -277,6 +277,7 @@ class Presto
             self::HEADER_USER => $config['user'],
             self::HEADER_SCHEMA => $config['schema'],
             self::HEADER_CATALOG => $config['catalog'],
+            self::HEADER_SESSION => "query_max_execution_time=5m" //超过5分钟的直接显示超时
         ];
 
         if (1 === preg_match('#^https?://#i', $config['server'])) {
@@ -389,7 +390,7 @@ class Presto
             $this->logger->debug('presto status', [$stats]);
         }
 
-        $this->logger->debug('presto data', [$datas]);
+//        $this->logger->debug('presto data', [$datas]);
 
         return $datas;
     }

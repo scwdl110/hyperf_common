@@ -319,6 +319,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         bool $isUseTmpTable = false,
         bool $isReadTmpTable = false,
         string $tmpTable = '',
+        int $presto_inc = 0,
         ?LoggerInterface $logger = null,
         ?ClientInterface $httpClient = null
     ) {
@@ -380,7 +381,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
         }
 
         //读取数据库presto对应得ip
-        $rand_presto_ip = $this->randPrestoIp();
+        $rand_presto_ip = $this->randPrestoIp($presto_inc);
         $config['server'] = $rand_presto_ip;
 
         $this->logSql = $config['logSql'] ?? false;
@@ -1342,7 +1343,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
     }
 
 
-    public function randPrestoIp(){
+    public function randPrestoIp($presto_inc = 0){
         $redis =new Redis();
         $redis = $redis->getClient('bi');
         $rand_presto_ip = $redis->get('jdx_rand_presto_ip');
@@ -1357,10 +1358,30 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
             $redis->set("jdx_rand_presto_ip",serialize($rand_presto_ip));
         }
-        $rand_presto_ip_key = array_rand($rand_presto_ip);
-        $rand_presto_ip = $rand_presto_ip[$rand_presto_ip_key];
+//        $presto_inc = (int)$redis->get("presto_inc");
+        if ($presto_inc == 0){//没有指定哪台得情况下使用轮询
+            $presto_inc = (int)$redis->incr("presto_inc");
+            if ($presto_inc > 1000000){
+                $redis->del("presto_inc");
+            }
+        }
+        $poll_key   = (int)($presto_inc%count($rand_presto_ip));
+        if (isset($rand_presto_ip[$poll_key])){
+            $rand_presto_ip = $rand_presto_ip[$poll_key];
+        }else{
+            $rand_presto_ip_key = array_rand($rand_presto_ip);
+            $rand_presto_ip = $rand_presto_ip[$rand_presto_ip_key];
+        }
+
         $server = trim($rand_presto_ip['presto_ip']).":".trim($rand_presto_ip['presto_port']);
         return $server;
+
+    }
+
+    public function isExistExportTmpTable(){
+
+        $sql = "select count(*) as num from {$this->exportTmp}{$this->tmpTable}";
+        return $this->presto->query($sql);
 
     }
 
