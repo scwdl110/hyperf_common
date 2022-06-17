@@ -8776,12 +8776,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($datas['currency_code'] == 'ORIGIN') {
             $fba_fields .= " , sum(DISTINCT(c.yjzhz))  as fba_goods_value";
         } else {
-            $fba_fields .= " , sum(DISTINCT(c.yjzhz * ({:RATE} / COALESCE(rates.rate ,1))))  as fba_goods_value";
+            $fba_fields .= " , sum(DISTINCT(c.yjzhz * {:RATE} / COALESCE(rates.rate ,1)))  as fba_goods_value";
         }
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
-        if ($exchangeCode == 1){
-            $exchangeCode = "1.00000000";
-        }
         $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
         $fbaData =$amazon_fba_inventory_by_channel_md->select($where , $fba_fields ,$table ,'' , '' ,$group,'',null,300,$isMysql);
         if ($isMysql && !empty($fba_data)){
