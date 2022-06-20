@@ -90,7 +90,7 @@ class FinanceService extends BaseService
         }
 
         $params['is_month_rate'] = $req['is_month_rate'];
-        $params['rate_type'] = $req['rate_type'];
+        $params['rate_type'] = intval($req['rate_type']);
         $params['is_new_index'] = $req['is_new_index'];
         $params['is_median'] = $params['is_median'] ?? 0;
         $params['total_status'] = $params['total_status'] ?? 0;
