@@ -598,4 +598,11 @@ class Functions {
         return $arr;
     }
 
+    /**
+     * 设置path_limit为0
+     */
+    public function setPathLimitZero(){
+
+    }
+
 }
