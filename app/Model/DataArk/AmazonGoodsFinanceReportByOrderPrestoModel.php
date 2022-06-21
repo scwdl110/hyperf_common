@@ -15995,9 +15995,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         $fba_purchase_refund_rate       = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
-        $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
+        $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_logistics_cost_rate ,1)";
         $fbm_purchase_refund_rate       = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
-        $fbm_logistics_refund_rate      = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
+        $fbm_logistics_refund_rate      = "COALESCE(finance_setting.fbm_refund_logistics_cost_rate ,1)";
         $remove_purchase_refund_rate    = "COALESCE(finance_setting.removel_purchase_cost_rate ,0)";
         $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,0)";
 
