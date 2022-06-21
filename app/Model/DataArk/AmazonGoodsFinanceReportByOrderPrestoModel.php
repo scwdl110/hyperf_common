@@ -723,7 +723,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($fields)) {
             return [];
         }
-        var_dump($datas);
         if(isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1 && $datas['is_month_table'] == 0 && !$isMysql){
             //开放平台日报直接读取数据库
             return $this->getOpenPlatFormGoodsDay($datas,$fields);
@@ -1629,11 +1628,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $where = " WHERE report.user_id = {$user_id} AND report.channel_id = {$channel_id} AND report.create_time >= {$start_time} AND report.create_time <= {$end_time} ";
         $group = " GROUP BY report.amazon_goods_id,report.myear,report.mmonth,report.mday,report.channel_id ";
-        $order_by = " report.amazon_goods_id asc ";
+        $order_by = " ORDER BY report.amazon_goods_id asc ";
 
         $table_pre = "_by_order";
+        $table_on  = "by_order_id";
+        $sql_pre   = "byorder";
         if ($params['sale_datas_origin'] == 2 && $params['refund_datas_origin'] == 2 && $params['finance_datas_origin'] == 2){
             $table_pre = "";
+            $sql_pre = "report";
+            $table_on  = "report_id";
         }
         $target = explode(",",$params['target']);
         $fields_tmp = array();
@@ -1642,14 +1645,67 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields_tmp[$field_key] = $field_value;
             }
         }
-
+        $fields_arr = array();
         foreach ($fields_tmp as $field_name => $field) {
             $fields_arr[] = $field . " AS '" . $field_name . "'";
         }
 
         $sql_field = implode(",",$fields_arr);
 
-        $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report_{$table_pre}_item_001 as item on report.id = item.by_order_id and report.user_id = item.user_id and report.channel_id = item.channel_id";
+        $sql_field = str_replace($sql_pre."_","report.",$sql_field);
+        $sql_field = str_replace("{$sql_pre}item_","item.",$sql_field);
+
+        //大数据字段替换
+        $sql_field = str_replace("report.platform_income","0",$sql_field);
+        $sql_field = str_replace("item.sales_refund","0",$sql_field);
+        $sql_field = str_replace("report.promotion_rebate","0",$sql_field);
+        $sql_field = str_replace("report.compensate","0",$sql_field);
+        $sql_field = str_replace("report.buyer_freight_income","0",$sql_field);
+        $sql_field = str_replace("report.buyer_freight","0",$sql_field);
+        $sql_field = str_replace("report.gift_packaging","0",$sql_field);
+        $sql_field = str_replace("report.fba_liquidation_income","0",$sql_field);
+        $sql_field = str_replace("item.other_income","0",$sql_field);
+        $sql_field = str_replace("report.inventory_credit","0",$sql_field);
+        $sql_field = str_replace("item.atoz_claim","0",$sql_field);
+        $sql_field = str_replace("item.total_chargebackventlist","0",$sql_field);
+        $sql_field = str_replace("report.platform_spending","0",$sql_field);
+
+        $sql_field = str_replace("byorder_cpc_sd_cost","0",$sql_field);
+        $sql_field = str_replace("byorder_cpc_cost","0",$sql_field);
+
+        $sql_field = str_replace("item.total_sales_commission","0",$sql_field);
+        $sql_field = str_replace("report.total_shippingfee","0",$sql_field);
+        $sql_field = str_replace("report.total_other_businessexpenses","0",$sql_field);
+        $sql_field = str_replace("report.total_service_fee","0",$sql_field);
+        $sql_field = str_replace("item.sales_commission_refund","0",$sql_field);
+        $sql_field = str_replace("report.fba_shippingfee","0",$sql_field);
+        $sql_field = str_replace("item.fba_shippingfee_refund","0",$sql_field);
+        $sql_field = str_replace("report.other_businessexpenses","0",$sql_field);
+        $sql_field = str_replace("report.service_fee","0",$sql_field);
+        $sql_field = str_replace("report.adjust_fee","0",$sql_field);
+        $sql_field = str_replace("report.platform_tax","0",$sql_field);
+        $sql_field = str_replace("report.product_shipping_and_giftwrap_taxes_collected","0",$sql_field);
+        $sql_field = str_replace("report.product_shipping_and_gift_wrap_taxes_refunded","0",$sql_field);
+        $sql_field = str_replace("report.fba_sales_volume","0",$sql_field);
+        $sql_field = str_replace("report.fba_refund_num","0",$sql_field);
+        $sql_field = str_replace("report.fbm_refund_num","0",$sql_field);
+        $sql_field = str_replace("report.fbainventoryreimbursement_lostwarehouse","0",$sql_field);
+        $sql_field = str_replace("report.other_inventory_credit","0",$sql_field);
+        $sql_field = str_replace("report.other_servicefee","0",$sql_field);
+        $sql_field = str_replace("item.miscellaneous_income","0",$sql_field);
+        $sql_field = str_replace("item.miscellaneous_expenses","0",$sql_field);
+        $sql_field = str_replace("report.report.tax","report.tax",$sql_field);
+
+        $pattern = '/(item\..+?)([+\s)-])/i';
+        $replacement = 'ifnull($1,0)$2';
+        echo $sql_field;
+        echo "-------------";
+        $sql_field =  preg_replace($pattern, $replacement, $sql_field);
+
+
+
+
+        $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report{$table_pre}_item_001 as item on report.id = item.{$table_on} and report.user_id = item.user_id and report.channel_id = item.channel_id";
 
         $sql = "SELECT {$sql_field} from {$table} {$where} {$group} {$order_by}";
 
