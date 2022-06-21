@@ -723,6 +723,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($fields)) {
             return [];
         }
+        var_dump($datas);
+        if(isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1 && $datas['is_month_table'] == 0 && !$isMysql){
+            //开放平台日报直接读取数据库
+            return $this->getOpenPlatFormGoodsDay($datas,$fields);
+
+        }
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
 
         if ($datas['show_type'] != 2 && !$isMysql && $datas['show_type'] > 0 && $datas['is_new_index'] == 1 && in_array($this->time_periods_field['key'],array('fba_sales_refund','sales_refund'))){
@@ -1611,6 +1617,44 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $rt['lists'] = $this->handleReturnData($datas,$rt['lists']);;
         $rt['count'] = intval($count);
         return $rt;
+    }
+
+
+    private function getOpenPlatFormGoodsDay($params,$fields){
+
+        $user_id    = intval($params['user_id'] ?? 0);
+        $channel_id = intval($params['operation_channel_ids'] ?? 0);
+        $start_time = $params['origin_create_start_time'];
+        $end_time   = $params['origin_create_end_time'];
+
+        $where = " WHERE report.user_id = {$user_id} AND report.channel_id = {$channel_id} AND report.create_time >= {$start_time} AND report.create_time <= {$end_time} ";
+        $group = " GROUP BY report.amazon_goods_id,report.myear,report.mmonth,report.mday,report.channel_id ";
+        $order_by = " report.amazon_goods_id asc ";
+
+        $table_pre = "_by_order";
+        if ($params['sale_datas_origin'] == 2 && $params['refund_datas_origin'] == 2 && $params['finance_datas_origin'] == 2){
+            $table_pre = "";
+        }
+        $target = explode(",",$params['target']);
+        $fields_tmp = array();
+        foreach ($fields as $field_key => $field_value){
+            if (in_array($field_key,$target)){
+                $fields_tmp[$field_key] = $field_value;
+            }
+        }
+
+        foreach ($fields_tmp as $field_name => $field) {
+            $fields_arr[] = $field . " AS '" . $field_name . "'";
+        }
+
+        $sql_field = implode(",",$fields_arr);
+
+        $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report_{$table_pre}_item_001 as item on report.id = item.by_order_id and report.user_id = item.user_id and report.channel_id = item.channel_id";
+
+        $sql = "SELECT {$sql_field} from {$table} {$where} {$group} {$order_by}";
+
+        echo $sql;
+
     }
 
     protected function getTotalNum($where = '', $table = '', $group = '', $isJoin = false, $isMysql = false , $compareData = array(),$field_data = '',$fbaData = array())
