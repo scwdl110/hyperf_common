@@ -15967,7 +15967,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else{
             $rate_user_id = 0;
         }
-        $table = "((SELECT rates.* FROM {$this->table_month_site_rate} AS rates JOIN {$this->table_amazon_currency_dimension} AS dc on   dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.rate_type = rates.rate_type WHERE dc.user_id = {$user_id} and rates.user_id in (0,{$user_id})  ) UNION all (SELECT rates.* FROM {$this->table_month_site_rate} AS rates left JOIN {$this->table_amazon_currency_dimension} AS dc on  dc.myear = rates.myear AND dc.mmonth = rates.mmonth WHERE dc.user_id IS null and rates.rate_type = {$rate_type} and rates.user_id = {$rate_user_id})) ";
+        $table = "((SELECT rates.* FROM {$this->table_month_site_rate} AS rates JOIN {$this->table_amazon_currency_dimension} AS dc on   dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.rate_type = rates.rate_type WHERE dc.user_id = {$user_id} and rates.user_id in (0,{$user_id})  ) UNION all (SELECT rates.* FROM {$this->table_month_site_rate} AS rates left JOIN {$this->table_amazon_currency_dimension} AS dc on  dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.user_id = {$user_id} WHERE dc.user_id IS null and rates.rate_type = {$rate_type} and rates.user_id = {$rate_user_id})) ";
 
         return $table;
 
