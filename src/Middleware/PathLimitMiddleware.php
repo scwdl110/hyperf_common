@@ -86,6 +86,13 @@ class PathLimitMiddleware implements MiddlewareInterface
 
         $response = $handler->handle($request);
 
+        $pathLimitReturnError = Context::get('pathLimitReturnError', 0);
+        if($pathLimitReturnError){
+            //有报错
+            $msg = "超过亚马逊访问次数,请稍后尝试";
+            return Context::get(ResponseInterface::class)->withStatus(401, $msg)->withBody($this->getBody(100910, $msg));
+        }
+
         return $response;
     }
 
@@ -102,16 +109,44 @@ class PathLimitMiddleware implements MiddlewareInterface
     private function checkCount($redis, $project, $path, $merchantId, $apiCount)
     {
         $time = time();
-        $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId . "_" . $time;
-        $checkCount = $redis->incr($key);
-        if ($checkCount > $apiCount) {
+        if (!isset($apiCount['rate']) || !isset($apiCount['burst'])) {
             return [
                 'code' => 0,
-                'msg' => '超过每秒'.$apiCount.'的访问次数',
+                'msg' => '缺少参数',
             ];
         }
 
-        $redis->expire($key, 1);
+        //现在的参数
+        $key = "center_path_limit_current_param_" .$project."_".$path."_".$merchantId;
+        $currentParam = $redis->get($key);
+        if($currentParam===false){
+            $currentCount = $apiCount['burst'];
+            $currentParam = [
+                'time' => $time,
+                'burst' => $apiCount['burst'],
+            ];
+            $redis->set($key, json_encode($currentParam), 3600);
+        }else{
+            $currentParam = json_decode($currentParam, true);
+            $currentCount = ($time-$currentParam['time'])*$apiCount['rate']+$currentParam['burst'];
+            if($currentCount > $apiCount['burst']){
+                $currentCount = $apiCount['burst'];
+            }
+        }
+
+
+
+        //现在访问的次数
+        $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId;
+        $checkCount = $redis->incr($key);
+        if ($checkCount > $currentCount) {
+            return [
+                'code' => 0,
+                'msg' => '超过访问次数,请稍后尝试',
+            ];
+        }
+        $redis->expire($key, 3600);
+
         return [
             'code' => 1,
             'msg' => 'success',

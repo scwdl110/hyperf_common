@@ -599,10 +599,22 @@ class Functions {
     }
 
     /**
-     * 设置path_limit为0
+     * 亚马逊429状态设置path_limit的burst为0
      */
     public function setPathLimitZero(){
+        $redis = new Redis();
+        $redis = $redis->getClient();
+        $key = "center_path_limit_current_param_" .$project."_".$path."_".$merchantId;
+        $time = time();
+        $currentParam = [
+            'time' => $time,
+            'burst' => 0,
+        ];
+        $redis->set($key, json_encode($currentParam), 3600);
 
+        Context::set('pathLimitReturnError', 1);
+
+        return 1;
     }
 
 }
