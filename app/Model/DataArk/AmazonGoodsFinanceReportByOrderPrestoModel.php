@@ -3155,12 +3155,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
                 $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
             }
-            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
-                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
-            }
-            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
-                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
-            }
+//            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+//                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+//            }
+//            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+//                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
+//            }
 
 //            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
 //                || $isCalTotalPay) {  //采购成本
@@ -6588,12 +6588,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
                 $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
             }
-            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
-                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
-            }
-            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
-                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
-            }
+//            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+//                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+//            }
+//            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+//                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
+//            }
 
 //            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //采购成本
 //                if ($datas['finance_datas_origin'] == '1') {
@@ -9754,12 +9754,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
                 $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
             }
-            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
-                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
-            }
-            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
-                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
-            }
+//            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+//                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+//            }
+//            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+//                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
+//            }
 
 
 //            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
@@ -15859,7 +15859,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
                 ),
                 "else" => array(
-                    "{$item_tmp}fba_logistics_head_course",
+                    "{$origin_tmp}fba_logistics_head_course",
                 ),
             ),
             "first_fba_logistics_head_course" =>array(//fba物流成本
@@ -15877,7 +15877,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
                 ),
                 "else" => array(
-                    "{$item_tmp}fbm_logistics_head_course",
+                    "{$origin_tmp}fbm_logistics_head_course",
                 ),
             ),
             "first_fbm_logistics_head_course" =>array(//fbm物流成本
