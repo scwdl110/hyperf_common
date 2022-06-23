@@ -3148,75 +3148,88 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }
-
-            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
-                || $isCalTotalPay) {  //采购成本
-                if ($datas['finance_datas_origin'] == 1) {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        }
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum(report.first_purchasing_cost ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        }
-                    }
-                }
-
+            $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
+            if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
+                $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
             }
-            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
-                || $isCalTotalPay) {  // 物流/头程
-                if ($datas['finance_datas_origin'] == 1) {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-                    }
-                }
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
             }
+            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+            }
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
+            }
+
+//            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+//                || $isCalTotalPay) {  //采购成本
+//                if ($datas['finance_datas_origin'] == 1) {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        }
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum(report.first_purchasing_cost ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        }
+//                    }
+//                }
+//
+//            }
+//            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+//                || $isCalTotalPay) {  // 物流/头程
+//                if ($datas['finance_datas_origin'] == 1) {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//                    }
+//                }
+//            }
 
             if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets) || $isCalTotalPay) {  //亚马逊费用
                 if ($datas['finance_datas_origin'] == '1') {
@@ -5571,63 +5584,63 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        if (in_array('fba_logistics_head_course', $targets)) { //FBA头程物流
-            if($datas['cost_count_type'] == 1){
-                if ($datas['finance_datas_origin'] == '1'){
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course)";
-                    } else {
-                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }else{
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fba_logistics_head_course'] = "SUM(report.report_fba_logistics_head_course)";
-                    } else {
-                        $fields['fba_logistics_head_course'] = "SUM((report.report_fba_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }
-            }else{
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['fba_logistics_head_course'] = "SUM(report.fba_first_logistics_head_course)";
-                } else {
-                    $fields['fba_logistics_head_course'] = "SUM((report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                }
-            }
-
-        }
-
-        if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
-            if($datas['cost_count_type'] == 1){
-                if($datas['finance_datas_origin'] == 1){
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course)";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }else{
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.report_fbm_logistics_head_course)";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = "SUM((report.report_fbm_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }
-            }else{
-                if($type == 1){//商品的fbm刷的没问题
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = " sum( (report.first_logistics_head_course - report.fba_first_logistics_head_course) ) ";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = " sum(( (report.first_logistics_head_course - report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                    }
-                }
-            }
-
-        }
+//        if (in_array('fba_logistics_head_course', $targets)) { //FBA头程物流
+//            if($datas['cost_count_type'] == 1){
+//                if ($datas['finance_datas_origin'] == '1'){
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course)";
+//                    } else {
+//                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }else{
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fba_logistics_head_course'] = "SUM(report.report_fba_logistics_head_course)";
+//                    } else {
+//                        $fields['fba_logistics_head_course'] = "SUM((report.report_fba_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }
+//            }else{
+//                if ($datas['currency_code'] == 'ORIGIN') {
+//                    $fields['fba_logistics_head_course'] = "SUM(report.fba_first_logistics_head_course)";
+//                } else {
+//                    $fields['fba_logistics_head_course'] = "SUM((report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                }
+//            }
+//
+//        }
+//
+//        if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
+//            if($datas['cost_count_type'] == 1){
+//                if($datas['finance_datas_origin'] == 1){
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course)";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }else{
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.report_fbm_logistics_head_course)";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = "SUM((report.report_fbm_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }
+//            }else{
+//                if($type == 1){//商品的fbm刷的没问题
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = " sum( (report.first_logistics_head_course - report.fba_first_logistics_head_course) ) ";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = " sum(( (report.first_logistics_head_course - report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                    }
+//                }
+//            }
+//
+//        }
 
         if (in_array('shipping_charge', $targets)) { //运费
             if($datas['finance_datas_origin'] == 1){
@@ -6568,74 +6581,88 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
 
-            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //采购成本
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                }
-
+            $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
+            if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
+                $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
             }
-            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  // 物流/头程
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( ( report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                }
-
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
             }
+            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+            }
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
+            }
+
+//            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //采购成本
+//                if ($datas['finance_datas_origin'] == '1') {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                }
+//
+//            }
+//            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  // 物流/头程
+//                if ($datas['finance_datas_origin'] == '1') {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( ( report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                }
+//
+//            }
 
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets) ) {  //毛利润
             $repair_data = $this->tax_field." +report.bychannel_reserved_field44 + report.bychannel_reserved_field43 " ;
@@ -9720,74 +9747,89 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
 
 
-            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                }
-
+            $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
+            if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
+                $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
+            }
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
+            }
+            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+            }
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
             }
 
-            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
-                if ($datas['finance_datas_origin'] == 1) {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
 
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                }
-            }
+//            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
+//                if ($datas['finance_datas_origin'] == '1') {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                }
+//
+//            }
+//
+//            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
+//                if ($datas['finance_datas_origin'] == 1) {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                }
+//            }
 
             if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
                 $fields['purchase_logistics_cost_rate'] = '(' . $fields['purchase_logistics_purchase_cost'] . ' + ' . $fields['purchase_logistics_logistics_cost'] . ") * 1.0000 / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
@@ -15854,14 +15896,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             || $isCalTotalPay) {  //采购成本
 
             if ($datas['cost_count_type'] == '1'){
-                $case_field = explode("", $cost_logistic_field['purchase_logistics_purchase_cost']['case']);
+                $case_field = implode("", $cost_logistic_field['purchase_logistics_purchase_cost']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['purchase_logistics_purchase_cost']['else']);
+                $else_field = implode("", $cost_logistic_field['purchase_logistics_purchase_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
             }else{
-                $case_field = explode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['case']);
+                $case_field = implode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['else']);
+                $else_field = implode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
 
             }
@@ -15873,14 +15915,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
             || $isCalTotalPay) {  // 物流/头程
             if ($datas['cost_count_type'] == '1'){
-                $case_field = explode("", $cost_logistic_field['purchase_logistics_logistics_cost']['case']);
+                $case_field = implode("", $cost_logistic_field['purchase_logistics_logistics_cost']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['purchase_logistics_logistics_cost']['else']);
+                $else_field = implode("", $cost_logistic_field['purchase_logistics_logistics_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
             }else{
-                $case_field = explode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['case']);
+                $case_field = implode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['else']);
+                $else_field = implode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
 
             }
@@ -15891,14 +15933,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
         if (in_array('fba_logistics_head_course', $targets)) { //FBA头程物流
             if ($datas['cost_count_type'] == '1'){
-                $case_field = explode("", $cost_logistic_field['fba_logistics_head_course']['case']);
+                $case_field = implode("", $cost_logistic_field['fba_logistics_head_course']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['fba_logistics_head_course']['else']);
+                $else_field = implode("", $cost_logistic_field['fba_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
             }else{
-                $case_field = explode("", $cost_logistic_field['first_fba_logistics_head_course']['case']);
+                $case_field = implode("", $cost_logistic_field['first_fba_logistics_head_course']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['first_fba_logistics_head_course']['else']);
+                $else_field = implode("", $cost_logistic_field['first_fba_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
             }
             $fields['fba_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
@@ -15907,14 +15949,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
 
             if ($datas['cost_count_type'] == '1'){
-                $case_field = explode("", $cost_logistic_field['fbm_logistics_head_course']['case']);
+                $case_field = implode("", $cost_logistic_field['fbm_logistics_head_course']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['fbm_logistics_head_course']['else']);
+                $else_field = implode("", $cost_logistic_field['fbm_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
             }else{
-                $case_field = explode("", $cost_logistic_field['first_fbm_logistics_head_course']['case']);
+                $case_field = implode("", $cost_logistic_field['first_fbm_logistics_head_course']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
-                $else_field = explode("", $cost_logistic_field['first_fbm_logistics_head_course']['else']);
+                $else_field = implode("", $cost_logistic_field['first_fbm_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
             }
             $fields['fbm_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
