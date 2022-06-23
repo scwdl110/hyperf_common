@@ -725,7 +725,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
         if(isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1 && $datas['is_month_table'] == 0 && !$isMysql){
             //开放平台日报直接读取数据库
-            return $this->getOpenPlatFormGoodsDay($datas,$fields);
+            return $this->getOpenPlatFormGoodsDay($datas,$fields,$limit);
 
         }
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
@@ -1618,17 +1618,22 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         return $rt;
     }
 
-
-    private function getOpenPlatFormGoodsDay($params,$fields){
+    /**
+     * 开放平台日报读取mysql
+     * @param $params
+     * @param $fields
+     * @param $limit
+     */
+    private function getOpenPlatFormGoodsDay($params,$fields,$limit){
 
         $user_id    = intval($params['user_id'] ?? 0);
         $channel_id = intval($params['operation_channel_ids'] ?? 0);
         $start_time = $params['origin_create_start_time'];
         $end_time   = $params['origin_create_end_time'];
 
-        $where = " WHERE report.user_id = {$user_id} AND report.channel_id = {$channel_id} AND report.create_time >= {$start_time} AND report.create_time <= {$end_time} ";
-        $group = " GROUP BY report.amazon_goods_id,report.myear,report.mmonth,report.mday,report.channel_id ";
-        $order_by = " ORDER BY report.amazon_goods_id asc ";
+        $where = " report.user_id = {$user_id} AND report.channel_id = {$channel_id} AND report.create_time >= {$start_time} AND report.create_time <= {$end_time} ";
+        $group = " report.amazon_goods_id,report.myear,report.mmonth,report.mday,report.channel_id ";
+        $order_by = "  report.amazon_goods_id asc ";
 
         $table_pre = "_by_order";
         $table_on  = "by_order_id";
@@ -1707,9 +1712,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report{$table_pre}_item_001 as item on report.id = item.{$table_on} and report.user_id = item.user_id and report.channel_id = item.channel_id {$left_table}";
 
-        $sql = "SELECT {$sql_field} from {$table} {$where} {$group} {$order_by}";
+        $mysql_limit = $params['mysql_limit'];
+        $sql = "SELECT {$sql_field} from {$table} WHERE {$where} GROUP BY {$group} ORDER BY {$order_by}  {$mysql_limit}";
+        $data = DB::connection("erp_finance_{$this->dbhost}")->select($sql);
+        $return_data = array();
+        if (!empty($data)){
+            foreach ($data as $v){
+                $return_data[] = (array)$v;
+            }
+        }
 
-        echo $sql;
+        return $return_data;
 
     }
 
