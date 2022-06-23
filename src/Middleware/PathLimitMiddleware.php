@@ -25,7 +25,10 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class PathLimitMiddleware implements MiddlewareInterface
 {
-    public $defaultLimit = 10;
+    public $defaultLimit = [
+        'rate' => 1,
+        'burst' => 10,
+    ];
 
     private function getBody($code, $message)
     {
