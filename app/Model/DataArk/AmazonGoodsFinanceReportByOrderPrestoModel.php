@@ -6580,7 +6580,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }
-
+            $isCalTotalPay=in_array('cost_profit_total_pay', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets);
             $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
             if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
                 $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
@@ -9746,7 +9746,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['evaluation_fee_rate'] = '(' . $fields['evaluation_fee'] . ") * 1.0000 / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
             }
 
-
+            $isCalTotalPay=in_array('cost_profit_total_pay', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets);
             $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
             if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
                 $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
