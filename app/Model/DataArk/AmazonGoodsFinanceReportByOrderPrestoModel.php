@@ -3158,7 +3158,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
                 $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
             }
-            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+            if (isset($purchase_logisitics_field['fbm_logistics_head_course'])){
                 $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
             }
 
@@ -6591,7 +6591,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
                 $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
             }
-            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+            if (isset($purchase_logisitics_field['fbm_logistics_head_course'])){
                 $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
             }
 
@@ -9757,7 +9757,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
                 $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
             }
-            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+            if (isset($purchase_logisitics_field['fbm_logistics_head_course'])){
                 $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
             }
 
