@@ -1707,6 +1707,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $sql_field = str_replace("item.miscellaneous_income",$field_trans['miscellaneous_income'],$sql_field);
         $sql_field = str_replace("item.miscellaneous_expenses",$field_trans['miscellaneous_expenses'],$sql_field);
         $sql_field = str_replace("report.report.tax","report.tax",$sql_field);
+        $sql_field = str_replace("{:RMBRATE}","1",$sql_field);
 
 
 
