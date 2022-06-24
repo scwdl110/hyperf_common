@@ -45,7 +45,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         $configInterface = ApplicationContext::getContainer()->get(ConfigInterface::class);
         $otherIsLimit = $configInterface->get("pathlimit.other_is_limit");
         $limitPath = $configInterface->get("pathlimit.limit_path");
-        $project = $configInterface->get("config.app_name");
+        $project = $configInterface->get("pathlimit.app_name");
         $redis = new Redis();
         $redis = $redis->getClient();
 
@@ -53,8 +53,9 @@ class PathLimitMiddleware implements MiddlewareInterface
 
         //缺少merchant_id
         if(!isset($userInfo['merchant_id']) && !isset($userInfo['Merchant_ID'])){
-            $msg = "缺少merchant_id";
-            return Context::get(ResponseInterface::class)->withStatus(401, $msg)->withBody($this->getBody(-1, $msg));
+            $bodyMsg = "缺少merchant_id";
+            $headerMsg = "not param";
+            return Context::get(ResponseInterface::class)->withStatus(401, $headerMsg)->withBody($this->getBody(-1, $bodyMsg));
         }elseif(!isset($userInfo['merchant_id'])){
             $merchantId = $userInfo['Merchant_ID'];
         }else{
@@ -68,7 +69,7 @@ class PathLimitMiddleware implements MiddlewareInterface
                 //验证次数
                 $res = $this->checkCount($redis, $project, $path, $merchantId, $apiCount);
                 if (!$res['code']) {
-                    return Context::get(ResponseInterface::class)->withStatus(401, $res['msg'])->withBody($this->getBody(100910, $res['msg']));
+                    return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $res['msg']));
                 }
 
                 //通过
@@ -83,7 +84,7 @@ class PathLimitMiddleware implements MiddlewareInterface
             //验证次数
             $res = $this->checkCount($redis, $project, $path, $merchantId, $this->defaultLimit);
             if (!$res['code']) {
-                return Context::get(ResponseInterface::class)->withStatus(401, $res['msg'])->withBody($this->getBody(100910, $res['msg']));
+                return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $res['msg']));
             }
         }
 
@@ -93,7 +94,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         if($pathLimitReturnError){
             //有报错
             $msg = "超过亚马逊访问次数,请稍后尝试";
-            return Context::get(ResponseInterface::class)->withStatus(401, $msg)->withBody($this->getBody(100910, $msg));
+            return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $msg));
         }
 
         return $response;
