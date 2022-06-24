@@ -140,7 +140,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         //现在访问的次数
         $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId;
         $checkCount = $redis->incr($key);
-        if ($checkCount > $currentCount) {
+        if ($checkCount >= $currentCount) {
             $checkCount = $redis->decr($key);
             return [
                 'code' => 0,
