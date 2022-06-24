@@ -1709,7 +1709,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $sql_field = str_replace("report.report.tax","report.tax",$sql_field);
         $sql_field = str_replace("{:RMBRATE}","1",$sql_field);
 
-        $sql_field = "amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
+        $sql_field = "concat(cast(max(report.myear) as char), '-', cast(max(report.mmonth) as char), '-', cast(max(report.mday) as char)) as  time,amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
 
         $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report{$table_pre}_item_001 as item on report.id = item.{$table_on} and report.user_id = item.user_id and report.channel_id = item.channel_id {$left_table}";
 
