@@ -612,6 +612,9 @@ class Functions {
         ];
         $redis->set($key, json_encode($currentParam), 3600);
 
+        $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId;
+        $redis->del($key);
+
         Context::set('pathLimitReturnError', 1);
 
         return 1;

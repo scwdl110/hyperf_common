@@ -132,10 +132,7 @@ class PathLimitMiddleware implements MiddlewareInterface
             $redis->set($key, json_encode($currentParam), 3600);
         }else{
             $currentParam = json_decode($currentParam, true);
-            $currentCount = ($time-$currentParam['time'])*$apiCount['rate']+$currentParam['burst'];
-            if($currentCount > $apiCount['burst']){
-                $currentCount = $apiCount['burst'];
-            }
+            $currentCount = floor(($time-$currentParam['time'])*$apiCount['rate']+$currentParam['burst']);
         }
 
 
@@ -144,6 +141,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId;
         $checkCount = $redis->incr($key);
         if ($checkCount > $currentCount) {
+            $checkCount = $redis->decr($key);
             return [
                 'code' => 0,
                 'msg' => '超过访问次数,请稍后尝试',
