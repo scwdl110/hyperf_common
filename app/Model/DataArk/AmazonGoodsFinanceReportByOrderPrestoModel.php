@@ -16036,12 +16036,23 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $origin_tmp = "report_";
         }
 
-        $fba_purchase_refund_rate       = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
-        $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_logistics_cost_rate ,1)";
-        $fbm_purchase_refund_rate       = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
-        $fbm_logistics_refund_rate      = "COALESCE(finance_setting.fbm_refund_logistics_cost_rate ,1)";
-        $remove_purchase_refund_rate    = "COALESCE(finance_setting.removel_purchase_cost_rate ,0)";
-        $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,0)";
+        if (isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1){
+            $fba_purchase_refund_rate       = "1";
+            $fba_logistics_refund_rate      = "1";
+            $fbm_purchase_refund_rate       = "1";
+            $fbm_logistics_refund_rate      = "1";
+            $remove_purchase_refund_rate    = "1";
+            $remove_logistics_refund_rate   = "1";
+        }else{
+            $fba_purchase_refund_rate       = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
+            $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_logistics_cost_rate ,1)";
+            $fbm_purchase_refund_rate       = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
+            $fbm_logistics_refund_rate      = "COALESCE(finance_setting.fbm_refund_logistics_cost_rate ,1)";
+            $remove_purchase_refund_rate    = "COALESCE(finance_setting.removel_purchase_cost_rate ,0)";
+            $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,0)";
+        }
+
+
 
         $cost_logistics = array(
             //SUM( ( byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'purchase_logistics_purchase_cost',
