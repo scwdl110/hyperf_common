@@ -6007,6 +6007,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($params['count_periods'] == '5') { //年
                     $group = 'report.channel_id , report.myear' ;
                     $orderby = 'report.channel_id , report.myear ';
+                }else if($params['count_periods'] == '6') { //按半年
+                    $group = 'report.channel_id , report.myear, report.mhalfyear' ;
+                    $orderby = 'report.channel_id , report.myear, report.mhalfyear ';
                 }else{
                     if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){
                         $group = 'report.channel_id , report.mweekyear , report.mweek ';
@@ -6130,6 +6133,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } else if ($params['count_periods'] == '5') { //按年
                     $group = 'report.myear';
                     $orderby = 'report.myear';
+                }else if($params['count_periods'] == '6') { //按半年
+                    $group = 'report.myear, report.mhalfyear' ;
+                    $orderby = 'report.myear, report.mhalfyear ';
                 }
             } else {
                 $group = 'report.user_id  ';
@@ -6432,6 +6438,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
                 $fields['myear']  = 'max(report.myear)' ;
             }
+        } else if ($datas['count_periods'] == '6' && $datas['show_type'] == '2') {  //按季
+            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mhalfyear) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mhalfyear']  = 'max(report.mhalfyear)' ;
+            }
+
         }
 
         $targets = explode(',', $datas['target']);
