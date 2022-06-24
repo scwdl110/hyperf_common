@@ -1723,7 +1723,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        return $return_data;
+
+        return ['lists' => $return_data, 'count' => 0];
 
     }
 
