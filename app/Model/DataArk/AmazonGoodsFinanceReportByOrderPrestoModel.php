@@ -12321,6 +12321,8 @@ max( bychannel_create_time ) as bychannel_create_time
 
         $table = " (
 select
+COALESCE(goods.reportitem_reserved_field4 ,bychannel.reportitem_reserved_field4) AS reportitem_reserved_field4,
+COALESCE(goods.byorderitem_reserved_field4 ,bychannel.byorderitem_reserved_field4) AS byorderitem_reserved_field4,
 COALESCE(goods.byorder_user_sessions,0) AS byorder_user_sessions ,
 COALESCE(goods.byorder_quantity_of_goods_ordered,0) AS byorder_quantity_of_goods_ordered ,
 COALESCE(goods.byorder_number_of_visits,0) AS byorder_number_of_visits ,
@@ -12773,6 +12775,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 			amazon_goods.goods_channel_id AS channel_id ,
 			max(dw_report.myear) as myear ,
 			max(dw_report.mmonth) as mmonth,
+			max(dw_report.reportitem_reserved_field4) as reportitem_reserved_field4,
+			max(dw_report.byorderitem_reserved_field4) as byorderitem_reserved_field4,
 			{$goods_other_field}
 			amazon_goods.goods_operation_user_admin_id,
 			max(dw_report.create_time) as create_time,
