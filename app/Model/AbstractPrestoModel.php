@@ -441,6 +441,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
         $sql = str_replace( '\"', 'toMysqlTable', $sql);
+        $sql = str_replace( 'rates.year_month', 'rates.`year_month`', $sql);
         $sql = str_replace( '"', '', $sql);
         $sql = str_replace( 'toMysqlTable', '\"', $sql);
         $sql = str_replace( 'as varchar)', 'as char)', $sql);
