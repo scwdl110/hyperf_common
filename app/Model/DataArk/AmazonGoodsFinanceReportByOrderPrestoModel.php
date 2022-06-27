@@ -6071,7 +6071,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $this->dws_user_id_mod = intval($params['user_id'] % 20);
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $this->dws_user_id_mod = intval($params['user_id'] % 20);
-        }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
+        }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 || $params['count_periods'] == 6 ){
             $this->dws_user_id_mod = getUserIdMod($params['user_id']);
         }else if($params['cost_count_type'] == 2 ){
             $this->dws_user_id_mod = getUserIdMod($params['user_id']);
