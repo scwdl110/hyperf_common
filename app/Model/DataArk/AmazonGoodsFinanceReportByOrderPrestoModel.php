@@ -15999,7 +15999,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $field_data = str_replace("{:RMBRATE}",$cost_logistics_rate , $field_data);//去除presto除法把数据只保留4位导致精度
 
             $rate_table_month = $this->getTableMonthSiteRate($rate_type,$params);
-            $table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = report.site_id  and report.myear = rates.myear and report.mmonth = rates.mmonth   LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = report.channel_id AND finance_setting.user_id = report.user_id  and report.myear = finance_setting.myear and report.mmonth = finance_setting.mmonth ";
+            $table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = report.site_id  and report.myear = rates.myear and report.mmonth = rates.mmonth   LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = report.channel_id AND finance_setting.user_id = report.user_id  and report.myear = finance_setting.myear and report.mmonth = finance_setting.mmonth AND finance_setting.db_num = '{$this->dbhost}' ";
         }else{
             $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
             if ($params['currency_code'] != 'ORIGIN') {
@@ -16251,7 +16251,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }else{
             $rate_user_id = 0;
         }
-        $table = "((SELECT rates.* FROM {$this->table_month_site_rate} AS rates JOIN {$this->table_amazon_currency_dimension} AS dc on   dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.rate_type = rates.rate_type WHERE dc.user_id = {$user_id} and rates.user_id in (0,{$user_id})  ) UNION all (SELECT rates.* FROM {$this->table_month_site_rate} AS rates left JOIN {$this->table_amazon_currency_dimension} AS dc on  dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.user_id = {$user_id} WHERE dc.user_id IS null and rates.rate_type = {$rate_type} and rates.user_id = {$rate_user_id})) ";
+        $ym_where = '';
+        if (!empty($params['max_ym']) && !empty($params['min_ym'])){
+            if ($params['max_ym'] == $params['min_ym']){
+                $ym_where = " AND rates.year_month = {$params['min_ym']} ";
+            }else{
+                $ym_where = " AND rates.year_month >= {$params['min_ym']} and rates.year_month <= {$params['max_ym']}";
+
+            }
+        }
+
+        $table = "((SELECT rates.* FROM {$this->table_month_site_rate} AS rates JOIN {$this->table_amazon_currency_dimension} AS dc on   dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.rate_type = rates.rate_type WHERE dc.user_id = {$user_id}  and rates.user_id in (0,{$user_id}) {$ym_where} ) UNION all (SELECT rates.* FROM {$this->table_month_site_rate} AS rates left JOIN {$this->table_amazon_currency_dimension} AS dc on  dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.user_id = {$user_id} WHERE dc.user_id IS null and rates.rate_type = {$rate_type} and rates.user_id = {$rate_user_id} {$ym_where})) ";
 
         return $table;
 
