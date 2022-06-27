@@ -16254,11 +16254,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $ym_where = '';
         if (!empty($params['max_ym']) && !empty($params['min_ym'])){
             if ($params['max_ym'] == $params['min_ym']){
-                $ym_where = " AND rates.year_month = {$params['min_ym']} ";
+                $ym_where = " AND rates.`year_month` = {$params['min_ym']} ";
             }else{
-                $ym_where = " AND rates.year_month >= {$params['min_ym']} and rates.year_month <= {$params['max_ym']}";
+                $ym_where = " AND rates.`year_month` >= {$params['min_ym']} and rates.`year_month` <= {$params['max_ym']}";
 
             }
+            $ym_where = '';
         }
 
         $table = "((SELECT rates.* FROM {$this->table_month_site_rate} AS rates JOIN {$this->table_amazon_currency_dimension} AS dc on   dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.rate_type = rates.rate_type WHERE dc.user_id = {$user_id}  and rates.user_id in (0,{$user_id}) {$ym_where} ) UNION all (SELECT rates.* FROM {$this->table_month_site_rate} AS rates left JOIN {$this->table_amazon_currency_dimension} AS dc on  dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.user_id = {$user_id} WHERE dc.user_id IS null and rates.rate_type = {$rate_type} and rates.user_id = {$rate_user_id} {$ym_where})) ";
