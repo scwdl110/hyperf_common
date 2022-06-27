@@ -113,6 +113,8 @@ class FinanceService extends BaseService
         $params['searchVal'] = $searchVal;
         $params['matchType'] = trim(strval($req['matchType'] ?? ''));
 
+        $params['mysql_limit'] = $offset > 0 ? ("LIMIT {$offset},$limit") : " LIMIT $limit";
+
         if ($countTip)
 
         //对比数据信息
