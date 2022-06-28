@@ -253,6 +253,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     private $cost_logistics_rate = 1;
 
+    protected $cost_logistics_operation_arr = [];
+
     /**
      * function getCompareDatas
      * desc: 获取比较数据字段 的 字段名， 条件 ， 连表条件
@@ -12850,6 +12852,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $report_other_field = "COALESCE(goods.mday ,bychannel.mday) AS mday,concat(cast(COALESCE(goods.goods_operation_user_admin_id ,bychannel.operation_user_admin_id) as  varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0'),'_',lpad(cast(COALESCE(goods.mday ,bychannel.mday) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
 
         }
+        //新成本字段补偿
+        if (!empty($this->cost_logistics_operation_arr)){
+            $fields_arr = array();
+            foreach ($this->cost_logistics_operation_arr as $cost_logistics_key => $cost_logistics_value){
+                $report_other_field .= "COALESCE(goods.{$cost_logistics_key} ,0) AS {$cost_logistics_key},";
+                $fields_arr[]       .= "{$cost_logistics_value} AS {$cost_logistics_key}";
+            }
+            $join_rate_table = $this->joinRateTable($datas,$fields_arr,$goods_table,'','','dw_report');
+            $goods_other_field .= $join_rate_table['field_data'].",";
+            $goods_table        = $join_rate_table['table'];
+
+        }
         if (!empty($operation_table_field['channel_key'])){
             $operation_table_field['channel_key'] = array_unique($operation_table_field['channel_key']);
             foreach ($operation_table_field['channel_key'] as $channel_value){
@@ -13420,7 +13434,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $field_molecule_rate    = $value['is_molecule_money'] == 1 ? $rate : "";
                         $field_denominator_rate = $value['is_denominator_money'] == 1 ? $rate : "";
                         if ($field_type == 3){//运营人员需要兼容case when
-                            $fields[$key] = $this->getOperateNewKey($value,$field_type_key,$field_molecule_rate,$field_denominator_rate);
+                            $fields[$key] = $this->getOperateNewKey($value,$key,$field_type_key,$field_molecule_rate,$field_denominator_rate,$cost_logistics);
                         }else{
                             if (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
                                 $molecule = implode("",$value[$field_type_key]['molecule']).$cost_logistics['purchase_logistics_compensate'];
@@ -13438,7 +13452,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
                     }else{
                         if ($field_type == 3){//运营人员需要兼容case when
-                            $fields[$key] = $this->getOperateNewKey($value,$field_type_key,$field_rate,$field_rate);
+                            $fields[$key] = $this->getOperateNewKey($value,$key,$field_type_key,$field_rate,$field_rate,$cost_logistics);
                         }else{
                             if (isset($cost_logistics[$key])){
                                 $fields[$key] = $cost_logistics[$key];
@@ -13510,18 +13524,31 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     /**
      * @param $value
+     * @param $key
      * @param $field_type_key
      * @param $field_molecule_rate
      * @param $field_denominator_rate
+     * @param $cost_logistics array 新成本數組
      * @return string
      */
-    private function getOperateNewKey($value,$field_type_key,$field_molecule_rate,$field_denominator_rate){
+    private function getOperateNewKey($value,$key,$field_type_key,$field_molecule_rate,$field_denominator_rate,$cost_logistics){
         $molecule = isset($value[$field_type_key]['molecule']['un_case'])?("(".implode("",$value[$field_type_key]['molecule']['un_case']).")$field_molecule_rate"):'';
         if (isset($value[$field_type_key]['molecule']['case'])) {
             $case = "( CASE WHEN report.goods_operation_pattern = 1 THEN ".implode("",$value[$field_type_key]['molecule']['case'])." ELSE 0 END ){$field_molecule_rate}";
             $molecule .= empty($molecule)?$case:("+{$case}");
         }
-        $return_key = "SUM({$molecule})";
+
+        if (isset($cost_logistics[$key])){
+            $return_key = $cost_logistics[$key];
+            $this->cost_logistics_operation_arr[$key] = $cost_logistics['operation_arr'][$key];
+        }elseif (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+            $molecule .= $cost_logistics['purchase_logistics_compensate'];
+            $return_key = "(SUM({$molecule}){$cost_logistics['purchase_logistics_origin']})";
+            $this->cost_logistics_operation_arr['purchase_logistics_purchase_cost'] = $cost_logistics['operation_arr']['purchase_logistics_purchase_cost'];
+            $this->cost_logistics_operation_arr['purchase_logistics_logistics_cost'] = $cost_logistics['operation_arr']['purchase_logistics_logistics_cost'];
+        }else{
+            $return_key = "SUM({$molecule})";
+        }
         if (!empty($value[$field_type_key]['denominator']['un_case']) or !empty($value[$field_type_key]['denominator']['case'])){
             $denominator = isset($value[$field_type_key]['denominator']['un_case'])?("(".implode("",$value[$field_type_key]['denominator']['un_case'])."){$field_denominator_rate}"):'';
             if (isset($value[$field_type_key]['denominator']['case'])) {
@@ -15971,9 +15998,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @param $table
      * @param $exchangeCode
      * @param $day_param
+     * @param $report
      * @return array
      */
-    private function joinRateTable($params,$fields_arr,$table,$exchangeCode,$day_param){
+    private function joinRateTable($params,$fields_arr,$table,$exchangeCode = '',$day_param = '',$report = 'report'){
         if (isset($params['is_month_rate']) && $params['is_month_rate'] == 1){
 
             $rate_type = $params['rate_type']??3;
@@ -15999,7 +16027,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $field_data = str_replace("{:RMBRATE}",$cost_logistics_rate , $field_data);//去除presto除法把数据只保留4位导致精度
 
             $rate_table_month = $this->getTableMonthSiteRate($rate_type,$params);
-            $table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = report.site_id  and report.myear = rates.myear and report.mmonth = rates.mmonth   LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = report.channel_id AND finance_setting.user_id = report.user_id  and report.myear = finance_setting.myear and report.mmonth = finance_setting.mmonth AND finance_setting.db_num = '{$this->dbhost}' ";
+            $table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = {$report}.site_id  and {$report}.myear = rates.myear and {$report}.mmonth = rates.mmonth   LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = {$report}.channel_id AND finance_setting.user_id = {$report}.user_id  and {$report}.myear = finance_setting.myear and {$report}.mmonth = finance_setting.mmonth AND finance_setting.db_num = '{$this->dbhost}' ";
         }else{
             $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
             if ($params['currency_code'] != 'ORIGIN') {
@@ -16287,6 +16315,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $item_tmp = "reportitem_";//()
             $origin_tmp = "report_";
         }
+        $is_opeartion = (isset($datas['count_dimension']) && $datas['count_dimension'] == 'operators') ? true : false;
 
         if (isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1){
             $fba_purchase_refund_rate       = "1";
@@ -16753,7 +16782,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
 
         foreach ($cost_logistics as $key => $cost_logistic_v){
+
             $fields_tmp = "case when {$field_flag} = 201 THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END";
+            $fields['operation_arr'][$key] = "SUM({$fields_tmp})";
+            if ($is_opeartion){
+                $fields_tmp = $key;
+            }
             $fields[$key] = "SUM({$fields_tmp})";
             if ($key == 'purchase_logistics_purchase_cost' or $key == "purchase_logistics_logistics_cost"){
                 $fields[$key."_origin"]     = "+({$fields_tmp})";
