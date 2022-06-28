@@ -12319,6 +12319,19 @@ max( bychannel_create_time ) as bychannel_create_time
 
         }
 
+        //新成本字段补偿
+        if (!empty($this->cost_logistics_operation_arr)){
+            $fields_arr = array();
+            foreach ($this->cost_logistics_operation_arr as $cost_logistics_key => $cost_logistics_value){
+                $report_other_field .= "COALESCE(goods.{$cost_logistics_key} ,0) AS {$cost_logistics_key},";
+                $fields_arr[]       .= "{$cost_logistics_value} AS {$cost_logistics_key}";
+            }
+            $join_rate_table = $this->joinRateTable($datas,$fields_arr,$goods_table,'','','dw_report');
+            $goods_other_field .= $join_rate_table['field_data'].",";
+            $goods_table        = $join_rate_table['table'];
+
+        }
+
         $where_dw_report_amazon_goods .= $where_ym." AND dw_report.available = 1 ";
 
         $table = " (
@@ -16064,6 +16077,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $origin_tmp = "report_";
         }
 
+        $is_opeartion = (isset($datas['count_dimension']) && $datas['count_dimension'] == 'operators') ? true : false;
+
         $fba_purchase_refund_rate       = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
         $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_logistics_cost_rate ,1)";
         $fbm_purchase_refund_rate       = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
@@ -16177,8 +16192,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $else_field = "({$else_field}{$rate})";
 
             }
-
             $fields['purchase_logistics_purchase_cost'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['purchase_logistics_purchase_cost'] = $fields['purchase_logistics_purchase_cost'];
+                $fields['purchase_logistics_purchase_cost'] = " sum(purchase_logistics_purchase_cost) ";
+            }
 
         }
 
@@ -16198,6 +16216,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
 
             $fields['purchase_logistics_logistics_cost'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['purchase_logistics_logistics_cost'] = $fields['purchase_logistics_logistics_cost'];
+                $fields['purchase_logistics_logistics_cost'] = " sum(purchase_logistics_logistics_cost) ";
+            }
         }
 
 
@@ -16214,6 +16236,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $else_field = "({$else_field}{$rate})";
             }
             $fields['fba_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['fba_logistics_head_course'] = $fields['fba_logistics_head_course'];
+                $fields['fba_logistics_head_course'] = " sum(fba_logistics_head_course) ";
+            }
         }
 
         if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
@@ -16230,6 +16256,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $else_field = "({$else_field}{$rate})";
             }
             $fields['fbm_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['fbm_logistics_head_course'] = $fields['fbm_logistics_head_course'];
+                $fields['fbm_logistics_head_course'] = " sum(fbm_logistics_head_course) ";
+            }
         }
 
 
