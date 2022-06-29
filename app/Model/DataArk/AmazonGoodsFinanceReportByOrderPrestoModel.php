@@ -6009,7 +6009,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $goods_month = $is_month_table && $params['origin_create_start_time'] >= ($start_time - 168 * 86400) && (isset($params['method']) && $params['method'] == "getListByGoods");
         if ($goods_day or $goods_month){
             $goods_mysql_user = $redis->get("goods_mysql_user");
-            $goods_mysql_user = array();
             if (empty($goods_mysql_user)){
                 $goods_mysql_user = Db::connection('bigdata_goods_ads_001')->table("vip_user_big_data")->pluck('user_id')->toArray();//只有001有这个用户数据
                 $redis->set("goods_mysql_user",$goods_mysql_user);
