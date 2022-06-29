@@ -13552,7 +13552,12 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
      * @return string
      */
     private function getOperateNewKey($value,$key,$field_type_key,$field_molecule_rate,$field_denominator_rate,$cost_logistics){
-        $molecule = isset($value[$field_type_key]['molecule']['un_case'])?("(".implode("",$value[$field_type_key]['molecule']['un_case']).")$field_molecule_rate"):'';
+        if (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+            $molecule = isset($value[$field_type_key]['molecule']['un_case'])?("(".implode("",$value[$field_type_key]['molecule']['un_case']).$cost_logistics['purchase_logistics_compensate'].")$field_molecule_rate"):'';
+        }else{
+            $molecule = isset($value[$field_type_key]['molecule']['un_case'])?("(".implode("",$value[$field_type_key]['molecule']['un_case']).")$field_molecule_rate"):'';
+        }
+
         if (isset($value[$field_type_key]['molecule']['case'])) {
             $case = "( CASE WHEN report.goods_operation_pattern = 1 THEN ".implode("",$value[$field_type_key]['molecule']['case'])." ELSE 0 END ){$field_molecule_rate}";
             $molecule .= empty($molecule)?$case:("+{$case}");
@@ -13562,7 +13567,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $return_key = $cost_logistics[$key];
             $this->cost_logistics_operation_arr[$key] = $cost_logistics['operation_arr'][$key];
         }elseif (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
-            $molecule .= $cost_logistics['purchase_logistics_compensate'];
+//            $molecule .= $cost_logistics['purchase_logistics_compensate'];
             $return_key = "(SUM({$molecule}){$cost_logistics['purchase_logistics_origin']})";
             $this->cost_logistics_operation_arr['purchase_logistics_purchase_cost'] = $cost_logistics['operation_arr']['purchase_logistics_purchase_cost'];
             $this->cost_logistics_operation_arr['purchase_logistics_logistics_cost'] = $cost_logistics['operation_arr']['purchase_logistics_logistics_cost'];
