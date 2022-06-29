@@ -1722,6 +1722,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $data = DB::connection("erp_finance_{$this->dbhost}")->select($sql);
         $return_data = array();
         if (!empty($data)){
+            $redis = new \Captainbi\Hyperf\Util\Redis();
+            $redis = $redis->getClient('bi');
+            $month = date("Y-m",$start_time);
+            $redis_key = "month_rate_{$user_id}_{$month}";
+            $rate_arr = $redis->get($redis_key);
+            if (empty($rate_arr)){
+                $redis->set($redis_key,$rate_arr,60);
+            }
             foreach ($data as $v){
                 $return_data[] = (array)$v;
             }
