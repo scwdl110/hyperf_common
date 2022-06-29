@@ -1713,7 +1713,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $sql_field = str_replace("report.report.tax","report.tax",$sql_field);
         $sql_field = str_replace("{:RMBRATE}","1",$sql_field);
 
-        $sql_field = "concat(cast(max(report.myear) as char), '-', cast(max(report.mmonth) as char), '-', cast(max(report.mday) as char)) as  time,amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
+        $sql_field = "item.reserved_field4 as item_reserved_field4,concat(cast(max(report.myear) as char), '-', cast(max(report.mmonth) as char), '-', cast(max(report.mday) as char)) as  time,amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
 
         $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report{$table_pre}_item_001 as item on report.id = item.{$table_on} and report.user_id = item.user_id and report.channel_id = item.channel_id {$left_table}";
 
@@ -1731,25 +1731,86 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if (empty($rate_arr)){
 
                 //去数据库查询 erp_polling.p_user_edit_record表 条件user_id=user_id and key=finance_currency_rate_config_key+user_id，汇率类型 1：月末汇率，2：月初汇率，3：自定义汇率
-                $rate_type_sql = "SELECT * from p_user_edit_record where user_id = {$user_id} AND `key` = finance_currency_rate_config_key{$user_id}";
-                $rate_type = DB::connection("erp_polling")->selectOne($rate_type_sql);
+                $rate_type_sql = "SELECT * from p_user_edit_record where user_id = {$user_id} AND `key` = 'finance_currency_rate_config_key{$user_id}'";
+                $rate_type_data = DB::connection("erp_polling")->selectOne($rate_type_sql);
+                $rate_type = empty($rate_type_data)?1:$rate_type_data->value;
                 //查出当月汇率
                 $rate_table = $this->getTableMonthSiteRate($rate_type,$params);
-                $rate = Db::connection('bigdata_ads')->select("SELECT * from {$rate_table}");
+                $ods = config('misc.presto_schema_ods', 'ods');
+                $rate_table = str_replace($ods.".","",$rate_table);
+                $rate = Db::connection('bigdata_ads')->select("SELECT * from {$rate_table} as t");
                 //查出当月财务相关设置
                 $myear = date("Y",$start_time);
                 $mmonth = intval(date("m",$start_time));
-                $finance_setting = Db::connection('bigdata_ads')->select("SELECT * from ods_dataark_f_amazon_finance_setting_001 where user_id = {$user_id} and channel_id = {$channel_id} and myear = {$myear} and mmonth = {$mmonth}");
-
+                $finance_setting = Db::connection('bigdata_ads')->selectOne("SELECT * from ods_dataark_f_amazon_finance_setting_001 where user_id = {$user_id} and channel_id = {$channel_id} and myear = {$myear} and mmonth = {$mmonth}");
+                $rate = array($rate,null,'site_id');
+                if (!empty($finance_setting)){
+                    $finance_setting = (array)$finance_setting;
+                }
                 $rate_arr = array(
                     "rate" => $rate,
                     "finance_setting" => $finance_setting
                 );
-
-                $redis->set($redis_key,$rate_arr,60);
+                $redis->set($redis_key,$rate_arr,300);
+            }else{
+                $rate               = $rate_arr['rate'];
+                $finance_setting    = $rate_arr['finance_setting'];
             }
             foreach ($data as $v){
                 $return_data[] = (array)$v;
+            }
+
+            foreach ($return_data as $key => $datum){
+                //人民币成本需要转汇率
+                if ($datum['item_reserved_field4'] == '201' && isset($rate[$datum['site_id']])){
+                    $fba_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fba_refund_purchase_cost_rate'];
+                    $fbm_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fbm_refund_purchase_cost_rate'];;
+                    $remove_purchase_refund_rate  = empty($finance_setting) ? 0 : $finance_setting['removel_purchase_cost_rate'];;
+
+                    $fba_logistics_refund_rate    = empty($finance_setting) ? 1 : $finance_setting['fba_refund_logistics_cost_rate'];;
+                    $fbm_logistics_refund_rate    = empty($finance_setting) ? 1 : $finance_setting['fbm_refund_logistics_cost_rate'];;
+                    $remove_logistics_refund_rate = empty($finance_setting) ? 0 : $finance_setting['removel_logistics_cost_rate'];;
+
+
+
+                    $site_rate = $rate[$datum['site_id']];
+                    $cost_profit_profit     = $datum['cost_profit_profit'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
+                    $cost_profit_total_pay  = $datum['cost_profit_total_pay'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
+
+                    //新版财务成本
+                    $datum['fba_purchasing_cost_only'] = $datum['fba_purchasing_cost_only'] * $site_rate;
+                    $datum['fbm_purchasing_cost_only'] = $datum['fbm_purchasing_cost_only'] * $site_rate;
+                    $datum['purchasing_cost_only'] = $datum['purchasing_cost_only'] * $site_rate;
+                    $datum['fba_refund_purchasing_cost'] = $datum['fba_refund_purchasing_cost'] * $fba_purchase_refund_rate * $site_rate;
+                    $datum['fbm_refund_purchasing_cost'] = $datum['fbm_refund_purchasing_cost'] * $fbm_purchase_refund_rate * $site_rate;
+                    $datum['refund_purchasing_cost']     = $datum['fba_refund_purchasing_cost'] +  $datum['fbm_refund_purchasing_cost'];
+                    $datum['inventory_adjustment_purchasing_cost'] = $datum['inventory_adjustment_purchasing_cost'] * $site_rate ;
+                    $datum['remove_purchasing_cost'] = $datum['remove_purchasing_cost'] * $remove_purchase_refund_rate * $site_rate;
+                    $datum['other_inventory_purchasing_cost']     = $datum['inventory_adjustment_purchasing_cost'] +  $datum['remove_purchasing_cost'];
+                    $purchase_logistics_purchase_cost   = $datum['purchasing_cost_only'] + $datum['refund_purchasing_cost'] + $datum['other_inventory_purchasing_cost'];
+
+                    //新版财务物流
+                    $datum['fba_logistics_cost'] = $datum['fba_logistics_cost'] * $site_rate;
+                    $datum['fbm_logistics_cost'] = $datum['fbm_logistics_cost'] * $site_rate;
+                    $datum['logistics_cost_only'] = $datum['logistics_cost_only'] * $site_rate;
+                    $datum['fba_refund_logistics_cost'] = $datum['fba_refund_logistics_cost'] * $fba_logistics_refund_rate * $site_rate;
+                    $datum['fbm_refund_logistics_cost'] = $datum['fbm_refund_logistics_cost'] * $fbm_logistics_refund_rate * $site_rate;
+                    $datum['refund_logistics_cost']     = $datum['fba_refund_logistics_cost'] +  $datum['fbm_refund_logistics_cost'];
+                    $datum['inventory_adjustment_logistics_cost'] = $datum['inventory_adjustment_logistics_cost'] * $site_rate ;
+                    $datum['remove_purchasing_logistics_cost'] = $datum['remove_purchasing_logistics_cost'] * $remove_logistics_refund_rate * $site_rate;
+                    $datum['other_inventory_logistics_cost']     = $datum['inventory_adjustment_logistics_cost'] +  $datum['remove_purchasing_logistics_cost'];
+                    $purchase_logistics_logistics_cost  = $datum['logistics_cost_only'] + $datum['refund_logistics_cost'] + $datum['other_inventory_logistics_cost'];
+
+                    $cost_profit_profit     += $purchase_logistics_purchase_cost + $purchase_logistics_logistics_cost;
+                    $cost_profit_total_pay  += $purchase_logistics_purchase_cost + $purchase_logistics_logistics_cost;
+
+                    $datum['cost_profit_profit'] = $cost_profit_profit;
+                    $datum['cost_profit_total_pay'] = $cost_profit_total_pay;
+
+                }
+                unset($datum['item_reserved_field4']);
+                $return_data[$key] = $datum;
+
             }
         }
 
