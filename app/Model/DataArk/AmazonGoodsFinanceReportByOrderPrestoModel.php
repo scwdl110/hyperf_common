@@ -1724,10 +1724,28 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (!empty($data)){
             $redis = new \Captainbi\Hyperf\Util\Redis();
             $redis = $redis->getClient('bi');
+
             $month = date("Y-m",$start_time);
             $redis_key = "month_rate_{$user_id}_{$month}";
             $rate_arr = $redis->get($redis_key);
             if (empty($rate_arr)){
+
+                //去数据库查询 erp_polling.p_user_edit_record表 条件user_id=user_id and key=finance_currency_rate_config_key+user_id，汇率类型 1：月末汇率，2：月初汇率，3：自定义汇率
+                $rate_type_sql = "SELECT * from p_user_edit_record where user_id = {$user_id} AND `key` = finance_currency_rate_config_key{$user_id}";
+                $rate_type = DB::connection("erp_polling")->selectOne($rate_type_sql);
+                //查出当月汇率
+                $rate_table = $this->getTableMonthSiteRate($rate_type,$params);
+                $rate = Db::connection('bigdata_ads')->select("SELECT * from {$rate_table}");
+                //查出当月财务相关设置
+                $myear = date("Y",$start_time);
+                $mmonth = intval(date("m",$start_time));
+                $finance_setting = Db::connection('bigdata_ads')->select("SELECT * from ods_dataark_f_amazon_finance_setting_001 where user_id = {$user_id} and channel_id = {$channel_id} and myear = {$myear} and mmonth = {$mmonth}");
+
+                $rate_arr = array(
+                    "rate" => $rate,
+                    "finance_setting" => $finance_setting
+                );
+
                 $redis->set($redis_key,$rate_arr,60);
             }
             foreach ($data as $v){
