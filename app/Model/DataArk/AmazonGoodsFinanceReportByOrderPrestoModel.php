@@ -16129,9 +16129,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $this->cost_logistics_rate = $cost_logistics_rate;
             $field_data = str_replace("{:RATE}", "(COALESCE(rates.$trans_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
             $field_data = str_replace("{:RMBRATE}",$cost_logistics_rate , $field_data);//去除presto除法把数据只保留4位导致精度
+            $user_id = $params['user_id'] ?? 0;
+            $user_id_mod = intval($user_id % 20);
 
             $rate_table_month = $this->getTableMonthSiteRate($rate_type,$params);
-            $table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = {$report}.site_id  and {$report}.myear = rates.myear and {$report}.mmonth = rates.mmonth   LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = {$report}.channel_id AND finance_setting.user_id = {$report}.user_id  and {$report}.myear = finance_setting.myear and {$report}.mmonth = finance_setting.mmonth AND finance_setting.db_num = '{$this->dbhost}' ";
+            $table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = {$report}.site_id  and {$report}.myear = rates.myear and {$report}.mmonth = rates.mmonth   LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = {$report}.channel_id AND finance_setting.user_id = {$report}.user_id  and {$report}.myear = finance_setting.myear and {$report}.mmonth = finance_setting.mmonth AND finance_setting.db_num = '{$this->dbhost}' and  finance_setting.user_id_mod = {$user_id_mod} ";
         }else{
             $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
             if ($params['currency_code'] != 'ORIGIN') {
