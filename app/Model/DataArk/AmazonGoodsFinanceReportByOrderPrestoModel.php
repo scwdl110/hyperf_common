@@ -1759,7 +1759,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 $redis->set($redis_key,serialize($rate_arr),300);
             }else{
+
                 $rate_arr = unserialize($rate_arr);
+                Log::getClient('dataark', 'dataark')->info('汇率数据：', $rate_arr);
                 $rate               = $rate_arr['rate'];
                 $finance_setting    = $rate_arr['finance_setting'];
             }
