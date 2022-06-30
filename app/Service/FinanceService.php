@@ -70,13 +70,12 @@ class FinanceService extends BaseService
             $logger->info('request body', [$req, $userInfo]);
         }
 
-
-
-
-//        $req['is_new_index'] = 1;
         $req['is_new_index'] = $req['is_new_index'] ?? 0;
         $is_use_tmp_table = intval($req['is_use_tmp_table'] ?? 0);//是否创建临时表
-//        $is_new_index = $req['is_new_index'] == 1 ? true:false;
+        $req['is_month_rate'] = $req['is_month_rate'] ?? 0;
+        $req['rate_type']   = $req['rate_type'] ?? 3;
+        $req['is_month_rate'] = $req['is_new_index'] == 1 ? 1:$req['is_month_rate'];//新版指标只用月汇率
+
         $searchKey = trim(strval($req['searchKey'] ?? ''));
         $searchVal = trim(strval($req['searchVal'] ?? ''));
         $read_tmp_table_name = trim(strval($req['read_tmp_table_name'] ?? ''));
@@ -89,10 +88,9 @@ class FinanceService extends BaseService
             $params['is_count'] = 0;
             $page = intval($req['page'] ?? 1);
         }
-//        if (isset($params['user_id']) && $params['user_id'] == 266) {
-//            $logger1 = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('test', 'test');
-//            $logger1->info('request body', [$req, $userInfo]);
-//        }
+
+        $params['is_month_rate'] = $req['is_month_rate'];
+        $params['rate_type'] = intval($req['rate_type']);
         $params['is_new_index'] = $req['is_new_index'];
         $params['is_median'] = $params['is_median'] ?? 0;
         $params['total_status'] = $params['total_status'] ?? 0;
@@ -548,10 +546,13 @@ class FinanceService extends BaseService
             $is_goods_day_report = true;
         }
         if (empty($compare_data)) {  // 有对比数据需使用PRESTO
-            if ($method == 'getListByGoods' and $day_param > 90 and in_array($userInfo['user_id'], explode(",", $big_data_user)) and $is_goods_day_report) {
+            if ($method == 'getListByGoods' and $day_param >= 90 and in_array($userInfo['user_id'], explode(",", $big_data_user)) and $is_goods_day_report) {
                 $isReadAthena = true;
             }
-            if ($method == 'getListByGoods' and $day_param > 15 and $userInfo['user_id'] == 20567) {//20567单独读取
+            if (in_array($method,['getListByGoods','getListByOperators'])  and $day_param > 15 and in_array($userInfo['user_id'], [20567,416770]) && $is_goods_day_report) {
+                $isReadAthena = true;
+            }
+            if (in_array($method,['getListByGoods','getListByOperators'])  and $day_param > 31 and in_array($userInfo['user_id'], [21,453751,410426,31800,31040,22414,447899]) && $is_goods_day_report) {
                 $isReadAthena = true;
             }
         }

@@ -20,4 +20,5 @@ return [
     'dataark_log_req' => env('APP_DATAARK_LOG', false),
     // git url，如果密码没有记住，需要使用形如 http://username:password@1.2.3.4/git_repo_path 的形式
     'git_url' => env('APP_GIT_URL', ''),
+    'index_cache' => env('INDEX_CACHE', true),
 ];

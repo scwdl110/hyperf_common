@@ -26,6 +26,12 @@ abstract class AbstractPrestoModel implements BIModelInterface
         'table_channel' => 'ods.ods_dataark_b_channel',
         'table_area' => 'ods.ods_dataark_b_site_area',
         'table_site_rate' => 'ods.ods_dataark_b_site_rate',
+//        'table_month_site_rate' => 'mysql.erp_base.b_month_rate',
+        'table_month_site_rate' => 'ods.ods_dataark_b_month_rate',
+        'table_amazon_currency_dimension' => 'ods.ods_dataark_b_amazon_currency_dimension',
+//        'table_amazon_currency_dimension' => 'mysql.erp_base.b_amazon_currency_dimension',
+//        'table_amazon_finance_setting' => 'mysql.erp_finance_001.f_amazon_finance_setting_001',
+        'table_amazon_finance_setting' => 'ods.ods_dataark_f_amazon_finance_setting_001',
         'table_user_department' => 'ods.ods_dataark_b_user_department',
         'table_amazon_goods_isku' => 'ods.ods_dataark_f_amazon_goods_isku_001',
         'table_amazon_goods_finance' => 'ods.ods_dataark_f_amazon_goods_finance_001',
@@ -435,6 +441,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
             }
         }
         $sql = str_replace( '\"', 'toMysqlTable', $sql);
+        $sql = str_replace( 'rates.year_month', 'rates.`year_month`', $sql);
         $sql = str_replace( '"', '', $sql);
         $sql = str_replace( 'toMysqlTable', '\"', $sql);
         $sql = str_replace( 'as varchar)', 'as char)', $sql);

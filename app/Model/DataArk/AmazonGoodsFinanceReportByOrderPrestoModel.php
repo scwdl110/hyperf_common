@@ -251,6 +251,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         "denominator"   => '',
     ];
 
+    private $cost_logistics_rate = 1;
+
+    protected $cost_logistics_operation_arr = [];
+
     /**
      * function getCompareDatas
      * desc: 获取比较数据字段 的 字段名， 条件 ， 连表条件
@@ -483,11 +487,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     //运营人员条件以及 table 需要重新定义 ， 因为运营人员时间条数是放在table里的
                     $new_table = $this->operationTable($newDatas,$ym_where,'day',$compare_fields_arr['operation_table_field']);
                     if ($datas['currency_code'] != 'ORIGIN') {
-                        if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-                        } else {
-                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
-                        }
+//                        if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+//                        } else {
+//                            $new_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+//                        }
+                        $new_table = $this->leftJoinCurrentMonthRate($new_table,$datas,$currencyInfo,'report');
                         $datas['compare_data'][$ck]['new_table'] = $new_table ;
                     }
                 }
@@ -836,23 +841,16 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
 //        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
-        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+//        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
 
-        $field_data = str_replace("{:DAY}", $day_param, $field_data);
+//        $field_data = str_replace("{:DAY}", $day_param, $field_data);
 
         $mod_where = "report.user_id_mod = " . $this->dws_user_id_mod . " and amazon_goods.goods_user_id_mod=" . ($datas['user_id'] % 20);
 
         $where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
-
-        if ($datas['currency_code'] != 'ORIGIN') {
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-            } else {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
-            }
-        }else{
-            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-        }
+        $rate_table = $this->joinRateTable($datas,$fields_arr,$table,$exchangeCode,$day_param);
+        $field_data = $rate_table['field_data'];
+        $table      = $rate_table['table'];
 
         $having = '';
         $datas['not_use_time_group'] = $datas['not_use_time_group'] ??0;
@@ -1371,6 +1369,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $group = str_replace("{:RATE}", $exchangeCode, $group ?? '');
         $where = str_replace("{:RATE}", $exchangeCode, $where ?? '');
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby ?? '');
+        $group = str_replace("{:ERP_RATE}", $exchangeCode, $group ?? '');
+        $where = str_replace("{:ERP_RATE}", $exchangeCode, $where ?? '');
+        $orderby = str_replace("{:ERP_RATE}", $exchangeCode, $orderby ?? '');
+        $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
+        $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
+        $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
         $group = str_replace("{:DAY}", $day_param, $group);
         $where = str_replace("{:DAY}", $day_param, $where);
         $orderby = str_replace("{:DAY}", $day_param, $orderby);
@@ -1709,7 +1713,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $sql_field = str_replace("report.report.tax","report.tax",$sql_field);
         $sql_field = str_replace("{:RMBRATE}","1",$sql_field);
 
-        $sql_field = "concat(cast(max(report.myear) as char), '-', cast(max(report.mmonth) as char), '-', cast(max(report.mday) as char)) as  time,amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
+        $sql_field = "item.reserved_field4 as item_reserved_field4,concat(cast(max(report.myear) as char), '-', cast(max(report.mmonth) as char), '-', cast(max(report.mday) as char)) as  time,amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
 
         $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report{$table_pre}_item_001 as item on report.id = item.{$table_on} and report.user_id = item.user_id and report.channel_id = item.channel_id {$left_table}";
 
@@ -1718,8 +1722,110 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $data = DB::connection("erp_finance_{$this->dbhost}")->select($sql);
         $return_data = array();
         if (!empty($data)){
+            $redis = new \Captainbi\Hyperf\Util\Redis();
+            $redis = $redis->getClient('bi');
+
+            $month = date("Y-m",$start_time);
+            $redis_key = "jdx_month_rate_{$user_id}_{$month}";
+            $rate_arr = $redis->get($redis_key);
+            if (empty($rate_arr)){
+
+                foreach ($data as $v){
+                    $return_data[] = (array)$v;
+                }
+
+                return ['lists' => $return_data, 'count' => 0];
+
+                //去数据库查询 erp_polling.p_user_edit_record表 条件user_id=user_id and key=finance_currency_rate_config_key+user_id，汇率类型 1：月末汇率，2：月初汇率，3：自定义汇率
+                $rate_type_sql = "SELECT * from p_user_edit_record where user_id = {$user_id} AND `key` = 'finance_currency_rate_config_key{$user_id}'";
+                $rate_type_data = DB::connection("erp_polling")->selectOne($rate_type_sql);
+                $rate_type = empty($rate_type_data)?1:$rate_type_data->value;
+                //查出当月汇率
+                $rate_table = $this->getTableMonthSiteRate($rate_type,$params);
+                $ods = config('misc.presto_schema_ods', 'ods');
+                $rate_table = str_replace($ods.".","",$rate_table);
+                $rate_tmp = Db::connection('bigdata_ads')->select("SELECT * from {$rate_table} as t");
+                $rate = array();
+                foreach ($rate_tmp as $v){
+                    $rate[] = (array)$v;
+                }
+
+                //查出当月财务相关设置
+                $myear = date("Y",$start_time);
+                $mmonth = intval(date("m",$start_time));
+                $finance_setting = Db::connection('bigdata_ads')->selectOne("SELECT * from ods_dataark_f_amazon_finance_setting_001 where user_id = {$user_id} and channel_id = {$channel_id} and myear = {$myear} and mmonth = {$mmonth} and db_num = '{$this->dbhost}'");
+                $rate = array_column($rate,null,'site_id');
+                if (!empty($finance_setting)){
+                    $finance_setting = (array)$finance_setting;
+                }
+                $rate_arr = array(
+                    "rate" => $rate,
+                    "finance_setting" => $finance_setting
+                );
+
+                $redis->set($redis_key,serialize($rate_arr),300);
+            }else{
+
+                $rate_arr = unserialize($rate_arr);
+                Log::getClient('dataark', 'dataark')->info('汇率数据：', $rate_arr);
+                $rate               = $rate_arr['rate'];
+                $finance_setting    = $rate_arr['finance_setting'];
+            }
             foreach ($data as $v){
                 $return_data[] = (array)$v;
+            }
+
+            foreach ($return_data as $key => $datum){
+                //人民币成本需要转汇率
+                if ($datum['item_reserved_field4'] == '201' && isset($rate[$datum['site_id']])){
+                    $fba_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fba_refund_purchase_cost_rate'];
+                    $fbm_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fbm_refund_purchase_cost_rate'];;
+                    $remove_purchase_refund_rate  = empty($finance_setting) ? 1 : $finance_setting['removel_purchase_cost_rate'];;
+
+                    $fba_logistics_refund_rate    = empty($finance_setting) ? 1 : $finance_setting['fba_refund_logistics_cost_rate'];;
+                    $fbm_logistics_refund_rate    = empty($finance_setting) ? 1 : $finance_setting['fbm_refund_logistics_cost_rate'];;
+                    $remove_logistics_refund_rate = empty($finance_setting) ? 1 : $finance_setting['removel_logistics_cost_rate'];;
+
+
+
+                    $site_rate = $rate[$datum['site_id']];
+                    $cost_profit_profit     = $datum['cost_profit_profit'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
+                    $cost_profit_total_pay  = $datum['cost_profit_total_pay'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
+
+                    //新版财务成本
+                    $datum['fba_purchasing_cost_only'] = $datum['fba_purchasing_cost_only'] * $site_rate;
+                    $datum['fbm_purchasing_cost_only'] = $datum['fbm_purchasing_cost_only'] * $site_rate;
+                    $datum['purchasing_cost_only'] = $datum['purchasing_cost_only'] * $site_rate;
+                    $datum['fba_refund_purchasing_cost'] = $datum['fba_refund_purchasing_cost'] * $fba_purchase_refund_rate * $site_rate;
+                    $datum['fbm_refund_purchasing_cost'] = $datum['fbm_refund_purchasing_cost'] * $fbm_purchase_refund_rate * $site_rate;
+                    $datum['refund_purchasing_cost']     = $datum['fba_refund_purchasing_cost'] +  $datum['fbm_refund_purchasing_cost'];
+                    $datum['inventory_adjustment_purchasing_cost'] = $datum['inventory_adjustment_purchasing_cost'] * $site_rate ;
+                    $datum['remove_purchasing_cost'] = $datum['remove_purchasing_cost'] * $remove_purchase_refund_rate * $site_rate;
+                    $datum['other_inventory_purchasing_cost']     = $datum['inventory_adjustment_purchasing_cost'] +  $datum['remove_purchasing_cost'];
+                    $purchase_logistics_purchase_cost   = $datum['purchasing_cost_only'] + $datum['refund_purchasing_cost'] + $datum['other_inventory_purchasing_cost'];
+
+                    //新版财务物流
+                    $datum['fba_logistics_cost'] = $datum['fba_logistics_cost'] * $site_rate;
+                    $datum['fbm_logistics_cost'] = $datum['fbm_logistics_cost'] * $site_rate;
+                    $datum['logistics_cost_only'] = $datum['logistics_cost_only'] * $site_rate;
+                    $datum['fba_refund_logistics_cost'] = $datum['fba_refund_logistics_cost'] * $fba_logistics_refund_rate * $site_rate;
+                    $datum['fbm_refund_logistics_cost'] = $datum['fbm_refund_logistics_cost'] * $fbm_logistics_refund_rate * $site_rate;
+                    $datum['refund_logistics_cost']     = $datum['fba_refund_logistics_cost'] +  $datum['fbm_refund_logistics_cost'];
+                    $datum['inventory_adjustment_logistics_cost'] = $datum['inventory_adjustment_logistics_cost'] * $site_rate ;
+                    $datum['remove_purchasing_logistics_cost'] = $datum['remove_purchasing_logistics_cost'] * $remove_logistics_refund_rate * $site_rate;
+                    $datum['other_inventory_logistics_cost']     = $datum['inventory_adjustment_logistics_cost'] +  $datum['remove_purchasing_logistics_cost'];
+                    $purchase_logistics_logistics_cost  = $datum['logistics_cost_only'] + $datum['refund_logistics_cost'] + $datum['other_inventory_logistics_cost'];
+
+                    $cost_profit_profit     += $purchase_logistics_purchase_cost + $purchase_logistics_logistics_cost;
+                    $cost_profit_total_pay  += $purchase_logistics_purchase_cost + $purchase_logistics_logistics_cost;
+
+                    $datum['cost_profit_profit'] = $cost_profit_profit;
+                    $datum['cost_profit_total_pay'] = $cost_profit_total_pay;
+
+                }
+                unset($datum['item_reserved_field4']);
+                $return_data[$key] = $datum;
+
             }
         }
 
@@ -2949,6 +3055,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
             }
 
+
+
             $total_user_sessions_views = array();
             $compare_targets = !empty($datas['compare_targets']) ? $datas['compare_targets'] : (!empty($datas['compare_data']) ? ['goods_views_rate','goods_buyer_visit_rate'] : []);
             if (( (in_array('goods_views_rate', $targets) || in_array('goods_buyer_visit_rate', $targets)) && (in_array('goods_views_rate', $compare_targets) || in_array('goods_buyer_visit_rate', $compare_targets) || $datas['sort_target'] == 'goods_views_rate' || $datas['sort_target'] == 'goods_buyer_visit_rate' || $datas['force_sort'] == 'goods_views_rate' || $datas['force_sort'] == 'goods_buyer_visit_rate')  && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || (isset($datas['is_use_goods_view_sort']) && $datas['is_use_goods_view_sort'] && $datas['is_count'] == 0 && $datas['count_periods'] == 0) || $datas['is_median'] == 1){//按无且有排序才使用
@@ -3373,75 +3481,88 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }
-
-            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
-                || $isCalTotalPay) {  //采购成本
-                if ($datas['finance_datas_origin'] == 1) {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        }
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum(report.first_purchasing_cost ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        }
-                    }
-                }
-
+            $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
+            if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
+                $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
             }
-            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
-                || $isCalTotalPay) {  // 物流/头程
-                if ($datas['finance_datas_origin'] == 1) {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-                    }
-                }
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
             }
+            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+            }
+            if (isset($purchase_logisitics_field['fbm_logistics_head_course'])){
+                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
+            }
+
+//            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+//                || $isCalTotalPay) {  //采购成本
+//                if ($datas['finance_datas_origin'] == 1) {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        }
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum(report.first_purchasing_cost ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        }
+//                    }
+//                }
+//
+//            }
+//            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+//                || $isCalTotalPay) {  // 物流/头程
+//                if ($datas['finance_datas_origin'] == 1) {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//                    }
+//                }
+//            }
 
             if (in_array('amazon_fee', $targets) || in_array('amazon_fee_rate', $targets) || $isCalTotalPay) {  //亚马逊费用
                 if ($datas['finance_datas_origin'] == '1') {
@@ -5796,63 +5917,63 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
-        if (in_array('fba_logistics_head_course', $targets)) { //FBA头程物流
-            if($datas['cost_count_type'] == 1){
-                if ($datas['finance_datas_origin'] == '1'){
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course)";
-                    } else {
-                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }else{
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fba_logistics_head_course'] = "SUM(report.report_fba_logistics_head_course)";
-                    } else {
-                        $fields['fba_logistics_head_course'] = "SUM((report.report_fba_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }
-            }else{
-                if ($datas['currency_code'] == 'ORIGIN') {
-                    $fields['fba_logistics_head_course'] = "SUM(report.fba_first_logistics_head_course)";
-                } else {
-                    $fields['fba_logistics_head_course'] = "SUM((report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                }
-            }
-
-        }
-
-        if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
-            if($datas['cost_count_type'] == 1){
-                if($datas['finance_datas_origin'] == 1){
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course)";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }else{
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.report_fbm_logistics_head_course)";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = "SUM((report.report_fbm_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }
-            }else{
-                if($type == 1){//商品的fbm刷的没问题
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
-                    }
-                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        $fields['fbm_logistics_head_course'] = " sum( (report.first_logistics_head_course - report.fba_first_logistics_head_course) ) ";
-                    } else {
-                        $fields['fbm_logistics_head_course'] = " sum(( (report.first_logistics_head_course - report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                    }
-                }
-            }
-
-        }
+//        if (in_array('fba_logistics_head_course', $targets)) { //FBA头程物流
+//            if($datas['cost_count_type'] == 1){
+//                if ($datas['finance_datas_origin'] == '1'){
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course)";
+//                    } else {
+//                        $fields['fba_logistics_head_course'] = "SUM(report.byorder_fba_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }else{
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fba_logistics_head_course'] = "SUM(report.report_fba_logistics_head_course)";
+//                    } else {
+//                        $fields['fba_logistics_head_course'] = "SUM((report.report_fba_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }
+//            }else{
+//                if ($datas['currency_code'] == 'ORIGIN') {
+//                    $fields['fba_logistics_head_course'] = "SUM(report.fba_first_logistics_head_course)";
+//                } else {
+//                    $fields['fba_logistics_head_course'] = "SUM((report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                }
+//            }
+//
+//        }
+//
+//        if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
+//            if($datas['cost_count_type'] == 1){
+//                if($datas['finance_datas_origin'] == 1){
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course)";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.byorder_fbm_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }else{
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.report_fbm_logistics_head_course)";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = "SUM((report.report_fbm_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }
+//            }else{
+//                if($type == 1){//商品的fbm刷的没问题
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = "SUM(report.fbm_first_logistics_head_course)";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = "SUM((report.fbm_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)))";
+//                    }
+//                }else{//店铺和运营人员的fbm刷的有问题，特殊处理
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        $fields['fbm_logistics_head_course'] = " sum( (report.first_logistics_head_course - report.fba_first_logistics_head_course) ) ";
+//                    } else {
+//                        $fields['fbm_logistics_head_course'] = " sum(( (report.first_logistics_head_course - report.fba_first_logistics_head_course) * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                    }
+//                }
+//            }
+//
+//        }
 
         if (in_array('shipping_charge', $targets)) { //运费
             if($datas['finance_datas_origin'] == 1){
@@ -5934,6 +6055,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        if ($params['is_new_index']){//新指标先不读取热数据
 //            return false;
 //        }
+        $app_env = config("app_env");
+        if ($app_env == 'dev'){//测试环境不读取热数据
+            return false;
+        }
         $redis = new Redis();
         $not_center_mysql = $redis->get("not_center_mysql");
         if ($not_center_mysql !== false){
@@ -5978,7 +6103,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $goods_month = $is_month_table && $params['origin_create_start_time'] >= ($start_time - 168 * 86400) && (isset($params['method']) && $params['method'] == "getListByGoods");
         if ($goods_day or $goods_month){
             $goods_mysql_user = $redis->get("goods_mysql_user");
-
             if (empty($goods_mysql_user)){
                 $goods_mysql_user = Db::connection('bigdata_goods_ads_001')->table("vip_user_big_data")->pluck('user_id')->toArray();//只有001有这个用户数据
                 $redis->set("goods_mysql_user",$goods_mysql_user);
@@ -6050,7 +6174,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $this->dws_user_id_mod = intval($params['user_id'] % 20);
         }else if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){  //按周
             $this->dws_user_id_mod = intval($params['user_id'] % 20);
-        }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
+        }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 || $params['count_periods'] == 6 ){
             $this->dws_user_id_mod = getUserIdMod($params['user_id']);
         }else if($params['cost_count_type'] == 2 ){
             $this->dws_user_id_mod = getUserIdMod($params['user_id']);
@@ -6097,7 +6221,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //            $table = "{$this->table_channel_day_report} AS report" ;
             $table = "{$this->table_channel_day_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
 //            $where = $ym_where . " AND report.available = 1 "   . (empty($where) ? "" : " AND " . $where) ;
-        }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 ){
+        }else if($params['count_periods'] == 3 || $params['count_periods'] == 4 || $params['count_periods'] == 5 || $params['count_periods'] == 6){
 //            $isMysql = false;
 //            $table = "{$this->table_channel_month_report} AS report" ;
             $table = "{$this->table_channel_month_report} AS report LEFT JOIN {$this->table_channel} as channel ON report.channel_id = channel.id ";
@@ -6191,19 +6315,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         }
 
+        $rate_table = $this->joinRateTable($params,$fields_arr,$table,$exchangeCode,$day_param);
+        $field_data = $rate_table['field_data'];
+        $table      = $rate_table['table'];
 
-        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
-        $field_data = str_replace("{:DAY}", $day_param, $field_data);
-
-        if ($params['currency_code'] != 'ORIGIN') {
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-            } else {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id ";
-            }
-        }else{
-            $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-        }
 
         if ($this->countDimensionChannel){
             //新增指标是店铺维度时  f_monthly_profit_report_001表year month为text，需转成int连表
@@ -6224,6 +6339,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }else if($params['count_periods'] == '5') { //年
                     $group = 'report.channel_id , report.myear' ;
                     $orderby = 'report.channel_id , report.myear ';
+                }else if($params['count_periods'] == '6') { //按半年
+                    $group = 'report.channel_id , report.myear, report.mhalfyear' ;
+                    $orderby = 'report.channel_id , report.myear, report.mhalfyear ';
                 }else{
                     if($params['count_periods'] == 2 && $params['cost_count_type'] != 2){
                         $group = 'report.channel_id , report.mweekyear , report.mweek ';
@@ -6347,6 +6465,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 } else if ($params['count_periods'] == '5') { //按年
                     $group = 'report.myear';
                     $orderby = 'report.myear';
+                }else if($params['count_periods'] == '6') { //按半年
+                    $group = 'report.myear, report.mhalfyear' ;
+                    $orderby = 'report.myear, report.mhalfyear ';
                 }
             } else {
                 $group = 'report.user_id  ';
@@ -6412,6 +6533,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $group = str_replace("{:ERP_RATE}", $exchangeCode, $group ?? '');
+        $where = str_replace("{:ERP_RATE}", $exchangeCode, $where ?? '');
+        $orderby = str_replace("{:ERP_RATE}", $exchangeCode, $orderby ?? '');
+        $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
+        $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
+        $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
         $group = str_replace("{:DAY}", $day_param, $group);
         $orderby = str_replace("{:DAY}", $day_param, $orderby);
         $limit_num = 0 ;
@@ -6643,6 +6770,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
                 $fields['myear']  = 'max(report.myear)' ;
             }
+        } else if ($datas['count_periods'] == '6' && $datas['show_type'] == '2') {  //按季
+            $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mhalfyear) as varchar))";
+            if($this->haveFbaFields == true && $datas['stock_datas_origin'] == 1){
+                $fields['myear']  = 'max(report.myear)' ;
+                $fields['mhalfyear']  = 'max(report.mhalfyear)' ;
+            }
+
         }
 
         $targets = explode(',', $datas['target']);
@@ -6791,75 +6925,89 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
             }
-
-            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //采购成本
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                }
-
+            $isCalTotalPay=in_array('cost_profit_total_pay', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets);
+            $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
+            if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
+                $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
             }
-            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  // 物流/头程
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( ( report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                }
-
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
             }
+            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+            }
+            if (isset($purchase_logisitics_field['fbm_logistics_head_course'])){
+                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
+            }
+
+//            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  //采购成本
+//                if ($datas['finance_datas_origin'] == '1') {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                }
+//
+//            }
+//            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets)) {  // 物流/头程
+//                if ($datas['finance_datas_origin'] == '1') {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( ( report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                }
+//
+//            }
 
         if (in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets) || in_array('cost_profit_total_pay', $targets) ) {  //毛利润
             $repair_data = $this->tax_field." +report.bychannel_reserved_field44 + report.bychannel_reserved_field43 " ;
@@ -8915,11 +9063,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $table = "{$this->table_amazon_fba_inventory_by_channel} as c";
             $where = 'c.user_id = ' . $lists[0]['user_id'] ." AND c.db_num = '".$this->dbhost."'";
             if ($datas['currency_code'] != 'ORIGIN') {
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
-                } else {
-                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  ";
-                }
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 ";
+//                } else {
+//                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  ";
+//                }
+                $table = $this->leftJoinCurrentMonthRate($table,$datas,$currencyInfo,'c');
             }
 
             if (!empty($channel_arr)){
@@ -8999,7 +9148,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if ($datas['currency_code'] == 'ORIGIN') {
             $fba_fields .= " , sum(DISTINCT(c.yjzhz))  as fba_goods_value";
         } else {
-            $fba_fields .= " , sum(DISTINCT(c.yjzhz * ({:RATE} / COALESCE(rates.rate ,1))))  as fba_goods_value";
+            $fba_fields .= " , sum(DISTINCT(c.yjzhz * {:RATE} / COALESCE(rates.rate ,1)))  as fba_goods_value";
         }
         $fba_fields.= ' ,SUM(DISTINCT(c.total_fulfillable_quantity)) as fba_stock , SUM(DISTINCT(c.replenishment_sku_nums)) as fba_need_replenish ,SUM(DISTINCT(c.redundancy_sku)) as fba_predundancy_number';
         $fba_fields = str_replace("{:RATE}", $exchangeCode, $fba_fields);
@@ -9193,7 +9342,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $mod_where = "report.user_id_mod = " . $this->dws_user_id_mod;
 
-
         //$where = $ym_where . " AND " .$mod_where . " AND report.available = 1 " .  (empty($where) ? "" : " AND " . $where) ;
 //        $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 //        if ($datas['is_new_index'] == 0){
@@ -9201,11 +9349,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 //        }else{
 //            $field_data = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_arr));
 //        }
-        $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
-
-        $field_data = str_replace("{:DAY}", $day_param, $field_data);
-
-
+        $rate_table = $this->joinRateTable($datas,$fields_arr,$table,$exchangeCode,$day_param);
+        $field_data = $rate_table['field_data'];
+        $table      = $rate_table['table'];
 
 
         if (!empty($where_detail['operators_id'])) {
@@ -9217,13 +9363,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $where .= " AND report.goods_operation_user_admin_id  IN ( " . $operators_str . " ) ";
         }
 
-        if ($datas['currency_code'] != 'ORIGIN') {
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
-            } else {
-                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
-            }
-        }
         $orderbyTmp = $orderby;
         if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
             if($datas['count_periods'] == '4'){ //按季度
@@ -9276,6 +9415,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
         $group = str_replace("{:RATE}", $exchangeCode, $group);
         $orderby = str_replace("{:RATE}", $exchangeCode, $orderby);
+        $group = str_replace("{:ERP_RATE}", $exchangeCode, $group ?? '');
+        $where = str_replace("{:ERP_RATE}", $exchangeCode, $where ?? '');
+        $orderby = str_replace("{:ERP_RATE}", $exchangeCode, $orderby ?? '');
+        $orderby = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $orderby);
+        $where = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $where);
+        $group = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $group);
         $group = str_replace("{:DAY}", $day_param, $group);
         $orderby = str_replace("{:DAY}", $day_param, $orderby);
         $limit_num = 0 ;
@@ -9946,75 +10091,90 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['evaluation_fee_rate'] = '(' . $fields['evaluation_fee'] . ") * 1.0000 / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
             }
 
-
-            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
-                if ($datas['finance_datas_origin'] == '1') {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
-                        }
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
-                        }
-                    }
-                }
-
+            $isCalTotalPay=in_array('cost_profit_total_pay', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets);
+            $purchase_logisitics_field = $this->getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay);
+            if (isset($purchase_logisitics_field['purchase_logistics_purchase_cost'])){
+                $fields['purchase_logistics_purchase_cost'] = $purchase_logisitics_field['purchase_logistics_purchase_cost'];
+            }
+            if (isset($purchase_logisitics_field['purchase_logistics_logistics_cost'])){
+                $fields['purchase_logistics_logistics_cost'] = $purchase_logisitics_field['purchase_logistics_logistics_cost'];
+            }
+            if (isset($purchase_logisitics_field['fba_logistics_head_course'])){
+                $fields['fba_logistics_head_course'] = $purchase_logisitics_field['fba_logistics_head_course'];
+            }
+            if (isset($purchase_logisitics_field['fbm_logistics_head_course'])){
+                $fields['fbm_logistics_head_course'] = $purchase_logisitics_field['fbm_logistics_head_course'];
             }
 
-            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
-                if ($datas['finance_datas_origin'] == 1) {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
 
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                } else {
-                    if ($datas['currency_code'] == 'ORIGIN') {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
-                        }
-
-                    } else {
-                        if ($datas['cost_count_type'] == '1') {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
-                        } else {
-                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
-                        }
-
-                    }
-                }
-            }
+//            if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets) || in_array('cost_profit_profit_rate', $targets)) {  //采购成本
+//                if ($datas['finance_datas_origin'] == '1') {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.byorder_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum((report.first_purchasing_cost) ) ";
+//                        }
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( report.report_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_purchase_cost'] = " sum( ( report.first_purchasing_cost * ({:RATE} / COALESCE(rates.rate ,1))) ) ";
+//                        }
+//                    }
+//                }
+//
+//            }
+//
+//            if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)) {  // 物流/头程
+//                if ($datas['finance_datas_origin'] == 1) {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.byorder_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                } else {
+//                    if ($datas['currency_code'] == 'ORIGIN') {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum(  (report.first_logistics_head_course) ) ";
+//                        }
+//
+//                    } else {
+//                        if ($datas['cost_count_type'] == '1') {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( report.report_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) ) ";
+//                        } else {
+//                            $fields['purchase_logistics_logistics_cost'] = " sum( (report.first_logistics_head_course * ({:RATE} / COALESCE(rates.rate ,1)) )) ";
+//                        }
+//
+//                    }
+//                }
+//            }
 
             if (in_array('purchase_logistics_cost_rate', $targets)) {  // 成本/物流费用占比
                 $fields['purchase_logistics_cost_rate'] = '(' . $fields['purchase_logistics_purchase_cost'] . ' + ' . $fields['purchase_logistics_logistics_cost'] . ") * 1.0000 / nullif( " . $fields['sale_sales_quota'] . " , 0 ) ";
@@ -12260,6 +12420,19 @@ max( bychannel_create_time ) as bychannel_create_time
 
         }
 
+        //新成本字段补偿
+        if (!empty($this->cost_logistics_operation_arr)){
+            $fields_arr = array();
+            foreach ($this->cost_logistics_operation_arr as $cost_logistics_key => $cost_logistics_value){
+                $report_other_field .= "COALESCE(goods.{$cost_logistics_key} ,0) AS {$cost_logistics_key},";
+                $fields_arr[]       .= "{$cost_logistics_value} AS {$cost_logistics_key}";
+            }
+            $join_rate_table = $this->joinRateTable($datas,$fields_arr,$goods_table,'','','dw_report');
+            $goods_other_field .= $join_rate_table['field_data'].",";
+            $goods_table        = $join_rate_table['table'];
+
+        }
+
         $where_dw_report_amazon_goods .= $where_ym." AND dw_report.available = 1 ";
 
         $table = " (
@@ -12791,6 +12964,18 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
             $goods_other_field = "dw_report.mday as mday,";
             $report_other_field = "COALESCE(goods.mday ,bychannel.mday) AS mday,concat(cast(COALESCE(goods.goods_operation_user_admin_id ,bychannel.operation_user_admin_id) as  varchar),'_',cast(COALESCE(goods.myear ,bychannel.myear) as varchar),'_',lpad(cast(COALESCE(goods.mmonth ,bychannel.mmonth) as varchar),2,'0'),'_',lpad(cast(COALESCE(goods.mday ,bychannel.mday) as varchar),2,'0')) as goods_operation_user_admin_id_group,";
+
+        }
+        //新成本字段补偿
+        if (!empty($this->cost_logistics_operation_arr)){
+            $fields_arr = array();
+            foreach ($this->cost_logistics_operation_arr as $cost_logistics_key => $cost_logistics_value){
+                $report_other_field .= "COALESCE(goods.{$cost_logistics_key} ,0) AS {$cost_logistics_key},";
+                $fields_arr[]       .= "{$cost_logistics_value} AS {$cost_logistics_key}";
+            }
+            $join_rate_table = $this->joinRateTable($datas,$fields_arr,$goods_table,'','','dw_report');
+            $goods_other_field .= $join_rate_table['field_data'].",";
+            $goods_table        = $join_rate_table['table'];
 
         }
         if (!empty($operation_table_field['channel_key'])){
@@ -13336,7 +13521,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $targets                    = array_merge($targets,$add_targets);
         }
 
-
+        $cost_logistics = $this->handleNexIndexCostLogisticsField($params);
         $targets = array_unique($targets);
         foreach ($field as $key => $value){
             if (!isset($value[$field_type_key])){
@@ -13363,10 +13548,17 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $field_molecule_rate    = $value['is_molecule_money'] == 1 ? $rate : "";
                         $field_denominator_rate = $value['is_denominator_money'] == 1 ? $rate : "";
                         if ($field_type == 3){//运营人员需要兼容case when
-                            $fields[$key] = $this->getOperateNewKey($value,$field_type_key,$field_molecule_rate,$field_denominator_rate);
+                            $fields[$key] = $this->getOperateNewKey($value,$key,$field_type_key,$field_molecule_rate,$field_denominator_rate,$cost_logistics);
                         }else{
-                            $molecule = implode("",$value[$field_type_key]['molecule']);
-                            $fields[$key] = "SUM(({$molecule}){$field_molecule_rate})";
+                            if (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+                                $molecule = implode("",$value[$field_type_key]['molecule']).$cost_logistics['purchase_logistics_compensate'];
+                                $fields[$key] = "(SUM(({$molecule}){$field_molecule_rate}){$cost_logistics['purchase_logistics_origin']})";
+
+                            }else{
+                                $molecule = implode("",$value[$field_type_key]['molecule']);
+                                $fields[$key] = "SUM(({$molecule}){$field_molecule_rate})";
+
+                            }
                             if (!empty($value[$field_type_key]['denominator'])){
                                 $fields[$key] .= "*1.0000/nullif(SUM((".implode("",$value[$field_type_key]['denominator'])."){$field_denominator_rate}),0)";
                             }
@@ -13374,9 +13566,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
                     }else{
                         if ($field_type == 3){//运营人员需要兼容case when
-                            $fields[$key] = $this->getOperateNewKey($value,$field_type_key,$field_rate,$field_rate);
+                            $fields[$key] = $this->getOperateNewKey($value,$key,$field_type_key,$field_rate,$field_rate,$cost_logistics);
                         }else{
-                            $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
+                            if (isset($cost_logistics[$key])){
+                                $fields[$key] = $cost_logistics[$key];
+                            }elseif (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+                                $fields[$key] = "(SUM((".implode("",$value[$field_type_key]['molecule'])."{$cost_logistics['purchase_logistics_compensate']}){$field_rate}){$cost_logistics['purchase_logistics_origin']})";
+                            } else{
+                                $fields[$key] = "SUM((".implode("",$value[$field_type_key]['molecule'])."){$field_rate})";
+                            }
+
                             if (!empty($value[$field_type_key]['denominator'])){
                                 $fields[$key] .= "*1.0000/nullif(SUM((".implode("",$value[$field_type_key]['denominator'])."){$field_rate}),0)";
                             }
@@ -13399,7 +13598,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                         $temp_erp_format_type = isset($erp_isku_fields_arr[$key]['format_type']) ?? 0;
 
                         if ($temp_erp_format_type == 4 && $params['currency_code'] != 'CNY'){
-                            $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key} * {:RATE})";
+                            $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key} * {:ERP_RATE})";
                         }else{
                             $fields[$key] = "{$erp_isku_function}(warehouse_isku.{$key})";
                         }
@@ -13439,18 +13638,36 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
     /**
      * @param $value
+     * @param $key
      * @param $field_type_key
      * @param $field_molecule_rate
      * @param $field_denominator_rate
+     * @param $cost_logistics array 新成本數組
      * @return string
      */
-    private function getOperateNewKey($value,$field_type_key,$field_molecule_rate,$field_denominator_rate){
-        $molecule = isset($value[$field_type_key]['molecule']['un_case'])?("(".implode("",$value[$field_type_key]['molecule']['un_case']).")$field_molecule_rate"):'';
+    private function getOperateNewKey($value,$key,$field_type_key,$field_molecule_rate,$field_denominator_rate,$cost_logistics){
+        if (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+            $molecule = isset($value[$field_type_key]['molecule']['un_case'])?("(".implode("",$value[$field_type_key]['molecule']['un_case']).$cost_logistics['purchase_logistics_compensate'].")$field_molecule_rate"):'';
+        }else{
+            $molecule = isset($value[$field_type_key]['molecule']['un_case'])?("(".implode("",$value[$field_type_key]['molecule']['un_case']).")$field_molecule_rate"):'';
+        }
+
         if (isset($value[$field_type_key]['molecule']['case'])) {
             $case = "( CASE WHEN report.goods_operation_pattern = 1 THEN ".implode("",$value[$field_type_key]['molecule']['case'])." ELSE 0 END ){$field_molecule_rate}";
             $molecule .= empty($molecule)?$case:("+{$case}");
         }
-        $return_key = "SUM({$molecule})";
+
+        if (isset($cost_logistics[$key])){
+            $return_key = $cost_logistics[$key];
+            $this->cost_logistics_operation_arr[$key] = $cost_logistics['operation_arr'][$key];
+        }elseif (in_array($key, ["cost_profit_profit","cost_profit_profit_rate","cost_profit_total_pay"])){
+//            $molecule .= $cost_logistics['purchase_logistics_compensate'];
+            $return_key = "(SUM({$molecule}){$cost_logistics['purchase_logistics_origin']})";
+            $this->cost_logistics_operation_arr['purchase_logistics_purchase_cost'] = $cost_logistics['operation_arr']['purchase_logistics_purchase_cost'];
+            $this->cost_logistics_operation_arr['purchase_logistics_logistics_cost'] = $cost_logistics['operation_arr']['purchase_logistics_logistics_cost'];
+        }else{
+            $return_key = "SUM({$molecule})";
+        }
         if (!empty($value[$field_type_key]['denominator']['un_case']) or !empty($value[$field_type_key]['denominator']['case'])){
             $denominator = isset($value[$field_type_key]['denominator']['un_case'])?("(".implode("",$value[$field_type_key]['denominator']['un_case'])."){$field_denominator_rate}"):'';
             if (isset($value[$field_type_key]['denominator']['case'])) {
@@ -14004,6 +14221,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
     public function getFieldFromCache(){
         $redis = new Redis();
         $mysql_fields = $redis->get("mysql_finance_fields_new");
+        $index_cache = config("misc.index_cache",true);
+        if (!$index_cache){
+            $mysql_fields = array();
+        }
         if (!is_array($mysql_fields) or empty($mysql_fields)){
             $finance_index = FinanceIndexModel::get()->toArray();
             $finance_index = array_column($finance_index,null,'id');
@@ -14020,7 +14241,9 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $mysql_fields['finance_index'] = $finance_index_arr;
             $mysql_fields['finance_index_percentage_arr'] = $finance_index_percentage_arr;
             $mysql_fields['sql_key_arr'] = $sql_key_arr;
-            $redis->set("mysql_finance_fields_new",$mysql_fields);
+            if ($index_cache){
+                $redis->set("mysql_finance_fields_new",$mysql_fields);
+            }
         }
         $finance_index = $mysql_fields['finance_index'];
         $sql_key_arr = $mysql_fields['sql_key_arr'];
@@ -14120,12 +14343,10 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $where .= " AND g.id > 0 AND g.is_delete = 0" ;
         $rate_table = $rel_table =  $origin_field = "";
         if($datas['currency_code'] != 'ORIGIN' || !empty(array_intersect(['fba_yjzhz','fba_glhz', 'fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_ccf','fba_ccf_every','fba_glccf'],$this->lastTargets))){
-            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = 0 ";
-            } else {
-                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = g.site_id AND rates.user_id = g.user_id  ";
-            }
+            $rate_table = $this->leftJoinCurrentMonthRate($rate_table,$datas,$currencyInfo);
+
         }
+
         $fbaArr = config('common.goods_fba_fields_arr');
         if(!empty($this->lastTargets)){
             foreach ($this->lastTargets as $target_key){
@@ -14635,11 +14856,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
 
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets )) ) {
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id   LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 " . $where . " group by c.id" ;
-                }else{
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  " . $where . " group by c.id" ;
-                }
+                $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo,'c');
+                $table_sql .= " ". $where . " group by c.id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id   LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0 " . $where . " group by c.id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id  " . $where . " group by c.id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id ".$where." group by c.id" ;
             }
@@ -14652,11 +14876,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt = $this->getUnGoodsFbaField(2," c.site_id as site_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field = str_replace("{:RATE}", $exchangeCode, $fba_rt['field_str']);
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
-                }else{
-                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id" ;
-                }
+                $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo,'c');
+                $table_sql .= " ". $where ." group by c.site_id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id  ".$where." group by c.site_id" ;
             }
@@ -14670,11 +14897,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id ,max(c.site_id) as site_id ,max(dc.user_department_id) as user_department_id " , 'mysql_key' , $is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,dc.user_department_id" ;
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id and tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id   LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,dc.user_department_id" ;
-                }
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo,'c');
+                $table_sql .= " ".$where." group by c.site_id,dc.user_department_id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,dc.user_department_id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id and tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,dc.user_department_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id = c.merchant_id and tend.area_id = c.area_id LEFT JOIN {$this->table_department_channel} as dc ON dc.channel_id = c.id and dc.user_id = c.user_id    ".$where." group by c.site_id,dc.user_department_id" ;
             }
@@ -14699,12 +14929,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_rt1 = $this->getUnGoodsFbaField(2,"max(c.id) as channel_id,max(c.site_id) as site_id  ,max(uc.admin_id) as admin_id",'mysql_key' ,$is_currency_exchange) ;
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,uc.admin_id" ;
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id ";
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo,'c');
+                $table_sql .= " ".$where." group by c.site_id,uc.admin_id" ;
 
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,uc.admin_id" ;
-                }
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,uc.admin_id" ;
+//
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,uc.admin_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN {$this->table_user_channel} as uc ON uc.channel_id = c.id and uc.user_id = c.user_id  ".$where." group by c.site_id,uc.admin_id" ;
             }
@@ -14742,11 +14976,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $where .= " AND c.site_id IN({$datas['where_parent']['child_dimension_site_id']})";
             }
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,c.operation_user_admin_id" ;
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,c.operation_user_admin_id" ;
-                }
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} " ;
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo,'c');
+                $table_sql .= " ".$where." group by c.site_id,c.operation_user_admin_id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0".$where." group by c.site_id,c.operation_user_admin_id" ;
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id ".$where." group by c.site_id,c.operation_user_admin_id" ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id, c_tmp.operation_user_admin_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} AND c_tmp.operation_user_admin_id > 0 AND c_tmp.goods_operation_pattern = 2) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id {$child_dimension_sql} ".$where." group by c.site_id,c.operation_user_admin_id" ;
             }
@@ -14773,11 +15010,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fba_field1 = str_replace("{:RATE}", $exchangeCode, $fba_rt1['field_str']);
 
             if($is_currency_exchange == 1 || !empty(array_intersect(['fba_goods_value','fba_total_ltsf','fba_ltsf_6_12','fba_ltsf_12','fba_estimate_total'],$this->lastTargets ))){
-                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0  ".$where."  group by c.id" ; ;
-                }else{
-                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id   ".$where." group by c.id" ; ;
-                }
+                $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id " ;
+                $table_sql = $this->leftJoinCurrentMonthRate($table_sql,$datas,$currencyInfo,'c');
+                $table_sql .= " ".$where."  group by c.id" ;
+//                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = 0  ".$where."  group by c.id" ; ;
+//                }else{
+//                    $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id LEFT JOIN  {$this->table_site_rate} as rates ON rates.site_id = c.site_id AND rates.user_id = c.user_id   ".$where." group by c.id" ; ;
+//                }
             }else{
                 $table_sql = "select {$fba_field1} from {$this->table_amazon_fba_inventory_tend_v3} as tend LEFT JOIN (select c_tmp.id ,c_tmp.user_id , c_tmp.site_id , c_tmp.merchant_id , area.area_id from  {$this->table_channel} as c_tmp LEFT JOIN {$this->table_area} as area ON area.site_id = c_tmp.site_id where c_tmp.user_id = {$datas['user_id']} ) as c ON tend.user_id = c.user_id AND tend.merchant_id  = c.merchant_id AND tend.area_id = c.area_id  ".$where."  group by c.id" ;
             }
@@ -15681,12 +15921,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             }
         }
         $field_data_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $fields_tmp));
+        $field_data_tmp = str_replace("{:ERP_RATE}", $exchangeCode, $field_data_tmp);
         $field_data_tmp = str_replace("{:DAY}", $day_param, $field_data_tmp);
         $query_origin_fields[] = "max(report.myear) AS myear";
         $query_origin_fields[] = "max(report.mmonth) AS mmonth";
         $query_origin_fields[] = "max(report.mquarter) AS mquarter";
         $query_origin_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_origin_fields));
         $query_inner_fields_tmp = str_replace("{:RATE}", $exchangeCode, implode(',', $query_inner_fields));
+        $query_origin_fields_tmp = str_replace("{:ERP_RATE}", $exchangeCode, $query_origin_fields_tmp);
+        $query_inner_fields_tmp = str_replace("{:ERP_RATE}", $exchangeCode, $query_inner_fields_tmp);
 
         //组装子查询
         if ($datas['count_dimension'] == 'head_id'){
@@ -15867,7 +16110,835 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $lists;
     }
 
+    /**
+     * 按月汇率表数据
+     * @param $params
+     * @param $fields_arr
+     * @param $table
+     * @param $exchangeCode
+     * @param $day_param
+     * @param $report
+     * @return array
+     */
+    private function joinRateTable($params,$fields_arr,$table,$exchangeCode = '',$day_param = '',$report = 'report'){
+        if (isset($params['is_month_rate']) && $params['is_month_rate'] == 1){
 
+            $rate_type = $params['rate_type']??3;
+            if ($params['currency_code'] == "CNY"){
+                $trans_rate = "rmb_rate";
+            }else if($params['currency_code'] == "HKD"){
+                $trans_rate = "hk_rate";
+            }else{
+                $trans_rate = strtolower($params['currency_code'])."_rate";
+            }
+            $cost_logistics_rate = $trans_rate;
+
+            if ($params['currency_code'] == 'ORIGIN') {
+                $cost_logistics_rate = "rate";
+            }
+            if ($cost_logistics_rate == "rmb_rate"){
+                $cost_logistics_rate = 1;
+            }else{
+                $cost_logistics_rate = "(COALESCE(rates.$cost_logistics_rate ,1))";
+            }
+            $this->cost_logistics_rate = $cost_logistics_rate;
+            $field_data = str_replace("{:RATE}", "(COALESCE(rates.$trans_rate ,1))", str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+            $field_data = str_replace("{:RMBRATE}",$cost_logistics_rate , $field_data);//去除presto除法把数据只保留4位导致精度
+            $user_id = $params['user_id'] ?? 0;
+            $user_id_mod = intval($user_id % 20);
+
+            $rate_table_month = $this->getTableMonthSiteRate($rate_type,$params);
+            $table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = {$report}.site_id  and {$report}.myear = rates.myear and {$report}.mmonth = rates.mmonth   LEFT JOIN {$this->table_amazon_finance_setting} as finance_setting on finance_setting.channel_id = {$report}.channel_id AND finance_setting.user_id = {$report}.user_id  and {$report}.myear = finance_setting.myear and {$report}.mmonth = finance_setting.mmonth AND finance_setting.db_num = '{$this->dbhost}' and  finance_setting.user_id_mod = {$user_id_mod} ";
+        }else{
+            $field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $fields_arr)));//去除presto除法把数据只保留4位导致精度异常，如1/0.1288 = 7.7639751... presto=7.7640
+            if ($params['currency_code'] != 'ORIGIN') {
+                if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+                } else {
+                    $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = report.user_id  ";
+                }
+            }else{
+                $table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = report.site_id AND rates.user_id = 0 ";
+            }
+        }
+        $field_data = str_replace("{:DAY}", $day_param, $field_data);
+        $field_data = str_replace("{:ERP_RATE}", $exchangeCode, $field_data);
+
+        return array(
+            "field_data" => $field_data,
+            "table"      => $table,
+        );
+    }
+
+    private function getOldCostLogicField($datas,$fields,$targets,$isCalTotalPay,$type = 1){
+
+        if ($datas['currency_code'] == 'ORIGIN') {
+            $rate = "";
+        } else {
+            $rate = " * ({:RATE} / COALESCE(rates.rate ,1))";
+        }
+        $rmb_rate = " * ({:RMBRATE}) ";
+        $item_tmp = "byorderitem_";
+        $origin_tmp = "byorder_";
+        if ($datas['finance_datas_origin'] == '2') {
+            $item_tmp = "reportitem_";//()
+            $origin_tmp = "report_";
+        }
+
+        $is_opeartion = (isset($datas['count_dimension']) && $datas['count_dimension'] == 'operators') ? true : false;
+
+        $fba_purchase_refund_rate       = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
+        $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_logistics_cost_rate ,1)";
+        $fbm_purchase_refund_rate       = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
+        $fbm_logistics_refund_rate      = "COALESCE(finance_setting.fbm_refund_logistics_cost_rate ,1)";
+        $remove_purchase_refund_rate    = "COALESCE(finance_setting.removel_purchase_cost_rate ,1)";
+        $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,1)";
+        $field_flag = "{$item_tmp}reserved_field4";
+
+
+        if ($datas['cost_count_type'] == 2) {
+            $field_flag = "monthly_sku_reserved_field51";
+        }
+        $cost_logistic_field = array(
+            "purchase_logistics_purchase_cost" =>array(//采购成本
+                "case" => array(
+                    "{$item_tmp}reserved_field83",
+                    "+{$item_tmp}reserved_field27",
+                    "-{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
+                    "+{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
+                    "+{$item_tmp}reserved_field30",
+
+                ),
+                "else" => array(
+                    "{$origin_tmp}purchasing_cost",
+                ),
+            ),
+            "first_purchase_logistics_purchase_cost" =>array(//采购成本
+                "case" => array(
+                    "monthly_sku_reserved_field26",
+                    "-monthly_sku_reserved_field27",
+                    "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
+                    "+monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "first_purchasing_cost",
+                ),
+            ),
+            "purchase_logistics_logistics_cost" =>array(//物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field84",
+                    "+{$item_tmp}reserved_field1",
+                    "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                    "+{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$origin_tmp}logistics_head_course",
+                ),
+            ),
+            "first_purchase_logistics_logistics_cost" =>array(//物流成本
+                "case" => array(
+                    "monthly_sku_reserved_field32",
+                    "-monthly_sku_reserved_field33",
+                    "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                    "+monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "first_logistics_head_course",
+                ),
+            ),
+            "fba_logistics_head_course" =>array(//fba物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field84",
+                    "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$origin_tmp}fba_logistics_head_course",
+                ),
+            ),
+            "first_fba_logistics_head_course" =>array(//fba物流成本
+                "case" => array(
+                    "monthly_sku_reserved_field32",
+                    "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "fba_first_logistics_head_course",
+                ),
+            ),
+            "fbm_logistics_head_course" =>array(//fbm物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field1",
+                    "+{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$origin_tmp}fbm_logistics_head_course",
+                ),
+            ),
+            "first_fbm_logistics_head_course" =>array(//fbm物流成本
+                "case" => array(
+                    "monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                    "-monthly_sku_reserved_field33",
+                ),
+                "else" => array(
+                    "first_logistics_head_course",
+                    "-fba_first_logistics_head_course",
+                ),
+            ),
+        );
+
+        if (in_array('purchase_logistics_purchase_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+            || $isCalTotalPay) {  //采购成本
+
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = implode("", $cost_logistic_field['purchase_logistics_purchase_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['purchase_logistics_purchase_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = implode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+
+            }
+            $fields['purchase_logistics_purchase_cost'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['purchase_logistics_purchase_cost'] = $fields['purchase_logistics_purchase_cost'];
+                $fields['purchase_logistics_purchase_cost'] = " sum(purchase_logistics_purchase_cost) ";
+            }
+
+        }
+
+        if (in_array('purchase_logistics_logistics_cost', $targets) || in_array('purchase_logistics_cost_rate', $targets) || in_array('cost_profit_profit', $targets)  || in_array('cost_profit_profit_rate', $targets)
+            || $isCalTotalPay) {  // 物流/头程
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = implode("", $cost_logistic_field['purchase_logistics_logistics_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['purchase_logistics_logistics_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = implode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['else']);
+                $else_field = "({$else_field}{$rate})";
+
+            }
+
+            $fields['purchase_logistics_logistics_cost'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['purchase_logistics_logistics_cost'] = $fields['purchase_logistics_logistics_cost'];
+                $fields['purchase_logistics_logistics_cost'] = " sum(purchase_logistics_logistics_cost) ";
+            }
+        }
+
+
+        if (in_array('fba_logistics_head_course', $targets)) { //FBA头程物流
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = implode("", $cost_logistic_field['fba_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['fba_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = implode("", $cost_logistic_field['first_fba_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['first_fba_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }
+            $fields['fba_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['fba_logistics_head_course'] = $fields['fba_logistics_head_course'];
+                $fields['fba_logistics_head_course'] = " sum(fba_logistics_head_course) ";
+            }
+        }
+
+        if (in_array('fbm_logistics_head_course', $targets)) { //fbm物流
+
+            if ($datas['cost_count_type'] == '1'){
+                $case_field = implode("", $cost_logistic_field['fbm_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['fbm_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }else{
+                $case_field = implode("", $cost_logistic_field['first_fbm_logistics_head_course']['case']);
+                $case_field = "(($case_field)$rmb_rate)";
+                $else_field = implode("", $cost_logistic_field['first_fbm_logistics_head_course']['else']);
+                $else_field = "({$else_field}{$rate})";
+            }
+            $fields['fbm_logistics_head_course'] = " sum( CASE WHEN {$field_flag} = 201 THEN {$case_field} ELSE {$else_field} END ) ";
+            if ($is_opeartion){
+                $this->cost_logistics_operation_arr['fbm_logistics_head_course'] = $fields['fbm_logistics_head_course'];
+                $fields['fbm_logistics_head_course'] = " sum(fbm_logistics_head_course) ";
+            }
+        }
+
+
+        return $fields;
+
+    }
+
+    /**
+     * @param $rate_table
+     * @param $params
+     * @param $currencyInfo
+     * @param $table_pre string 需要连表的表前缀
+     * @return string
+     */
+    private function leftJoinCurrentMonthRate($rate_table,$params,$currencyInfo,$table_pre = 'g'){
+
+        if (isset($params['is_month_rate']) && $params['is_month_rate'] == 1){
+            $year   = date("Y");
+            $month  = (int)date("m");
+            $rate_type = $params['rate_type']??3;
+            if ($rate_type == 3){
+                $rate_user_id = "g.user_id";
+            }else{
+                $rate_user_id = 0;
+            }
+
+            $rate_table_month = $this->getTableMonthSiteRate($rate_type,$params);
+            $rate_table .= " LEFT JOIN {$rate_table_month} as rates ON rates.site_id = {$table_pre}.site_id  and  rates.myear = {$year} and rates.mmonth = {$month} ";
+
+        }else{
+            if (empty($currencyInfo) || $currencyInfo['currency_type'] == '1') {
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = {$table_pre}.site_id AND rates.user_id = 0 ";
+            } else {
+                $rate_table .= " LEFT JOIN {$this->table_site_rate} as rates ON rates.site_id = {$table_pre}.site_id AND rates.user_id = {$table_pre}.user_id  ";
+            }
+        }
+
+        return $rate_table;
+    }
+
+    private function getTableMonthSiteRate($rate_type,$params){
+
+        $user_id = $params['user_id'] ?? 0;
+
+        if ($rate_type == 3){
+            $rate_user_id = $user_id;
+        }else{
+            $rate_user_id = 0;
+        }
+        $ym_where = '';
+        if (!empty($params['max_ym']) && !empty($params['min_ym'])){
+            if ($params['max_ym'] == $params['min_ym']){
+                $ym_where = " AND rates.year_month = {$params['min_ym']} ";
+            }else{
+                $ym_where = " AND rates.year_month >= {$params['min_ym']} and rates.year_month <= {$params['max_ym']}";
+
+            }
+        }
+
+        $table = "((SELECT rates.* FROM {$this->table_month_site_rate} AS rates JOIN {$this->table_amazon_currency_dimension} AS dc on   dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.rate_type = rates.rate_type WHERE dc.user_id = {$user_id}  and rates.user_id in (0,{$user_id}) {$ym_where} ) UNION all (SELECT rates.* FROM {$this->table_month_site_rate} AS rates left JOIN {$this->table_amazon_currency_dimension} AS dc on  dc.myear = rates.myear AND dc.mmonth = rates.mmonth AND dc.user_id = {$user_id} WHERE dc.user_id IS null and rates.rate_type = {$rate_type} and rates.user_id = {$rate_user_id} {$ym_where})) ";
+
+        return $table;
+
+    }
+
+    /**
+     * 处理按月成本和物流数据
+     * @param $datas
+     * @return array
+     */
+    private function handleNexIndexCostLogisticsField($datas){
+
+        $fields = array();
+        if ($datas['currency_code'] == 'ORIGIN') {
+            $rate_tmp = "";
+        } else {
+            $rate_tmp = " * ({:RATE} / COALESCE(rates.rate ,1))";
+        }
+        $rmb_rate = " * ({:RMBRATE}) ";
+        $item_tmp = "byorderitem_";
+        $origin_tmp = "byorder_";
+        if ($datas['finance_datas_origin'] == '2') {
+            $item_tmp = "reportitem_";//()
+            $origin_tmp = "report_";
+        }
+        $is_opeartion = (isset($datas['count_dimension']) && $datas['count_dimension'] == 'operators') ? true : false;
+
+        if (isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1){
+            $fba_purchase_refund_rate       = "1";
+            $fba_logistics_refund_rate      = "1";
+            $fbm_purchase_refund_rate       = "1";
+            $fbm_logistics_refund_rate      = "1";
+            $remove_purchase_refund_rate    = "1";
+            $remove_logistics_refund_rate   = "1";
+        }else{
+            $fba_purchase_refund_rate       = "COALESCE(finance_setting.fba_refund_purchase_cost_rate ,1)";
+            $fba_logistics_refund_rate      = "COALESCE(finance_setting.fba_refund_logistics_cost_rate ,1)";
+            $fbm_purchase_refund_rate       = "COALESCE(finance_setting.fbm_refund_purchase_cost_rate ,1)";
+            $fbm_logistics_refund_rate      = "COALESCE(finance_setting.fbm_refund_logistics_cost_rate ,1)";
+            $remove_purchase_refund_rate    = "COALESCE(finance_setting.removel_purchase_cost_rate ,1)";
+            $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,1)";
+        }
+
+
+
+        $cost_logistics = array(
+            //SUM( ( byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'purchase_logistics_purchase_cost',
+            "purchase_logistics_purchase_cost" =>array(//采购成本
+                "case" => array(
+                    "{$item_tmp}reserved_field83",
+                    "+{$item_tmp}reserved_field27",
+                    "-{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
+                    "+{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
+                    "+{$item_tmp}reserved_field30",
+                    "+{$item_tmp}reserved_field31*{$remove_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field31",
+                    "+{$origin_tmp}purchasing_cost",
+                ),
+            ),
+            //	SUM( ( byorderitem_reserved_field28 - byorderitem_reserved_field29 - byorderitem_reserved_field30 - byorderitem_reserved_field31 + byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'purchasing_cost_only',
+            "purchasing_cost_only" =>array(//采购成本
+                "case" => array(
+                    "{$item_tmp}reserved_field83",
+                    "+{$item_tmp}reserved_field27",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field28",
+                    "+{$origin_tmp}purchasing_cost",
+                    "-{$item_tmp}reserved_field29",
+                    "-{$item_tmp}reserved_field30",
+                ),
+            ),
+            //	SUM( ( ( 0-byorderitem_reserved_field27 ) + byorderitem_reserved_field28 - byorderitem_reserved_field29 - byorderitem_reserved_field30 - byorderitem_reserved_field31 + byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'fba_purchasing_cost_only',
+            "fba_purchasing_cost_only" =>array(//fba采购成本
+                "case" => array(
+                    "{$item_tmp}reserved_field83",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field28",
+                    "+{$origin_tmp}purchasing_cost",
+                    "-{$item_tmp}reserved_field27",
+                    "-{$item_tmp}reserved_field29",
+                    "-{$item_tmp}reserved_field30",
+                ),
+            ),
+            //	SUM( ( byorderitem_reserved_field27 ) ) AS 'fbm_purchasing_cost_only',
+            "fbm_purchasing_cost_only" =>array(//fbm采购成本
+                "case" => array(
+                    "{$item_tmp}reserved_field27",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field27",
+                ),
+            ),
+            //SUM( ( ( 0-byorderitem_reserved_field28 ) + byorderitem_reserved_field29 ) ) AS 'refund_purchasing_cost',
+            "refund_purchasing_cost" =>array(//退款
+                "case" => array(
+                    "{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
+                    "-{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field29",
+                    "-{$item_tmp}reserved_field28",
+                ),
+            ),
+            // SUM( ( ( 0-byorderitem_reserved_field28 ) ) ) AS 'fba_refund_purchasing_cost',
+            "fba_refund_purchasing_cost" =>array(//fba退款
+                "case" => array(
+                    "0-{$item_tmp}reserved_field28*{$fba_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "0-{$item_tmp}reserved_field28",
+                ),
+            ),
+            //SUM( ( byorderitem_reserved_field29 ) ) AS 'fbm_refund_purchasing_cost',
+            "fbm_refund_purchasing_cost" =>array(//fbm退款
+                "case" => array(
+                    "{$item_tmp}reserved_field29*{$fbm_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field29",
+                ),
+            ),
+            //SUM( ( byorderitem_reserved_field30 + byorderitem_reserved_field31 ) ) AS 'other_inventory_purchasing_cost',
+            "other_inventory_purchasing_cost" =>array(//其他库存产品成本
+                "case" => array(
+                    "{$item_tmp}reserved_field30",
+                    "+{$item_tmp}reserved_field31*{$remove_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field30",
+                    "+{$item_tmp}reserved_field31",
+                ),
+            ),
+            //SUM( ( byorderitem_reserved_field30 ) ) AS 'inventory_adjustment_purchasing_cost',
+            "inventory_adjustment_purchasing_cost" =>array(//库存产品成本
+                "case" => array(
+                    "{$item_tmp}reserved_field30",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field30",
+                ),
+            ),
+            //SUM( ( byorderitem_reserved_field31 ) ) AS 'remove_purchasing_cost',
+            "remove_purchasing_cost" =>array(//移除库存产品成本
+                "case" => array(
+                    "{$item_tmp}reserved_field31*{$remove_purchase_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field31",
+                ),
+            ),
+            //物流
+            //	SUM( ( byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'purchase_logistics_logistics_cost',
+            "purchase_logistics_logistics_cost" =>array(//物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field84",
+                    "+{$item_tmp}reserved_field1",
+                    "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                    "+{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
+                    "+{$item_tmp}reserved_field6",
+                    "+{$item_tmp}reserved_field7*{$remove_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field6",
+                    "+{$item_tmp}reserved_field7",
+                    "+{$origin_tmp}logistics_head_course",
+                ),
+            ),
+            //SUM( ( ( 0-byorderitem_reserved_field3 ) - byorderitem_reserved_field7 + byorderitem_reserved_field2 - byorderitem_reserved_field6 + byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'logistics_cost_only',
+            "logistics_cost_only" =>array(//物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field84",
+                    "+{$item_tmp}reserved_field1",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field2",
+                    "-{$item_tmp}reserved_field3",
+                    "+{$origin_tmp}logistics_head_course",
+                ),
+            ),
+            // 	SUM( ( ( 0-byorderitem_reserved_field1 ) + byorderitem_reserved_field2 - byorderitem_reserved_field6 - byorderitem_reserved_field3 - byorderitem_reserved_field7 + byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'fba_logistics_cost',
+            "fba_logistics_cost" =>array(//fba物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field84",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field2",
+                    "-{$item_tmp}reserved_field3",
+                    "-{$item_tmp}reserved_field1",
+                    "+{$origin_tmp}logistics_head_course",
+                ),
+            ),
+            // SUM( ( byorderitem_reserved_field1 ) ) AS 'fbm_logistics_cost',
+            "fbm_logistics_cost" =>array(//fbm物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field1",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field1",
+                ),
+            ),
+            //SUM( ( ( 0-byorderitem_reserved_field2 ) + byorderitem_reserved_field3 ) ) AS 'refund_logistics_cost',
+            "refund_logistics_cost" =>array(//退货物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
+                    "-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field3",
+                    "-{$item_tmp}reserved_field2",
+                ),
+            ),
+            //SUM( ( ( 0-byorderitem_reserved_field2 ) ) ) AS 'fba_refund_logistics_cost',
+            "fba_refund_logistics_cost" =>array(//fba退货物流成本
+                "case" => array(
+                    "0-{$item_tmp}reserved_field2*{$fba_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "0-{$item_tmp}reserved_field2",
+                ),
+            ),
+            //	SUM( ( byorderitem_reserved_field3 ) ) AS 'fbm_refund_logistics_cost',
+            "fbm_refund_logistics_cost" =>array(//退货物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field3*{$fbm_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field3",
+                ),
+            ),
+            //SUM( ( byorderitem_reserved_field7 + byorderitem_reserved_field6 ) ) AS 'other_inventory_logistics_cost',
+            "other_inventory_logistics_cost" =>array(//其他库存物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field6",
+                    "+{$item_tmp}reserved_field7*{$remove_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field6",
+                    "+{$item_tmp}reserved_field7",
+                ),
+            ),
+            //SUM( ( byorderitem_reserved_field7 ) ) AS 'remove_purchasing_logistics_cost',
+            "remove_purchasing_logistics_cost" =>array(//移除物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field7*{$remove_logistics_refund_rate}",
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field7",
+                ),
+            ),
+            //SUM( ( byorderitem_reserved_field6 ) ) AS 'inventory_adjustment_logistics_cost',
+            "inventory_adjustment_logistics_cost" =>array(//库存物流成本
+                "case" => array(
+                    "{$item_tmp}reserved_field6",
+
+                ),
+                "else" => array(
+                    "{$item_tmp}reserved_field6",
+                ),
+            ),
+
+        );
+        $field_flag = "{$item_tmp}reserved_field4";
+
+
+        if ($datas['cost_count_type'] == 2){
+            $field_flag = "monthly_sku_reserved_field51";
+            //	SUM( ( first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'purchase_logistics_purchase_cost',
+            $cost_logistics = array(
+                "purchase_logistics_purchase_cost" =>array(//采购成本
+                    "case" => array(
+                        "monthly_sku_reserved_field26",
+                        "-monthly_sku_reserved_field27",
+                        "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
+                        "+monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                        "+monthly_sku_reserved_field30",
+                        "+monthly_sku_reserved_field31*{$remove_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "first_purchasing_cost",
+                        "+monthly_sku_reserved_field31",
+                        "+monthly_sku_reserved_field30",
+                    ),
+                ),
+                // SUM( ( ( 0-monthly_sku_reserved_field28 ) - monthly_sku_reserved_field29 - monthly_sku_reserved_field30 - monthly_sku_reserved_field31 + first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'purchasing_cost_only',
+                "purchasing_cost_only" =>array(//采购成本
+                    "case" => array(
+                        "monthly_sku_reserved_field26",
+                        "-monthly_sku_reserved_field27",
+                    ),
+                    "else" => array(
+                        "first_purchasing_cost",
+                        "-monthly_sku_reserved_field28",
+                        "-monthly_sku_reserved_field29",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field27 - monthly_sku_reserved_field28 - monthly_sku_reserved_field29 - monthly_sku_reserved_field30 - monthly_sku_reserved_field31 + first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'fba_purchasing_cost_only',
+                "fba_purchasing_cost_only" =>array(//fba采购成本
+                    "case" => array(
+                        "monthly_sku_reserved_field26",
+                    ),
+                    "else" => array(
+                        "first_purchasing_cost",
+                        "+monthly_sku_reserved_field27",
+                        "-monthly_sku_reserved_field28",
+                        "-monthly_sku_reserved_field29",
+                    ),
+                ),
+                //SUM( ( ( 0-monthly_sku_reserved_field27 ) ) ) AS 'fbm_purchasing_cost_only',
+                "fbm_purchasing_cost_only" =>array(//fbm采购成本
+                    "case" => array(
+                        "0-monthly_sku_reserved_field27",
+                    ),
+                    "else" => array(
+                        "0-monthly_sku_reserved_field27",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field28 + monthly_sku_reserved_field29 ) ) AS 'refund_purchasing_cost',
+                "refund_purchasing_cost" =>array(//退款
+                    "case" => array(
+                        "monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                        "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field28",
+                        "+monthly_sku_reserved_field29",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field28 ) ) AS 'fba_refund_purchasing_cost',
+                "fba_refund_purchasing_cost" =>array(//fba退款
+                    "case" => array(
+                        "monthly_sku_reserved_field28",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field28",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field29 ) ) AS 'fbm_refund_purchasing_cost',
+                "fbm_refund_purchasing_cost" =>array(//fbm退款
+                    "case" => array(
+                        "monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field29",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field30 + monthly_sku_reserved_field31 ) ) AS 'other_inventory_purchasing_cost',
+                "other_inventory_purchasing_cost" =>array(//其他库存产品成本
+                    "case" => array(
+                        "monthly_sku_reserved_field30",
+                        "+monthly_sku_reserved_field31*{$remove_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field30",
+                        "+monthly_sku_reserved_field31",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field30 ) ) AS 'inventory_adjustment_purchasing_cost',
+                "inventory_adjustment_purchasing_cost" =>array(//库存产品成本
+                    "case" => array(
+                        "monthly_sku_reserved_field30",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field30",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field31 ) ) AS 'remove_purchasing_cost',
+                "remove_purchasing_cost" =>array(//移除库存产品成本
+                    "case" => array(
+                        "monthly_sku_reserved_field31*{$remove_purchase_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field31",
+                    ),
+                ),
+                //物流
+                //	SUM( ( first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'purchase_logistics_logistics_cost',
+                "purchase_logistics_logistics_cost" =>array(//物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field32",
+                        "-monthly_sku_reserved_field33",
+                        "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                        "+monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                        "+monthly_sku_reserved_field36",
+                        "+monthly_sku_reserved_field50*{$remove_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field50",
+                        "+monthly_sku_reserved_field36",
+                        "+first_logistics_head_course",
+                    ),
+                ),
+                //SUM( ( ( 0-monthly_sku_reserved_field35 ) - monthly_sku_reserved_field36 - monthly_sku_reserved_field34 - monthly_sku_reserved_field50 + first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'logistics_cost_only',
+                "logistics_cost_only" =>array(//物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field32",
+                        "-monthly_sku_reserved_field33",
+                    ),
+                    "else" => array(
+                        "first_logistics_head_course",
+                        "-monthly_sku_reserved_field35",
+                        "-monthly_sku_reserved_field34",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field33 - monthly_sku_reserved_field34 - monthly_sku_reserved_field50 - monthly_sku_reserved_field35 - monthly_sku_reserved_field36 + first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'fba_logistics_cost',
+                "fba_logistics_cost" =>array(//fba物流成本
+                    "case" => array(
+                        "{$item_tmp}reserved_field84",
+                    ),
+                    "else" => array(
+                        "first_logistics_head_course",
+                        "+monthly_sku_reserved_field33",
+                        "-monthly_sku_reserved_field35",
+                        "-monthly_sku_reserved_field34",
+                    ),
+                ),
+                //SUM( ( ( 0-monthly_sku_reserved_field33 ) ) ) AS 'fbm_logistics_cost',
+                "fbm_logistics_cost" =>array(//fbm物流成本
+                    "case" => array(
+                        "0-monthly_sku_reserved_field33",
+                    ),
+                    "else" => array(
+                        "0-monthly_sku_reserved_field33",
+                    ),
+                ),
+                //	SUM( ( monthly_sku_reserved_field34 + monthly_sku_reserved_field35 ) ) AS 'refund_logistics_cost',
+                "refund_logistics_cost" =>array(//退货物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                        "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field35",
+                        "+monthly_sku_reserved_field34",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field34 ) ) AS 'fba_refund_logistics_cost',
+                "fba_refund_logistics_cost" =>array(//fba退货物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field34",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field35 ) ) AS 'fbm_refund_logistics_cost',
+                "fbm_refund_logistics_cost" =>array(//退货物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field35",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'other_inventory_logistics_cost',
+                "other_inventory_logistics_cost" =>array(//其他库存物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field36",
+                        "+monthly_sku_reserved_field50*{$remove_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field36",
+                        "+monthly_sku_reserved_field50",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field50 ) ) AS 'remove_purchasing_logistics_cost',
+                "remove_purchasing_logistics_cost" =>array(//移除物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field50*{$remove_logistics_refund_rate}",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field50",
+                    ),
+                ),
+                //SUM( ( monthly_sku_reserved_field36 ) ) AS 'inventory_adjustment_logistics_cost',
+                "inventory_adjustment_logistics_cost" =>array(//库存物流成本
+                    "case" => array(
+                        "monthly_sku_reserved_field36",
+                    ),
+                    "else" => array(
+                        "monthly_sku_reserved_field36",
+                    ),
+                ),
+
+            );
+        }
+
+
+        foreach ($cost_logistics as $key => $cost_logistic_v){
+
+            $fields_tmp = "case when {$field_flag} = 201 THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END";
+            $fields['operation_arr'][$key] = "SUM({$fields_tmp})";
+            if ($is_opeartion){
+                $fields_tmp = $key;
+            }
+            $fields[$key] = "SUM({$fields_tmp})";
+            if ($key == 'purchase_logistics_purchase_cost' or $key == "purchase_logistics_logistics_cost"){
+                $fields[$key."_origin"]     = "+({$fields_tmp})";
+                $fields[$key."_compensate"] = "-(".implode("",$cost_logistic_v['else']).")";
+            }
+        }
+        $fields["purchase_logistics_compensate"] = $fields["purchase_logistics_purchase_cost_compensate"].$fields["purchase_logistics_logistics_cost_compensate"];
+        $fields["purchase_logistics_origin"] = "+".$fields['purchase_logistics_purchase_cost']."+".$fields["purchase_logistics_logistics_cost"];
+
+        return $fields;
+
+
+    }
     public function getFinanceGoodsIds($user_id,$where,$limit,$max_ym,$min_ym){
         $dws_user_id_mod = getUserIdMod($user_id);
         $ym_where = $this->getYnWhere($max_ym , $min_ym ) ;
