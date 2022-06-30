@@ -41,6 +41,7 @@ class PathLimitMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $path = $request->getUri()->getPath();
+        $method = $this->request->getMethod();
 
         $configInterface = ApplicationContext::getContainer()->get(ConfigInterface::class);
         $otherIsLimit = $configInterface->get("pathlimit.other_is_limit");
@@ -65,9 +66,9 @@ class PathLimitMiddleware implements MiddlewareInterface
         //计数是否有匹配到path
         $num = 0;
         foreach ($limitPath as $k=>$apiCount){
-            if(preg_match_all($k, $path, $pat_array)){
+            if(preg_match_all($k, $path, $pat_array) && isset($apiCount['method']) && $method==$apiCount['method']){
                 //验证次数
-                $res = $this->checkCount($redis, $project, $path, $merchantId, $apiCount);
+                $res = $this->checkCount($redis, $project, $k, $merchantId, $apiCount);
                 if (!$res['code']) {
                     return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $res['msg']));
                 }
@@ -84,7 +85,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         }elseif(!$num && $otherIsLimit){
             $flag=1;
             //判断other_is_limit 验证次数
-            $res = $this->checkCount($redis, $project, $path, $merchantId, $this->defaultLimit);
+            $res = $this->checkCount($redis, $project, $k, $merchantId, $this->defaultLimit);
             if (!$res['code']) {
                 return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $res['msg']));
             }
@@ -118,7 +119,7 @@ class PathLimitMiddleware implements MiddlewareInterface
     private function checkCount($redis, $project, $path, $merchantId, $apiCount)
     {
         $time = time();
-        if (!isset($apiCount['rate']) || !isset($apiCount['burst'])) {
+        if (!isset($apiCount['rate']) || !isset($apiCount['burst']) || !isset($apiCount['method'])) {
             return [
                 'code' => 0,
                 'msg' => '缺少参数',
@@ -126,7 +127,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         }
 
         //现在的参数
-        $key = "center_path_limit_current_param_" .$project."_".$path."_".$merchantId;
+        $key = "center_path_limit_current_param_" .$project."_".$apiCount['method']."_".$path."_".$merchantId;
         $currentParam = $redis->get($key);
         if($currentParam===false){
             $currentCount = $apiCount['burst'];
@@ -143,7 +144,7 @@ class PathLimitMiddleware implements MiddlewareInterface
 
 
         //现在访问的次数
-        $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId;
+        $key = "center_path_limit_check_count_" .$project."_".$apiCount['method']."_".$path."_".$merchantId;
         $checkCount = $redis->incr($key);
         if ($checkCount >= $currentCount) {
             $checkCount = $redis->decr($key);
@@ -153,6 +154,13 @@ class PathLimitMiddleware implements MiddlewareInterface
             ];
         }
         $redis->expire($key, 3600);
+
+        Context::set('pathLimitPathInfo', [
+            'project' => $project,
+            'method' => $apiCount['method'],
+            'path' => $path,
+            'merchantId' => $merchantId,
+        ]);
 
         return [
             'code' => 1,
