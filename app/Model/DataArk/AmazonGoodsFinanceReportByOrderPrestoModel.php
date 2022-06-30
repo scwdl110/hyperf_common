@@ -1780,7 +1780,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
 
 
-                    $site_rate = $rate[$datum['site_id']];
+                    $site_rate = isset($rate[$datum['site_id']]['rate'])?$rate[$datum['site_id']]['rate']:1;
                     $cost_profit_profit     = $datum['cost_profit_profit'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
                     $cost_profit_total_pay  = $datum['cost_profit_total_pay'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
 
@@ -1796,6 +1796,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $datum['other_inventory_purchasing_cost']     = $datum['inventory_adjustment_purchasing_cost'] +  $datum['remove_purchasing_cost'];
                     $purchase_logistics_purchase_cost   = $datum['purchasing_cost_only'] + $datum['refund_purchasing_cost'] + $datum['other_inventory_purchasing_cost'];
 
+                    $datum['purchase_logistics_purchase_cost'] = $purchase_logistics_purchase_cost;
+
                     //新版财务物流
                     $datum['fba_logistics_cost'] = $datum['fba_logistics_cost'] * $site_rate;
                     $datum['fbm_logistics_cost'] = $datum['fbm_logistics_cost'] * $site_rate;
@@ -1807,6 +1809,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $datum['remove_purchasing_logistics_cost'] = $datum['remove_purchasing_logistics_cost'] * $remove_logistics_refund_rate * $site_rate;
                     $datum['other_inventory_logistics_cost']     = $datum['inventory_adjustment_logistics_cost'] +  $datum['remove_purchasing_logistics_cost'];
                     $purchase_logistics_logistics_cost  = $datum['logistics_cost_only'] + $datum['refund_logistics_cost'] + $datum['other_inventory_logistics_cost'];
+                    $datum['purchase_logistics_logistics_cost'] = $purchase_logistics_logistics_cost;
 
                     $cost_profit_profit     += $purchase_logistics_purchase_cost + $purchase_logistics_logistics_cost;
                     $cost_profit_total_pay  += $purchase_logistics_purchase_cost + $purchase_logistics_logistics_cost;
