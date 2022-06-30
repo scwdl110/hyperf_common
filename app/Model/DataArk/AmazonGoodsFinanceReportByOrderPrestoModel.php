@@ -1730,6 +1730,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $rate_arr = $redis->get($redis_key);
             if (empty($rate_arr)){
 
+                foreach ($data as $v){
+                    $return_data[] = (array)$v;
+                }
+
+                return ['lists' => $return_data, 'count' => 0];
+
                 //去数据库查询 erp_polling.p_user_edit_record表 条件user_id=user_id and key=finance_currency_rate_config_key+user_id，汇率类型 1：月末汇率，2：月初汇率，3：自定义汇率
                 $rate_type_sql = "SELECT * from p_user_edit_record where user_id = {$user_id} AND `key` = 'finance_currency_rate_config_key{$user_id}'";
                 $rate_type_data = DB::connection("erp_polling")->selectOne($rate_type_sql);
