@@ -1726,7 +1726,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $redis = $redis->getClient('bi');
 
             $month = date("Y-m",$start_time);
-            $redis_key = "month_rate_{$user_id}_{$month}";
+            $redis_key = "jdx_month_rate_{$user_id}_{$month}";
             $rate_arr = $redis->get($redis_key);
             if (empty($rate_arr)){
 
@@ -1738,12 +1738,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $rate_table = $this->getTableMonthSiteRate($rate_type,$params);
                 $ods = config('misc.presto_schema_ods', 'ods');
                 $rate_table = str_replace($ods.".","",$rate_table);
-                $rate = Db::connection('bigdata_ads')->select("SELECT * from {$rate_table} as t");
+                $rate_tmp = Db::connection('bigdata_ads')->select("SELECT * from {$rate_table} as t");
+                $rate = array();
+                foreach ($rate_tmp as $v){
+                    $rate[] = (array)$v;
+                }
+
                 //查出当月财务相关设置
                 $myear = date("Y",$start_time);
                 $mmonth = intval(date("m",$start_time));
-                $finance_setting = Db::connection('bigdata_ads')->selectOne("SELECT * from ods_dataark_f_amazon_finance_setting_001 where user_id = {$user_id} and channel_id = {$channel_id} and myear = {$myear} and mmonth = {$mmonth}");
-                $rate = array($rate,null,'site_id');
+                $finance_setting = Db::connection('bigdata_ads')->selectOne("SELECT * from ods_dataark_f_amazon_finance_setting_001 where user_id = {$user_id} and channel_id = {$channel_id} and myear = {$myear} and mmonth = {$mmonth} and db_num = '{$this->dbhost}'");
+                $rate = array_column($rate,null,'site_id');
                 if (!empty($finance_setting)){
                     $finance_setting = (array)$finance_setting;
                 }
@@ -1751,8 +1756,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     "rate" => $rate,
                     "finance_setting" => $finance_setting
                 );
-                $redis->set($redis_key,$rate_arr,300);
+
+                $redis->set($redis_key,serialize($rate_arr),300);
             }else{
+                $rate_arr = unserialize($rate_arr);
                 $rate               = $rate_arr['rate'];
                 $finance_setting    = $rate_arr['finance_setting'];
             }
