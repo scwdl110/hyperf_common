@@ -78,15 +78,20 @@ class PathLimitMiddleware implements MiddlewareInterface
             }
         }
 
-
-        //判断other_is_limit
-        if(!$num && $otherIsLimit){
-            //验证次数
+        //flag 0:匹配到 1:未匹配并限制其他 2未匹配无限制其他
+        if($num){
+            $flag = 0;
+        }elseif(!$num && $otherIsLimit){
+            $flag=1;
+            //判断other_is_limit 验证次数
             $res = $this->checkCount($redis, $project, $path, $merchantId, $this->defaultLimit);
             if (!$res['code']) {
                 return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $res['msg']));
             }
+        }else{
+            $flag=2;
         }
+        Context::set('pathLimitStatus', $flag);
 
         $response = $handler->handle($request);
 

@@ -602,21 +602,23 @@ class Functions {
      * 亚马逊429状态设置path_limit的burst为0
      */
     public function setPathLimitZero(){
-        $redis = new Redis();
-        $redis = $redis->getClient();
-        $key = "center_path_limit_current_param_" .$project."_".$path."_".$merchantId;
-        $time = time();
-        $currentParam = [
-            'time' => $time,
-            'burst' => 0,
-        ];
-        $redis->set($key, json_encode($currentParam), 3600);
+        $pathLimitStatus = Context::get('pathLimitStatus', 2);
+        if($pathLimitStatus != 2){
+            $redis = new Redis();
+            $redis = $redis->getClient();
+            $key = "center_path_limit_current_param_" .$project."_".$path."_".$merchantId;
+            $time = time();
+            $currentParam = [
+                'time' => $time,
+                'burst' => 0,
+            ];
+            $redis->set($key, json_encode($currentParam), 3600);
 
-        $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId;
-        $redis->del($key);
+            $key = "center_path_limit_check_count_" .$project."_".$path."_".$merchantId;
+            $redis->del($key);
 
-        Context::set('pathLimitReturnError', 1);
-
+            Context::set('pathLimitReturnError', 1);
+        }
         return 1;
     }
 
