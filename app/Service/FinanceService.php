@@ -546,10 +546,13 @@ class FinanceService extends BaseService
             $is_goods_day_report = true;
         }
         if (empty($compare_data)) {  // 有对比数据需使用PRESTO
-            if ($method == 'getListByGoods' and $day_param > 90 and in_array($userInfo['user_id'], explode(",", $big_data_user)) and $is_goods_day_report) {
+            if ($method == 'getListByGoods' and $day_param >= 90 and in_array($userInfo['user_id'], explode(",", $big_data_user)) and $is_goods_day_report) {
                 $isReadAthena = true;
             }
-            if ($method == 'getListByGoods' and $day_param > 15 and in_array($userInfo['user_id'], [21,20567,411744])) {//20567单独读取
+            if (in_array($method,['getListByGoods','getListByOperators'])  and $day_param > 15 and in_array($userInfo['user_id'], [20567,416770]) && $is_goods_day_report) {
+                $isReadAthena = true;
+            }
+            if (in_array($method,['getListByGoods','getListByOperators'])  and $day_param > 31 and in_array($userInfo['user_id'], [21,453751,410426,31800,31040,22414,447899]) && $is_goods_day_report) {
                 $isReadAthena = true;
             }
         }
