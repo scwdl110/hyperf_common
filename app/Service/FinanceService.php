@@ -549,7 +549,7 @@ class FinanceService extends BaseService
             if ($method == 'getListByGoods' and $day_param > 90 and in_array($userInfo['user_id'], explode(",", $big_data_user)) and $is_goods_day_report) {
                 $isReadAthena = true;
             }
-            if ($method == 'getListByGoods' and $day_param > 15 and $userInfo['user_id'] == 20567) {//20567单独读取
+            if ($method == 'getListByGoods' and $day_param > 15 and in_array($userInfo['user_id'], [21,20567,411744])) {//20567单独读取
                 $isReadAthena = true;
             }
         }
