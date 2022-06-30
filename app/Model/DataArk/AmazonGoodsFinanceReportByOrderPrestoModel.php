@@ -1816,7 +1816,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                     $datum['cost_profit_profit'] = $cost_profit_profit;
                     $datum['cost_profit_total_pay'] = $cost_profit_total_pay;
-                    $datum['cost_profit_profit_rate'] = $datum['cost_profit_profit']/$datum['sale_sales_quota'];
+                    $datum['cost_profit_profit_rate'] = $datum['sale_sales_quota'] == 0? 0 : ($datum['cost_profit_profit']/$datum['sale_sales_quota']);
 
                 }
                 unset($datum['item_reserved_field4']);
