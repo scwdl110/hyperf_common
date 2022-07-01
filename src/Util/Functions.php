@@ -601,7 +601,7 @@ class Functions {
     /**
      * 亚马逊429状态设置path_limit的burst为0
      */
-    public function setPathLimitZero(){
+    public static function setPathLimitZero(){
         $pathLimitStatus = Context::get('pathLimitStatus', 2);
         $pathLimitPathInfo = Context::get('pathLimitPathInfo', []);
         if($pathLimitStatus != 2 && $pathLimitPathInfo){
