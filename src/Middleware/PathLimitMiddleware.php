@@ -69,10 +69,10 @@ class PathLimitMiddleware implements MiddlewareInterface
 
         //计数是否有匹配到path
         $num = 0;
-        foreach ($limitPath as $k=>$apiCount){
-            if(preg_match_all("/".$k."/", $path, $pat_array) && isset($apiCount['method']) && $method==$apiCount['method']){
+        foreach ($limitPath as $apiCount){
+            if(isset($apiCount['method']) && isset($apiCount['url']) && preg_match_all("/".$apiCount['url']."/", $path, $pat_array) && $method==$apiCount['method']){
                 //验证次数
-                $res = $this->checkCount($redis, $project, $k, $merchantId, $apiCount);
+                $res = $this->checkCount($redis, $project, $apiCount['url'], $merchantId, $apiCount);
                 if (!$res['code']) {
                     return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $res['msg']));
                 }
@@ -89,7 +89,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         }elseif(!$num && $otherIsLimit){
             $flag=1;
             //判断other_is_limit 验证次数
-            $res = $this->checkCount($redis, $project, $k, $merchantId, $this->defaultLimit);
+            $res = $this->checkCount($redis, $project, $apiCount['url'], $merchantId, $this->defaultLimit);
             if (!$res['code']) {
                 return Context::get(ResponseInterface::class)->withStatus(401, 'over limit')->withBody($this->getBody(100910, $res['msg']));
             }
@@ -123,7 +123,7 @@ class PathLimitMiddleware implements MiddlewareInterface
     private function checkCount($redis, $project, $path, $merchantId, $apiCount)
     {
         $time = time();
-        if (!isset($apiCount['rate']) || !isset($apiCount['burst']) || !isset($apiCount['method'])) {
+        if (!isset($apiCount['rate']) || !isset($apiCount['burst']) || !isset($apiCount['method']) || !isset($apiCount['url'])) {
             return [
                 'code' => 0,
                 'msg' => '缺少参数',
