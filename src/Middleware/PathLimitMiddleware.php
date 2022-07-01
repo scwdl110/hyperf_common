@@ -41,7 +41,7 @@ class PathLimitMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $path = $request->getUri()->getPath();
-        $method = $this->request->getMethod();
+        $method = $request->getMethod();
 
         $configInterface = ApplicationContext::getContainer()->get(ConfigInterface::class);
         $otherIsLimit = $configInterface->get("pathlimit.other_is_limit");
