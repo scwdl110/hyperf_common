@@ -607,7 +607,7 @@ class Functions {
         if($pathLimitStatus != 2 && $pathLimitPathInfo){
             $redis = new Redis();
             $redis = $redis->getClient();
-            $key = "center_path_limit_current_param_" .$pathLimitPathInfo['project']."_".$pathLimitPathInfo['method']."_".$pathLimitPathInfo['path']."_".$pathLimitPathInfo['merchantId'];
+            $key = "center_path_limit_current_param_" .md5($pathLimitPathInfo['project']."_".$pathLimitPathInfo['method']."_".$pathLimitPathInfo['path']."_".$pathLimitPathInfo['merchantId']);
             $time = time();
             $currentParam = [
                 'time' => $time,
@@ -615,7 +615,7 @@ class Functions {
             ];
             $redis->set($key, json_encode($currentParam), 3600);
 
-            $key = "center_path_limit_check_count_" .$pathLimitPathInfo['project']."_".$pathLimitPathInfo['method']."_".$pathLimitPathInfo['path']."_".$pathLimitPathInfo['merchantId'];
+            $key = "center_path_limit_check_count_" .md5($pathLimitPathInfo['project']."_".$pathLimitPathInfo['method']."_".$pathLimitPathInfo['path']."_".$pathLimitPathInfo['merchantId']);
             $redis->del($key);
 
             Context::set('pathLimitReturnError', 1);

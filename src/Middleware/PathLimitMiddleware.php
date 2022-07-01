@@ -131,7 +131,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         }
 
         //现在的参数
-        $key = "center_path_limit_current_param_" .$project."_".$apiCount['method']."_".$path."_".$merchantId;
+        $key = "center_path_limit_current_param_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
         $currentParam = $redis->get($key);
         if($currentParam===false){
             $currentCount = $apiCount['burst'];
@@ -148,7 +148,7 @@ class PathLimitMiddleware implements MiddlewareInterface
 
 
         //现在访问的次数
-        $key = "center_path_limit_check_count_" .$project."_".$apiCount['method']."_".$path."_".$merchantId;
+        $key = "center_path_limit_check_count_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
         $checkCount = $redis->incr($key);
         if ($checkCount >= $currentCount) {
             $checkCount = $redis->decr($key);
