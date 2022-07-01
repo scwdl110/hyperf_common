@@ -139,7 +139,7 @@ class PathLimitMiddleware implements MiddlewareInterface
                 'time' => $time,
                 'burst' => $apiCount['burst'],
             ];
-            $redis->set($key, json_encode($currentParam), 3600);
+            $redis->set($paramKey, json_encode($currentParam), 3600);
         }else{
             $currentParam = json_decode($currentParam, true);
             $currentCount = floor(($time-$currentParam['time'])*$apiCount['rate']+$currentParam['burst']);
@@ -167,7 +167,7 @@ class PathLimitMiddleware implements MiddlewareInterface
                 'msg' => '超过访问次数,请稍后尝试',
             ];
         }
-        $redis->expire($key, 3600);
+        $redis->expire($countKey, 3600);
 
         Context::set('pathLimitPathInfo', [
             'project' => $project,
