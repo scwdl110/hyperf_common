@@ -52,6 +52,10 @@ class PathLimitMiddleware implements MiddlewareInterface
 
         $userInfo = $request->getAttribute('userInfo');
 
+        if(!$userInfo){
+            $userInfo = $request->getAttribute('spapiInfo');
+        }
+
         //缺少merchant_id
         if(!isset($userInfo['merchant_id']) && !isset($userInfo['Merchant_ID'])){
             $bodyMsg = "缺少merchant_id";
