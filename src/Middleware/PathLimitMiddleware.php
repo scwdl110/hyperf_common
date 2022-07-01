@@ -131,8 +131,8 @@ class PathLimitMiddleware implements MiddlewareInterface
         }
 
         //现在的参数
-        $key = "center_path_limit_current_param_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
-        $currentParam = $redis->get($key);
+        $paramKey = "center_path_limit_current_param_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
+        $currentParam = $redis->get($paramKey);
         if($currentParam===false){
             $currentCount = $apiCount['burst'];
             $currentParam = [
@@ -143,15 +143,25 @@ class PathLimitMiddleware implements MiddlewareInterface
         }else{
             $currentParam = json_decode($currentParam, true);
             $currentCount = floor(($time-$currentParam['time'])*$apiCount['rate']+$currentParam['burst']);
+            if($currentCount > $apiCount['burst']){
+                $currentCount = $apiCount['burst'];
+            }
         }
 
 
 
         //现在访问的次数
-        $key = "center_path_limit_check_count_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
-        $checkCount = $redis->incr($key);
-        if ($checkCount >= $currentCount) {
-            $checkCount = $redis->decr($key);
+        $countKey = "center_path_limit_check_count_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
+        $checkCount = $redis->incr($countKey);
+        if ($checkCount > $currentCount) {
+            //中间必须完全不访问才会增加计数
+            $currentParam = [
+                'time' => $time,
+                'burst' => 0,
+            ];
+            $redis->set($paramKey, json_encode($currentParam), 3600);
+
+            $redis->del($countKey);
             return [
                 'code' => 0,
                 'msg' => '超过访问次数,请稍后尝试',
