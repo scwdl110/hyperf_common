@@ -70,7 +70,7 @@ class PathLimitMiddleware implements MiddlewareInterface
         //计数是否有匹配到path
         $num = 0;
         foreach ($limitPath as $k=>$apiCount){
-            if(preg_match_all($k, $path, $pat_array) && isset($apiCount['method']) && $method==$apiCount['method']){
+            if(preg_match_all("/".$k."/", $path, $pat_array) && isset($apiCount['method']) && $method==$apiCount['method']){
                 //验证次数
                 $res = $this->checkCount($redis, $project, $k, $merchantId, $apiCount);
                 if (!$res['code']) {
