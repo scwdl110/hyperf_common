@@ -16698,7 +16698,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $cost_logistics = array(
                 "purchase_logistics_purchase_cost" =>array(//采购成本
                     "case" => array(
-                        "monthly_sku_reserved_field26",
+                        "0-monthly_sku_reserved_field26",
                         "-monthly_sku_reserved_field27",
                         "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
                         "+monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
@@ -16714,7 +16714,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 // SUM( ( ( 0-monthly_sku_reserved_field28 ) - monthly_sku_reserved_field29 - monthly_sku_reserved_field30 - monthly_sku_reserved_field31 + first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'purchasing_cost_only',
                 "purchasing_cost_only" =>array(//采购成本
                     "case" => array(
-                        "monthly_sku_reserved_field26",
+                        "0-monthly_sku_reserved_field26",
                         "-monthly_sku_reserved_field27",
                     ),
                     "else" => array(
@@ -16726,7 +16726,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 //	SUM( ( monthly_sku_reserved_field27 - monthly_sku_reserved_field28 - monthly_sku_reserved_field29 - monthly_sku_reserved_field30 - monthly_sku_reserved_field31 + first_purchasing_cost + monthly_sku_reserved_field31 + monthly_sku_reserved_field30 ) ) AS 'fba_purchasing_cost_only',
                 "fba_purchasing_cost_only" =>array(//fba采购成本
                     "case" => array(
-                        "monthly_sku_reserved_field26",
+                        "0-monthly_sku_reserved_field26",
                     ),
                     "else" => array(
                         "first_purchasing_cost",
