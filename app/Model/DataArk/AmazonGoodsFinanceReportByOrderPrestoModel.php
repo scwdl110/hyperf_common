@@ -16211,7 +16211,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ),
             "first_purchase_logistics_purchase_cost" =>array(//采购成本
                 "case" => array(
-                    "monthly_sku_reserved_field26",
+                    "0-monthly_sku_reserved_field26",
                     "-monthly_sku_reserved_field27",
                     "+monthly_sku_reserved_field28*{$fba_purchase_refund_rate}",
                     "+monthly_sku_reserved_field29*{$fbm_purchase_refund_rate}",
