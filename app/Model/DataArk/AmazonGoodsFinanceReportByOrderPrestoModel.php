@@ -16834,7 +16834,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 //	SUM( ( monthly_sku_reserved_field33 - monthly_sku_reserved_field34 - monthly_sku_reserved_field50 - monthly_sku_reserved_field35 - monthly_sku_reserved_field36 + first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'fba_logistics_cost',
                 "fba_logistics_cost" =>array(//fba物流成本
                     "case" => array(
-                        "{$item_tmp}reserved_field84",
+                        "0-monthly_sku_reserved_field32",
                     ),
                     "else" => array(
                         "first_logistics_head_course",
