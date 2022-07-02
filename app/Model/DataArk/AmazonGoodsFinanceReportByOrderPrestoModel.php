@@ -16233,7 +16233,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ),
             "first_purchase_logistics_logistics_cost" =>array(//物流成本
                 "case" => array(
-                    "monthly_sku_reserved_field32",
+                    "0-monthly_sku_reserved_field32",
                     "-monthly_sku_reserved_field33",
                     "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
                     "+monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
@@ -16253,7 +16253,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             ),
             "first_fba_logistics_head_course" =>array(//fba物流成本
                 "case" => array(
-                    "monthly_sku_reserved_field32",
+                    "0-monthly_sku_reserved_field32",
                     "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
                 ),
                 "else" => array(
@@ -16806,7 +16806,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 //	SUM( ( first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'purchase_logistics_logistics_cost',
                 "purchase_logistics_logistics_cost" =>array(//物流成本
                     "case" => array(
-                        "monthly_sku_reserved_field32",
+                        "0-monthly_sku_reserved_field32",
                         "-monthly_sku_reserved_field33",
                         "+monthly_sku_reserved_field34*{$fba_logistics_refund_rate}",
                         "+monthly_sku_reserved_field35*{$fbm_logistics_refund_rate}",
@@ -16822,7 +16822,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 //SUM( ( ( 0-monthly_sku_reserved_field35 ) - monthly_sku_reserved_field36 - monthly_sku_reserved_field34 - monthly_sku_reserved_field50 + first_logistics_head_course + monthly_sku_reserved_field50 + monthly_sku_reserved_field36 ) ) AS 'logistics_cost_only',
                 "logistics_cost_only" =>array(//物流成本
                     "case" => array(
-                        "monthly_sku_reserved_field32",
+                        "0-monthly_sku_reserved_field32",
                         "-monthly_sku_reserved_field33",
                     ),
                     "else" => array(
