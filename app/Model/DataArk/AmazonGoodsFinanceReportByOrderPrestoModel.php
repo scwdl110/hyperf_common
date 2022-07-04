@@ -547,6 +547,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $compare_field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $compare_fields_arr)));//去除
                 $compare_field_data = str_replace("{:DAY}", $day_param, $compare_field_data);
+                $compare_field_data = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $compare_field_data);
                 $datas['compare_data'][$ck2]['field_data'] =  $compare_field_data ;
                 unset($datas['compare_data'][$ck2]['fields']) ;
             }
@@ -753,7 +754,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
 
             }
-            $table = str_replace($dws_table,'(SELECT  report.user_id  AS "user_id",report.amazon_goods_id AS "goods_id",report.site_id AS "site_country_id",report.channel_id  AS "channel_id",report.available  AS "available",report.site_id  AS "site_id",report.user_id_mod  AS "user_id_mod",report.amazon_goods_id  AS "amazon_goods_id",report.ym  AS "ym",report.create_time as "create_time" '.$time_periods_other_field.' FROM  '.$dws_table.' as report where '.($ym_where).' AND report.available = 1 AND report.user_id_mod = '.$this->dws_user_id_mod.' AND '.$datas['origin_report_where'].')  ' ,$table);
+            $table = str_replace($dws_table,'(SELECT  report.user_id  AS "user_id",report.amazon_goods_id AS "goods_id",report.site_id AS "site_country_id",report.channel_id  AS "channel_id",report.available  AS "available",report.site_id  AS "site_id",report.user_id_mod  AS "user_id_mod",report.amazon_goods_id  AS "amazon_goods_id",report.ym  AS "ym",report.myear  AS "myear",report.mmonth  AS "mmonth",report.create_time as "create_time" '.$time_periods_other_field.' FROM  '.$dws_table.' as report where '.($ym_where).' AND report.available = 1 AND report.user_id_mod = '.$this->dws_user_id_mod.' AND '.$datas['origin_report_where'].')  ' ,$table);
 
         }
 
