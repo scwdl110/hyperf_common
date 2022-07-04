@@ -547,6 +547,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 $compare_field_data = str_replace("{:RATE}", $exchangeCode, str_replace("COALESCE(rates.rate ,1)","(COALESCE(rates.rate ,1)*1.00000)", implode(',', $compare_fields_arr)));//去除
                 $compare_field_data = str_replace("{:DAY}", $day_param, $compare_field_data);
+                $compare_field_data = str_replace("{:RMBRATE}",$this->cost_logistics_rate , $compare_field_data);
                 $datas['compare_data'][$ck2]['field_data'] =  $compare_field_data ;
                 unset($datas['compare_data'][$ck2]['fields']) ;
             }
