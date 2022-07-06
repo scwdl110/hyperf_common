@@ -12422,7 +12422,7 @@ max( bychannel_create_time ) as bychannel_create_time
             $fields_arr = array();
             foreach ($this->cost_logistics_operation_arr as $cost_logistics_key => $cost_logistics_value){
                 $report_other_field .= "COALESCE(goods.{$cost_logistics_key} ,0) AS {$cost_logistics_key},";
-                $fields_arr[]       .= "report.{$cost_logistics_value} AS {$cost_logistics_key}";
+                $fields_arr[]       .= "{$cost_logistics_value} AS {$cost_logistics_key}";
             }
             $join_rate_table = $this->joinRateTable($datas,$fields_arr,$goods_table,'','','dw_report');
             $goods_other_field .= $join_rate_table['field_data'].",";
@@ -16300,7 +16300,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields['purchase_logistics_purchase_cost'] = " sum( CASE WHEN {$field_flag}  THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['purchase_logistics_purchase_cost'] = $fields['purchase_logistics_purchase_cost'];
-                $fields['purchase_logistics_purchase_cost'] = " sum(purchase_logistics_purchase_cost) ";
+                $fields['purchase_logistics_purchase_cost'] = " sum(report.purchase_logistics_purchase_cost) ";
             }
 
         }
@@ -16323,7 +16323,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields['purchase_logistics_logistics_cost'] = " sum( CASE WHEN {$field_flag}  THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['purchase_logistics_logistics_cost'] = $fields['purchase_logistics_logistics_cost'];
-                $fields['purchase_logistics_logistics_cost'] = " sum(purchase_logistics_logistics_cost) ";
+                $fields['purchase_logistics_logistics_cost'] = " sum(report.purchase_logistics_logistics_cost) ";
             }
         }
 
@@ -16343,7 +16343,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields['fba_logistics_head_course'] = " sum( CASE WHEN {$field_flag} THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['fba_logistics_head_course'] = $fields['fba_logistics_head_course'];
-                $fields['fba_logistics_head_course'] = " sum(fba_logistics_head_course) ";
+                $fields['fba_logistics_head_course'] = " sum(report.fba_logistics_head_course) ";
             }
         }
 
@@ -16363,7 +16363,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields['fbm_logistics_head_course'] = " sum( CASE WHEN {$field_flag}  THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['fbm_logistics_head_course'] = $fields['fbm_logistics_head_course'];
-                $fields['fbm_logistics_head_course'] = " sum(fbm_logistics_head_course) ";
+                $fields['fbm_logistics_head_course'] = " sum(report.fbm_logistics_head_course) ";
             }
         }
 
