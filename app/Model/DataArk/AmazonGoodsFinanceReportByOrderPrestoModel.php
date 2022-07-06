@@ -12422,7 +12422,7 @@ max( bychannel_create_time ) as bychannel_create_time
             $fields_arr = array();
             foreach ($this->cost_logistics_operation_arr as $cost_logistics_key => $cost_logistics_value){
                 $report_other_field .= "COALESCE(goods.{$cost_logistics_key} ,0) AS {$cost_logistics_key},";
-                $fields_arr[]       .= "{$cost_logistics_value} AS {$cost_logistics_key}";
+                $fields_arr[]       .= "report.{$cost_logistics_value} AS {$cost_logistics_key}";
             }
             $join_rate_table = $this->joinRateTable($datas,$fields_arr,$goods_table,'','','dw_report');
             $goods_other_field .= $join_rate_table['field_data'].",";
@@ -16921,7 +16921,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $fields_tmp = "case when {$field_flag}  THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END";
             $fields['operation_arr'][$key] = "SUM({$fields_tmp})";
             if ($is_opeartion){
-                $fields_tmp = $key;
+                $fields_tmp = "report.".$key;
             }
             $fields[$key] = "SUM({$fields_tmp})";
             if ($key == 'purchase_logistics_purchase_cost' or $key == "purchase_logistics_logistics_cost"){
