@@ -730,7 +730,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
                             $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                         }elseif($fba_data['dimension'] == 'sku'){
                             $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-                            $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} {$where} {$count_table_group})";
+                            $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(amazon_goods.goods_parent_asin) AS parent_asin,max(amazon_goods.goods_asin) AS asin,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} {$where} {$count_table_group})";
                         }else{
                             $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                         }
