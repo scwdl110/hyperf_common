@@ -14376,10 +14376,14 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $fba_table_where1 = "WHERE 1=1";
         if($datas['is_count'] == 1){
             $count_goods_field = "sku";
+            $left_join_channel = "and g.channel_id = c.channel_id";
             if (in_array($datas['count_dimension'],['asin','parent_asin'])){
                 $count_goods_field = $datas['count_dimension'];
+                if ($datas['is_distinct_channel'] != 1){
+                    $left_join_channel = '';
+                }
             }
-            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.{$count_goods_field}=g.{$count_goods_field} and g.channel_id = c.channel_id JOIN {$this->table_goods_dim_report} AS amazon_goods on c.goods_id=amazon_goods.es_id";
+            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.{$count_goods_field}=g.{$count_goods_field} {$left_join_channel}  JOIN {$this->table_goods_dim_report} AS amazon_goods on g.user_id = amazon_goods.goods_user_id and g.channel_id = amazon_goods.goods_channel_id and g.sku = amazon_goods.goods_sku ";
             if($datas['count_dimension'] == 'asin'){
                 $fba_table_where1.= " AND amazon_goods.goods_asin != '' ";
             }else if($datas['count_dimension'] == 'parent_asin'){
