@@ -1156,8 +1156,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             $group = "report.goods_sku ,report.channel_id" ;
             $fbaDataGroup = 'amazon_goods.goods_sku,amazon_goods.goods_channel_id';
 
-            if (in_array($datas['count_dimension'], ['parent_asin', 'asin', 'sku'])){
-                $fbaDataGroup = 'amazon_goods.goods_'.$datas['count_dimension'].',amazon_goods.goods_channel_id';
+            if (in_array($datas['count_dimension'], ['parent_asin', 'asin'])){
+                if ($datas['is_distinct_channel'] == 1){
+                    $fbaDataGroup = 'amazon_goods.goods_'.$datas['count_dimension'].',amazon_goods.goods_channel_id';
+                }else{
+                    $fbaDataGroup = 'amazon_goods.goods_'.$datas['count_dimension'];
+                }
+
             }
             if ($datas['count_periods'] == '1' ) { //按天
                 $group .= ',report.myear , report.mmonth  , report.mday';
