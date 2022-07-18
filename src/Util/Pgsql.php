@@ -46,6 +46,9 @@ class Pgsql
     // @var array 最后执行的 prepare sql 语句和 bind 数据
     protected $lastPrepare = [];
 
+    //时间
+    protected $time = 0;
+
     /**
      * @param array $config
      * @param ?LoggerInterface $logger
@@ -144,7 +147,6 @@ class Pgsql
     public function getClient(array $config = []): ?PostgreSQL
     {
         $time = time();
-        $this->logger->error($this->time);
         if(!$this->time) {
             $this->time = $time;
         }elseif($time - $this->time > 10 && $this->client){
