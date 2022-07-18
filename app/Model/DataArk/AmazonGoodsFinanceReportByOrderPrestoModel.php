@@ -1155,6 +1155,15 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if($datas['is_count'] == '1' && $datas['is_median'] != 1 && $this->haveFbaFields == true && empty($datas['where_detail']['target'])){ //做汇总时 ， 不管任何维度的汇总，本质都是sku 的汇总
             $group = "report.goods_sku ,report.channel_id" ;
             $fbaDataGroup = 'amazon_goods.goods_sku,amazon_goods.goods_channel_id';
+
+            if (in_array($datas['count_dimension'], ['parent_asin', 'asin'])){
+                if ($datas['is_distinct_channel'] == 1){
+                    $fbaDataGroup = 'amazon_goods.goods_'.$datas['count_dimension'].',amazon_goods.goods_channel_id';
+                }else{
+                    $fbaDataGroup = 'amazon_goods.goods_'.$datas['count_dimension'];
+                }
+
+            }
             if ($datas['count_periods'] == '1' ) { //按天
                 $group .= ',report.myear , report.mmonth  , report.mday';
             } else if ($datas['count_periods'] == '2' ) { //按周
@@ -12016,7 +12025,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} WHERE {$where} group by {$group} ) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                             }elseif($fba_data['dimension'] == 'sku'){
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} WHERE {$where} {$count_table_group})";
+                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(amazon_goods.goods_parent_asin) AS parent_asin,max(amazon_goods.goods_asin) AS asin,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} WHERE {$where} {$count_table_group})";
                             }else{
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                             }
@@ -14371,11 +14380,19 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         $fba_table_field = $fba_table_field1 = $fba_table_where1 = $fba_table_group1 = $fba_table_join1 = $fba_table_group = "";
         $fba_table_where1 = "WHERE 1=1";
         if($datas['is_count'] == 1){
-            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.sku=g.sku and g.channel_id = c.channel_id JOIN {$this->table_goods_dim_report} AS amazon_goods on c.goods_id=amazon_goods.es_id";
+            $count_goods_field = "sku";
+            $left_join_channel = "and g.channel_id = c.channel_id";
+            if (in_array($datas['count_dimension'],['asin','parent_asin'])){
+                $count_goods_field = $datas['count_dimension'];
+                if ($datas['is_distinct_channel'] != 1){
+                    $left_join_channel = '';
+                }
+            }
+            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.{$count_goods_field}=g.{$count_goods_field} {$left_join_channel}  LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods on g.user_id = amazon_goods.goods_user_id and g.channel_id = amazon_goods.goods_channel_id and g.sku = amazon_goods.goods_sku ";
             if($datas['count_dimension'] == 'asin'){
-                $fba_table_where1.= " AND amazon_goods.goods_asin != '' ";
+//                $fba_table_where1.= " AND amazon_goods.goods_asin != '' ";
             }else if($datas['count_dimension'] == 'parent_asin'){
-                $fba_table_where1.= " AND amazon_goods.goods_parent_asin != '' ";
+//                $fba_table_where1.= " AND amazon_goods.goods_parent_asin != '' ";
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_table_where1.= " AND amazon_goods.goods_isku_id > 0  ";
             }else if($datas['count_dimension'] == 'class1'){
@@ -16059,7 +16076,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                                 $newTables[] = "{$cdata['table_name']}  AS (select fabTmp.* from (SELECT report.channel_id  FROM {$table} {$where} group by report.channel_id) AS FBAOriginTabel LEFT JOIN ({$cdata['table_sql']} ) AS fabTmp ON fabTmp.channel_id = FBAOriginTabel.channel_id AND fabTmp.channel_id is NOT NULL )  " ;
                             }elseif($fba_data['dimension'] == 'sku'){
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
-                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} WHERE {$where} {$count_table_group})";
+                                $newTables[] = "count_table AS (SELECT max(report.user_id) AS user_id,max(amazon_goods.goods_sku) AS sku,max(amazon_goods.goods_parent_asin) AS parent_asin,max(amazon_goods.goods_asin) AS asin,max(report.channel_id) AS channel_id,max(report.amazon_goods_id) AS goods_id FROM {$table} WHERE {$where} {$count_table_group})";
                             }else{
                                 $newTables[] = " {$cdata['table_name']} AS ( {$cdata['table_sql']} ) "  ;
                             }
