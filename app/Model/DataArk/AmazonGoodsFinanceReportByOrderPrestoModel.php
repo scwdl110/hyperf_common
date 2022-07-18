@@ -14388,11 +14388,11 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $left_join_channel = '';
                 }
             }
-            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.{$count_goods_field}=g.{$count_goods_field} {$left_join_channel}  JOIN {$this->table_goods_dim_report} AS amazon_goods on g.user_id = amazon_goods.goods_user_id and g.channel_id = amazon_goods.goods_channel_id and g.sku = amazon_goods.goods_sku ";
+            $fba_table_join1 = " LEFT JOIN fba_table1 as g ON c.user_id = g.user_id and c.{$count_goods_field}=g.{$count_goods_field} {$left_join_channel}  LEFT JOIN {$this->table_goods_dim_report} AS amazon_goods on g.user_id = amazon_goods.goods_user_id and g.channel_id = amazon_goods.goods_channel_id and g.sku = amazon_goods.goods_sku ";
             if($datas['count_dimension'] == 'asin'){
-                $fba_table_where1.= " AND amazon_goods.goods_asin != '' ";
+//                $fba_table_where1.= " AND amazon_goods.goods_asin != '' ";
             }else if($datas['count_dimension'] == 'parent_asin'){
-                $fba_table_where1.= " AND amazon_goods.goods_parent_asin != '' ";
+//                $fba_table_where1.= " AND amazon_goods.goods_parent_asin != '' ";
             }else if($datas['count_dimension'] == 'isku'){
                 $fba_table_where1.= " AND amazon_goods.goods_isku_id > 0  ";
             }else if($datas['count_dimension'] == 'class1'){
