@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\Util;
 
+use Captainbi\Hyperf\Exception\BusinessException;
 use Swoole\Coroutine\PostgreSQL;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Contract\ConfigInterface;
@@ -143,14 +144,22 @@ class Pgsql
     public function getClient(array $config = []): ?PostgreSQL
     {
         $time = time();
-        if(!$this->time){
+        $this->logger->error($this->time);
+        if(!$this->time) {
             $this->time = $time;
-        }elseif($time - $this->time > 10){
+        }elseif($time - $this->time > 10 && $this->client){
             //执行select 1
-            $res = $this->query("select 1");
-            if(!$res){
+            try{
+                $res = $this->client->query("select 1");
+                $res = $this->client->fetchRow($res)[0];
+                if(!$res){
+                    throw new BusinessException();
+                }
+            }catch (\Exception $e){
                 $this->reconnect();
             }
+
+            $this->time = $time;
         }
 
         if (!empty($config)) {
