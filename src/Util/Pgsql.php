@@ -142,6 +142,17 @@ class Pgsql
      */
     public function getClient(array $config = []): ?PostgreSQL
     {
+        $time = time();
+        if(!$this->time){
+            $this->time = $time;
+        }elseif($time - $this->time > 10){
+            //执行select 1
+            $res = $this->query("select 1");
+            if(!$res){
+                $this->reconnect();
+            }
+        }
+
         if (!empty($config)) {
             $dsn = $this->getDSN($config);
             $client = $dsn ? $this->getConnect($dsn) : null;
@@ -150,17 +161,27 @@ class Pgsql
         }
 
         if ($this->needReconnect()) {
-            $config = $this->config ?: $this->getDefaultConfig();
-            $dsn = $this->getDSN($config);
-            if ($dsn) {
-                $this->config = $config;
-                $this->client = $this->getConnect($dsn);
-            } else {
-                $this->client = null;
-            }
+            $this->reconnect();
         }
 
         return $this->client;
+    }
+
+    /**
+     * 重连
+     */
+    private function reconnect(){
+        $config = $this->config ?: $this->getDefaultConfig();
+        $dsn = $this->getDSN($config);
+        if ($dsn) {
+            $this->config = $config;
+            $this->client = $this->getConnect($dsn);
+        } else {
+            $this->client = null;
+            $this->logger->error('pgsql缺少dsn');
+        }
+
+        return true;
     }
 
     /**
