@@ -4207,7 +4207,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $fields['goods_operation_user_admin_id'] = "array_join(array_agg(DISTINCT amazon_goods.goods_operation_user_admin_id), ',')";
             }
         }
-        if (in_array($datas['count_dimension'],['group']) && isset($datas['is_goods_details']) && $datas['is_goods_details'] == 1 && $datas['is_count'] == 0){
+        if (in_array($datas['count_dimension'],['group','tags']) && isset($datas['is_goods_details']) && $datas['is_goods_details'] == 1 && $datas['is_count'] == 0){
             if ($isMysql){
 
                 $fields['goods_operation_user_admin_id'] = "GROUP_CONCAT(DISTINCT amazon_goods.goods_operation_user_admin_id)";
