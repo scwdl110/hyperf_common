@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Lib;
+namespace Captainbi\Hyperf\Util;
 
 use Aws\Athena\AthenaClient;
 use Aws\Credentials\Credentials;
