@@ -16311,14 +16311,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['purchase_logistics_purchase_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
+                $flag = "({$field_flag} or {$item_tmp}reserved_field93 >= 201)";
             }else{
                 $case_field = implode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['first_purchase_logistics_purchase_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
-
+                $flag = $field_flag;
             }
-            $fields['purchase_logistics_purchase_cost'] = " sum( CASE WHEN {$field_flag}  THEN {$case_field} ELSE {$else_field} END ) ";
+            $fields['purchase_logistics_purchase_cost'] = " sum( CASE WHEN {$flag}  THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['purchase_logistics_purchase_cost'] = $fields['purchase_logistics_purchase_cost'];
                 $fields['purchase_logistics_purchase_cost'] = " sum(report.purchase_logistics_purchase_cost) ";
@@ -16333,15 +16334,16 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['purchase_logistics_logistics_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
+                $flag = "({$field_flag} or {$item_tmp}reserved_field94 >= 201)";
             }else{
                 $case_field = implode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['first_purchase_logistics_logistics_cost']['else']);
                 $else_field = "({$else_field}{$rate})";
-
+                $flag = $field_flag;
             }
 
-            $fields['purchase_logistics_logistics_cost'] = " sum( CASE WHEN {$field_flag}  THEN {$case_field} ELSE {$else_field} END ) ";
+            $fields['purchase_logistics_logistics_cost'] = " sum( CASE WHEN {$flag}  THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['purchase_logistics_logistics_cost'] = $fields['purchase_logistics_logistics_cost'];
                 $fields['purchase_logistics_logistics_cost'] = " sum(report.purchase_logistics_logistics_cost) ";
@@ -16355,13 +16357,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['fba_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
+                $flag = "({$field_flag} or {$item_tmp}reserved_field94 >= 201)";
             }else{
                 $case_field = implode("", $cost_logistic_field['first_fba_logistics_head_course']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['first_fba_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
+                $flag = $field_flag;
             }
-            $fields['fba_logistics_head_course'] = " sum( CASE WHEN {$field_flag} THEN {$case_field} ELSE {$else_field} END ) ";
+            $fields['fba_logistics_head_course'] = " sum( CASE WHEN {$flag} THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['fba_logistics_head_course'] = $fields['fba_logistics_head_course'];
                 $fields['fba_logistics_head_course'] = " sum(report.fba_logistics_head_course) ";
@@ -16375,13 +16379,15 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['fbm_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
+                $flag = "({$field_flag} or {$item_tmp}reserved_field94 >= 201)";
             }else{
                 $case_field = implode("", $cost_logistic_field['first_fbm_logistics_head_course']['case']);
                 $case_field = "(($case_field)$rmb_rate)";
                 $else_field = implode("", $cost_logistic_field['first_fbm_logistics_head_course']['else']);
                 $else_field = "({$else_field}{$rate})";
+                $flag = $field_flag;
             }
-            $fields['fbm_logistics_head_course'] = " sum( CASE WHEN {$field_flag}  THEN {$case_field} ELSE {$else_field} END ) ";
+            $fields['fbm_logistics_head_course'] = " sum( CASE WHEN {$flag}  THEN {$case_field} ELSE {$else_field} END ) ";
             if ($is_opeartion){
                 $this->cost_logistics_operation_arr['fbm_logistics_head_course'] = $fields['fbm_logistics_head_course'];
                 $fields['fbm_logistics_head_course'] = " sum(report.fbm_logistics_head_course) ";
@@ -16489,8 +16495,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             $remove_logistics_refund_rate   = "COALESCE(finance_setting.removel_logistics_cost_rate ,1)";
         }
 
-
-
         $cost_logistics = array(
             //SUM( ( byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'purchase_logistics_purchase_cost',
             "purchase_logistics_purchase_cost" =>array(//采购成本
@@ -16506,6 +16510,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field31",
                     "+{$origin_tmp}purchasing_cost",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //	SUM( ( byorderitem_reserved_field28 - byorderitem_reserved_field29 - byorderitem_reserved_field30 - byorderitem_reserved_field31 + byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'purchasing_cost_only',
             "purchasing_cost_only" =>array(//采购成本
@@ -16519,6 +16524,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field29",
                     "-{$item_tmp}reserved_field30",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //	SUM( ( ( 0-byorderitem_reserved_field27 ) + byorderitem_reserved_field28 - byorderitem_reserved_field29 - byorderitem_reserved_field30 - byorderitem_reserved_field31 + byorder_purchasing_cost + byorderitem_reserved_field31 ) ) AS 'fba_purchasing_cost_only',
             "fba_purchasing_cost_only" =>array(//fba采购成本
@@ -16532,6 +16538,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field29",
                     "-{$item_tmp}reserved_field30",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //	SUM( ( byorderitem_reserved_field27 ) ) AS 'fbm_purchasing_cost_only',
             "fbm_purchasing_cost_only" =>array(//fbm采购成本
@@ -16541,6 +16548,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field27",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //SUM( ( ( 0-byorderitem_reserved_field28 ) + byorderitem_reserved_field29 ) ) AS 'refund_purchasing_cost',
             "refund_purchasing_cost" =>array(//退款
@@ -16552,6 +16560,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field29",
                     "-{$item_tmp}reserved_field28",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             // SUM( ( ( 0-byorderitem_reserved_field28 ) ) ) AS 'fba_refund_purchasing_cost',
             "fba_refund_purchasing_cost" =>array(//fba退款
@@ -16561,6 +16570,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "0-{$item_tmp}reserved_field28",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //SUM( ( byorderitem_reserved_field29 ) ) AS 'fbm_refund_purchasing_cost',
             "fbm_refund_purchasing_cost" =>array(//fbm退款
@@ -16570,6 +16580,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field29",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //SUM( ( byorderitem_reserved_field30 + byorderitem_reserved_field31 ) ) AS 'other_inventory_purchasing_cost',
             "other_inventory_purchasing_cost" =>array(//其他库存产品成本
@@ -16581,6 +16592,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field30",
                     "+{$item_tmp}reserved_field31",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //SUM( ( byorderitem_reserved_field30 ) ) AS 'inventory_adjustment_purchasing_cost',
             "inventory_adjustment_purchasing_cost" =>array(//库存产品成本
@@ -16590,6 +16602,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field30",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //SUM( ( byorderitem_reserved_field31 ) ) AS 'remove_purchasing_cost',
             "remove_purchasing_cost" =>array(//移除库存产品成本
@@ -16599,6 +16612,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field31",
                 ),
+                "flag" => " or {$item_tmp}reserved_field93 >= 201 "
             ),
             //物流
             //	SUM( ( byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'purchase_logistics_logistics_cost',
@@ -16616,6 +16630,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "+{$item_tmp}reserved_field7",
                     "+{$origin_tmp}logistics_head_course",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             //SUM( ( ( 0-byorderitem_reserved_field3 ) - byorderitem_reserved_field7 + byorderitem_reserved_field2 - byorderitem_reserved_field6 + byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'logistics_cost_only',
             "logistics_cost_only" =>array(//物流成本
@@ -16628,6 +16643,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field3",
                     "+{$origin_tmp}logistics_head_course",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             // 	SUM( ( ( 0-byorderitem_reserved_field1 ) + byorderitem_reserved_field2 - byorderitem_reserved_field6 - byorderitem_reserved_field3 - byorderitem_reserved_field7 + byorder_logistics_head_course + byorderitem_reserved_field6 + byorderitem_reserved_field7 ) ) AS 'fba_logistics_cost',
             "fba_logistics_cost" =>array(//fba物流成本
@@ -16640,6 +16656,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "-{$item_tmp}reserved_field1",
                     "+{$origin_tmp}logistics_head_course",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             // SUM( ( byorderitem_reserved_field1 ) ) AS 'fbm_logistics_cost',
             "fbm_logistics_cost" =>array(//fbm物流成本
@@ -16649,6 +16666,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field1",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             //SUM( ( ( 0-byorderitem_reserved_field2 ) + byorderitem_reserved_field3 ) ) AS 'refund_logistics_cost',
             "refund_logistics_cost" =>array(//退货物流成本
@@ -16660,6 +16678,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field3",
                     "-{$item_tmp}reserved_field2",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             //SUM( ( ( 0-byorderitem_reserved_field2 ) ) ) AS 'fba_refund_logistics_cost',
             "fba_refund_logistics_cost" =>array(//fba退货物流成本
@@ -16669,6 +16688,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "0-{$item_tmp}reserved_field2",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             //	SUM( ( byorderitem_reserved_field3 ) ) AS 'fbm_refund_logistics_cost',
             "fbm_refund_logistics_cost" =>array(//退货物流成本
@@ -16678,6 +16698,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field3",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             //SUM( ( byorderitem_reserved_field7 + byorderitem_reserved_field6 ) ) AS 'other_inventory_logistics_cost',
             "other_inventory_logistics_cost" =>array(//其他库存物流成本
@@ -16689,6 +16710,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     "{$item_tmp}reserved_field6",
                     "+{$item_tmp}reserved_field7",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             //SUM( ( byorderitem_reserved_field7 ) ) AS 'remove_purchasing_logistics_cost',
             "remove_purchasing_logistics_cost" =>array(//移除物流成本
@@ -16698,6 +16720,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field7",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
             //SUM( ( byorderitem_reserved_field6 ) ) AS 'inventory_adjustment_logistics_cost',
             "inventory_adjustment_logistics_cost" =>array(//库存物流成本
@@ -16708,6 +16731,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                 "else" => array(
                     "{$item_tmp}reserved_field6",
                 ),
+                "flag" => " or {$item_tmp}reserved_field94 >= 201 "
             ),
 
         );
@@ -16938,8 +16962,8 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
 
         foreach ($cost_logistics as $key => $cost_logistic_v){
-
-            $fields_tmp = "case when {$field_flag}  THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END";
+            $flag = isset($cost_logistic_v['flag'])?"({$field_flag} {$cost_logistic_v['flag']})":$field_flag;
+            $fields_tmp = "case when {$flag}  THEN ((".implode("",$cost_logistic_v['case']).")$rmb_rate) ELSE ((".implode("",$cost_logistic_v['else'])."){$rate_tmp}) END";
             $fields['operation_arr'][$key] = "SUM({$fields_tmp})";
             if ($is_opeartion){
                 $fields_tmp = "report.".$key;
