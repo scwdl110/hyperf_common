@@ -17,7 +17,7 @@ class Postgresql
 {
     /**
      * @param string $configKey
-     * @return Pgsql|bool
+     * @return Pgsql
      */
     public static function getConnection(string $configKey)
     {
