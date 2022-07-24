@@ -3,21 +3,10 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\Util;
 
-use Captainbi\Hyperf\Exception\BusinessException;
-use GuzzleHttp\Client;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\MessageFormatter;
-use GuzzleHttp\Middleware;
-use Hyperf\Di\Container;
-use Hyperf\Guzzle\PoolHandler;
 use Hyperf\Pool\SimplePool\PoolFactory;
-use Swoole\Coroutine;
-use Swoole\Coroutine\PostgreSQL;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Utils\ApplicationContext;
-use Psr\Log\LoggerInterface;
 
 /**
  * 需要安装 swoole_postgres 扩展
