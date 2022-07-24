@@ -15,6 +15,10 @@ use Hyperf\Utils\ApplicationContext;
  */
 class Postgresql
 {
+    /**
+     * @param string $configKey
+     * @return Pgsql|bool
+     */
     public static function getConnection(string $configKey)
     {
         $logger = ApplicationContext::getContainer()->get(LoggerFactory::class)->get('postgresql', 'default');
