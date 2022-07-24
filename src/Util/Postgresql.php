@@ -27,7 +27,7 @@ class Postgresql
         $config = $container->get(ConfigInterface::class)->get($configKey);
         if (!isset($config['host'], $config['database'], $config['port'], $config['username'], $config['password'])) {
             $logger->error('缺少必须的postgresql连接参数', $config);
-            return false;
+            throw new RuntimeException('Invalid postgresql connection config.');
         }
 
         $pool = $factory->get($configKey, function () use ($config) {
