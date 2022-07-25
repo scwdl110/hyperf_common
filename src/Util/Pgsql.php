@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Captainbi\Hyperf\Util;
 
+use Captainbi\Hyperf\Exception\BusinessException;
 use Swoole\Coroutine\PostgreSQL;
 use Hyperf\Logger\LoggerFactory;
 use Hyperf\Contract\ConfigInterface;
@@ -44,6 +45,9 @@ class Pgsql
 
     // @var array 最后执行的 prepare sql 语句和 bind 数据
     protected $lastPrepare = [];
+
+    //时间
+    protected $time = 0;
 
     /**
      * @param array $config
@@ -142,6 +146,24 @@ class Pgsql
      */
     public function getClient(array $config = []): ?PostgreSQL
     {
+        $time = time();
+        if(!$this->time) {
+            $this->time = $time;
+        }elseif($time - $this->time > 10 && $this->client){
+            //执行select 1
+            try{
+                $res = $this->client->query("select 1");
+                $res = $this->client->fetchRow($res)[0];
+                if(!$res){
+                    throw new BusinessException();
+                }
+            }catch (\Exception $e){
+                $this->reconnect();
+            }
+
+            $this->time = $time;
+        }
+
         if (!empty($config)) {
             $dsn = $this->getDSN($config);
             $client = $dsn ? $this->getConnect($dsn) : null;
@@ -150,17 +172,27 @@ class Pgsql
         }
 
         if ($this->needReconnect()) {
-            $config = $this->config ?: $this->getDefaultConfig();
-            $dsn = $this->getDSN($config);
-            if ($dsn) {
-                $this->config = $config;
-                $this->client = $this->getConnect($dsn);
-            } else {
-                $this->client = null;
-            }
+            $this->reconnect();
         }
 
         return $this->client;
+    }
+
+    /**
+     * 重连
+     */
+    private function reconnect(){
+        $config = $this->config ?: $this->getDefaultConfig();
+        $dsn = $this->getDSN($config);
+        if ($dsn) {
+            $this->config = $config;
+            $this->client = $this->getConnect($dsn);
+        } else {
+            $this->client = null;
+            $this->logger->error('pgsql缺少dsn');
+        }
+
+        return true;
     }
 
     /**
