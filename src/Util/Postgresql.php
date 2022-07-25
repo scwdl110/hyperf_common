@@ -15,6 +15,10 @@ use Hyperf\Utils\ApplicationContext;
  */
 class Postgresql
 {
+    private function __construct()
+    {
+    }
+
     /**
      * @param string $configKey
      * @return Pgsql
