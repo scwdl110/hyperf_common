@@ -500,6 +500,250 @@ function getStartAndEndTimeAllSite($type = 1)
     return $localDate;
 }
 
+//compare_type  值：1-环比  2-同比  3-占比
+function getStartAndEndTimeAllSiteNew($type = 1,$compare_type = 0)
+{
+
+    static $siteTimeZones = [
+        1 => 'America/Los_Angeles',
+        2 => 'America/Vancouver',
+        3 => 'America/Mexico_City',
+        4 => 'Europe/Berlin',
+        5 => 'Europe/Madrid',
+        6 => 'Europe/Paris',
+        7 => 'Asia/Kolkata',
+        8 => 'Europe/Rome',
+        9 => 'Europe/London',
+        10 => 'Asia/Shanghai',
+        11 => 'Asia/Tokyo',
+        12 => 'Australia/Canberra',
+        13 => 'America/Sao_Paulo',
+        14 => 'Europe/Istanbul',
+        15 => 'Asia/Riyadh',
+        16 => 'Europe/Amsterdam',
+        17 => 'Asia/Riyadh',
+        18 => 'Asia/Singapore',
+        19 => 'Europe/Warsaw',
+        20 => 'Europe/Stockholm',
+    ];
+    $now = time();
+    $localDate = [];
+    foreach ($siteTimeZones as $siteId => $timeZone) {
+        date_default_timezone_set($timeZone);
+        $localDate[$siteId]['site_id'] = $siteId;
+        if ($compare_type == 1){
+            $localDate[$siteId]['start'] = date('Y-m-d 00:00:00', strtotime("-1 day",$now));
+            $localDate[$siteId]['end'] = date('Y-m-d 23:59:59', strtotime("-1 day",$now));
+        }elseif ($compare_type == 2){
+            $localDate[$siteId]['start'] = date('Y-m-d 00:00:00', strtotime("-1 year",$now));
+            $localDate[$siteId]['end'] = date('Y-m-d 23:59:59', strtotime("-1 year",$now));
+        }else{
+            $localDate[$siteId]['start'] = date('Y-m-d 00:00:00', $now);
+            $localDate[$siteId]['end'] = date('Y-m-d 23:59:59', $now);
+        }
+
+    }
+    if ($type == 0) { // 全部
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", 0);
+            $localDate[$key]["end"]   = date("Y-m-d 23:59:59", time() + 24*3600);
+        }
+    }
+    if ($type == 1) { // 一年
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-1 year", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"]   = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
+        }
+    }
+    if ($type == 2 or $type == 102) { // 今天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime($localDate[$key]["start"]));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
+        }
+    }
+    if ($type == 3 or $type == 103) { // 昨天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-1 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-1 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+    if ($type == 4) { // 7天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-7 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-1 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+    if ($type == 5) { // 近15天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-15 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-1 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+    if ($type == 6) { // 近30天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-30 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-1 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+    if ($type == 7) { // 近60天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-60 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-1 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+    if ($type == 8) { // 近90天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-90 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-1 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+    if ($type == 9) { // 本月
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime(date("Y-m-01", strtotime($localDate[$key]["start"]))));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
+        }
+    }
+    if ($type == 10) { // 上个月
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-1 month", strtotime(date("Y-m", time()))));
+            $localDate[$key]["end"]   =  date("Y-m-d 23:59:59", strtotime(-date('d').'day'));
+        }
+    }
+    if ($type == 11) { // 今年
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00",strtotime(date('Y-01-01')));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
+        }
+    }
+    if ($type == 12) { // 去年
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00",strtotime(date("Y-01-01", strtotime(date('Y-01-01')) - 1)));
+            $localDate[$key]["end"]   = date("Y-m-d 00:00:00",strtotime(date('Y-01-01')) - 1);
+        }
+    }
+    if($type == 13){ //上周
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            if (date('w') == '1') {
+                //今天是周一
+                $localDate[$key]["start"]  = date('Y-m-d 00:00:00', time()-7*24*3600); //上周一
+                $localDate[$key]["end"] = date('Y-m-d 23:59:59', (strtotime("-1 week Sunday") +86399)) ;//上周天
+            } else {
+                $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-2 week Sunday")+24*3600); //上周一
+                $localDate[$key]["end"] = date('Y-m-d 23:59:59', (strtotime("-2 week Sunday") + 7*86400+86399)) ;//上周日
+            }
+        }
+    }
+    if ($type == 14) { // 近14天
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-14 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-1 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+
+    if ($type == 20) { // 本季度
+        foreach ($localDate as $key => $value) {
+            $season = ceil((date('n' , strtotime($localDate[$key]["start"])))/3);//当月是第几季度
+            $localDate[$key]["site_id"] = $key;
+            $start_tmp = $localDate[$key]["start"];
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", mktime(0, 0, 0,$season*3-3+1,1,date('Y' , strtotime($start_tmp))));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", (mktime(0, 0, 0,$season*3+1,1,date('Y' , strtotime($start_tmp))) - 1) );
+        }
+    }
+    if ($type == 21) { // 上季度
+        foreach ($localDate as $key => $value) {
+            $season = ceil((date('n' , strtotime($localDate[$key]["start"])))/3)-1;
+            $localDate[$key]["site_id"] = $key;
+            $start_tmp = $localDate[$key]["start"];
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00",mktime(0, 0, 0,$season*3-3+1,1,date('Y' ,strtotime($start_tmp))));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", (mktime(0, 0, 0,$season*3+1,1,date('Y' , strtotime($start_tmp))) - 1) );
+        }
+    }
+    if($type == 22){  //近3个月
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-2 month", strtotime(date("Y-m", strtotime($localDate[$key]["start"])))));
+            $localDate[$key]["end"]   = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
+        }
+    }
+    if($type == 23){  //过去6个月
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-6 month", strtotime(date("Y-m-d", strtotime($localDate[$key]["start"])))));
+            $localDate[$key]["end"]   = date("Y-m-d 23:59:59", strtotime($localDate[$key]["end"]));
+        }
+    }
+    if ($type == 77) {  // 上周同日
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date("Y-m-d 00:00:00", strtotime("-7 day", strtotime($localDate[$key]["start"])));
+            $localDate[$key]["end"] = date("Y-m-d 23:59:59", strtotime("-7 day", strtotime($localDate[$key]["end"])));
+        }
+    }
+    if($type == 88){ //本周
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            if (date('w') == '1') {
+                //今天是周一
+                $localDate[$key]["start"] = date("Y-m-d 00:00:00", time());
+                $localDate[$key]["end"] = date("Y-m-d 23:59:59", time());
+            } else {
+                //获取上周天日期
+                $localDate[$key]["start"] = date("Y-m-d 00:00:00",strtotime("-1 week Sunday") + 24*3600);
+                $localDate[$key]["end"] = date("Y-m-d 23:59:59",strtotime(date("Y-m-d",strtotime("today")))+86399);
+            }
+        }
+    }
+
+    if ($type == 30){ //过去2周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-14 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+    if ($type == 31){ //过去3周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-21 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+    if ($type == 32){ //过去4周
+        //本周一时间戳
+        $mondayTime = strtotime('Monday this week');
+        foreach ($localDate as $key => $value) {
+            $localDate[$key]["site_id"] = $key;
+            $localDate[$key]["start"] = date('Y-m-d 00:00:00', strtotime("-28 day", $mondayTime));
+            $localDate[$key]["end"] = date('Y-m-d 23:59:59', strtotime("-1 day", $mondayTime));
+        }
+    }
+
+    date_default_timezone_set("Asia/Shanghai");
+    foreach ($localDate as $key => $value) {
+        $localDate[$key]["start"] = strtotime($localDate[$key]["start"]);
+        $localDate[$key]["end"] = strtotime($localDate[$key]["end"]);
+    }
+    return $localDate;
+}
 /**
  * 获取 amazon sites 配置
  *
