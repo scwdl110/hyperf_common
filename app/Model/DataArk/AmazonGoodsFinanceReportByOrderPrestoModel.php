@@ -4331,7 +4331,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }
         } else if($datas['count_dimension'] == 'goods_channel'){
             $fields['channel_id'] = 'max(report.channel_id)';
-            $fields['goods_count'] = 'sum(DISTINCT amazon_goods.es_id)';
+            $fields['goods_count'] = 'count(DISTINCT amazon_goods.es_id)';
             $fields['site_id'] = 'max(report.site_id)';
         }elseif($datas['count_dimension'] == 'goods_site_id'){
             $fields['site_id'] = 'max(report.site_id)';
