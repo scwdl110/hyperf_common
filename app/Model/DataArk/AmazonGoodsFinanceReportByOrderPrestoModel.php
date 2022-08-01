@@ -11597,6 +11597,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
     private function getCustomTargetFields(&$fields,$custom_targets_list,$targets = array(),$targets_temp = array(), $datas = [],&$fba_target_key = array(),&$operation_table_field = array(),$is_count = 0,$isMysql = false, &$erp_target_key = []){
         $fba_field_exits = [];
         $operational_char_arr = array(".","+", "-", "*", "/", "", "(", ")");
+        foreach (['sale_sales_quota','sale_sales_volume'] as $field_item){
+            if (!in_array($field_item,$targets_temp) && isset($fields[$field_item])){
+                $targets_temp[] = $field_item;
+            }
+        }
+
         if($custom_targets_list){
             if($datas['stock_datas_origin'] == 1){
                 $fbaFieldsArr = !empty($datas['list_type']) && $datas['list_type'] == 1 ? config('common.goods_fba_fields_arr') : config('common.channel_fba_fields_arr');
