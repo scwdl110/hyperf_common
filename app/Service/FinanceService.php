@@ -112,6 +112,12 @@ class FinanceService extends BaseService
         $params['searchKey'] = $searchKey;
         $params['searchVal'] = $searchVal;
         $params['matchType'] = trim(strval($req['matchType'] ?? ''));
+        $params['compare_type'] = isset($params['compare_type']) ? intval($params['compare_type']) : 0;
+        $params['is_site_time'] = isset($params['is_site_time']) ? intval($params['is_site_time']) : 0;
+        if (in_array($params['time_type'],[102,103])){//是否使用站点时，由于方舟改了中台的站点时间方法，因为需要此字段做兼容 bi的站点今日和站点昨日默认取站点时
+            $params['is_site_time'] = 1;
+        }
+
 
         $params['mysql_limit'] = $offset > 0 ? ("LIMIT {$offset},$limit") : " LIMIT $limit";
 
@@ -497,6 +503,41 @@ class FinanceService extends BaseService
             $day_param_start_time = (int)$params['search_start_time'];
             $day_param_end_time = (int)$params['search_end_time'] > time() ? (int)strtotime(date('Y-m-d 23:59:59')) : (int)$params['search_end_time'];
             $day_param = intval(($day_param_end_time + 1 - $day_param_start_time) / 86400);
+        }elseif ($params['is_site_time'] == 1){
+            $ors = [];
+            $time_arr = $this->getSiteLocalTimeNew(array_keys(\App\getAmazonSitesConfig()), (int)$params['time_type'], $params['search_start_time'], $params['search_end_time'],$params['compare_type']);
+            if (in_array($params['time_type'],[2,3,102,103])){//站点为今日和昨天把统计周期改为0，避免出现同一个维度多条数据
+                $params['count_periods'] = 0;
+            }
+            $params['search_start_time'] = 0;
+            $params['search_end_time'] = 0;
+            foreach ($time_arr as $times) {
+
+                $min_ym = empty($min_ym) ? date('Ym', $times['start']) : ($min_ym > date('Ym', $times['start']) ? date('Ym', $times['start']) : $min_ym);
+                $max_ym = empty($max_ym) ? date('Ym', $times['end']) : ($max_ym < date('Ym', $times['end']) ? date('Ym', $times['end']) : $max_ym);
+                $ors[] = sprintf(
+                    '( report.create_time>=%d and report.create_time<=%d and report.site_id in (%s))',
+                    (int)$times['start'],
+                    (int)$times['end'],
+                    $times['site_id']
+                );
+                $params['search_start_time']        = $params['search_start_time'] ==0?$times['start']:$params['search_start_time'];
+                $params['origin_create_start_time'] = $params['search_start_time'] = $times['start'] < $params['search_start_time']?$times['start']:$params['search_start_time'];
+                $params['origin_create_end_time']   = $params['search_end_time']   = $times['end']>$params['search_end_time']?$times['end']:$params['search_end_time'];
+            }
+            $day_param = intval(($time_arr[0]['end'] + 1 - $time_arr[0]['start']) / 86400);
+            if (empty($ors)) {
+                return Result::success($result);
+            }
+            if (count($time_arr) == 1){//只有一种时间得情况下不需要使用or
+                $ors = " report.create_time >= {$params['search_start_time']} AND report.create_time<={$params['search_end_time']} ";
+            }else{
+                $ors = join(' OR ', $ors);
+                $ors = " report.create_time >= {$params['search_start_time']} AND report.create_time<={$params['search_end_time']} AND ($ors) ";
+            }
+            $where .= $where ? " AND $ors" : "$ors";
+            $params['origin_where'] .= " AND $ors ";
+            $params['origin_time'] = " AND ".str_replace("report.","",$ors);
         } else {
             $ors = [];
             $origin_time = [];
@@ -659,6 +700,42 @@ class FinanceService extends BaseService
             } else {
                 $timeDatas = [];
                 $siteTimes = \App\getStartAndEndTimeAllSite($timeType);
+                foreach ($siteIds as $siteId) {
+                    $key = "{$siteTimes[$siteId]['start']}_{$siteTimes[$siteId]['end']}";
+
+                    if (empty($timeDatas[$key])) {
+                        $timeDatas[$key] = [
+                            'site_id' => (string)$siteId,
+                            'end' => $siteTimes[$siteId]['end'],
+                            'start' => $siteTimes[$siteId]['start'],
+                        ];
+                    } else {
+                        $timeDatas[$key]['site_id'] = "{$timeDatas[$key]['site_id']},{$siteId}";
+                    }
+                }
+
+                $result = array_values($timeDatas);
+            }
+        }
+
+        return $result;
+    }
+
+    protected function getSiteLocalTimeNew(array $siteIds, int $timeType = 99, $startTime, $endTime,$compare_type=0): array
+    {
+        $result = [[
+            'end' => (int)$endTime,
+            'start' => (int)$startTime,
+            'site_id' => '0',
+        ]];
+
+        if (!empty($siteIds)) {
+            $siteIdsStr = implode(',', $siteIds);
+            if ($timeType === 99) {
+                $result[0]['site_id'] = $siteIdsStr;
+            } else {
+                $timeDatas = [];
+                $siteTimes = \App\getStartAndEndTimeAllSiteNew($timeType,$compare_type);
                 foreach ($siteIds as $siteId) {
                     $key = "{$siteTimes[$siteId]['start']}_{$siteTimes[$siteId]['end']}";
 
