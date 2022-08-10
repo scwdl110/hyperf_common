@@ -48,6 +48,7 @@ abstract class AbstractPrestoModel implements BIModelInterface
 
         'table_user_channel' => 'dim.dim_dataark_b_user_channel',
         'table_department_channel' => 'dim.dim_dataark_b_department_channel',
+        'table_department_user' => 'dim.dim_dataark_b_department_user',
         'table_goods_dim_report' => 'dim.dim_dataark_f_dw_goods_dim_report_{DBHOST}',
 
         'table_goods_day_report' => 'dws.dws_dataark_f_dw_goods_day_report_{DWSDBHOST} AS report JOIN dim.dim_dataark_f_dw_goods_dim_report_{DBHOST} AS amazon_goods on report.amazon_goods_id=amazon_goods.es_id' ,

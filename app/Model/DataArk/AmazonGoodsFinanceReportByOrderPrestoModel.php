@@ -9322,6 +9322,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         } else {
             return [];
         }
+        //部门运营人员需要连部门人员表
+        if ($datas['count_dimension'] == 'operators_department'){
+            $table = str_replace("AS report","",$table);
+            $table = "( SELECT operators.*,operators_department.user_department_id  from {$table} as operators  JOIN {$this->table_department_user} as operators_department on operators.goods_operation_user_admin_id = operators_department.admin_id ) AS report";
+
+        }
 
         $where_detail = is_array($datas['where_detail']) ? $datas['where_detail'] : json_decode($datas['where_detail'], true);
         if (empty($where_detail)) {
@@ -9371,22 +9377,52 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         }
 
         $orderbyTmp = $orderby;
-        if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
-            if($datas['count_periods'] == '4'){ //按季度
-                $group = 'report.goods_operation_user_admin_id , report.myear , report.mquarter ';
-                $orderby = 'report.goods_operation_user_admin_id ,report.myear , report.mquarter ';
-            }else if($datas['count_periods'] == '5') { //年
-                $group = 'report.goods_operation_user_admin_id , report.myear' ;
-                $orderby = 'report.goods_operation_user_admin_id , report.myear ';
-            }else {
-                $group = 'report.goods_operation_user_admin_id_group  ';
-                $orderby = "report.goods_operation_user_admin_id_group ";
-            }
 
+        if ($datas['count_dimension'] == 'operators_department'){
+
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if($datas['count_periods'] == '4'){ //按季度
+                    $group = 'report.user_department_id , report.myear , report.mquarter ';
+                    $orderby = 'report.user_department_id ,report.myear , report.mquarter ';
+                }else if($datas['count_periods'] == '5') { //年
+                    $group = 'report.user_department_id , report.myear' ;
+                    $orderby = 'report.user_department_id , report.myear ';
+                }else if($datas['count_periods'] == '3'){ //按月
+                    $group = 'report.user_department_id' . ' ,report.myear ,report.mmonth' ;
+                    $orderby = 'report.user_department_id' . ',report.myear ,report.mmonth';
+                }else if($datas['count_periods'] == '2'){  //按周
+                    $group = 'report.user_department_id' . ' ,report.mweekyear ,report.mweek' ;
+                    $orderby = 'report.user_department_id' . ',report.mweekyear ,report.mweek';
+                }else if($datas['count_periods'] == '1') {  //按天
+                    $group = 'report.user_department_id' . ' ,report.myear ,report.mmonth ,report.mday' ;
+                    $orderby = 'report.user_department_id' . ',report.myear ,report.mmonth,report.mday';
+                }
+            }else{
+                $group = 'report.user_department_id  ';
+                $orderby = empty($orderby) ? ('report.user_department_id ') : ($orderby . ' , report.user_department_id');
+            }
         }else{
-            $group = 'report.goods_operation_user_admin_id  ';
-            $orderby = empty($orderby) ? ('report.goods_operation_user_admin_id ') : ($orderby . ' , report.goods_operation_user_admin_id');
+            if ($datas['count_periods'] > 0 && $datas['show_type'] == '2') {
+                if($datas['count_periods'] == '4'){ //按季度
+                    $group = 'report.goods_operation_user_admin_id , report.myear , report.mquarter ';
+                    $orderby = 'report.goods_operation_user_admin_id ,report.myear , report.mquarter ';
+                }else if($datas['count_periods'] == '5') { //年
+                    $group = 'report.goods_operation_user_admin_id , report.myear' ;
+                    $orderby = 'report.goods_operation_user_admin_id , report.myear ';
+                }else {
+                    $group = 'report.goods_operation_user_admin_id_group  ';
+                    $orderby = "report.goods_operation_user_admin_id_group ";
+                }
+
+            }else{
+                $group = 'report.goods_operation_user_admin_id  ';
+                $orderby = empty($orderby) ? ('report.goods_operation_user_admin_id ') : ($orderby . ' , report.goods_operation_user_admin_id');
+            }
         }
+
+
+
+
         if (isset($datas['is_time_sort']) && $datas['is_time_sort'] == 1 && !empty($orderbyTmp) && $datas['count_periods'] > 0 && $datas['show_type'] == '2'){//按周期排序添加
             $orderby = $orderbyTmp;
         }
@@ -9566,6 +9602,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fields = array();
         $fields['user_id'] = 'max(report.user_id)';
         $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
+
+        if ($datas['count_dimension'] == 'operators_department'){
+            $fields['user_department_id'] = 'max(report.user_department_id)';
+        }
 
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
@@ -10448,6 +10488,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $fields = array();
         $fields['user_id'] = 'max(report.user_id)';
         $fields['goods_operation_user_admin_id'] = 'max(report.goods_operation_user_admin_id)';
+        if ($datas['count_dimension'] == 'operators_department'){
+            $fields['user_department_id'] = 'max(report.user_department_id)';
+        }
         if ($datas['count_periods'] == '1' && $datas['show_type'] == '2') { //按天
             $fields['time'] = "concat(cast(max(report.myear) as varchar), '-', cast(max(report.mmonth) as varchar), '-', cast(max(report.mday) as varchar))";
         } else if ($datas['count_periods'] == '2' && $datas['show_type'] == '2') { //按周
