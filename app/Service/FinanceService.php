@@ -427,6 +427,9 @@ class FinanceService extends BaseService
                 if (!empty($params['where_parent']['operators_id'])) {
                     $where .= "  AND report.goods_operation_user_admin_id IN (" . $params['where_parent']['operators_id'] . ")";
                 }
+                if (!empty($params['where_parent']['user_department_id'])) {
+                    $where .= " AND report.user_department_id IN (" . $params['where_parent']['user_department_id'] . ")";
+                }
             }
 
         }
