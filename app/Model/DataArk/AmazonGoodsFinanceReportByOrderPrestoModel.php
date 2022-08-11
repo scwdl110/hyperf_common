@@ -3192,15 +3192,32 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                 }
 
-                $fields['goods_views_rate'] = $goods_views_rate;
-                $fields['goods_views_mobile_rate'] = $goods_mobile_views_rate;
-                $fields['goods_views_browser_rate'] = $goods_browser_views_rate;
+                if (in_array('goods_views_rate', $targets)){
+                    $fields['goods_views_rate'] = $goods_views_rate;
+                }
+                if (in_array('goods_views_mobile_rate', $targets)){
+                    $fields['goods_views_mobile_rate'] = $goods_mobile_views_rate;
+
+                }
+                if (in_array('goods_views_browser_rate', $targets)){
+                    $fields['goods_views_browser_rate'] = $goods_browser_views_rate;
+
+                }
+
             }
-            if (in_array('goods_buyer_visit_rate', $targets)) { //买家访问次数百分比 （需要计算）
+            if (in_array('goods_buyer_visit_rate', $targets) or in_array('goods_buyer_visit_browser_rate', $targets) or in_array('goods_buyer_visit_mobile_rate', $targets)) { //买家访问次数百分比 （需要计算）
                 if (!in_array('goods_visitors', $targets)){
                     $fields['goods_visitors'] = 'SUM(report.byorder_user_sessions)';
                 }
+                if (!in_array('goods_visitors_browser', $targets)){
+                    $fields['goods_visitors_browser'] = 'SUM(report.byorderitem_reserved_field100)';
+                }
+                if (!in_array('goods_visitors_mobile', $targets)){
+                    $fields['goods_visitors_mobile'] = 'SUM(report.byorder_user_sessions - report.byorderitem_reserved_field100)';
+                }
                 $goods_buyer_visit_rate = '1';
+                $goods_browser_buyer_visit_rate = '1';
+                $goods_mobile_buyer_visit_rate = '1';
                 $table = "{$this->table_goods_day_report}";
                 $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
                 $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['origin_where'];
@@ -3210,12 +3227,26 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND amazon_goods.goods_asin != ''";
                 }
                 if ($datas['is_count'] == 1){
-                    $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions', $table,'','',false,null,300,$isMysql);
+                    $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorderitem_reserved_field100) as total_browser_user_sessions,SUM(report.byorder_user_sessions - report.byorderitem_reserved_field100) as total_mobile_user_sessions', $table,'','',false,null,300,$isMysql);
                     $this->total_user_sessions = $total_user_sessions;
                     if (intval($total_user_sessions['total_user_sessions']) > 0) {
                         $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
                     }else{
                         $goods_buyer_visit_rate = '0';
+                    }
+                    if (!in_array('goods_buyer_visit_browser_rate', $targets)){
+                        if (intval($total_user_sessions['total_browser_user_sessions']) > 0) {
+                            $goods_browser_buyer_visit_rate = " SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions['total_browser_user_sessions']).', 2)';
+                        }else{
+                            $goods_browser_buyer_visit_rate = '0';
+                        }
+                    }
+                    if (!in_array('goods_buyer_visit_mobile_rate', $targets)){
+                        if (intval($total_user_sessions['total_browser_user_sessions']) > 0) {
+                            $goods_mobile_buyer_visit_rate = " SUM( report.byorder_user_sessions - report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions['total_mobile_user_sessions']).', 2)';
+                        }else{
+                            $goods_mobile_buyer_visit_rate = '0';
+                        }
                     }
                 }else{
                     if ($datas['count_periods'] == 0){
@@ -3224,11 +3255,20 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                             if (!empty($total_user_sessions_views)){
                                 $case = " CASE ";
+                                $goods_browser_views_rate = '';
+                                $goods_mobile_views_rate = '';
                                 $i = 0;
                                 foreach ($total_user_sessions_views as $val){
                                     if ($val['total_user_sessions'] > 0){
                                         $i++;
                                         $case .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorder_user_sessions) * 1.0000 / round({$val['total_user_sessions']}, 2)";
+                                    }
+
+                                    if ($val['total_browser_user_sessions'] > 0){
+                                        $goods_browser_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round({$val['total_browser_user_sessions']},2 )";
+                                    }
+                                    if ($val['total_mobile_user_sessions'] > 0){
+                                        $goods_mobile_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_user_sessions - report.byorderitem_reserved_field100 ) * 1.0000 / round({$val['total_mobile_user_sessions']},2 )";
                                     }
 
                                 }
@@ -3240,6 +3280,17 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                     $goods_buyer_visit_rate = 0;
                                 }
 
+                                if (empty($goods_browser_buyer_visit_rate)){
+                                    $goods_browser_buyer_visit_rate = " CASE {$goods_browser_buyer_visit_rate} ELSE 0 END";
+                                }else{
+                                    $goods_browser_buyer_visit_rate = 0;
+                                }
+                                if (empty($goods_mobile_buyer_visit_rate)){
+                                    $goods_mobile_buyer_visit_rate = " CASE {$goods_mobile_buyer_visit_rate} ELSE 0 END";
+                                }else{
+                                    $goods_mobile_buyer_visit_rate = 0;
+                                }
+
 
                             }
                         }else{
@@ -3247,14 +3298,31 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 if (intval($total_user_sessions_views['total_user_sessions']) > 0) {
                                     $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions_views['total_user_sessions']).', 2)';
                                 }
+                                if (intval($total_user_sessions_views['total_mobile_user_sessions']) > 0) {
+                                    $goods_mobile_buyer_visit_rate = " SUM( report.byorder_user_sessions - report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_mobile_user_sessions']) .', 2)';
+                                }
+                                if (intval($total_user_sessions_views['total_browser_user_sessions']) > 0) {
+                                    $goods_browser_buyer_visit_rate = " SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_browser_user_sessions']) .', 2)';
+                                }
                             }
 
                         }
                     }else{
                         $goods_buyer_visit_rate = '1';
+                        $goods_browser_buyer_visit_rate = '1';
+                        $goods_mobile_buyer_visit_rate = '1';
                     }
                 }
-                $fields['goods_buyer_visit_rate'] = $goods_buyer_visit_rate;
+                if (!in_array('goods_buyer_visit_rate', $targets)){
+                    $fields['goods_buyer_visit_rate'] = $goods_buyer_visit_rate;
+                }
+                if (!in_array('goods_buyer_visit_browser_rate', $targets)){
+                    $fields['goods_buyer_visit_browser_rate'] = $goods_browser_buyer_visit_rate;
+                }
+                if (!in_array('goods_buyer_visit_mobile_rate', $targets)){
+                    $fields['goods_buyer_visit_mobile_rate'] = $goods_mobile_buyer_visit_rate;
+                }
+
             }
         }
         else{
