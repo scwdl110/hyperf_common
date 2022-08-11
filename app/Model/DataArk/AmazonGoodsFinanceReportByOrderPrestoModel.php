@@ -3090,7 +3090,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fields['goods_views_number_browser'] = " SUM(report.byorderitem_reserved_field101)";
                 }
                 if (!in_array('goods_views_number_mobile', $targets)) {
-                    $fields['goods_views_number_mobile'] = " SUM(report.byorder_number_of_visits - report.byorderitem_reserved_field101)";
+                    $fields['goods_views_number_mobile'] = " SUM(report.byorderitem_reserved_field104)";
                 }
                 //总流量次数
                 $goods_views_rate = '1';
@@ -3106,7 +3106,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 }
                 if ($datas['is_count'] == 1){
                     //总计
-                    $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number,SUM(report.byorderitem_reserved_field101) as total_browser_views_number,SUM(report.byorder_number_of_visits - report.byorderitem_reserved_field101) as total_mobile_views_number', $table,'','',false,null,300,$isMysql);
+                    $total_views_numbers = $this->get_one($where, 'SUM(report.byorder_number_of_visits) as total_views_number,SUM(report.byorderitem_reserved_field101) as total_browser_views_number,SUM(report.byorderitem_reserved_field104) as total_mobile_views_number', $table,'','',false,null,300,$isMysql);
                     $this->total_views_numbers = $total_views_numbers;
                     if (in_array('goods_views_rate', $targets)){
                         if (intval($total_views_numbers['total_views_number']) > 0) {
@@ -3117,7 +3117,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                     if (in_array('goods_views_number_mobile', $targets)){
                         if (intval($total_views_numbers['total_views_number']) > 0) {
-                            $goods_mobile_views_rate = " SUM( report.byorder_number_of_visits - report.byorderitem_reserved_field101 ) * 1.0000 / round(" . intval($total_views_numbers['total_mobile_views_number']) .', 2)';
+                            $goods_mobile_views_rate = " SUM( report.byorderitem_reserved_field104 ) * 1.0000 / round(" . intval($total_views_numbers['total_mobile_views_number']) .', 2)';
                         }else{
                             $goods_mobile_views_rate = '0';
                         }
@@ -3149,7 +3149,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                         $goods_browser_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorderitem_reserved_field101 ) * 1.0000 / round({$val['total_browser_views_number']},2 )";
                                     }
                                     if ($val['total_mobile_views_number'] > 0){
-                                        $goods_mobile_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_number_of_visits - report.byorderitem_reserved_field101 ) * 1.0000 / round({$val['total_mobile_views_number']},2 )";
+                                        $goods_mobile_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorderitem_reserved_field104 ) * 1.0000 / round({$val['total_mobile_views_number']},2 )";
                                     }
 
                                 }
@@ -3177,7 +3177,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                     $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_user_sessions_views['total_views_number']) .', 2)';
                                 }
                                 if (intval($total_user_sessions_views['total_mobile_views_number']) > 0) {
-                                    $goods_mobile_views_rate = " SUM( report.byorder_number_of_visits - report.byorderitem_reserved_field101 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_mobile_views_number']) .', 2)';
+                                    $goods_mobile_views_rate = " SUM( report.byorderitem_reserved_field104 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_mobile_views_number']) .', 2)';
                                 }
                                 if (intval($total_user_sessions_views['total_browser_views_number']) > 0) {
                                     $goods_browser_views_rate = " SUM( report.byorderitem_reserved_field101 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_browser_views_number']) .', 2)';
@@ -3213,7 +3213,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $fields['goods_visitors_browser'] = 'SUM(report.byorderitem_reserved_field100)';
                 }
                 if (!in_array('goods_visitors_mobile', $targets)){
-                    $fields['goods_visitors_mobile'] = 'SUM(report.byorder_user_sessions - report.byorderitem_reserved_field100)';
+                    $fields['goods_visitors_mobile'] = 'SUM(report.byorderitem_reserved_field103)';
                 }
                 $goods_buyer_visit_rate = '1';
                 $goods_browser_buyer_visit_rate = '1';
@@ -3227,7 +3227,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $where .= " AND amazon_goods.goods_asin != ''";
                 }
                 if ($datas['is_count'] == 1){
-                    $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorderitem_reserved_field100) as total_browser_user_sessions,SUM(report.byorder_user_sessions - report.byorderitem_reserved_field100) as total_mobile_user_sessions', $table,'','',false,null,300,$isMysql);
+                    $total_user_sessions = $this->get_one($where, 'SUM(report.byorder_user_sessions) as total_user_sessions,SUM(report.byorderitem_reserved_field100) as total_browser_user_sessions,SUM(report.byorderitem_reserved_field103) as total_mobile_user_sessions', $table,'','',false,null,300,$isMysql);
                     $this->total_user_sessions = $total_user_sessions;
                     if (intval($total_user_sessions['total_user_sessions']) > 0) {
                         $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions['total_user_sessions']).', 2)';
@@ -3243,7 +3243,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }
                     if (!in_array('goods_buyer_visit_mobile_rate', $targets)){
                         if (intval($total_user_sessions['total_browser_user_sessions']) > 0) {
-                            $goods_mobile_buyer_visit_rate = " SUM( report.byorder_user_sessions - report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions['total_mobile_user_sessions']).', 2)';
+                            $goods_mobile_buyer_visit_rate = " SUM(report.byorderitem_reserved_field103 ) * 1.0000 / round(" . intval($total_user_sessions['total_mobile_user_sessions']).', 2)';
                         }else{
                             $goods_mobile_buyer_visit_rate = '0';
                         }
@@ -3268,7 +3268,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                         $goods_browser_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round({$val['total_browser_user_sessions']},2 )";
                                     }
                                     if ($val['total_mobile_user_sessions'] > 0){
-                                        $goods_mobile_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorder_user_sessions - report.byorderitem_reserved_field100 ) * 1.0000 / round({$val['total_mobile_user_sessions']},2 )";
+                                        $goods_mobile_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorderitem_reserved_field103 ) * 1.0000 / round({$val['total_mobile_user_sessions']},2 )";
                                     }
 
                                 }
@@ -3299,7 +3299,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                     $goods_buyer_visit_rate = " SUM( report.byorder_user_sessions ) * 1.0000 / round(" . intval($total_user_sessions_views['total_user_sessions']).', 2)';
                                 }
                                 if (intval($total_user_sessions_views['total_mobile_user_sessions']) > 0) {
-                                    $goods_mobile_buyer_visit_rate = " SUM( report.byorder_user_sessions - report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_mobile_user_sessions']) .', 2)';
+                                    $goods_mobile_buyer_visit_rate = " SUM(report.byorderitem_reserved_field103 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_mobile_user_sessions']) .', 2)';
                                 }
                                 if (intval($total_user_sessions_views['total_browser_user_sessions']) > 0) {
                                     $goods_browser_buyer_visit_rate = " SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions_views['total_browser_user_sessions']) .', 2)';
@@ -13325,7 +13325,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
             return array();
         }
 
-        $new_performance_report_field = ",SUM( report.byorderitem_reserved_field101 ) AS total_browser_views_number,SUM( report.byorderitem_reserved_field100 ) AS total_browser_user_sessions,SUM( report.byorder_user_sessions - report.byorderitem_reserved_field100 ) AS total_mobile_user_sessions,SUM( report.byorder_number_of_visits - report.byorderitem_reserved_field101 ) AS total_mobile_views_number";
+        $new_performance_report_field = ",SUM( report.byorderitem_reserved_field101 ) AS total_browser_views_number,SUM( report.byorderitem_reserved_field100 ) AS total_browser_user_sessions,SUM( report.byorderitem_reserved_field103 ) AS total_mobile_user_sessions,SUM( report.byorderitem_reserved_field104 ) AS total_mobile_views_number";
         $table = !empty($table)?$table: "{$this->table_dws_goods_day_report} AS report";
         $ym_where = $this->getYnWhere($datas['max_ym'],$datas['min_ym']);
         $where  = $ym_where . " AND  report.user_id_mod = " . $this->dws_user_id_mod ." AND " . $datas['user_sessions_where'].str_replace('create_time',"report.create_time",$datas['origin_time']);
