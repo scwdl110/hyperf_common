@@ -1477,7 +1477,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             }else{
                 $lists = $this->select($where, $field_data, $table, $limit, $orderby, $group,true,null,300,$isMysql,$compareData,$fbaData,$erpData,$this->isUseTmpTable,$this->isReadTmpTable);
                 $total_user_sessions_views = array();
-                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
+                if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1 && $this->checkPerformanceReportRate($fields,$datas,2)){
                     $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql);
 
                 }
@@ -1558,7 +1558,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 $table_sessions_views = "{$this->table_dws_goods_day_report} AS report";
                 $parallel->add(function () use($datas,$fields,$isMysql,$table_sessions_views){
                     $total_user_sessions_views = array();
-                    if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
+                    if ( $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1 && $this->checkPerformanceReportRate($fields,$datas,2)){
                         $total_user_sessions_views = $this->getGoodsViewsVisitRate(array(), $fields, $datas,$isMysql,$table_sessions_views);
 
                     }
@@ -2568,7 +2568,6 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
     protected function getGoodsRankData($lists = array() , $fields = array() , $datas = array(),$channel_arr = array())
     {
-//        var_dump(111);
         if(empty($lists) or ( empty($fields['goods_rank']) and empty($fields['goods_min_rank']) )){
             return $lists ;
         }else{
@@ -3160,12 +3159,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                 }else{
                                     $goods_views_rate = 0;
                                 }
-                                if (empty($goods_browser_views_rate)){
+                                if (!empty($goods_browser_views_rate)){
                                     $goods_browser_views_rate = " CASE {$goods_browser_views_rate} ELSE 0 END";
                                 }else{
                                     $goods_browser_views_rate = 0;
                                 }
-                                if (empty($goods_mobile_views_rate)){
+                                if (!empty($goods_mobile_views_rate)){
                                     $goods_mobile_views_rate = " CASE {$goods_mobile_views_rate} ELSE 0 END";
                                 }else{
                                     $goods_mobile_views_rate = 0;
@@ -3234,14 +3233,14 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     }else{
                         $goods_buyer_visit_rate = '0';
                     }
-                    if (!in_array('goods_buyer_visit_browser_rate', $targets)){
+                    if (in_array('goods_buyer_visit_browser_rate', $targets)){
                         if (intval($total_user_sessions['total_browser_user_sessions']) > 0) {
                             $goods_browser_buyer_visit_rate = " SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round(" . intval($total_user_sessions['total_browser_user_sessions']).', 2)';
                         }else{
                             $goods_browser_buyer_visit_rate = '0';
                         }
                     }
-                    if (!in_array('goods_buyer_visit_mobile_rate', $targets)){
+                    if (in_array('goods_buyer_visit_mobile_rate', $targets)){
                         if (intval($total_user_sessions['total_browser_user_sessions']) > 0) {
                             $goods_mobile_buyer_visit_rate = " SUM(report.byorderitem_reserved_field103 ) * 1.0000 / round(" . intval($total_user_sessions['total_mobile_user_sessions']).', 2)';
                         }else{
@@ -3255,8 +3254,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                             if (!empty($total_user_sessions_views)){
                                 $case = " CASE ";
-                                $goods_browser_views_rate = '';
-                                $goods_mobile_views_rate = '';
+                                $goods_browser_buyer_visit_rate = '';
+                                $goods_mobile_buyer_visit_rate = '';
                                 $i = 0;
                                 foreach ($total_user_sessions_views as $val){
                                     if ($val['total_user_sessions'] > 0){
@@ -3265,10 +3264,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                     }
 
                                     if ($val['total_browser_user_sessions'] > 0){
-                                        $goods_browser_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round({$val['total_browser_user_sessions']},2 )";
+                                        $goods_browser_buyer_visit_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM( report.byorderitem_reserved_field100 ) * 1.0000 / round({$val['total_browser_user_sessions']},2 )";
                                     }
                                     if ($val['total_mobile_user_sessions'] > 0){
-                                        $goods_mobile_views_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorderitem_reserved_field103 ) * 1.0000 / round({$val['total_mobile_user_sessions']},2 )";
+                                        $goods_mobile_buyer_visit_rate .=  " WHEN max(report.channel_id) = {$val['channel_id']} THEN SUM(report.byorderitem_reserved_field103 ) * 1.0000 / round({$val['total_mobile_user_sessions']},2 )";
                                     }
 
                                 }
@@ -3280,12 +3279,12 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                                     $goods_buyer_visit_rate = 0;
                                 }
 
-                                if (empty($goods_browser_buyer_visit_rate)){
+                                if (!empty($goods_browser_buyer_visit_rate)){
                                     $goods_browser_buyer_visit_rate = " CASE {$goods_browser_buyer_visit_rate} ELSE 0 END";
                                 }else{
                                     $goods_browser_buyer_visit_rate = 0;
                                 }
-                                if (empty($goods_mobile_buyer_visit_rate)){
+                                if (!empty($goods_mobile_buyer_visit_rate)){
                                     $goods_mobile_buyer_visit_rate = " CASE {$goods_mobile_buyer_visit_rate} ELSE 0 END";
                                 }else{
                                     $goods_mobile_buyer_visit_rate = 0;
@@ -3313,13 +3312,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                         $goods_mobile_buyer_visit_rate = '1';
                     }
                 }
-                if (!in_array('goods_buyer_visit_rate', $targets)){
+                if (in_array('goods_buyer_visit_rate', $targets)){
                     $fields['goods_buyer_visit_rate'] = $goods_buyer_visit_rate;
                 }
-                if (!in_array('goods_buyer_visit_browser_rate', $targets)){
+                if (in_array('goods_buyer_visit_browser_rate', $targets)){
                     $fields['goods_buyer_visit_browser_rate'] = $goods_browser_buyer_visit_rate;
                 }
-                if (!in_array('goods_buyer_visit_mobile_rate', $targets)){
+                if (in_array('goods_buyer_visit_mobile_rate', $targets)){
                     $fields['goods_buyer_visit_mobile_rate'] = $goods_mobile_buyer_visit_rate;
                 }
 
@@ -13320,8 +13319,45 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         return $where;
     }
 
+    /**
+     * 验证业绩目标访问和浏览占比
+     * @param $fields
+     * @param $params
+     * @param int $check_type 1验证是否没有传该指标，2验证所传指标是否有排序
+     * @return bool
+     */
+    protected function checkPerformanceReportRate($fields,$params,$check_type = 1){
+
+        $new_performance_report_target_arr  = ['goods_buyer_visit_browser_rate','goods_buyer_visit_mobile_rate','goods_views_browser_rate','goods_views_mobile_rate'];
+        $is_true = true;
+        if ($check_type == 1){
+            foreach ($new_performance_report_target_arr as $item){
+
+                $is_true = $is_true && empty($fields[$item]);
+
+            }
+            return $is_true;
+        }
+
+
+        if ($check_type == 2){
+
+            foreach ($new_performance_report_target_arr as $item){
+
+                $is_true = $is_true && $params['sort_target'] != $item && $params['force_sort'] != $item ;
+
+            }
+            return $is_true;
+
+        }
+
+        return false;
+
+
+    }
+
     public function getGoodsViewsVisitRate($lists, $fields, $datas,$isMysql = false,$table = ''){
-        if ((empty($fields['goods_views_rate']) && empty($fields['goods_buyer_visit_rate']))){
+        if ((empty($fields['goods_views_rate']) && empty($fields['goods_buyer_visit_rate'])) && $this->checkPerformanceReportRate($fields,$datas,1)){
             return array();
         }
 
@@ -13600,7 +13636,6 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
                     $lists[$key]['goods_views_rate'] = 0;
                 }
             }
-
             $rate_field_arr = array(
                 'goods_buyer_visit_rate'    => array('molecule'=>'goods_visitors','denominator'=>'total_user_sessions'),
                 'goods_views_rate'          => array('molecule'=>'goods_views_number','denominator'=>'total_views_number'),
