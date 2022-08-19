@@ -13695,7 +13695,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
                         foreach ($rate_field_arr as $rate_field_key => $rate_field_value) {
                             if (!empty($fields[$rate_field_key])){
-                                if (!empty($total_user_sessions_views[$list['channel_id']][$list['time']][$rate_field_value['denominator']])){
+                                if (!empty($total_user_sessions_views[$list['channel_id']][$list['time']][$rate_field_value['denominator']]) && isset($total_user_sessions_views[$list['channel_id']][$list['time']][$rate_field_value['denominator']]) && $total_user_sessions_views[$list['channel_id']][$list['time']][$rate_field_value['denominator']] > 0){
                                     $lists[$key][$rate_field_key] = $list[$rate_field_value['molecule']] / $total_user_sessions_views[$list['channel_id']][$list['time']][$rate_field_value['denominator']];
                                 }else{
                                     $lists[$key][$rate_field_key] = 0;
@@ -13722,7 +13722,7 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
 
                         foreach ($rate_field_arr as $rate_field_key => $rate_field_value) {
                             if (!empty($fields[$rate_field_key])){
-                                if (!empty($total_user_sessions_views[$list['time']][$rate_field_value['denominator']])){
+                                if (!empty($total_user_sessions_views[$list['time']][$rate_field_value['denominator']]) && isset($total_user_sessions_views[$list['time']][$rate_field_value['denominator']]) && $total_user_sessions_views[$list['time']][$rate_field_value['denominator']] > 0){
                                     $lists[$key][$rate_field_key] = $list[$rate_field_value['molecule']] / $total_user_sessions_views[$list['time']][$rate_field_value['denominator']];
                                 }else{
                                     $lists[$key][$rate_field_key] = 0;
