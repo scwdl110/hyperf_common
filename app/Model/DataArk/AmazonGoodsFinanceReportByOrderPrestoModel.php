@@ -13627,13 +13627,25 @@ COALESCE(goods.goods_operation_pattern ,2) AS goods_operation_pattern
         }
 
         foreach ($lists as $key => $list){
-            if (  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1){
+            if (  $datas['show_type'] == 2 && $datas['sort_target'] != 'goods_views_rate' && $datas['sort_target'] != 'goods_buyer_visit_rate' && $datas['force_sort'] != 'goods_views_rate' && $datas['force_sort'] != 'goods_buyer_visit_rate' && !$datas['is_use_goods_view_sort'] && $datas['is_median'] != 1 && $this->checkPerformanceReportRate($fields,$datas,2)){
 
                 if (!empty($fields['goods_buyer_visit_rate'])){
                     $lists[$key]['goods_buyer_visit_rate'] = 0;
                 }
                 if (!empty($fields['goods_views_rate'])){
                     $lists[$key]['goods_views_rate'] = 0;
+                }
+                if (!empty($fields['goods_buyer_visit_browser_rate'])){
+                    $lists[$key]['goods_buyer_visit_browser_rate'] = 0;
+                }
+                if (!empty($fields['goods_buyer_visit_mobile_rate'])){
+                    $lists[$key]['goods_buyer_visit_mobile_rate'] = 0;
+                }
+                if (!empty($fields['goods_views_browser_rate'])){
+                    $lists[$key]['goods_views_browser_rate'] = 0;
+                }
+                if (!empty($fields['goods_views_mobile_rate'])){
+                    $lists[$key]['goods_views_mobile_rate'] = 0;
                 }
             }
             $rate_field_arr = array(
