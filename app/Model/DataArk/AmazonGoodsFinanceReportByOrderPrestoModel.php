@@ -3114,8 +3114,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             $goods_views_rate = '0';
                         }
                     }
-                    if (in_array('goods_views_number_mobile', $targets)){
-                        if (intval($total_views_numbers['total_views_number']) > 0) {
+                    if (in_array('goods_views_mobile_rate', $targets)){
+                        if (intval($total_views_numbers['total_mobile_views_number']) > 0) {
                             $goods_mobile_views_rate = " SUM( report.byorderitem_reserved_field104 ) * 1.0000 / round(" . intval($total_views_numbers['total_mobile_views_number']) .', 2)';
                         }else{
                             $goods_mobile_views_rate = '0';
@@ -3172,6 +3172,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                             }
                         }else{
                             if (!empty($total_user_sessions_views)){
+                                
+                                
+
                                 if (intval($total_user_sessions_views['total_views_number']) > 0) {
                                     $goods_views_rate = " SUM( report.byorder_number_of_visits ) * 1.0000 / round(" . intval($total_user_sessions_views['total_views_number']) .', 2)';
                                 }
