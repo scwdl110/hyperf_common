@@ -650,6 +650,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         array $rateInfo = [],
         int $day_param = 1
     ) {
+        print_r('aaaaaa');
         $datas['method'] = "getListByGoods";
         $this->dws_user_id_mod = getUserIdMod($datas['user_id']);
         $this->handleTargets($datas, 1);
@@ -729,6 +730,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($fields)) {
             return [];
         }
+
         if(isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1 && $datas['is_month_table'] == 0 && !$isMysql){
             //开放平台日报直接读取数据库
             return $this->getOpenPlatFormGoodsDay($datas,$fields,$limit);
