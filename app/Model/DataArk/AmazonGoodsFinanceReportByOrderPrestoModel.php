@@ -730,12 +730,13 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         if (empty($fields)) {
             return [];
         }
-
+        print_r('w1');
         if(isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1 && $datas['is_month_table'] == 0 && !$isMysql){
             //开放平台日报直接读取数据库
+            print_r('w2');
             return $this->getOpenPlatFormGoodsDay($datas,$fields,$limit);
-
         }
+        print_r('w3');
         $ym_where = $this->getYnWhere($datas['max_ym'] , $datas['min_ym'] ) ;
 
         if ($datas['show_type'] != 2 && !$isMysql && $datas['show_type'] > 0 && $datas['is_new_index'] == 1 && in_array($this->time_periods_field['key'],array('fba_sales_refund','sales_refund'))){
@@ -1641,6 +1642,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
      * @param $limit
      */
     private function getOpenPlatFormGoodsDay($params,$fields,$limit){
+        print_r('bbbbbbbbbbbbbbbbbbbb');
 
         $user_id    = intval($params['user_id'] ?? 0);
         $channel_id = intval($params['operation_channel_ids'] ?? 0);
@@ -1781,6 +1783,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             foreach ($return_data as $key => $datum){
                 //人民币成本需要转汇率
+                print_r($datum);
+                print_r($rate);
                 if($datum['sku']=='BF2-BK1-39'){
                     print_r($datum);
                     print_r($rate);
