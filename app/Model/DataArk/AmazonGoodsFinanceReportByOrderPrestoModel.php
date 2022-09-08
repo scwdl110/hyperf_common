@@ -1781,6 +1781,10 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             foreach ($return_data as $key => $datum){
                 //人民币成本需要转汇率
+                if($datum['sku']=='BF2-BK1-39'){
+                    print_r($datum);
+                    print_r($rate);
+                }
                 if ($datum['item_reserved_field4'] == '201' && isset($rate[$datum['site_id']])){
                     $fba_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fba_refund_purchase_cost_rate'];
                     $fbm_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fbm_refund_purchase_cost_rate'];;
