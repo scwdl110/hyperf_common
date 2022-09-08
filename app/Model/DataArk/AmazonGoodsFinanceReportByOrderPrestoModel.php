@@ -731,6 +731,9 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
             return [];
         }
         print_r('w1');
+        print_r('w1'.$datas['is_open_platform']);
+        print_r('w1'.$datas['is_month_table']);
+        print_r('w1'.$isMysql);
         if(isset($datas['is_open_platform']) && $datas['is_open_platform'] == 1 && $datas['is_month_table'] == 0 && !$isMysql){
             //开放平台日报直接读取数据库
             print_r('w2');
