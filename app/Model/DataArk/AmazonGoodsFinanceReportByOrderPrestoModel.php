@@ -1730,7 +1730,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
         $sql_field = str_replace("report.report.tax","report.tax",$sql_field);
         $sql_field = str_replace("{:RMBRATE}","1",$sql_field);
 
-        $sql_field = "item.reserved_field4 as item_reserved_field4,concat(cast(max(report.myear) as char), '-', cast(max(report.mmonth) as char), '-', cast(max(report.mday) as char)) as  time,amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
+        $sql_field = "item.reserved_field4 as item_reserved_field4,item.reserved_field93 as item_reserved_field93,item.reserved_field94 as item_reserved_field94,concat(cast(max(report.myear) as char), '-', cast(max(report.mmonth) as char), '-', cast(max(report.mday) as char)) as  time,amazon_goods.sku as sku,report.channel_id as channel_id,report.site_id as site_id,".$sql_field;
 
         $table = "f_amazon_goods_finance_report{$table_pre}_001 AS report JOIN f_amazon_goods_finance_001 AS amazon_goods ON report.amazon_goods_id = amazon_goods.id LEFT JOIN f_amazon_goods_finance_report{$table_pre}_item_001 as item on report.id = item.{$table_on} and report.user_id = item.user_id and report.channel_id = item.channel_id {$left_table}";
 
@@ -1786,13 +1786,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
             foreach ($return_data as $key => $datum){
                 //人民币成本需要转汇率
-                print_r($datum);
-                print_r($rate);
-                if($datum['sku']=='BF2-BK1-39'){
-                    print_r($datum);
-                    print_r($rate);
-                }
-                if ($datum['item_reserved_field4'] == '201' && isset($rate[$datum['site_id']])){
+                if (($datum['item_reserved_field4'] == '201' || $datum['item_reserved_field93'] >= 201 || $datum['item_reserved_field94'] >= 201) && isset($rate[$datum['site_id']])) {
                     $fba_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fba_refund_purchase_cost_rate'];
                     $fbm_purchase_refund_rate     = empty($finance_setting) ? 1 : $finance_setting['fbm_refund_purchase_cost_rate'];;
                     $remove_purchase_refund_rate  = empty($finance_setting) ? 1 : $finance_setting['removel_purchase_cost_rate'];;
@@ -1802,34 +1796,38 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                     $remove_logistics_refund_rate = empty($finance_setting) ? 1 : $finance_setting['removel_logistics_cost_rate'];;
 
 
+                    //财务成本费率
+                    $site_rate_purchasing = isset($rate[$datum['site_id']]['rate']) && ($datum['item_reserved_field4']==201 || $datum['item_reserved_field93'] >= 201)?$rate[$datum['site_id']]['rate']:1;
+                    //新版财务物流
+                    $site_rate_logistics = isset($rate[$datum['site_id']]['rate']) && ($datum['item_reserved_field4']==201 || $datum['item_reserved_field94'] >= 201)?$rate[$datum['site_id']]['rate']:1;
 
-                    $site_rate = isset($rate[$datum['site_id']]['rate'])?$rate[$datum['site_id']]['rate']:1;
+
                     $cost_profit_profit     = $datum['cost_profit_profit'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
                     $cost_profit_total_pay  = $datum['cost_profit_total_pay'] - $datum['purchase_logistics_purchase_cost'] - $datum['purchase_logistics_logistics_cost'];
 
                     //新版财务成本
-                    $datum['fba_purchasing_cost_only'] = $datum['fba_purchasing_cost_only'] * $site_rate;
-                    $datum['fbm_purchasing_cost_only'] = $datum['fbm_purchasing_cost_only'] * $site_rate;
-                    $datum['purchasing_cost_only'] = $datum['purchasing_cost_only'] * $site_rate;
-                    $datum['fba_refund_purchasing_cost'] = $datum['fba_refund_purchasing_cost'] * $fba_purchase_refund_rate * $site_rate;
-                    $datum['fbm_refund_purchasing_cost'] = $datum['fbm_refund_purchasing_cost'] * $fbm_purchase_refund_rate * $site_rate;
+                    $datum['fba_purchasing_cost_only'] = $datum['fba_purchasing_cost_only'] * $site_rate_purchasing;
+                    $datum['fbm_purchasing_cost_only'] = $datum['fbm_purchasing_cost_only'] * $site_rate_purchasing;
+                    $datum['purchasing_cost_only'] = $datum['purchasing_cost_only'] * $site_rate_purchasing;
+                    $datum['fba_refund_purchasing_cost'] = $datum['fba_refund_purchasing_cost'] * $fba_purchase_refund_rate * $site_rate_purchasing;
+                    $datum['fbm_refund_purchasing_cost'] = $datum['fbm_refund_purchasing_cost'] * $fbm_purchase_refund_rate * $site_rate_purchasing;
                     $datum['refund_purchasing_cost']     = $datum['fba_refund_purchasing_cost'] +  $datum['fbm_refund_purchasing_cost'];
-                    $datum['inventory_adjustment_purchasing_cost'] = $datum['inventory_adjustment_purchasing_cost'] * $site_rate ;
-                    $datum['remove_purchasing_cost'] = $datum['remove_purchasing_cost'] * $remove_purchase_refund_rate * $site_rate;
+                    $datum['inventory_adjustment_purchasing_cost'] = $datum['inventory_adjustment_purchasing_cost'] * $site_rate_purchasing ;
+                    $datum['remove_purchasing_cost'] = $datum['remove_purchasing_cost'] * $remove_purchase_refund_rate * $site_rate_purchasing;
                     $datum['other_inventory_purchasing_cost']     = $datum['inventory_adjustment_purchasing_cost'] +  $datum['remove_purchasing_cost'];
                     $purchase_logistics_purchase_cost   = $datum['purchasing_cost_only'] + $datum['refund_purchasing_cost'] + $datum['other_inventory_purchasing_cost'];
 
                     $datum['purchase_logistics_purchase_cost'] = $purchase_logistics_purchase_cost;
 
                     //新版财务物流
-                    $datum['fba_logistics_cost'] = $datum['fba_logistics_cost'] * $site_rate;
-                    $datum['fbm_logistics_cost'] = $datum['fbm_logistics_cost'] * $site_rate;
-                    $datum['logistics_cost_only'] = $datum['logistics_cost_only'] * $site_rate;
-                    $datum['fba_refund_logistics_cost'] = $datum['fba_refund_logistics_cost'] * $fba_logistics_refund_rate * $site_rate;
-                    $datum['fbm_refund_logistics_cost'] = $datum['fbm_refund_logistics_cost'] * $fbm_logistics_refund_rate * $site_rate;
+                    $datum['fba_logistics_cost'] = $datum['fba_logistics_cost'] * $site_rate_logistics;
+                    $datum['fbm_logistics_cost'] = $datum['fbm_logistics_cost'] * $site_rate_logistics;
+                    $datum['logistics_cost_only'] = $datum['logistics_cost_only'] * $site_rate_logistics;
+                    $datum['fba_refund_logistics_cost'] = $datum['fba_refund_logistics_cost'] * $fba_logistics_refund_rate * $site_rate_logistics;
+                    $datum['fbm_refund_logistics_cost'] = $datum['fbm_refund_logistics_cost'] * $fbm_logistics_refund_rate * $site_rate_logistics;
                     $datum['refund_logistics_cost']     = $datum['fba_refund_logistics_cost'] +  $datum['fbm_refund_logistics_cost'];
-                    $datum['inventory_adjustment_logistics_cost'] = $datum['inventory_adjustment_logistics_cost'] * $site_rate ;
-                    $datum['remove_purchasing_logistics_cost'] = $datum['remove_purchasing_logistics_cost'] * $remove_logistics_refund_rate * $site_rate;
+                    $datum['inventory_adjustment_logistics_cost'] = $datum['inventory_adjustment_logistics_cost'] * $site_rate_logistics ;
+                    $datum['remove_purchasing_logistics_cost'] = $datum['remove_purchasing_logistics_cost'] * $remove_logistics_refund_rate * $site_rate_logistics;
                     $datum['other_inventory_logistics_cost']     = $datum['inventory_adjustment_logistics_cost'] +  $datum['remove_purchasing_logistics_cost'];
                     $purchase_logistics_logistics_cost  = $datum['logistics_cost_only'] + $datum['refund_logistics_cost'] + $datum['other_inventory_logistics_cost'];
                     $datum['purchase_logistics_logistics_cost'] = $purchase_logistics_logistics_cost;
@@ -1843,6 +1841,8 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
 
                 }
                 unset($datum['item_reserved_field4']);
+                unset($datum['item_reserved_field93']);
+                unset($datum['item_reserved_field94']);
                 $return_data[$key] = $datum;
 
             }
