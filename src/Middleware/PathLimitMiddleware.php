@@ -132,6 +132,7 @@ class PathLimitMiddleware implements MiddlewareInterface
 
         //现在的参数
         $paramKey = "center_path_limit_current_param_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
+        $countKey = "center_path_limit_check_count_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
         $currentParam = $redis->get($paramKey);
         if($currentParam===false){
             $currentCount = $apiCount['burst'];
@@ -143,15 +144,20 @@ class PathLimitMiddleware implements MiddlewareInterface
         }else{
             $currentParam = json_decode($currentParam, true);
             $currentCount = floor(($time-$currentParam['time'])*$apiCount['rate']+$currentParam['burst']);
-            if($currentCount > $apiCount['burst']){
+            $count = $redis->get($countKey)?:0;
+            if($currentCount - $count > $apiCount['burst']){
+                $currentParam = [
+                    'time' => $time,
+                    'burst' => $apiCount['burst'],
+                ];
+                $redis->set($paramKey, json_encode($currentParam), 3600);
+                $redis->del($countKey);
                 $currentCount = $apiCount['burst'];
             }
         }
-
-
-
+        
         //现在访问的次数
-        $countKey = "center_path_limit_check_count_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
+        //$countKey = "center_path_limit_check_count_" .md5($project."_".$apiCount['method']."_".$path."_".$merchantId);
         $checkCount = $redis->incr($countKey);
         if ($checkCount > $currentCount) {
             //中间必须完全不访问才会增加计数
@@ -161,8 +167,10 @@ class PathLimitMiddleware implements MiddlewareInterface
                     'burst' => 0,
                 ];
                 $redis->set($paramKey, json_encode($currentParam), 3600);
+                $redis->del($countKey);
+            } else {
+                $checkCount = $redis->dec($countKey);
             }
-            $redis->del($countKey);
             return [
                 'code' => 0,
                 'msg' => '超过访问次数,请稍后尝试',
