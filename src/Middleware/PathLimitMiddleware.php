@@ -155,12 +155,13 @@ class PathLimitMiddleware implements MiddlewareInterface
         $checkCount = $redis->incr($countKey);
         if ($checkCount > $currentCount) {
             //中间必须完全不访问才会增加计数
-            $currentParam = [
-                'time' => $time,
-                'burst' => 0,
-            ];
-            $redis->set($paramKey, json_encode($currentParam), 3600);
-
+            if($currentParam['burst'] != 0) {
+                $currentParam = [
+                    'time' => $time,
+                    'burst' => 0,
+                ];
+                $redis->set($paramKey, json_encode($currentParam), 3600);
+            }
             $redis->del($countKey);
             return [
                 'code' => 0,
