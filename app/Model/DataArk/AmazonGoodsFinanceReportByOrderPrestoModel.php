@@ -2804,6 +2804,7 @@ class AmazonGoodsFinanceReportByOrderPrestoModel extends AbstractPrestoModel
                 if (isset($value['all_sku_field'])){
                     unset($lists[$key]['all_sku_field']);
                 }
+                print_r($value);
                 $fields_tmp = $value[$group_fields_tmp]."_".$value['channel_id'].($value['time']);
 
                 if (isset($rankData_tmp[$fields_tmp])){
